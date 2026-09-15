@@ -68,6 +68,12 @@ def _pop(sprite, up=1.15, down=1.0, dur=140):
     return Sequence(Parallel(Tween(sprite, "scale", up, dur)), Parallel(Tween(sprite, "scale", down, dur)))
 
 
+def _sound(board, name: str, volume: float = 0.5) -> Call:
+    """A Call node that plays a sound effect; safe to drop anywhere in a
+    beat tree (AssetCache.play is a silent no-op if the file is missing)."""
+    return Call(lambda: board.assets.play(name, volume))
+
+
 # ------------------------------------------------------------------ draw ----
 
 
@@ -118,8 +124,9 @@ def _h_mulligan(ctx: Ctx):
 def _h_choose_house(ctx: Ctx):
     pid = ctx.data["player"]
     house = ctx.data["house"]
-    label = "You" if pid == ctx.board.viewer else "Your opponent"
-    ctx.board.banners.append(Banner(f"{label} chooses {house}", color=S.HOUSE_COLORS.get(house, S.AEMBER), life_ms=S.T_BANNER))
+    label = ctx.board.player_label(pid)
+    verb = "choose" if ctx.board.is_second_person(pid) else "chooses"
+    ctx.board.banners.append(Banner(f"{label} {verb} {house}", color=S.HOUSE_COLORS.get(house, S.AEMBER), life_ms=S.T_BANNER))
     return Delay(220)
 
 
@@ -148,8 +155,11 @@ def _h_forge_key(ctx: Ctx):
 
     def fx():
         ctx.board.particles.emit_burst_ring(x, y, color=S.KEY_GOLD, n=26)
-        who = "You" if pid == ctx.board.viewer else "Your opponent"
-        ctx.board.banners.append(Banner("Key Forged!", f"{who} now ha{'ve' if pid == ctx.board.viewer else 's'} {ctx.data['keys']} key(s)", color=S.KEY_GOLD, life_ms=S.T_KEY_FORGE))
+        who = ctx.board.player_label(pid)
+        verb = "have" if ctx.board.is_second_person(pid) else "has"
+        subtext = f"{who} now {verb} {ctx.data['keys']} key(s)"
+        ctx.board.banners.append(Banner("Key Forged!", subtext, color=S.KEY_GOLD, life_ms=S.T_KEY_FORGE))
+        ctx.board.assets.play("key_forge", 0.6)
 
     return Sequence(Call(fx), Delay(S.T_KEY_FORGE * 0.6))
 
@@ -166,6 +176,7 @@ def _h_play_card(ctx: Ctx):
         stage_x = S.PLAY_X + S.PLAY_W / 2
         stage_y = (S.BAND_PROMPT[0] + S.BAND_YOUR_CREATURES[0]) / 2
         return Sequence(
+            _sound(ctx.board, "card_move"),
             Parallel(
                 Tween(sprite, "x", stage_x, S.T_PLAY_ACTION_FLY, ease_out_back),
                 Tween(sprite, "y", stage_y, S.T_PLAY_ACTION_FLY, ease_out_back),
@@ -175,7 +186,7 @@ def _h_play_card(ctx: Ctx):
             Delay(S.T_PLAY_ACTION_HOLD),
         )
     beat = _move_to(ctx.board, ctx.after, iid, S.T_PLAY_MOVE, ease_out_back)
-    return beat
+    return Sequence(_sound(ctx.board, "card_move"), beat) if beat else _sound(ctx.board, "card_move")
 
 
 @handler("discard_from_hand")
@@ -260,6 +271,7 @@ def _h_reap(ctx: Ctx):
     def fx():
         ctx.board.particles.emit_sparks(sprite.x, sprite.y, n=8)
         ctx.board.floaters.append(FloatingText(sprite.x, sprite.y - 24, "+1 Æmber", S.AEMBER))
+        ctx.board.assets.play("gain", 0.4)
 
     return Sequence(Call(fx), _pop(sprite))
 
@@ -297,6 +309,7 @@ def _h_damage(ctx: Ctx):
 
     def fx():
         ctx.board.floaters.append(FloatingText(sprite.x, sprite.y - 20, f"-{amount}", S.DANGER, big=True))
+        ctx.board.assets.play("damage", 0.5)
 
     shake = Sequence(
         Parallel(Tween(sprite, "x", lambda: ox + 6, 55)),
@@ -329,6 +342,7 @@ def _h_destroyed(ctx: Ctx):
 
     def fx():
         ctx.board.particles.emit_embers(ox, oy, n=16)
+        ctx.board.assets.play("destroy", 0.55)
 
     shrink = Parallel(Tween(sprite, "scale", 0.15, S.T_DESTROY), Tween(sprite, "alpha", 40.0, S.T_DESTROY))
     move = _move_to(ctx.board, ctx.after, iid, S.T_DESTROY * 0.6)
@@ -348,6 +362,7 @@ def _h_gain(ctx: Ctx):
     def fx():
         ctx.board.particles.emit_sparks(x, y, n=6)
         ctx.board.floaters.append(FloatingText(x, y - 14, f"+{amount} Æ", S.AEMBER))
+        ctx.board.assets.play("gain", 0.35)
 
     return Call(fx)
 

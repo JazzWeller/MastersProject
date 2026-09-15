@@ -291,7 +291,20 @@ Each milestone ends in a runnable state.
 
 ---
 
-## 10. Open questions for review
-1. Is **pygame-ce** acceptable as the one third-party dependency, or should the GUI stay standard-library only (tkinter, with much weaker animation)?
-2. Are the §4 engine additions OK to make inside `Code/Non-GUI/keyforge/`, or should the GUI find cards by diffing snapshots only (works, but duplicate names like Mother ×2 animate less precisely)?
-3. Should downloaded fonts, sounds, and icons be committed to the repo, or fetched by a one-time `python tools/fetch_assets.py` script?
+## 10. Decisions log (formerly "open questions" — all resolved)
+1. **pygame-ce** is the one third-party dependency. Approved.
+2. The §4 engine additions were made directly in `Code/Non-GUI/keyforge/` (instance ids on log events, `CardDef.image`, `PlayerView.active_effects`), all additive — the 74 engine tests still pass, plus a new one (`test_log_iids.py`) guarding the addition itself.
+3. Fonts (Cinzel, Inter — Google Fonts, OFL) are vendored under `assets/fonts/`. Icons are drawn procedurally in `gui/assets.py`, so nothing to fetch or credit. Sound effects (`assets/sounds/`) are procedurally synthesized by `tools/generate_sounds.py` from the standard library alone, rather than downloaded — see `CREDITS.md`.
+
+## 11. Delivered vs. the plan
+The GUI was implemented in two passes. What shipped, and where it differs
+from this document, is tracked in `Code/GUI/README.md` under "Notable
+simplifications" — in short: `gui/decision/panel.py` unifies §6's
+per-`DecisionKind` widgets into one card-click-or-Options-modal flow rather
+than nine separate files (still answers every decision, including a
+guaranteed fallback); the opening deal doesn't animate; a card's face syncs
+at the start of a move rather than mid-flight; the hot-seat switch is
+instant rather than a cross-fade. Small features beyond the original
+plan: a decklist viewer (**D**, per the spec's "view either deck's full
+list at any time"), an in-game control-reference overlay (**H**/**/**), a
+mute toggle (**M**), and spectate's "reveal hands" toggle (**R**).

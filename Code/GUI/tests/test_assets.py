@@ -54,6 +54,17 @@ class TestAssets(unittest.TestCase):
         self.assertEqual(self.assets.chain_icon(18).get_size(), (18, 18))
         self.assertEqual(self.assets.aember_gem(16).get_size(), (16, 16))
 
+    def test_sound_effects_load_and_play_without_crashing(self):
+        expected = {"click", "card_move", "damage", "destroy", "key_forge", "gain"}
+        self.assertTrue(expected.issubset(self.assets._sounds.keys()), self.assets._sounds.keys())
+        for name in expected:
+            self.assets.play(name)  # must not raise, even under a dummy audio driver
+        self.assets.play("does-not-exist")  # silently ignored
+
+        self.assets.muted = True
+        self.assets.play("click")  # muted: still must not raise
+        self.assets.muted = False
+
     def test_fonts_load(self):
         cinzel = self.assets.font("cinzel", 24)
         inter = self.assets.font("inter", 14)

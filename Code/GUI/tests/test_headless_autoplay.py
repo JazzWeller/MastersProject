@@ -21,7 +21,7 @@ EPSILON = 0.5
 class TestHeadlessAutoplay(unittest.TestCase):
     def test_games_run_and_stay_in_sync(self):
         assets = AssetCache()
-        for seed in range(8):
+        for seed in range(20):
             game = Game(GameConfig(decks=("fignor", "igor"), seed=seed, max_turns=30))
             bots = {1: RandomBot(seed=seed), 2: RandomBot(seed=seed + 500)}
             board = Board(assets, viewer=1)

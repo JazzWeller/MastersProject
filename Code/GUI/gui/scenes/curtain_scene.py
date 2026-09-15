@@ -27,6 +27,7 @@ class CurtainScene(Scene):
     def handle_event(self, event: pygame.event.Event) -> None:
         self.button.update_hover(pygame.mouse.get_pos())
         if self.button.clicked(event):
+            self.app.assets.play("click", 0.3)
             self._continue()
         elif event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE):
             self._continue()

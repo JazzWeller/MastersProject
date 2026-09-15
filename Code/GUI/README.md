@@ -43,12 +43,18 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
   to browse its contents, where that's allowed (discard and purged are
   always public; archive only for its owner; the deck's order is always
   hidden).
+- **D** opens either player's full 36-card decklist, unordered, as the
+  spec allows at any time. **H** (or **/**) shows the control list
+  in-game. **M** mutes/unmutes sound.
 - **Space** skips the current animation; **1/2/3** set animation speed to
   0.5x/1x/2x; **F11** toggles fullscreen; **F3** shows the frame rate;
   **Esc** backs out to the previous screen.
 - **Hot-seat** (human vs. human): a "Pass to Player N" screen hides the
   board between turns whenever the pending decision belongs to the other
   player.
+- **Spectating** (bot vs. bot, no human seat): players are addressed as
+  "Player 1"/"Player 2" throughout rather than "you", and **R** reveals
+  both hands face up.
 
 ## Layout
 
@@ -110,6 +116,9 @@ python -m unittest discover -s tests
   events** (not direct engine calls) for human-vs-bot, bot-vs-human, and
   human-vs-human hot-seat, plus menu → game and game-over → rematch/menu
   navigation.
+- `test_game_scene_features.py` — the decklist viewer, the help overlay,
+  spectate's "reveal hands" toggle, and the you/opponent vs. "Player N"
+  phrasing switch.
 
 All run headless (`SDL_VIDEODRIVER=dummy`, set automatically by
 `tests/helpers.py`) so they need no display.
@@ -126,5 +135,3 @@ All run headless (`SDL_VIDEODRIVER=dummy`, set automatically by
   cleanly in practice and was far simpler to get right.
 - The hot-seat viewer switch is instant (no cross-fade) once the "I'm
   Ready" curtain is dismissed.
-- Sound effects are wired up (`gui/assets.py` loads anything it finds in
-  `assets/sounds/`) but no files are bundled yet — see `CREDITS.md`.

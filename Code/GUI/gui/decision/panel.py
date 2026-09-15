@@ -64,6 +64,7 @@ class DecisionPanel:
         self.modal_scroll = 0
 
         self._scoped_card_iid: Optional[int] = None  # set when the modal was opened by clicking one card
+        self._board = None  # set by on_enter; used only to play a click sound on picks
 
     # --------------------------------------------------------------- setup ----
 
@@ -74,6 +75,7 @@ class DecisionPanel:
         self.result = None
         self._scoped_card_iid = None
         self.card_option_map = {}
+        self._board = board
 
         for opt in decision.options:
             card = _option_card(opt)
@@ -112,6 +114,8 @@ class DecisionPanel:
         return picked_list[0]
 
     def _pick(self, opt: Any) -> None:
+        if self._board is not None:
+            self._board.assets.play("click", 0.3)
         d = self.decision
         if d.kind == DecisionKind.ORDER_EFFECTS:
             if opt in self.picked:

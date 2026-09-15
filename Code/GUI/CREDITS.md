@@ -31,7 +31,11 @@ or attribute and nothing that can go missing at runtime.
 
 ## Sound
 
-Not included in this pass. `gui/settings.py` points `SOUNDS_DIR` at
-`assets/sounds/`; `gui/assets.py` loads whatever `.ogg`/`.wav` files it
-finds there by name and silently no-ops for any that are missing, so sound
-can be dropped in later (e.g. Kenney.nl CC0 packs) without a code change.
+The six short effects in `assets/sounds/` (`click`, `card_move`, `damage`,
+`destroy`, `key_forge`, `gain`) are original, procedurally synthesized by
+`tools/generate_sounds.py` from Python's standard library alone (`wave` +
+`math`) -- nothing downloaded, nothing to attribute. Re-run that script to
+regenerate them, or replace any file with something nicer; `gui/assets.py`
+loads whatever `.ogg`/`.wav` files it finds in `assets/sounds/` by name and
+silently no-ops for any that are missing, so a swap needs no code change.
+Press **M** in-game to mute.

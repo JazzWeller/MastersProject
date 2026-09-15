@@ -76,17 +76,29 @@ def describe_option(opt: Any, decision=None, view=None) -> str:
 _HIDDEN_ZONE_EVENTS = {"archive"}  # events that name a card moving into a hidden zone
 
 
-def describe_log_event(event, viewer: int) -> Optional[str]:
+def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional[str]:
     """A short sentence for the log panel. Redacts a card name when the
-    event moves a card into a zone that's hidden from `viewer`."""
+    event moves a card into a zone that's hidden from `viewer`. When
+    `spectating` (bot vs. bot, no human seat), nobody is "you" -- every
+    player is addressed in the third person as "Player N" instead."""
     k = event.kind
     d = event.data
 
+    def third_person(pid) -> bool:
+        return spectating or pid != viewer
+
     def who(pid):
+        if spectating:
+            return f"Player {pid}"
         return "You" if pid == viewer else "Your opponent"
 
     def whose(pid):
+        if spectating:
+            return f"Player {pid}'s"
         return "your" if pid == viewer else "their"
+
+    def s(pid):
+        return "s" if third_person(pid) else ""
 
     def card_name(default="a card"):
         if k in _HIDDEN_ZONE_EVENTS and d.get("owner") is not None and d.get("owner") != viewer:
@@ -96,41 +108,42 @@ def describe_log_event(event, viewer: int) -> Optional[str]:
         return d.get("card", default)
 
     if k == "mulligan":
-        return f"{who(d['player'])} mulligan{'s' if d['player'] != viewer else ''} their hand."
+        return f"{who(d['player'])} mulligan{s(d['player'])} {whose(d['player'])} hand."
     if k == "forge_key":
-        return f"{who(d['player'])} forge{'s' if d['player'] != viewer else ''} a key! ({d['keys']}/3)"
+        return f"{who(d['player'])} forge{s(d['player'])} a key! ({d['keys']}/3)"
     if k == "choose_house":
-        return f"{who(d['player'])} choose{'s' if d['player'] != viewer else ''} house {d['house']}."
+        return f"{who(d['player'])} choose{s(d['player'])} house {d['house']}."
     if k == "take_archive":
-        return f"{who(d['player'])} take{'s' if d['player'] != viewer else ''} {whose(d['player'])} archive into hand."
+        return f"{who(d['player'])} take{s(d['player'])} {whose(d['player'])} archive into hand."
     if k == "discard_from_hand":
-        return f"{who(d['player'])} discard{'s' if d['player'] != viewer else ''} {d['card']}."
+        return f"{who(d['player'])} discard{s(d['player'])} {d['card']}."
     if k == "play_card":
-        return f"{who(d['player'])} play{'s' if d['player'] != viewer else ''} {d['card']}."
+        return f"{who(d['player'])} play{s(d['player'])} {d['card']}."
     if k == "use_action":
-        return f"{who(d['player'])} use{'s' if d['player'] != viewer else ''} {d['card']}'s Action."
+        return f"{who(d['player'])} use{s(d['player'])} {d['card']}'s Action."
     if k == "use_omni":
-        return f"{who(d['player'])} use{'s' if d['player'] != viewer else ''} {d['card']}'s Omni."
+        return f"{who(d['player'])} use{s(d['player'])} {d['card']}'s Omni."
     if k == "reap":
-        return f"{who(d['player'])} reap{'s' if d['player'] != viewer else ''} with {d['card']}."
+        return f"{who(d['player'])} reap{s(d['player'])} with {d['card']}."
     if k == "fight":
         return f"{d['attacker']} fights {d['target']}."
     if k == "gain":
-        return f"{who(d['player'])} gain{'s' if d['player'] != viewer else ''} {d['amount']} Æmber."
+        return f"{who(d['player'])} gain{s(d['player'])} {d['amount']} Æmber."
     if k == "steal":
-        return f"{who(d['frm'])} loses {d['amount']} Æmber to {who(d['to']).lower()}."
+        to_txt = who(d["to"]) if spectating else who(d["to"]).lower()
+        return f"{who(d['frm'])} lose{s(d['frm'])} {d['amount']} Æmber to {to_txt}."
     if k == "capture":
         return f"{d['card']} captures {d['amount']} Æmber."
     if k == "draw":
-        return f"{who(d['player'])} draw{'s' if d['player'] != viewer else ''} {d['n']} card(s)."
+        return f"{who(d['player'])} draw{s(d['player'])} {d['n']} card(s)."
     if k == "reshuffle":
-        return f"{who(d['player'])} shuffle{'s' if d['player'] != viewer else ''} their discard pile into their deck."
+        return f"{who(d['player'])} shuffle{s(d['player'])} {whose(d['player'])} discard pile into {whose(d['player'])} deck."
     if k == "archive":
-        return f"{who(d['player'])} archive{'s' if d['player'] != viewer else ''} {card_name()}."
+        return f"{who(d['player'])} archive{s(d['player'])} {card_name()}."
     if k == "discard":
         return f"{d.get('card', 'A card')} is discarded."
     if k == "discard_random":
-        return f"{who(d['player'])} discard{'s' if d['player'] != viewer else ''} a card at random."
+        return f"{who(d['player'])} discard{s(d['player'])} a card at random."
     if k == "purge":
         return f"{d['card']} is purged."
     if k == "damage":

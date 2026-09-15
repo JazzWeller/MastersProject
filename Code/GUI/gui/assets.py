@@ -41,6 +41,7 @@ class AssetCache:
         self._icons: Dict[Tuple[str, int], pygame.Surface] = {}
         self._sounds: Dict[str, "pygame.mixer.Sound"] = {}
         self._missing_art_logged = set()
+        self.muted = False
         self._load_sounds()
 
     # ------------------------------------------------------------ fonts ----
@@ -168,20 +169,38 @@ class AssetCache:
         return surf
 
     def key_icon(self, size: int, forged: bool) -> pygame.Surface:
+        """Forged: solid bright gold with a faint glow halo. Unforged: a
+        dim, fully hollow outline -- deliberately drawn as different shapes
+        (not just different colors of the same fill) so the two states stay
+        legible even at HUD size."""
         key = (f"key:{forged}", size)
         cached = self._icons.get(key)
         if cached is not None:
             return cached
         surf = pygame.Surface((size, size), pygame.SRCALPHA)
-        color = S.KEY_GOLD if forged else S.KEY_EMPTY
         c = size // 2
-        r = int(size * 0.28)
-        pygame.draw.circle(surf, color, (c, int(size * 0.32)), r, width=(0 if forged else max(2, size // 12)))
-        shaft_w = max(2, size // 10)
-        pygame.draw.rect(surf, color, (c - shaft_w // 2, int(size * 0.32), shaft_w, int(size * 0.5)))
-        tooth_y = int(size * 0.72)
-        pygame.draw.rect(surf, color, (c, tooth_y, size // 4, shaft_w))
-        pygame.draw.rect(surf, color, (c, tooth_y + shaft_w + 2, size // 6, shaft_w))
+        r = int(size * 0.26)
+        shaft_w = max(2, round(size * 0.16))
+        head_cy = int(size * 0.30)
+        shaft_bottom = int(size * 0.86)
+        tooth_w = max(3, int(size * 0.3))
+        tooth_h = max(2, shaft_w - 1)
+
+        if forged:
+            glow = pygame.Surface((size, size), pygame.SRCALPHA)
+            pygame.draw.circle(glow, (*S.KEY_GOLD, 70), (c, head_cy), r + 3)
+            surf.blit(glow, (0, 0))
+            pygame.draw.circle(surf, S.KEY_GOLD, (c, head_cy), r)
+            pygame.draw.circle(surf, S.AEMBER_GLOW, (c, head_cy), max(1, r - r // 2), width=1)
+            pygame.draw.rect(surf, S.KEY_GOLD, (c - shaft_w // 2, head_cy, shaft_w, shaft_bottom - head_cy))
+            pygame.draw.rect(surf, S.KEY_GOLD, (c, shaft_bottom - tooth_h, tooth_w, tooth_h))
+            pygame.draw.rect(surf, S.KEY_GOLD, (c, shaft_bottom - tooth_h * 2 - 2, int(tooth_w * 0.6), tooth_h))
+        else:
+            color = S.KEY_EMPTY
+            pygame.draw.circle(surf, color, (c, head_cy), r, width=max(1, size // 14))
+            pygame.draw.line(surf, color, (c, head_cy + r - 1), (c, shaft_bottom), width=max(1, size // 14))
+            pygame.draw.line(surf, color, (c, shaft_bottom), (c + tooth_w // 2, shaft_bottom), width=max(1, size // 14))
+
         self._icons[key] = surf
         return surf
 
@@ -229,6 +248,8 @@ class AssetCache:
                     pass
 
     def play(self, name: str, volume: float = 1.0) -> None:
+        if self.muted:
+            return
         snd = self._sounds.get(name)
         if snd is not None:
             snd.set_volume(volume)

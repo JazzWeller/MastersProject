@@ -79,10 +79,10 @@ def draw_hud(
     x += img.get_width() + 18
 
     for i in range(3):
-        key_img = assets.key_icon(18, forged=(i < player_snapshot.keys))
-        surface.blit(key_img, (x, cy - 9))
-        x += 20
-    x += 6
+        key_img = assets.key_icon(22, forged=(i < player_snapshot.keys))
+        surface.blit(key_img, (x, cy - 11))
+        x += 25
+    x += 4
 
     if player_snapshot.chains > 0:
         chain_img = assets.chain_icon(18)

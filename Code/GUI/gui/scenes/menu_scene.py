@@ -107,6 +107,7 @@ class MenuScene(Scene):
         for button, cb in self.buttons.values():
             button.update_hover(mouse)
             if button.clicked(event):
+                self.app.assets.play("click", 0.3)
                 cb()
                 return
 

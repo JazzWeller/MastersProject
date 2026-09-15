@@ -30,6 +30,7 @@ class GameOverScene(Scene):
         if self.buttons["rematch"].clicked(event):
             from .game_scene import GameScene
 
+            self.app.assets.play("click", 0.3)
             self.app.pop()  # this scene
             self.app.pop()  # the finished GameScene
             new_settings = MatchSettings(**{**self.settings.__dict__, "seed": None})
@@ -37,6 +38,7 @@ class GameOverScene(Scene):
         elif self.buttons["menu"].clicked(event):
             from .menu_scene import MenuScene
 
+            self.app.assets.play("click", 0.3)
             self.app.pop()  # this scene
             self.app.pop()  # the finished GameScene
             if not self.app.scenes:  # launched directly (no menu underneath) -> make one

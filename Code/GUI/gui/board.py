@@ -21,9 +21,10 @@ from .sprites.overlays import Banner, FloatingText, Toast
 
 
 class Board:
-    def __init__(self, assets: AssetCache, viewer: int):
+    def __init__(self, assets: AssetCache, viewer: int, spectating: bool = False):
         self.assets = assets
         self.viewer = viewer
+        self.spectating = spectating  # True when no seat is human (bot vs. bot)
         self.layout = Layout(viewer)
         self.sprites: Dict[int, CardSprite] = {}
         self.hud_states: Dict[int, PlayerHUDState] = {1: PlayerHUDState(), 2: PlayerHUDState()}
@@ -32,6 +33,20 @@ class Board:
         self.toasts: List[Toast] = []
         self.banners: List[Banner] = []
         self.snapshot: Optional[BoardSnapshot] = None
+
+    # ---------------------------------------------------------- perspective ----
+
+    def player_label(self, pid: int) -> str:
+        """'You' / 'Your opponent' relative to the viewer, or 'Player N'
+        while spectating a bot-vs-bot game (nobody to call "you")."""
+        if self.spectating:
+            return f"Player {pid}"
+        return "You" if pid == self.viewer else "Your opponent"
+
+    def is_second_person(self, pid: int) -> bool:
+        """True if `player_label(pid)` reads as "You" (so a caller needs the
+        "you"-conjugated verb form: "choose"/"have", not "chooses"/"has")."""
+        return (not self.spectating) and pid == self.viewer
 
     # ------------------------------------------------------------ sprites ----
 
