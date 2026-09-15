@@ -1,0 +1,198 @@
+"""Basic effect steps.
+
+Each step operates on already-chosen targets and returns True if it did
+something, False if it did nothing at all (a step that only partly works
+still counts as success, per the rules). Steps that additionally need a
+player choice (destroy pipeline, using a creature's ability) are generator
+functions delegating to methods on `game`; the rest are plain functions.
+"""
+
+from __future__ import annotations
+
+from ..cards.card import CreatureType
+
+
+def gain(game, player, amount: int) -> bool:
+    if amount <= 0:
+        return False
+    player.aember += amount
+    game.log.add("gain", player=player.id, amount=amount)
+    return True
+
+
+def steal(game, from_player, to_player, amount: int) -> bool:
+    n = min(amount, from_player.aember)
+    if n <= 0:
+        return False
+    from_player.aember -= n
+    to_player.aember += n
+    game.log.add("steal", frm=from_player.id, to=to_player.id, amount=n)
+    return True
+
+
+def capture(game, card, amount: int) -> bool:
+    if amount <= 0:
+        return False
+    opponent = game.players[3 - card.controller]
+    n = min(amount, opponent.aember)
+    if n <= 0:
+        return False
+    opponent.aember -= n
+    card.aember_captured += n
+    game.log.add("capture", card=card.name, iid=card.instance_id, amount=n)
+    return True
+
+
+def draw(game, player, n: int) -> bool:
+    if n <= 0:
+        return False
+    drawn_iids = []
+    for _ in range(n):
+        if player.deck.is_empty():
+            if player.discard.is_empty():
+                break
+            cards = player.discard.take_all()
+            player.deck.shuffle_in(cards, game.rng)
+            game.log.add("reshuffle", player=player.id)
+        card = player.deck.draw_top()
+        if card is None:
+            break
+        player.hand.add(card)
+        drawn_iids.append(card.instance_id)
+    if drawn_iids:
+        game.log.add("draw", player=player.id, n=len(drawn_iids), iids=drawn_iids)
+    return len(drawn_iids) > 0
+
+
+def archive_card(game, player, card) -> bool:
+    if not player.hand.remove(card):
+        if not player.deck.remove(card):
+            return False
+    player.archive.add(card)
+    game.log.add("archive", player=player.id, card=card.name, iid=card.instance_id)
+    return True
+
+
+def discard_from_hand(game, player, card) -> bool:
+    if not player.hand.remove(card):
+        return False
+    player.discard.push(card)
+    game.log.add("discard", player=player.id, card=card.name, iid=card.instance_id)
+    return True
+
+
+def discard_random(game, player) -> bool:
+    cards = player.hand.cards()
+    if not cards:
+        return False
+    card = game.rng.choice(cards)
+    player.hand.remove(card)
+    player.discard.push(card)
+    game.log.add("discard_random", player=player.id, card=card.name, iid=card.instance_id)
+    return True
+
+
+def purge(game, card) -> bool:
+    owner = game.players[card.owner]
+    if owner.play_area.remove(card):
+        game.leave_play(card)
+    elif not (owner.hand.remove(card) or owner.discard.remove(card) or owner.archive.remove(card) or owner.deck.remove(card)):
+        return False
+    owner.purged.add(card)
+    game.log.add("purge", card=card.name, iid=card.instance_id, owner=owner.id)
+    return True
+
+
+def put_on_top(game, player, card) -> bool:
+    player.deck.put_on_top(card)
+    game.log.add("put_on_top", player=player.id, card=card.name, iid=card.instance_id)
+    return True
+
+
+def put_on_bottom(game, player, card) -> bool:
+    player.deck.put_on_bottom(card)
+    game.log.add("put_on_bottom", player=player.id, card=card.name, iid=card.instance_id)
+    return True
+
+
+def deal_damage(game, creature, amount: int) -> bool:
+    if amount <= 0:
+        return False
+    if not isinstance(creature.type_object, CreatureType):
+        return False
+    to = creature.type_object
+    available_armor = max(0, game.get_armor(creature) - to.armor_used_this_turn)
+    absorbed = min(available_armor, amount)
+    to.armor_used_this_turn += absorbed
+    remaining = amount - absorbed
+    to.damage += remaining
+    game.log.add("damage", card=creature.name, iid=creature.instance_id, amount=amount, absorbed=absorbed)
+    return True
+
+
+def heal(game, creature, amount: int) -> int:
+    if amount <= 0 or not isinstance(creature.type_object, CreatureType):
+        return 0
+    to = creature.type_object
+    healed = min(amount, to.damage)
+    to.damage -= healed
+    if healed:
+        game.log.add("heal", card=creature.name, iid=creature.instance_id, amount=healed)
+    return healed
+
+
+def sacrifice(game, card):
+    """Destroy a card you control (sacrifice uses the same Destroy pipeline)."""
+    player = game.players[card.controller]
+    if card not in player.play_area.creatures and card not in player.play_area.artifacts:
+        return False
+    destroyed = yield from game.destroy_cards([card])
+    return card in destroyed
+
+
+def return_to_hand(game, card) -> bool:
+    owner = game.players[card.owner]
+    controller = game.players[card.controller]
+    if not controller.play_area.remove(card):
+        return False
+    game.leave_play(card)
+    owner.hand.add(card)
+    game.log.add("return_to_hand", card=card.name, iid=card.instance_id, owner=owner.id)
+    return True
+
+
+def shuffle_into_deck(game, card) -> bool:
+    owner = game.players[card.owner]
+    found = (
+        owner.hand.remove(card)
+        or owner.discard.remove(card)
+        or owner.archive.remove(card)
+    )
+    if not found:
+        return False
+    owner.deck.shuffle_in([card], game.rng)
+    game.log.add("shuffle_into_deck", card=card.name, iid=card.instance_id, owner=owner.id)
+    return True
+
+
+def ready(game, card) -> bool:
+    if not card.Exhausted:
+        return False
+    card.Exhausted = False
+    game.log.add("ready", card=card.name, iid=card.instance_id)
+    return True
+
+
+def exhaust(game, card) -> bool:
+    if card.Exhausted:
+        return False
+    card.Exhausted = True
+    game.log.add("exhaust", card=card.name, iid=card.instance_id)
+    return True
+
+
+def use_creature(game, card):
+    """Reap, fight, or use the Action of a friendly creature, whichever is
+    possible and legal (ignoring house). Generator: may need a fight target."""
+    yield from game.use_creature_ability(card)
+    return True
