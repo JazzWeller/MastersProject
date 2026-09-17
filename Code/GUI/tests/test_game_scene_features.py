@@ -58,7 +58,7 @@ class TestDecklistViewer(unittest.TestCase):
 
     def test_tabs_switch_player_and_escape_closes(self):
         _key(self.scene, pygame.K_d)
-        w, h = 780, 600
+        w, h = 850, 660
         rect = pygame.Rect((S.CANVAS_W - w) // 2, (S.CANVAS_H - h) // 2, w, h)
         tab2 = pygame.Rect(rect.left + 132, rect.top + 10, 110, 28)
         _click(self.scene, tab2.center)

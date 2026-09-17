@@ -308,3 +308,11 @@ instant rather than a cross-fade. Small features beyond the original
 plan: a decklist viewer (**D**, per the spec's "view either deck's full
 list at any time"), an in-game control-reference overlay (**H**/**/**), a
 mute toggle (**M**), and spectate's "reveal hands" toggle (**R**).
+
+A third pass, `UX_FIX_PLAN.md`, reworked the interaction layer after real
+play surfaced usability problems this document didn't anticipate (hover/
+click drifting from window-scaled coordinates, a hand fan that clipped off
+the canvas, duplicate card thumbnails with no labels, no way to read a
+card at readable size, a mulligan decided blind). See that document for
+what was wrong and how it was fixed; the architecture above is otherwise
+unchanged.

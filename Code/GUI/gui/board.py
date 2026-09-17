@@ -63,7 +63,7 @@ class Board:
         pid = cs.owner
         if cs.zone == "hand":
             rect = L.hand_rect(pid)
-            slots = L.fan_slots(cs.zone_count, rect, S.HAND_CARD_W, S.HAND_CARD_H)
+            slots = L.fan_slots(cs.zone_count, rect, S.HAND_CARD_W, S.HAND_CARD_H, arc_up=L.is_bottom(pid))
             x, y, rot = slots[cs.index]
             return x, y, rot, S.HAND_CARD_W, S.HAND_CARD_H
         if cs.zone in ("play_creature", "play_artifact"):

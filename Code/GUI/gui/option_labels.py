@@ -20,6 +20,32 @@ def _house_label(house: House) -> str:
     return house.value
 
 
+def describe_option_short(opt: Any) -> str:
+    """A short verb/label for `opt`, for use next to a card that's already
+    shown on screen (the action chooser): "Play", "Discard", "Reap", not
+    the full "Play Snudge" -- avoids repeating the card's own name back at
+    the player right next to its art."""
+    if isinstance(opt, EndTurn):
+        return "End Turn"
+    if isinstance(opt, PlayCard):
+        return "Play"
+    if isinstance(opt, DiscardCard):
+        return "Discard"
+    if isinstance(opt, UseAction):
+        return "Use Action"
+    if isinstance(opt, UseOmni):
+        return "Use Omni"
+    if isinstance(opt, Reap):
+        return "Reap"
+    if isinstance(opt, Fight):
+        return "Fight"
+    if isinstance(opt, TriggerEffect):
+        return "Trigger Effect"
+    if isinstance(opt, tuple) and len(opt) == 3 and opt[0] == "extra":
+        return "Upgrade Effect"
+    return describe_option(opt)
+
+
 def describe_option(opt: Any, decision=None, view=None) -> str:
     if isinstance(opt, EndTurn):
         return "End Turn"
@@ -74,6 +100,21 @@ def describe_option(opt: Any, decision=None, view=None) -> str:
 # ------------------------------------------------------------ log events ----
 
 _HIDDEN_ZONE_EVENTS = {"archive"}  # events that name a card moving into a hidden zone
+
+_LOG_CATEGORY = {
+    "gain": "aember", "steal": "aember", "capture": "aember",
+    "forge_key": "key",
+    "purge": "purge",
+    "damage": "damage", "destroyed": "damage",
+    "heal": "heal",
+}
+
+
+def log_event_category(event) -> str:
+    """A coarse color bucket for the log panel (aember gold / key gold /
+    damage red / purge violet / heal green / neutral) -- purely cosmetic,
+    doesn't affect what's shown. See UX_FIX_PLAN.md D6."""
+    return _LOG_CATEGORY.get(event.kind, "neutral")
 
 
 def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional[str]:

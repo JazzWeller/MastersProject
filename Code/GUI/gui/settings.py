@@ -34,10 +34,13 @@ FPS = 60
 
 CARD_ART_W, CARD_ART_H = 300, 420           # native art resolution
 BOARD_CARD_W, BOARD_CARD_H = 105, 147       # creatures/artifacts on the board
-HAND_CARD_W, HAND_CARD_H = 120, 168         # cards in a hand fan
+HAND_CARD_W, HAND_CARD_H = 112, 157         # cards in a hand fan
 ZOOM_CARD_W, ZOOM_CARD_H = 300, 420         # hover zoom panel
 PILE_CARD_W, PILE_CARD_H = 90, 126          # deck/discard/archive/purged, in the browser modal
 PILE_ICON_W, PILE_ICON_H = 56, 78           # compact pile stack shown in the left column
+BROWSER_CARD_W, BROWSER_CARD_H = 140, 196   # pile browser / decklist grid cells
+INSPECT_MAX_W, INSPECT_MAX_H = 520, 728     # full-size card inspector (B1)
+MULLIGAN_CARD_W, MULLIGAN_CARD_H = 190, 266 # mulligan hand review screen
 
 # ------------------------------------------------------------- board bands ----
 # The board is split into a left column (piles), a center play area (hands,
@@ -47,18 +50,28 @@ LEFT_COL_X, LEFT_COL_W = 10, 140
 PLAY_X, PLAY_W = 160, 1130   # PLAY_X + PLAY_W == BOARD_W - 10
 PILE_SLOT_H, PILE_GAP = 70, 4
 
-BAND_OPP_HAND = (0, 84)
-BAND_OPP_HUD = (88, 138)
-BAND_OPP_ARTIFACTS = (144, 216)
-BAND_OPP_CREATURES = (221, 386)
-BAND_PROMPT = (391, 429)
-BAND_YOUR_CREATURES = (434, 599)
-BAND_YOUR_ARTIFACTS = (604, 676)
-BAND_YOUR_HUD = (681, 731)
-BAND_YOUR_HAND = (736, 850)
-BAND_ACTION_BAR = (855, 892)
+# Every band below was solved as a system, not eyeballed: given the hand
+# card size/lift/rotation above, a hand fan's worst-case card (rotated,
+# fully lifted) has a bounding-box half-height of roughly 97px on the side
+# that arcs toward the board, and the plain card half-height (79px) on the
+# side that faces the true canvas edge. That means each hand needs ~154px
+# of *dedicated* vertical room, and is allowed a bounded ~19px bleed of its
+# outermost cards into the neighbouring HUD band (same tolerance the
+# artifact row already relies on against creatures/HUD) -- never off the
+# canvas. test_snapshot_layout.py checks the on-canvas half; the HUD-bleed
+# half is a visual judgement call, re-verified with real screenshots.
+BAND_OPP_HAND = (12, 160)
+BAND_OPP_HUD = (163, 203)
+BAND_OPP_ARTIFACTS = (206, 262)
+BAND_OPP_CREATURES = (265, 415)
+BAND_PROMPT = (418, 446)
+BAND_YOUR_CREATURES = (449, 599)
+BAND_YOUR_ARTIFACTS = (602, 658)
+BAND_YOUR_HUD = (661, 701)
+BAND_YOUR_HAND = (704, 858)
+BAND_ACTION_BAR = (861, 898)
 
-BAND_PILES_OPP = (22, 300)
+BAND_PILES_OPP = (30, 300)
 BAND_PILES_YOU = (600, 878)
 
 SIDE_ZOOM = (10, 440)
@@ -104,6 +117,13 @@ CARD_BACK_BASE = _hex("241C4A")
 CARD_BACK_EDGE = _hex("120C28")
 CARD_BACK_FILIGREE = KEY_GOLD
 
+# Distinct tint per pile kind (D4) so "which stack is the archive" isn't a
+# memory test -- four identical grey rectangles, before this.
+PILE_TINT_DECK = CARD_BACK_EDGE
+PILE_TINT_DISCARD = _hex("3A2020")
+PILE_TINT_ARCHIVE = _hex("3A3018")
+PILE_TINT_PURGED = _hex("281A3A")
+
 GLOW_LEGAL = AEMBER
 GLOW_SELECTED = WHITE
 GLOW_TARGET = PURGE
@@ -141,5 +161,7 @@ MAX_AEMBER_GEMS = 8
 
 BUTTON_H = 44
 HAND_FAN_MAX_SPREAD = 900
-HAND_FAN_LIFT = 26
+HAND_FAN_LIFT = 10          # px the outermost card is lifted, arcing toward the board
+HAND_FAN_MAX_ROT = 10       # degrees, clamp on the outermost card's tilt
+HAND_FAN_ROT_SLOPE = 6.0    # degrees of tilt per card-index away from center, before the clamp
 LOG_LINES_VISIBLE = 14

@@ -93,6 +93,13 @@ def draw_hud(
         surface.blit(img, (x, cy - img.get_height() // 2))
         x += img.get_width() + 12
 
+    cost_font = assets.font("inter", 12)
+    cost_color = S.TEXT_FAINT if player_snapshot.key_cost == 6 else S.AEMBER
+    cost_txt = f"Key cost {player_snapshot.key_cost}" if player_snapshot.can_forge else "Can't forge a key"
+    img = cost_font.render(cost_txt, True, cost_color if player_snapshot.can_forge else S.DANGER)
+    surface.blit(img, (x, cy - img.get_height() // 2))
+    x += img.get_width() + 14
+
     # status chips, right-aligned within remaining space
     if effects:
         chip_x = x

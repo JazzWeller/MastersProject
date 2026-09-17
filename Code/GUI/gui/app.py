@@ -34,14 +34,51 @@ class Scene:
     def draw(self, surface: pygame.Surface) -> None:
         pass
 
+    def draw_crisp(self, window_surface: pygame.Surface) -> None:
+        """Optional second drawing pass, called after the logical canvas has
+        already been scaled and blitted to the real window. Most scenes
+        don't need this -- it exists so a scene showing one large card (the
+        full-size inspector) can re-render *that* card straight from its
+        native art at the window's actual pixel size, instead of inheriting
+        whatever blur the canvas's own scale-to-window step added on top of
+        the canvas's own scale-from-art step. See `App._canvas_to_window_rect`
+        and UX_FIX_PLAN.md B2."""
+        pass
+
+    @property
+    def mouse(self) -> tuple:
+        """Current mouse position in *canvas* coordinates (1600x900 logical
+        space), not raw window pixels. Every hover/click test that polls the
+        mouse instead of reading it off a translated event must go through
+        this -- see `App._to_canvas` / `App._translate`."""
+        return self.app.mouse_canvas
+
+
+def _default_window_size() -> tuple:
+    """The largest 16:9 box (the canvas's own aspect) that comfortably fits
+    the desktop, capped at the canvas's native 1600x900 -- so the common
+    case is an exact 1:1 window with no resampling blur at all, rather than
+    always opening at a fixed 1280x720 that's neither the canvas size nor
+    the desktop size. See UX_FIX_PLAN.md C1."""
+    try:
+        sizes = pygame.display.get_desktop_sizes()
+        dw, dh = sizes[0] if sizes else (1280, 720)
+    except Exception:
+        dw, dh = 1280, 720
+    avail_w, avail_h = max(1, dw - 120), max(1, dh - 160)
+    scale = min(1.0, avail_w / S.CANVAS_W, avail_h / S.CANVAS_H)
+    return (max(960, round(S.CANVAS_W * scale)), max(540, round(S.CANVAS_H * scale)))
+
 
 class App:
-    def __init__(self, window_size=(1280, 720), title="KeyForge · Phase 1.1 Archon"):
+    def __init__(self, window_size=None, title="KeyForge · Phase 1.1 Archon"):
         pygame.init()
         try:
             pygame.mixer.init()
         except pygame.error:
             pass
+        if window_size is None:
+            window_size = _default_window_size()
         self.window = pygame.display.set_mode(window_size, pygame.RESIZABLE)
         pygame.display.set_caption(title)
         self.canvas = pygame.Surface((S.CANVAS_W, S.CANVAS_H)).convert()
@@ -53,6 +90,7 @@ class App:
         self._pre_fullscreen_size = window_size
         self._dest_rect = pygame.Rect(0, 0, *window_size)
         self.show_fps = False
+        self.mouse_canvas = (0.0, 0.0)
 
     # ------------------------------------------------------------ scenes ----
 
@@ -90,10 +128,23 @@ class App:
         sy = (pos[1] - r.y) / r.height * S.CANVAS_H
         return (sx, sy)
 
+    def canvas_to_window_rect(self, rect: pygame.Rect) -> pygame.Rect:
+        """The window-pixel rect a canvas-space rect currently maps to, for
+        `Scene.draw_crisp`."""
+        r = self._dest_rect
+        if S.CANVAS_W == 0 or r.width == 0:
+            return pygame.Rect(0, 0, 0, 0)
+        scale = r.width / S.CANVAS_W
+        return pygame.Rect(
+            int(r.x + rect.x * scale), int(r.y + rect.y * scale),
+            max(1, round(rect.width * scale)), max(1, round(rect.height * scale)),
+        )
+
     def _translate(self, event: pygame.event.Event) -> pygame.event.Event:
         if event.type in _MOUSE_EVENTS:
             data = dict(event.__dict__)
             data["pos"] = self._to_canvas(event.pos)
+            self.mouse_canvas = data["pos"]
             return pygame.event.Event(event.type, data)
         return event
 
@@ -112,6 +163,8 @@ class App:
         self._recompute_dest_rect()
         scaled = pygame.transform.smoothscale(self.canvas, self._dest_rect.size)
         self.window.blit(scaled, self._dest_rect)
+        if self.scenes:
+            self.scenes[-1].draw_crisp(self.window)
         if self.show_fps:
             font = self.assets.font("inter", 14, bold=True)
             img = font.render(f"{self.clock.get_fps():.0f} FPS", True, (0, 255, 120))
@@ -124,6 +177,7 @@ class App:
         self._recompute_dest_rect()
         while self.running and self.scenes:
             dt_ms = self.clock.tick(S.FPS)
+            self.mouse_canvas = self._to_canvas(pygame.mouse.get_pos())
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False

@@ -32,20 +32,30 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
 
 - **Click a glowing card** to play/discard/reap/fight/use it. If a card has
   more than one legal option (e.g. a hand card that could be played *or*
-  discarded), a small menu opens.
+  discarded), a small chooser opens beside it — the card shown once, with a
+  labeled button per option ("Play" / "Discard" / ...). Discarding, and
+  ending your turn while other actions are still legal, arm on the first
+  click and need a second click ("Confirm?") to actually go through.
 - **Options (O)** — always available — lists every legal choice as plain
   buttons or a card grid. It's the guaranteed way to answer *any* decision,
   including target selection from a pile, choosing a house, ordering
   simultaneous effects, and so on.
+- **Middle-click** any face-up card — in your hand, on the board, in a pile
+  browser, or in a decklist — to open a full-size, readable view of it, with
+  its name/house/type/stats alongside. Click anywhere or press Esc to close.
 - **Right-click** a card to pin it in the zoom panel on the right; hover
   any face-up card to preview it there.
-- **Click a pile** (deck/discard/archive/purged, bottom-left of each side)
-  to browse its contents, where that's allowed (discard and purged are
-  always public; archive only for its owner; the deck's order is always
-  hidden).
+- **Click a pile** (deck/discard/archive/purged, bottom-left of each side,
+  each tinted and outlined differently) to browse its contents, where
+  that's allowed (discard and purged are always public; archive only for
+  its owner — shown with a small padlock when it isn't; the deck's order is
+  always hidden). Click a card in the browser to inspect it full-size.
 - **D** opens either player's full 36-card decklist, unordered, as the
   spec allows at any time. **H** (or **/**) shows the control list
   in-game. **M** mutes/unmutes sound.
+- **Mulligan** gets its own screen: your whole hand laid out large enough
+  to actually read, with a house breakdown and "Keep This Hand" /
+  "Mulligan" buttons, rather than a Yes/No prompt over a hand you can't see.
 - **Space** skips the current animation; **1/2/3** set animation speed to
   0.5x/1x/2x; **F11** toggles fullscreen; **F3** shows the frame rate;
   **Esc** backs out to the previous screen.
@@ -55,6 +65,9 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
 - **Spectating** (bot vs. bot, no human seat): players are addressed as
   "Player 1"/"Player 2" throughout rather than "you", and **R** reveals
   both hands face up.
+
+See [`UX_FIX_PLAN.md`](UX_FIX_PLAN.md) for the usability pass that produced
+most of the above — what was wrong, why, and how it was fixed.
 
 ## Layout
 
@@ -119,6 +132,15 @@ python -m unittest discover -s tests
 - `test_game_scene_features.py` — the decklist viewer, the help overlay,
   spectate's "reveal hands" toggle, and the you/opponent vs. "Player N"
   phrasing switch.
+- `test_input_coords.py` — hover and click resolve to the right card at
+  window sizes other than the canvas's own 1600x900 (the bug behind most
+  of `UX_FIX_PLAN.md`'s findings).
+- `test_decision_ui.py` — the action chooser and Options grid never show
+  the same card's art twice; MULLIGAN always opens the dedicated review
+  screen; Discard and a premature End Turn always require a second click.
+- `test_app_window.py` — letterbox math and window-resize survival.
+- `test_performance.py` — a populated board stays comfortably under the
+  frame budget.
 
 All run headless (`SDL_VIDEODRIVER=dummy`, set automatically by
 `tests/helpers.py`) so they need no display.

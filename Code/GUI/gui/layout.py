@@ -75,9 +75,20 @@ class Layout:
     # -------------------------------------------------------------- slots ----
 
     def fan_slots(
-        self, n: int, rect: pygame.Rect, card_w: int, card_h: int
+        self, n: int, rect: pygame.Rect, card_w: int, card_h: int, arc_up: bool = True
     ) -> List[Tuple[float, float, float]]:
-        """Center (x, y, rotation_degrees) for `n` cards fanned in `rect`."""
+        """Center (x, y, rotation_degrees) for `n` cards fanned in `rect`.
+
+        The center card never lifts or rotates, so its bounding box is just
+        the plain card size -- that's the "near" side. Outer cards lift and
+        tilt toward whichever side has more room: `arc_up=True` (the
+        viewer's own hand, at the bottom of the board) lifts them up, toward
+        the board; `arc_up=False` (the opponent's hand, at the top) lifts
+        them down, toward the board. Either way the *flat* side of the fan
+        -- the one with no lift, just the plain card edge -- faces the true
+        canvas edge, which is what keeps a hand fully on-screen. See the
+        BAND_*_HAND comment in settings.py for the math this depends on.
+        """
         if n <= 0:
             return []
         max_spacing = card_w * 0.62
@@ -90,13 +101,15 @@ class Layout:
         start_x = rect.centerx - total_w / 2 + card_w / 2
         base_y = rect.centery
         center_i = (n - 1) / 2
+        sign = -1.0 if arc_up else 1.0
         slots = []
         for i in range(n):
             x = start_x + i * spacing
             d = i - center_i
             lift = 0.0 if center_i == 0 else min(S.HAND_FAN_LIFT, abs(d) * (S.HAND_FAN_LIFT / max(center_i, 1)))
-            y = base_y + lift
-            rot = max(-30.0, min(30.0, -d * 4.5))
+            y = base_y + sign * lift
+            rot_mag = max(-S.HAND_FAN_MAX_ROT, min(S.HAND_FAN_MAX_ROT, -d * S.HAND_FAN_ROT_SLOPE))
+            rot = rot_mag if arc_up else -rot_mag
             slots.append((x, y, rot))
         return slots
 

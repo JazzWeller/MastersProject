@@ -25,7 +25,7 @@ class CurtainScene(Scene):
         self.app.pop()
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        self.button.update_hover(pygame.mouse.get_pos())
+        self.button.update_hover(self.mouse)
         if self.button.clicked(event):
             self.app.assets.play("click", 0.3)
             self._continue()
@@ -39,5 +39,5 @@ class CurtainScene(Scene):
             "Make sure the other player can't see the screen.", True, S.TEXT_DIM
         )
         surface.blit(sub, sub.get_rect(center=(S.CANVAS_W // 2, S.CANVAS_H // 2 - 10)))
-        self.button.update_hover(pygame.mouse.get_pos())
+        self.button.update_hover(self.mouse)
         self.button.draw(surface, self.app.assets)

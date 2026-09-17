@@ -103,7 +103,7 @@ class MenuScene(Scene):
     # ------------------------------------------------------------- events ----
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        mouse = pygame.mouse.get_pos()
+        mouse = self.mouse
         for button, cb in self.buttons.values():
             button.update_hover(mouse)
             if button.clicked(event):

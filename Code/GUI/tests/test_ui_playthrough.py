@@ -55,11 +55,19 @@ def _play_through(app, dt=30.0, max_frames=MAX_FRAMES):
         if gscene.panel.decision is not d:
             continue
         p = gscene.panel
-        if p.modal_open:
+        if p.mulligan_open:
+            keep_button, _opt = p._mulligan_buttons()[0]
+            _click(top, keep_button.rect.center)
+        elif p.chooser_iid is not None:
+            rect = p._chooser_rect(gscene.board)
+            rows = p._chooser_option_rows(rect)
+            if rows:
+                _click(top, rows[0].center)
+        elif p.modal_open:
             rect = p._modal_rect()
             body_top = rect.top + 40
             if p.modal_rows:
-                grid = all(r.card is not None for r in p.modal_rows)
+                grid = p._modal_is_grid()
                 pos = (rect.left + 14 + 48, body_top + 70) if grid else (rect.left + 14 + 50, body_top + 20)
                 _click(top, pos)
         elif p.card_option_map:

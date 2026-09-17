@@ -3,6 +3,7 @@ Director/Animator, and routes input through the DecisionPanel."""
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Dict, Optional
 
 import pygame
@@ -25,6 +26,35 @@ _ZONE_DRAW_RANK = {
     "deck": 0, "discard": 1, "archive": 2, "purged": 3,
     "hand": 4, "play_artifact": 5, "play_creature": 6, "upgrade": 7,
 }
+
+
+def _card_info_from_state(cs) -> SimpleNamespace:
+    return SimpleNamespace(
+        name=cs.name, house=cs.house, type=cs.type, image=cs.image,
+        power=cs.power, armor=cs.armor, damage=cs.damage,
+    )
+
+
+def _card_info_from_engine_card(card) -> SimpleNamespace:
+    to = card.type_object
+    return SimpleNamespace(
+        name=card.name, house=card.house.value, type=card.type.value, image=card.card_def.image,
+        power=getattr(to, "base_power", 0), armor=getattr(to, "base_armor", 0), damage=getattr(to, "damage", 0),
+    )
+
+
+def _dashed_rect(surface: pygame.Surface, rect: pygame.Rect, color, dash=6, gap=5, width=1) -> None:
+    x0, y0, x1, y1 = rect.left, rect.top, rect.right, rect.bottom
+    x = x0
+    while x < x1:
+        pygame.draw.line(surface, color, (x, y0), (min(x + dash, x1), y0), width)
+        pygame.draw.line(surface, color, (x, y1), (min(x + dash, x1), y1), width)
+        x += dash + gap
+    y = y0
+    while y < y1:
+        pygame.draw.line(surface, color, (x0, y), (x0, min(y + dash, y1)), width)
+        pygame.draw.line(surface, color, (x1, y), (x1, min(y + dash, y1)), width)
+        y += dash + gap
 
 
 def _felt(surface: pygame.Surface) -> None:
@@ -61,6 +91,8 @@ class GameScene(Scene):
         self.browse_scroll = 0
         self.reveal_hands = False  # bot-vs-bot spectate: show both hands face up (R to toggle)
         self.show_help = False
+        self.inspect_info = None  # SimpleNamespace(name, house, type, image, power, armor, damage) or None
+        self._inspect_card_rect: Optional[pygame.Rect] = None  # canvas-space, for draw_crisp
 
     # -------------------------------------------------------------- setup ----
 
@@ -129,13 +161,25 @@ class GameScene(Scene):
     # ---------------------------------------------------------------- log ----
 
     def _sync_log(self) -> None:
-        from ..option_labels import describe_log_event
+        """Builds `self.log_sentences` as (text, category) pairs -- category
+        drives the line's color in LogPanel, and a synthetic "turn"-category
+        separator is inserted before each new turn's first log line. Choosing
+        a house is the mandatory first action of every turn, so it doubles
+        as the turn boundary; there's no dedicated "turn started" log event
+        to key off instead."""
+        from ..option_labels import describe_log_event, log_event_category
 
         self.log_sentences = []
+        turn = 1
         for ev in self.bridge.game.log.events:
             text = describe_log_event(ev, self.viewer, spectating=not self.human_seats)
-            if text:
-                self.log_sentences.append(text)
+            if not text:
+                continue
+            if ev.kind == "choose_house":
+                turn += 1
+                if turn > 2:
+                    self.log_sentences.append((f"— Turn {turn - 1} —", "turn"))
+            self.log_sentences.append((text, log_event_category(ev)))
 
     # -------------------------------------------------------------- update ----
 
@@ -210,7 +254,11 @@ class GameScene(Scene):
                 pos = (sprite.x, max(60, sprite.y - 70))
         if pos is None:
             prompt = self.board.layout.prompt_rect()
-            pos = (prompt.centerx, prompt.centery)
+            # A little above the prompt band's own text, not directly on
+            # top of it -- otherwise this toast is still fading out right
+            # where the *next* decision's prompt renders, and the two
+            # overlap into unreadable double-exposed text.
+            pos = (prompt.centerx, prompt.top - 18)
         self.board.toasts.append(Toast(pos[0], pos[1], f"{who}: {label}"))
 
     def _submit(self, choice) -> None:
@@ -229,7 +277,7 @@ class GameScene(Scene):
     # ------------------------------------------------------------- hover ----
 
     def _update_hover(self) -> None:
-        mx, my = pygame.mouse.get_pos()
+        mx, my = self.mouse
         best_iid, best_rank = None, -1
         for iid, cs in self.last_snapshot.cards.items():
             sprite = self.board.sprites.get(iid)
@@ -249,6 +297,9 @@ class GameScene(Scene):
             return
         if self.browsing is not None:
             self._handle_browser_event(event)
+            return
+        if self.inspect_info is not None:
+            self._handle_inspector_event(event)
             return
 
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -283,12 +334,19 @@ class GameScene(Scene):
         if self.show_help:
             return
 
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 2:
+            if self.hover_iid is not None:
+                cs = self.last_snapshot.cards.get(self.hover_iid)
+                if cs is not None and cs.face_up:
+                    self._open_inspector(_card_info_from_state(cs))
+            return
+
         if self.animator.is_busy:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 self.animator.skip()
             return
 
-        self.log_panel.handle_event(event, self.board.layout.log_rect())
+        self.log_panel.handle_event(event, self.board.layout.log_rect(), self.mouse)
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
             self.pinned_iid = self.hover_iid if self.pinned_iid != self.hover_iid else None
@@ -304,7 +362,7 @@ class GameScene(Scene):
             if self._maybe_click_pile(event.pos):
                 return
 
-        mouse_pos = event.pos if hasattr(event, "pos") else pygame.mouse.get_pos()
+        mouse_pos = event.pos if hasattr(event, "pos") else self.mouse
         self.panel.handle_event(event, self.board, mouse_pos, self.board.layout)
 
     def _maybe_click_pile(self, pos) -> bool:
@@ -328,8 +386,21 @@ class GameScene(Scene):
     def _handle_browser_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.MOUSEWHEEL:
             self.browse_scroll = max(0, self.browse_scroll - event.y)
-        elif event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            return
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.browsing = None
+            return
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pid, kind = self.browsing
+            player = self.bridge.game.players[pid]
+            cards = getattr(player, kind).cards()
+            w, h = 800, 640
+            rect = pygame.Rect((S.CANVAS_W - w) // 2, (S.CANVAS_H - h) // 2, w, h)
+            card = self._card_grid_cell_at(rect, 44, cards, event.pos)
+            if card is not None:
+                self._open_inspector(_card_info_from_engine_card(card))
+            elif not rect.collidepoint(event.pos):
+                self.browsing = None
 
     def _handle_decklist_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.MOUSEWHEEL:
@@ -339,7 +410,7 @@ class GameScene(Scene):
             self.decklist_pid = None
             return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            w, h = 780, 600
+            w, h = 850, 660
             rect = pygame.Rect((S.CANVAS_W - w) // 2, (S.CANVAS_H - h) // 2, w, h)
             tab1 = pygame.Rect(rect.left + 16, rect.top + 10, 110, 28)
             tab2 = pygame.Rect(rect.left + 132, rect.top + 10, 110, 28)
@@ -347,8 +418,78 @@ class GameScene(Scene):
                 self.decklist_pid, self.browse_scroll = 1, 0
             elif tab2.collidepoint(event.pos):
                 self.decklist_pid, self.browse_scroll = 2, 0
-            elif not rect.collidepoint(event.pos):
-                self.decklist_pid = None
+            else:
+                cards = sorted(self.bridge.game.players[self.decklist_pid].all_cards, key=lambda c: (c.house.value, c.name))
+                card = self._card_grid_cell_at(rect, 50, cards, event.pos)
+                if card is not None:
+                    self._open_inspector(_card_info_from_engine_card(card))
+                elif not rect.collidepoint(event.pos):
+                    self.decklist_pid = None
+
+    # -------------------------------------------------------- inspector ----
+
+    def _open_inspector(self, info: SimpleNamespace) -> None:
+        self.app.assets.play("click", 0.2)
+        self.inspect_info = info
+
+    def _close_inspector(self) -> None:
+        self.inspect_info = None
+        self._inspect_card_rect = None
+
+    def _handle_inspector_event(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            self._close_inspector()
+
+    def _draw_inspector(self, surface: pygame.Surface) -> None:
+        """The full-size card view (B1): as large as the canvas comfortably
+        allows, so a card's own art -- the only place its rules live, per
+        UX_FIX_PLAN.md section 1.2 -- is actually legible. The card image
+        itself is redrawn crisply straight onto the real window afterwards,
+        see `draw_crisp` / `App.canvas_to_window_rect`."""
+        info = self.inspect_info
+        self._dim_backdrop(surface)
+
+        max_w, max_h = S.INSPECT_MAX_W, S.INSPECT_MAX_H
+        card_h = min(max_h, S.CANVAS_H - 140)
+        card_w = int(card_h * (S.CARD_ART_W / S.CARD_ART_H))
+        if card_w > max_w:
+            card_w = max_w
+            card_h = int(card_w * (S.CARD_ART_H / S.CARD_ART_W))
+        cx = S.PLAY_X + S.PLAY_W // 2
+        card_rect = pygame.Rect(0, 0, card_w, card_h)
+        card_rect.center = (cx, S.CANVAS_H // 2 - 20)
+        self._inspect_card_rect = card_rect
+
+        img = self.app.assets.card_face(info.image, (card_w, card_h))
+        surface.blit(img, card_rect)
+        pygame.draw.rect(surface, S.AEMBER, card_rect.inflate(6, 6), width=2, border_radius=10)
+
+        name_font = self.app.assets.font("cinzel", 22)
+        name = name_font.render(info.name, True, S.TEXT)
+        surface.blit(name, name.get_rect(midtop=(cx, card_rect.bottom + 14)))
+
+        sub_font = self.app.assets.font("inter", 15)
+        sub_txt = f"{info.house} · {info.type}"
+        if info.type == "Creature":
+            sub_txt += f"   Power {info.power}"
+            if info.armor:
+                sub_txt += f"   Armor {info.armor}"
+            if info.damage:
+                sub_txt += f"   Damage {info.damage}"
+        sub = sub_font.render(sub_txt, True, S.TEXT_DIM)
+        surface.blit(sub, sub.get_rect(midtop=(cx, card_rect.bottom + 44)))
+
+        hint = self.app.assets.font("inter", 12).render("Click anywhere (or Esc) to close", True, S.TEXT_FAINT)
+        surface.blit(hint, hint.get_rect(midtop=(cx, card_rect.bottom + 70)))
+
+    def draw_crisp(self, window_surface: pygame.Surface) -> None:
+        if self.inspect_info is None or self._inspect_card_rect is None:
+            return
+        win_rect = self.app.canvas_to_window_rect(self._inspect_card_rect)
+        if win_rect.width <= 0 or win_rect.height <= 0:
+            return
+        img = self.app.assets.card_face(self.inspect_info.image, (win_rect.width, win_rect.height))
+        window_surface.blit(img, win_rect)
 
     # --------------------------------------------------------------- draw ----
 
@@ -357,12 +498,17 @@ class GameScene(Scene):
         L = self.board.layout
         snap = self.last_snapshot
 
+        turn_font = self.app.assets.font("inter", 12, bold=True)
+        turn_txt = turn_font.render(f"Turn {snap.turn_number}", True, S.TEXT_DIM)
+        surface.blit(turn_txt, (S.LEFT_COL_X + (S.LEFT_COL_W - turn_txt.get_width()) // 2, 8))
+
         for pid in (1, 2):
             for kind in ("deck", "discard", "archive", "purged"):
                 rect = L.pile_rect(pid, kind)
                 ps = snap.players[pid]
                 count = getattr(ps, f"{kind}_count")
-                draw_pile(surface, self.app.assets, rect, kind, count, hovered=rect.collidepoint(pygame.mouse.get_pos()))
+                browsable = kind != "deck" and (kind != "archive" or pid == self.viewer)
+                draw_pile(surface, self.app.assets, rect, kind, count, hovered=rect.collidepoint(self.mouse), browsable=browsable)
 
         for pid in (1, 2):
             effects = [e for e in snap.active_effects if e["player_affected"] == pid]
@@ -370,13 +516,35 @@ class GameScene(Scene):
             label = f"Player {pid}" + (" (You)" if is_you else "")
             draw_hud(surface, self.app.assets, L.hud_rect(pid), snap.players[pid], self.board.hud_states[pid], snap.active_player == pid, label, effects)
 
+        empty_font = self.app.assets.font("inter", 12)
+        for pid in (1, 2):
+            for zone, rect_fn, label in (
+                ("play_creature", L.creature_row_rect, "No creatures in play"),
+                ("play_artifact", L.artifact_row_rect, "No artifacts in play"),
+            ):
+                if snap.zone_cards(pid, zone):
+                    continue
+                rect = rect_fn(pid)
+                ghost = pygame.Rect(0, 0, S.BOARD_CARD_W, S.BOARD_CARD_H).inflate(-16, -16)
+                ghost.center = rect.center
+                _dashed_rect(surface, ghost, S.TEXT_FAINT)
+                txt = empty_font.render(label, True, S.TEXT_FAINT)
+                surface.blit(txt, txt.get_rect(center=rect.center))
+
+        # The mulligan screen (DecisionPanel._draw_mulligan) lays that same
+        # player's hand out again, much larger -- drawing the small fan
+        # underneath it too just looks like a duplicate/broken hand, so skip
+        # it while that screen owns the view.
+        mulligan_pid = self.panel.decision.player if self.panel.mulligan_open and self.panel.decision else None
         for cs in sorted(snap.cards.values(), key=lambda c: _ZONE_DRAW_RANK.get(c.zone, 0) * 1000 + c.index):
+            if cs.zone == "hand" and cs.owner == mulligan_pid:
+                continue
             sprite = self.board.sprites.get(cs.iid)
             if sprite is not None:
                 sprite.draw(surface)
 
         self.board.draw_overlays(surface)
-        self.panel.draw(surface, self.app.assets, L)
+        self.panel.draw(surface, self.app.assets, L, self.mouse)
         self._draw_zoom(surface, L)
         self.log_panel.draw(surface, self.app.assets, L.log_rect(), self.log_sentences)
 
@@ -386,6 +554,8 @@ class GameScene(Scene):
             self._draw_decklist(surface)
         if self.show_help:
             self._draw_help(surface)
+        if self.inspect_info is not None:
+            self._draw_inspector(surface)
 
         mute_txt = "M unmute" if self.app.assets.muted else "M mute"
         hint = self.app.assets.font("inter", 11).render(
@@ -425,32 +595,74 @@ class GameScene(Scene):
         dim.fill((0, 0, 0, 150))
         surface.blit(dim, (0, 0))
 
+    _GRID_STRIDE_X = S.BROWSER_CARD_W + 16
+    _GRID_STRIDE_Y = S.BROWSER_CARD_H + 34
+
+    def _card_grid_body(self, rect: pygame.Rect, body_top: int) -> pygame.Rect:
+        return pygame.Rect(rect.left + 14, rect.top + body_top, rect.width - 28, rect.bottom - rect.top - body_top - 16)
+
+    def _card_grid_cell_at(self, rect: pygame.Rect, body_top: int, cards, pos):
+        """The card whose grid cell contains `pos`, or None. Shares its
+        geometry exactly with `_draw_card_grid` so clicking always hits
+        what's drawn."""
+        body = self._card_grid_body(rect, body_top)
+        if not body.collidepoint(pos):
+            return None
+        cols = max(1, body.width // self._GRID_STRIDE_X)
+        for i, card in enumerate(cards):
+            gx = i % cols
+            gy = i // cols - self.browse_scroll
+            cell = pygame.Rect(
+                body.left + gx * self._GRID_STRIDE_X, body.top + gy * self._GRID_STRIDE_Y,
+                S.BROWSER_CARD_W, S.BROWSER_CARD_H,
+            )
+            if cell.collidepoint(pos):
+                return card
+        return None
+
     def _draw_card_grid(self, surface, rect: pygame.Rect, body_top: int, cards) -> None:
         """Shared scrollable grid used by the pile browser and the decklist
-        viewer. `self.browse_scroll` (rows) drives the mouse-wheel scroll."""
-        body = pygame.Rect(rect.left + 14, rect.top + body_top, rect.width - 28, rect.bottom - rect.top - body_top - 16)
-        cols = max(1, body.width // 112)
-        rows_total = (len(cards) + cols - 1) // cols
-        rows_visible = max(1, body.height // 154)
+        viewer. `self.browse_scroll` (rows) drives the mouse-wheel scroll.
+        Cards are large enough here (and named) to actually read; click one
+        to open the full-size inspector (see UX_FIX_PLAN.md B4)."""
+        body = self._card_grid_body(rect, body_top)
+        cols = max(1, body.width // self._GRID_STRIDE_X)
+        rows_total = (len(cards) + cols - 1) // cols if cols else 0
+        rows_visible = max(1, body.height // self._GRID_STRIDE_Y)
         max_scroll = max(0, rows_total - rows_visible)
         self.browse_scroll = max(0, min(self.browse_scroll, max_scroll))
 
         clip = surface.get_clip()
         surface.set_clip(body)
+        name_font = self.app.assets.font("inter", 12)
         for i, card in enumerate(cards):
             gx = i % cols
             gy = i // cols - self.browse_scroll
-            cell = pygame.Rect(body.left + gx * 112, body.top + gy * 154, 100, 140)
-            if cell.bottom < body.top or cell.top > body.bottom:
+            cell = pygame.Rect(
+                body.left + gx * self._GRID_STRIDE_X, body.top + gy * self._GRID_STRIDE_Y,
+                S.BROWSER_CARD_W, S.BROWSER_CARD_H,
+            )
+            if cell.bottom < body.top or cell.top > body.bottom + self._GRID_STRIDE_Y:
                 continue
-            img = self.app.assets.card_face(card.image, (100, 140))
+            hovered = cell.collidepoint(self.mouse)
+            img = self.app.assets.card_face(card.image, (S.BROWSER_CARD_W, S.BROWSER_CARD_H))
             surface.blit(img, cell)
+            if hovered:
+                pygame.draw.rect(surface, S.AEMBER, cell, width=2, border_radius=6)
+            name = name_font.render(card.name, True, S.TEXT_DIM if not hovered else S.TEXT)
+            if name.get_width() > cell.width:
+                name = pygame.transform.smoothscale(name, (cell.width, name.get_height()))
+            surface.blit(name, (cell.left, cell.bottom + 3))
         surface.set_clip(clip)
 
         if max_scroll > 0:
             hint = self.app.assets.font("inter", 11).render(
-                f"scroll for more ({self.browse_scroll + 1}/{max_scroll + 1})", True, S.TEXT_FAINT
+                f"scroll for more ({self.browse_scroll + 1}/{max_scroll + 1})  ·  click a card to inspect it",
+                True, S.TEXT_FAINT,
             )
+            surface.blit(hint, (body.left, rect.bottom - 14))
+        else:
+            hint = self.app.assets.font("inter", 11).render("click a card to inspect it", True, S.TEXT_FAINT)
             surface.blit(hint, (body.left, rect.bottom - 14))
 
     def _draw_browser(self, surface) -> None:
@@ -460,7 +672,7 @@ class GameScene(Scene):
         cards = zone.cards()
 
         self._dim_backdrop(surface)
-        w, h = 700, 560
+        w, h = 800, 640
         rect = pygame.Rect((S.CANVAS_W - w) // 2, (S.CANVAS_H - h) // 2, w, h)
         draw_panel(surface, rect, alpha=245, border=S.AEMBER)
         if self.board.spectating:
@@ -476,7 +688,7 @@ class GameScene(Scene):
         cards = sorted(self.bridge.game.players[pid].all_cards, key=lambda c: (c.house.value, c.name))
 
         self._dim_backdrop(surface)
-        w, h = 780, 600
+        w, h = 850, 660
         rect = pygame.Rect((S.CANVAS_W - w) // 2, (S.CANVAS_H - h) // 2, w, h)
         draw_panel(surface, rect, alpha=245, border=S.AEMBER)
         title = self.app.assets.font("cinzel", 18).render(f"Decklist ({len(cards)} cards, unordered)", True, S.TEXT)
@@ -495,7 +707,7 @@ class GameScene(Scene):
 
     def _draw_help(self, surface) -> None:
         self._dim_backdrop(surface)
-        w, h = 560, 420
+        w, h = 580, 460
         rect = pygame.Rect((S.CANVAS_W - w) // 2, (S.CANVAS_H - h) // 2, w, h)
         draw_panel(surface, rect, alpha=250, border=S.AEMBER)
         title = self.app.assets.font("cinzel", 20).render("Controls", True, S.TEXT)
@@ -504,6 +716,7 @@ class GameScene(Scene):
         lines = [
             ("Click a glowing card", "play / discard / reap / fight / use it"),
             ("O", "open the full list of legal choices"),
+            ("Middle-click a card", "open a full-size, readable view of it"),
             ("Hover / right-click", "zoom a card / pin the zoom"),
             ("Click a pile", "browse discard, purged, or your archive"),
             ("D", "view either player's full 36-card decklist"),

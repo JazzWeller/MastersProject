@@ -24,7 +24,7 @@ class GameOverScene(Scene):
         self.buttons["menu"] = Button(pygame.Rect(cx + 10, y, w, h), "Main Menu")
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        mouse = pygame.mouse.get_pos()
+        mouse = self.mouse
         for b in self.buttons.values():
             b.update_hover(mouse)
         if self.buttons["rematch"].clicked(event):

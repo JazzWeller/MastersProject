@@ -27,8 +27,13 @@ ZONE_ARCHIVE = "archive"
 ZONE_PURGED = "purged"
 ZONE_CREATURE = "play_creature"
 ZONE_ARTIFACT = "play_artifact"
+ZONE_UPGRADE = "upgrade"
 
-PUBLIC_ZONES = {ZONE_DISCARD, ZONE_PURGED, ZONE_CREATURE, ZONE_ARTIFACT}
+# An upgrade is attached to a creature already in play, so it's public
+# information exactly like the creature itself -- omitting it here made
+# every upgrade render as a face-down card-back glued to its host (see
+# UX_FIX_PLAN.md's second-pass findings).
+PUBLIC_ZONES = {ZONE_DISCARD, ZONE_PURGED, ZONE_CREATURE, ZONE_ARTIFACT, ZONE_UPGRADE}
 
 
 @dataclass
@@ -67,6 +72,8 @@ class PlayerSnapshot:
     discard_count: int
     archive_count: int
     purged_count: int
+    key_cost: int = 6
+    can_forge: bool = True
 
 
 @dataclass
@@ -171,6 +178,8 @@ def build_snapshot(game, viewer: int) -> BoardSnapshot:
             discard_count=len(player.discard),
             archive_count=len(player.archive),
             purged_count=len(player.purged),
+            key_cost=player.get_key_forge_cost(game),
+            can_forge=player.get_can_key_forge(game),
         )
 
     active_effects = [
