@@ -4,3 +4,6 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+
+# Local game history database (GUI)
+Code/GUI/data/

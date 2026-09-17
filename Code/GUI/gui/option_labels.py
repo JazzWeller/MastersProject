@@ -20,6 +20,10 @@ def _house_label(house: House) -> str:
     return house.value
 
 
+# What a lasting "when you play a card" trigger does, for effect-ordering labels.
+_TRIGGER_TEXT = {"Library Access": "draw a card"}
+
+
 def describe_option_short(opt: Any) -> str:
     """A short verb/label for `opt`, for use next to a card that's already
     shown on screen (the action chooser): "Play", "Discard", "Reap", not
@@ -61,18 +65,20 @@ def describe_option(opt: Any, decision=None, view=None) -> str:
         return f"Reap with {opt.card.name}"
     if isinstance(opt, Fight):
         return f"Fight with {opt.card.name}"
+    ordering = decision is not None and getattr(decision.kind, "name", "") == "ORDER_EFFECTS"
     if isinstance(opt, Card):
-        return opt.name
+        return f"{opt.name}: its Destroyed effect" if ordering else opt.name
     if isinstance(opt, House):
         return _house_label(opt)
     if isinstance(opt, bool):
         return "Yes" if opt else "No"
     if isinstance(opt, TriggerEffect):
         src = opt.source_card.name if opt.source_card is not None else "Effect"
-        return f"{src} (triggered effect)"
+        what = _TRIGGER_TEXT.get(src, "its triggered effect")
+        return f"{src}: {what}"
     if isinstance(opt, tuple) and len(opt) == 3 and opt[0] == "extra":
         _, card, _fn = opt
-        return f"{card.name} (upgrade effect)"
+        return f"{card.name}: effect granted by its upgrade"
     if opt == "reap":
         return "Reap"
     if opt == "fight":
@@ -80,9 +86,9 @@ def describe_option(opt: Any, decision=None, view=None) -> str:
     if opt == "action":
         return "Use Action"
     if opt == "effect":
-        return "Play effect"
+        return "The card's own Play: effect"
     if opt == "check":
-        return "Play triggers"
+        return "Triggers from other cards (e.g. Library Access draws)"
     if opt == "left":
         return "Left flank"
     if opt == "right":
@@ -151,9 +157,20 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
     if k == "mulligan":
         return f"{who(d['player'])} mulligan{s(d['player'])} {whose(d['player'])} hand."
     if k == "forge_key":
-        return f"{who(d['player'])} forge{s(d['player'])} a key! ({d['keys']}/3)"
+        cost = f" for {d['cost']} Æmber" if d.get("cost") is not None else ""
+        return f"{who(d['player'])} forge{s(d['player'])} a key{cost}! ({d['keys']}/3)"
     if k == "choose_house":
         return f"{who(d['player'])} choose{s(d['player'])} house {d['house']}."
+    if k == "house_forced":
+        src = f" ({d['source']})" if d.get("source") else ""
+        return f"{who(d['player'])} must use house {d['house']} this turn{src}."
+    if k == "forge_skipped":
+        src = f" because of {d['source']}" if d.get("source") else ""
+        return f"{who(d['player'])} can't forge a key{src}, despite having {d['aember']} Æmber."
+    if k == "put_on_top":
+        return f"A card is put on top of {whose(d['player'])} deck."
+    if k == "put_on_bottom":
+        return f"A card is put on the bottom of {whose(d['player'])} deck."
     if k == "take_archive":
         return f"{who(d['player'])} take{s(d['player'])} {whose(d['player'])} archive into hand."
     if k == "discard_from_hand":
@@ -202,11 +219,43 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
     if k == "destroyed":
         return f"{d['card']} is destroyed."
     if k == "duration_effect":
-        return f"{d['card']}'s effect takes hold."
+        return f"{d['card']}: {_duration_text(d)}."
     if k == "arise":
         return f"Arise returns {d['n']} creature(s) to hand."
     if k == "help_from_future_self":
         return "Help From Future Self finds a Timetraveler." if d.get("found") else "Help From Future Self finds nothing."
     if k == "timetraveler_shuffle":
         return "Timetraveler shuffles itself into the deck."
+    return None
+
+
+_DURATION_TEXT = {
+    ("CanPlayActions", False): "the opponent can't play actions next turn",
+    ("CanPlayCreatures", False): "the opponent can't play creatures next turn",
+    ("CanKeyForge", False): "the opponent can't forge a key next turn",
+}
+
+
+def _duration_text(d) -> str:
+    var, op, value = d.get("variable"), d.get("op"), d.get("value")
+    if (var, value) in _DURATION_TEXT:
+        return _DURATION_TEXT[(var, value)]
+    if var == "KeyForgeCost":
+        return f"keys cost {op}{value} Æmber for the opponent next turn"
+    return f"{var} {op} {value}"
+
+
+# Events that name a card in a zone that may be hidden from some viewers.
+_REDACTABLE = {"archive"}
+
+
+def log_event_iid(event, viewer: int):
+    """The instance id of the card a log line is about, if it's safe to let
+    the viewer hover it (i.e. the line isn't redacted for them), else None."""
+    d = event.data
+    if event.kind in _REDACTABLE and d.get("player") not in (None, viewer):
+        return None
+    for key in ("iid", "attacker_iid"):
+        if d.get(key) is not None:
+            return d[key]
     return None

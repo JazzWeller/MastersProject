@@ -86,6 +86,7 @@ class BoardSnapshot:
     players: Dict[int, PlayerSnapshot]
     cards: Dict[int, CardState]
     active_effects: List[dict]
+    first_player: int = 1
 
     def zone_cards(self, pid: int, zone: str) -> List[CardState]:
         out = [c for c in self.cards.values() if c.owner == pid and c.zone == zone]
@@ -155,6 +156,16 @@ def build_snapshot(game, viewer: int) -> BoardSnapshot:
             (ZONE_ARTIFACT, list(player.play_area.artifacts)),
         ]
         for zone, zone_cards in zones:
+            if zone == ZONE_HAND and pid == viewer:
+                # The viewer's own hand is shown sorted -- active house first,
+                # then by house, type, name. The opponent's hand keeps engine
+                # order: sorting it would leak each drawn card's house through
+                # where its (face-down) card lands in the row.
+                active = player.selected_house
+                zone_cards = sorted(
+                    zone_cards,
+                    key=lambda c: (active is not None and c.house != active, c.house.value, c.type.value, c.name),
+                )
             n = len(zone_cards)
             for i, card in enumerate(zone_cards):
                 cards[card.instance_id] = _card_state(game, card, pid, zone, i, n, viewer)
@@ -205,4 +216,5 @@ def build_snapshot(game, viewer: int) -> BoardSnapshot:
         players=players,
         cards=cards,
         active_effects=active_effects,
+        first_player=game.first_player,
     )

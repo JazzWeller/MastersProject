@@ -30,44 +30,68 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
 
 ## Playing
 
-- **Click a glowing card** to play/discard/reap/fight/use it. If a card has
-  more than one legal option (e.g. a hand card that could be played *or*
-  discarded), a small chooser opens beside it — the card shown once, with a
-  labeled button per option ("Play" / "Discard" / ...). Discarding, and
-  ending your turn while other actions are still legal, arm on the first
-  click and need a second click ("Confirm?") to actually go through.
-- **Options (O)** — always available — lists every legal choice as plain
-  buttons or a card grid. It's the guaranteed way to answer *any* decision,
-  including target selection from a pile, choosing a house, ordering
-  simultaneous effects, and so on.
-- **Middle-click** any face-up card — in your hand, on the board, in a pile
-  browser, or in a decklist — to open a full-size, readable view of it, with
-  its name/house/type/stats alongside. Click anywhere or press Esc to close.
-- **Right-click** a card to pin it in the zoom panel on the right; hover
-  any face-up card to preview it there.
-- **Click a pile** (deck/discard/archive/purged, bottom-left of each side,
-  each tinted and outlined differently) to browse its contents, where
-  that's allowed (discard and purged are always public; archive only for
-  its owner — shown with a small padlock when it isn't; the deck's order is
-  always hidden). Click a card in the browser to inspect it full-size.
-- **D** opens either player's full 36-card decklist, unordered, as the
-  spec allows at any time. **H** (or **/**) shows the control list
-  in-game. **M** mutes/unmutes sound.
-- **Mulligan** gets its own screen: your whole hand laid out large enough
-  to actually read, with a house breakdown and "Keep This Hand" /
-  "Mulligan" buttons, rather than a Yes/No prompt over a hand you can't see.
-- **Space** skips the current animation; **1/2/3** set animation speed to
-  0.5x/1x/2x; **F11** toggles fullscreen; **F3** shows the frame rate;
-  **Esc** backs out to the previous screen.
+- **Click a glowing card** to play/discard/reap/fight/use it. A card with
+  several legal options opens a small chooser beside it ("Play" /
+  "Discard" / ...). Discarding, and ending your turn while other actions
+  are still legal, need a second click on the same button; any other click
+  cancels that.
+- **Dimmed cards** can't be used right now — hover one to see why (wrong
+  house, first-turn limit, Ember Imp's play limit, Lifeward, Scrambler
+  Storm, already exhausted, ...).
+- **Right-click** any card — board, hand, pile browser, decklist, a
+  decision screen — to read it full size. Clicking the zoom panel on the
+  right does the same, and middle-click still works. Hovering any card
+  (or any line in the log) shows it in the zoom panel.
+- **All options (O)** lists every legal choice as rows or a readable card
+  grid. It can answer *any* decision.
+- **Decision screens**: the mulligan and "take your archive?" decisions
+  lay the cards out large; choosing a flank shows clickable slots at each
+  end of your creature row; choosing a house shows what each house would
+  let you do; effect ordering numbers your picks and has Undo.
+- **Board**: creatures (left) and artifacts (right) share one row per
+  player; every card shows its remaining power, damage, armor, captured
+  Æmber, Elusive/Skirmish and "Exhausted". Your hand is sorted with your
+  active house first. Hover a key icon to see the turn it was forged, or a
+  status chip to see which card caused it.
+- **Piles** (left column) are clickable at any time, including during the
+  opponent's turn (archive: owner only; decks: never).
+- **The first player** is announced after mulligans and tagged in the HUD;
+  the prompt bar tracks their one-card first-turn limit.
+- **D** decklists · **H** or **/** help · **M** mute · **Space** skip
+  animation · **1/2/3** animation speed · **F11** fullscreen · **F3** FPS ·
+  **Esc** close a popup or leave the game.
 - **Hot-seat** (human vs. human): a "Pass to Player N" screen hides the
-  board between turns whenever the pending decision belongs to the other
-  player.
-- **Spectating** (bot vs. bot, no human seat): players are addressed as
-  "Player 1"/"Player 2" throughout rather than "you", and **R** reveals
-  both hands face up.
+  board whenever the pending decision belongs to the other player.
+- **Spectating** (bot vs. bot): players are addressed as "Player 1/2", and
+  **R** reveals both hands.
+- **Bots** use a simple rules-aware strategy (`bots/heuristic_bot.py`):
+  they pick the house that lets them do the most, play what they can,
+  fight only favorable fights, and end the turn when nothing useful is
+  left.
 
-See [`UX_FIX_PLAN.md`](UX_FIX_PLAN.md) for the usability pass that produced
-most of the above — what was wrong, why, and how it was fixed.
+## Game history and replays
+
+Every game is recorded automatically in a local SQLite database,
+`Code/GUI/data/history.sqlite3` (git-ignored; override with the
+`KEYFORGE_HISTORY_DB` environment variable). A game is stored as its
+settings, its seed and the index of every choice made, zlib-compressed —
+typically a couple of KB — which is enough to reproduce it exactly.
+Unfinished games (quit, crash) are kept as "abandoned".
+
+- **Main menu → Past Games** lists them newest first, with result, turns
+  and keys, plus Replay and Delete.
+- **Game over → Watch Replay** opens the game you just finished.
+- **In a replay**: Play/Pause (Space), step one decision (← →), jump a turn
+  (↑ ↓ / PgUp PgDn), start/end (Home/End), click the timeline to scrub,
+  **V** to view from the other player's side, and show/hide both hands.
+
+The game-over screen draws over the final board and lists each player's
+keys, Æmber and the turn every key was forged; **View Board** hides the
+panel so you can inspect the final position.
+
+See [`../PLAYTEST_FIX_PLAN.md`](../PLAYTEST_FIX_PLAN.md) and
+[`UX_FIX_PLAN.md`](UX_FIX_PLAN.md) for what was wrong, why, and how it was
+fixed.
 
 ## Layout
 
@@ -77,10 +101,13 @@ gui/
   app.py              window, scene stack, logical-canvas scaling, hotkeys
   assets.py           card art (rounded, cached, scaled), procedural card back
                        and icons, fonts, optional sound
-  engine_bridge.py     owns the Game + bot seats; before/events/after per submit()
+  engine_bridge.py     owns the Game + bot seats; before/events/after per submit();
+                       ReplayBridge steps a recorded game
+  history.py           the SQLite game history (compressed move records)
   snapshot.py          BoardSnapshot: every card's zone/position/face_up, per viewer
   layout.py            board bands -> concrete rects and card-fan/row slots
-  board.py             the CardSprite pool + HUD/particle/overlay state
+  board.py             the CardSprite pool + HUD/particle/overlay state, and
+                       card_at(): the one "which card is under the mouse" answer
   option_labels.py     turns any Decision option or log event into a sentence
   anim/
     tween.py, easing.py, animator.py   a small Tween/Sequence/Parallel/Delay/Call
@@ -89,9 +116,11 @@ gui/
   sprites/
     card_sprite.py, hud.py, piles.py, widgets.py, log_panel.py, overlays.py
   decision/
-    panel.py            answers every DecisionKind: card-click + an Options modal
+    panel.py            answers every DecisionKind: board clicks, dedicated screens
+                        (mulligan, archive, flank), and the All-options modal
   scenes/
-    menu_scene.py, game_scene.py, curtain_scene.py, game_over_scene.py
+    menu_scene.py, game_scene.py, curtain_scene.py, game_over_scene.py,
+    history_scene.py, replay_scene.py
 main.py                 entry point
 tests/                  see below
 ```
@@ -119,9 +148,9 @@ python -m unittest discover -s tests
   art at every size the app uses.
 - `test_option_labels.py` — every option type and log-event kind produces
   a readable sentence.
-- `test_snapshot_layout.py` — board rects stay on-canvas and don't
-  collide; hidden zones (deck, the opponent's hand/archive) never carry a
-  face-up card for the wrong viewer.
+- `test_snapshot_layout.py` — no two board bands overlap, and every card
+  (rotated, 1-12 per zone) stays inside its own band; hidden zones never
+  carry a face-up card for the wrong viewer; upgrades are always public.
 - `test_headless_autoplay.py` — runs full bot-vs-bot games through
   Board + Director + Animator and checks the board never drifts out of
   sync with the engine.
@@ -138,6 +167,18 @@ python -m unittest discover -s tests
 - `test_decision_ui.py` — the action chooser and Options grid never show
   the same card's art twice; MULLIGAN always opens the dedicated review
   screen; Discard and a premature End Turn always require a second click.
+- `test_click_accuracy.py` — renders every card into an ID map and checks
+  that hover/click pick the card actually drawn on top (≥99% of pixels),
+  plus chooser click-through and upgrade-to-host click routing.
+- `test_playtest_fixes.py` — first-player messaging, "why can't I use
+  this" dimming, the archive/flank/ordering/house screens, confirm
+  disarming, pile browsing on the opponent's turn, hand sorting, HUD chip
+  overflow, the 12px font minimum, log hover, right-click inspect, queued
+  clicks, and a real-speed game checking the HUD always matches the engine
+  and is never covered by a card.
+- `test_history_replay.py` — record → compress → store → load → replay
+  reproduces the game exactly; abandoned games; the Past Games list and
+  the replay scene end to end.
 - `test_app_window.py` — letterbox math and window-resize survival.
 - `test_performance.py` — a populated board stays comfortably under the
   frame budget.

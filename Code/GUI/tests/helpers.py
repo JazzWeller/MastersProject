@@ -8,6 +8,11 @@ import sys
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
+# Never record test games into the real history database.
+import tempfile  # noqa: E402
+
+os.environ["KEYFORGE_HISTORY_DB"] = os.path.join(tempfile.mkdtemp(prefix="keyforge-tests-"), "history.sqlite3")
+
 _GUI_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _NON_GUI_DIR = os.path.join(os.path.dirname(_GUI_DIR), "Non-GUI")
 for p in (_GUI_DIR, _NON_GUI_DIR):

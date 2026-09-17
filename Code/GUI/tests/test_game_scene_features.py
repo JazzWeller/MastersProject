@@ -93,13 +93,13 @@ class TestHelpOverlay(unittest.TestCase):
         _key(self.scene, pygame.K_SLASH)
         self.assertTrue(self.scene.show_help)
 
-    def test_help_blocks_pile_clicks(self):
+    def test_click_closes_help_without_reaching_the_board(self):
         _key(self.scene, pygame.K_h)
         self.assertTrue(self.scene.show_help)
-        pile_rect = self.scene.board.layout.pile_rect(1, "deck")
+        pile_rect = self.scene.board.layout.pile_rect(1, "discard")
         _click(self.scene, pile_rect.center)
-        self.assertIsNone(self.scene.browsing)  # click was swallowed by the help overlay
-        self.assertTrue(self.scene.show_help)
+        self.assertIsNone(self.scene.browsing)  # the click only dismissed the overlay
+        self.assertFalse(self.scene.show_help)
 
     def test_escape_closes_help_without_leaving_the_scene(self):
         _key(self.scene, pygame.K_h)

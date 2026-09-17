@@ -14,7 +14,7 @@ from keyforge.enums import DecisionKind
 from keyforge.game import Game
 
 from gui import settings as S
-from gui.layout import Layout
+from gui.layout import Layout, rotated_half_extents
 from gui.snapshot import build_snapshot
 
 # Card-count conservation only holds at these "boundary" points (and at
@@ -45,47 +45,73 @@ class TestLayout(unittest.TestCase):
             for r in rects:
                 self.assertTrue(CANVAS.contains(r), (viewer, r))
 
-    def test_your_and_opponent_bands_dont_overlap(self):
-        L = Layout(1)
-        self.assertLess(L.hand_rect(1).top, S.CANVAS_H)  # bottom hand is below center
-        self.assertLess(L.hand_rect(2).bottom, L.creature_row_rect(2).top + 1)  # opp hand above opp creatures
-        self.assertLessEqual(L.creature_row_rect(2).bottom, L.creature_row_rect(1).top)  # rows don't cross
+    def test_bands_never_overlap(self):
+        for viewer in (1, 2):
+            bands = Layout(viewer).all_band_rects()
+            for i, (name_a, a) in enumerate(bands):
+                self.assertTrue(CANVAS.contains(a), name_a)
+                for name_b, b in bands[i + 1:]:
+                    self.assertFalse(a.colliderect(b), f"{name_a} overlaps {name_b}")
+            layout = Layout(viewer)
+            for pid in (1, 2):
+                c, a = layout.creature_row_rect(pid), layout.artifact_row_rect(pid)
+                self.assertFalse(c.colliderect(a), "creature and artifact lanes overlap")
+                self.assertTrue(layout.board_rect(pid).contains(c) and layout.board_rect(pid).contains(a))
 
-    def test_fan_slots_stay_inside_the_rect_horizontally(self):
-        L = Layout(1)
-        rect = L.hand_rect(1)
-        for n in (0, 1, 2, 7, 12):
-            slots = L.fan_slots(n, rect, S.HAND_CARD_W, S.HAND_CARD_H)
-            self.assertEqual(len(slots), n)
-            for x, y, rot in slots:
-                self.assertGreaterEqual(x, rect.left - S.HAND_CARD_W)
-                self.assertLessEqual(x, rect.right + S.HAND_CARD_W)
+    def test_every_card_stays_inside_its_own_band(self):
+        """Code/PLAYTEST_FIX_PLAN.md L3: for 1-12 cards in every zone, each
+        card's rotated bounding box lies entirely inside its own band -- so no
+        row can overlap another, which is what the old layout got wrong."""
+        for viewer in (1, 2):
+            L = Layout(viewer)
+            for pid in (1, 2):
+                for n in range(1, 13):
+                    band = L.hand_rect(pid)
+                    w, h = L.hand_card_size(pid)
+                    for x, y, rot in L.hand_slots(pid, n):
+                        hw, hh = rotated_half_extents(w, h, rot)
+                        self._inside(pygame.Rect(x - hw, y - hh, 2 * hw, 2 * hh), band, ("hand", viewer, pid, n))
+                    for lane in (L.creature_row_rect(pid), L.artifact_row_rect(pid)):
+                        for x, y in L.row_slots(n, lane, S.BOARD_CARD_W, S.BOARD_CARD_H):
+                            card = pygame.Rect(0, 0, S.BOARD_CARD_W, S.BOARD_CARD_H)
+                            card.center = (round(x), round(y))
+                            self._inside(card, lane, ("lane", viewer, pid, n))
+                    for side, (x, y) in L.flank_ghost_slots(pid, n - 1).items():
+                        card = pygame.Rect(0, 0, S.BOARD_CARD_W, S.BOARD_CARD_H)
+                        card.center = (round(x), round(y))
+                        self._inside(card, L.creature_row_rect(pid), ("flank", side, n))
 
-    def test_hand_fan_never_goes_off_canvas(self):
-        """Regression test for the hand-clipping bug in UX_FIX_PLAN.md F2:
-        at every hand size, every card's *rotated* bounding box -- not just
-        its center point -- must stay fully on the canvas, for both the
-        bottom hand (arc_up=True) and the top hand (arc_up=False)."""
+    def test_upgrade_tabs_sit_inside_their_host(self):
         L = Layout(1)
-        for pid, arc_up in ((1, True), (2, False)):
-            rect = L.hand_rect(pid)
-            for n in range(1, 13):
-                for x, y, rot in L.fan_slots(n, rect, S.HAND_CARD_W, S.HAND_CARD_H, arc_up=arc_up):
-                    rad = math.radians(abs(rot))
-                    half_h = (S.HAND_CARD_W * math.sin(rad) + S.HAND_CARD_H * math.cos(rad)) / 2
-                    half_w = (S.HAND_CARD_W * math.cos(rad) + S.HAND_CARD_H * math.sin(rad)) / 2
-                    self.assertGreaterEqual(y - half_h, 0, (pid, n, rot))
-                    self.assertLessEqual(y + half_h, S.CANVAS_H, (pid, n, rot))
-                    self.assertGreaterEqual(x - half_w, -1, (pid, n, rot))
-                    self.assertLessEqual(x + half_w, S.CANVAS_W + 1, (pid, n, rot))
+        for index in range(3):
+            x, y, w, h = L.upgrade_slot(500, 300, index)
+            host = pygame.Rect(0, 0, S.BOARD_CARD_W, S.BOARD_CARD_H)
+            host.center = (500, 300)
+            tab = pygame.Rect(0, 0, w, h)
+            tab.center = (round(x), round(y))
+            self.assertTrue(host.contains(tab), index)
+
+    def test_piles_stay_in_the_left_column_without_overlapping(self):
+        L = Layout(1)
+        rects = [L.pile_rect(pid, kind) for pid in (1, 2) for kind in ("deck", "discard", "archive", "purged")]
+        for i, a in enumerate(rects):
+            self.assertTrue(CANVAS.contains(a))
+            self.assertLessEqual(a.right, S.PLAY_X)
+            labelled = a.inflate(0, 2 * 14)
+            for b in rects[i + 1:]:
+                self.assertFalse(labelled.colliderect(b))
+
+    def _inside(self, card: pygame.Rect, band: pygame.Rect, what) -> None:
+        self.assertGreaterEqual(card.left, band.left - 1, what)
+        self.assertLessEqual(card.right, band.right + 1, what)
+        self.assertGreaterEqual(card.top, band.top - 1, what)
+        self.assertLessEqual(card.bottom, band.bottom + 1, what)
 
     def test_row_slots_dont_explode_for_many_cards(self):
         L = Layout(1)
         rect = L.creature_row_rect(1)
         slots = L.row_slots(12, rect, S.BOARD_CARD_W, S.BOARD_CARD_H)
         self.assertEqual(len(slots), 12)
-        xs = [x for x, y in slots]
-        self.assertLess(max(xs) - min(xs), S.PLAY_W + S.BOARD_CARD_W)
 
 
 class TestSnapshotVisibility(unittest.TestCase):

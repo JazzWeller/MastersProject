@@ -1,10 +1,13 @@
-"""The per-player HUD strip: house badge, name, aember, keys, chains, and
-status chips for active lasting effects.
+"""The per-player HUD strip: house badge, name, aember, keys, key cost,
+chains, and status chips for active lasting effects.
+
+`draw_hud` returns where it drew each element, so animations can target
+the real key slot and the scene can show tooltips over keys and chips.
 """
 
 from __future__ import annotations
 
-from typing import List
+from typing import Dict, List
 
 import pygame
 
@@ -20,22 +23,22 @@ class PlayerHUDState:
         self.displayed_aember = float(initial_aember)
 
 
-def _effect_chip_text(effect: dict) -> str:
+def effect_chip_text(effect: dict) -> str:
     var = effect["variable"]
     op = effect["op"]
     val = effect["value"]
     dur = effect["remaining_duration"]
-    dur_txt = "" if dur == -1 else f" ({dur})"
+    dur_txt = "" if dur == -1 else f" ({dur} turn{'s' if dur != 1 else ''} left)"
     labels = {
         "CanKeyForge": "Can't forge a key" if val is False else "Can forge a key",
-        "CanPlayActions": "Can't play Actions" if val is False else "Can play Actions",
-        "CanPlayCreatures": "Can't play Creatures" if val is False else "Can play Creatures",
-        "HouseSelection": f"House forced: {val}",
+        "CanPlayActions": "Can't play actions" if val is False else "Can play actions",
+        "CanPlayCreatures": "Can't play creatures" if val is False else "Can play creatures",
+        "HouseSelection": f"Must choose {getattr(val, 'value', val)}",
         "KeyForgeCost": f"Key cost {op}{val}",
-        "DrawUpToLimit": f"Draw limit {op}{val}",
+        "DrawUpToLimit": f"Hand refill {op}{val}",
         "CardDrawModifier": f"Draw {op}{val}",
-        "CardPlayedLimit": f"Play limit = {val}",
-        "NonLogosCardsPlayable": f"Non-Logos plays +{val}",
+        "CardPlayedLimit": f"Max {val} plays per turn",
+        "NonLogosCardsPlayable": f"May play {val} non-Logos",
     }
     base = labels.get(var, f"{var} {op}{val}")
     return f"{base}{dur_txt}"
@@ -50,7 +53,10 @@ def draw_hud(
     is_active_player: bool,
     label: str,
     effects: List[dict],
-) -> None:
+    tag: str = "",
+    forge_turns: List[int] = (),
+) -> Dict[str, object]:
+    rects: Dict[str, object] = {"keys": [], "chips": []}
     draw_panel(surface, rect, alpha=190, border=(S.AEMBER if is_active_player else None))
 
     x = rect.left + 12
@@ -58,31 +64,58 @@ def draw_hud(
 
     house = player_snapshot.selected_house
     color = S.HOUSE_COLORS.get(house, S.TEXT_FAINT)
-    r = 14
-    pygame.draw.circle(surface, (*color, 90), (x + r, cy), r)
-    pygame.draw.circle(surface, color, (x + r, cy), r, width=2)
+    r = 13
+    pygame.draw.circle(surface, color, (x + r, cy), r, width=0 if house else 2)
     x += 2 * r + 10
 
     name_font = assets.font("inter", 15, bold=True)
     name_txt = f"{label}" + (f" · {house}" if house else "")
     img = name_font.render(name_txt, True, S.TEXT)
     surface.blit(img, (x, cy - img.get_height() // 2))
-    x += img.get_width() + 18
+    x += img.get_width() + 10
 
-    gem = assets.aember_gem(16)
-    surface.blit(gem, (x, cy - 8))
-    x += 20
-    aember_font = assets.font("inter", 16, bold=True)
-    aember_txt = f"{round(hud_state.displayed_aember)}"
-    img = aember_font.render(aember_txt, True, S.AEMBER)
-    surface.blit(img, (x, cy - img.get_height() // 2))
-    x += img.get_width() + 18
+    if tag:
+        tag_font = assets.font("inter", 12, bold=True)
+        t = tag_font.render(tag, True, S.BLACK)
+        tr = t.get_rect().inflate(12, 4)
+        tr.midleft = (x, cy)
+        pygame.draw.rect(surface, S.AEMBER_GLOW, tr, border_radius=tr.height // 2)
+        surface.blit(t, t.get_rect(center=tr.center))
+        rects["tag"] = tr
+        x = tr.right + 12
+    else:
+        x += 8
+
+    gem = assets.aember_gem(18)
+    surface.blit(gem, (x, cy - 9))
+    x += 22
+    aember_font = assets.font("inter", 18, bold=True)
+    img = aember_font.render(f"{round(hud_state.displayed_aember)}", True, S.AEMBER)
+    aember_rect = img.get_rect(midleft=(x, cy))
+    surface.blit(img, aember_rect)
+    rects["aember"] = aember_rect.union(pygame.Rect(x - 22, cy - 9, 18, 18))
+    x = aember_rect.right + 16
 
     for i in range(3):
-        key_img = assets.key_icon(22, forged=(i < player_snapshot.keys))
-        surface.blit(key_img, (x, cy - 11))
-        x += 25
-    x += 4
+        key_img = assets.key_icon(24, forged=(i < player_snapshot.keys))
+        kr = pygame.Rect(x, cy - 12, 24, 24)
+        surface.blit(key_img, kr)
+        tip = f"Key {i + 1}: forged on turn {forge_turns[i]}" if i < len(forge_turns) else f"Key {i + 1}: not forged"
+        rects["keys"].append((kr, tip))
+        x += 27
+    x += 8
+
+    cost_font = assets.font("inter", 13)
+    if player_snapshot.can_forge:
+        cost_color = S.TEXT_DIM if player_snapshot.key_cost == 6 else S.AEMBER
+        cost_txt = f"Key cost {player_snapshot.key_cost}"
+    else:
+        cost_color, cost_txt = S.DANGER, "Can't forge a key"
+    img = cost_font.render(cost_txt, True, cost_color)
+    cost_rect = img.get_rect(midleft=(x, cy))
+    surface.blit(img, cost_rect)
+    rects["cost"] = cost_rect
+    x = cost_rect.right + 14
 
     if player_snapshot.chains > 0:
         chain_img = assets.chain_icon(18)
@@ -91,23 +124,29 @@ def draw_hud(
         chain_font = assets.font("inter", 14, bold=True)
         img = chain_font.render(str(player_snapshot.chains), True, S.TEXT_DIM)
         surface.blit(img, (x, cy - img.get_height() // 2))
+        rects["chains"] = pygame.Rect(x - 22, cy - 10, img.get_width() + 22, 20)
         x += img.get_width() + 12
 
-    cost_font = assets.font("inter", 12)
-    cost_color = S.TEXT_FAINT if player_snapshot.key_cost == 6 else S.AEMBER
-    cost_txt = f"Key cost {player_snapshot.key_cost}" if player_snapshot.can_forge else "Can't forge a key"
-    img = cost_font.render(cost_txt, True, cost_color if player_snapshot.can_forge else S.DANGER)
-    surface.blit(img, (x, cy - img.get_height() // 2))
-    x += img.get_width() + 14
-
-    # status chips, right-aligned within remaining space
+    # Status chips; whatever doesn't fit collapses into a "+N" chip whose
+    # tooltip lists the rest (they used to silently stop drawing).
     if effects:
-        chip_x = x
         max_x = rect.right - 10
-        for eff in effects:
-            chip = Chip(_effect_chip_text(eff), color=S.HOUSE_COLORS.get(eff.get("_house"), S.PURGE))
-            size_rect = chip.size(assets, 12)
-            if chip_x + size_rect.width > max_x:
+        font_size = 12
+        plus_w = Chip("+99", color=S.TEXT_DIM).size(assets, font_size).width + 6
+        chip_x = x
+        for i, eff in enumerate(effects):
+            text = effect_chip_text(eff)
+            chip = Chip(text, color=S.HOUSE_COLORS.get(eff.get("_house"), S.PURGE))
+            size = chip.size(assets, font_size)
+            remaining = len(effects) - i - 1
+            room = max_x - (plus_w if remaining else 0)
+            if chip_x + size.width > room:
+                rest = effects[i:]
+                more = Chip(f"+{len(rest)}", color=S.TEXT_DIM)
+                cr = more.draw(surface, assets, chip_x, cy - size.height // 2, font_size)
+                rects["chips"].append((cr, [f"{effect_chip_text(e)} — {e['source_name']}" for e in rest]))
                 break
-            chip.draw(surface, assets, chip_x, cy - size_rect.height // 2, 12)
-            chip_x += size_rect.width + 6
+            cr = chip.draw(surface, assets, chip_x, cy - size.height // 2, font_size)
+            rects["chips"].append((cr, [f"{text} — from {eff['source_name']}"]))
+            chip_x += size.width + 6
+    return rects

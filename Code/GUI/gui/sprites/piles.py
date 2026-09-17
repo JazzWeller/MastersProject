@@ -44,9 +44,9 @@ def draw_pile(
         if hovered and browsable:
             pygame.draw.rect(surface, S.GLOW_LEGAL, rect, width=2, border_radius=6)
 
-    label_font = assets.font("inter", 10)
-    lab = label_font.render(kind.capitalize(), True, _KIND_LABEL_COLOR.get(kind, S.TEXT_FAINT))
-    surface.blit(lab, (rect.centerx - lab.get_width() // 2, rect.top - 13))
+    label_font = assets.font("inter", S.MIN_FONT)
+    lab = label_font.render(f"{kind.capitalize()} {count}", True, _KIND_LABEL_COLOR.get(kind, S.TEXT_FAINT))
+    surface.blit(lab, (rect.centerx - lab.get_width() // 2, rect.top - lab.get_height() - 1))
 
     if count > 0 and not browsable:
         # A small padlock: this pile exists and has cards, but you can't
@@ -58,12 +58,3 @@ def draw_pile(
             surface, S.TEXT_DIM,
             pygame.Rect(lock_r.centerx - 5, lock_r.top - 9, 10, 12), 0, 3.2, width=2,
         )
-
-    if count > 0:
-        count_font = assets.font("inter", 12, bold=True)
-        txt = count_font.render(str(count), True, S.WHITE)
-        bubble = pygame.Rect(0, 0, txt.get_width() + 10, txt.get_height() + 6)
-        bubble.bottomright = (rect.right - 2, rect.bottom - 2)
-        pygame.draw.rect(surface, S.PANEL, bubble, border_radius=bubble.height // 2)
-        pygame.draw.rect(surface, S.TEXT_DIM, bubble, width=1, border_radius=bubble.height // 2)
-        surface.blit(txt, txt.get_rect(center=bubble.center))

@@ -55,25 +55,36 @@ def _play_through(app, dt=30.0, max_frames=MAX_FRAMES):
         if gscene.panel.decision is not d:
             continue
         p = gscene.panel
-        if p.mulligan_open:
-            keep_button, _opt = p._mulligan_buttons()[0]
-            _click(top, keep_button.rect.center)
+        assets = app.assets
+        if p.mulligan_open or p.archive_open:
+            button, _opt = p._review_buttons()[0]
+            _click(top, button.rect.center)
         elif p.chooser_iid is not None:
-            rect = p._chooser_rect(gscene.board)
-            rows = p._chooser_option_rows(rect)
+            rows = p._chooser_option_rows(p._chooser_rect(gscene.board))
             if rows:
                 _click(top, rows[0].center)
         elif p.modal_open:
-            rect = p._modal_rect()
-            body_top = rect.top + 40
-            if p.modal_rows:
-                grid = p._modal_is_grid()
-                pos = (rect.left + 14 + 48, body_top + 70) if grid else (rect.left + 14 + 50, body_top + 20)
-                _click(top, pos)
+            rect = p._modal_rect(assets)
+            cells = p._modal_cells(p._modal_body(rect, assets))
+            if cells:
+                _click(top, cells[0][0].center)
+            if p.result is None and p.decision is d and d.max_n > 1 and d.min_n <= len(p.picked):
+                p.confirm()
+        elif p.flank_open:
+            rect = p.flank_rects(gscene.board, gscene.board.layout)["right"]
+            _click(top, rect.center)
         elif p.card_option_map:
             iid = next(iter(p.card_option_map))
             sprite = gscene.board.sprites[iid]
             _click(top, (sprite.x, sprite.y))
+            if p.result is None and p.chooser_iid is None and d.max_n > 1 and d.min_n <= len(p.picked):
+                p.confirm()
+        else:
+            # Nothing on the board: End Turn (or Confirm) lives on the action bar.
+            for button, _cb in p.action_bar_buttons(gscene.board.layout):
+                if button.text.startswith(("End Turn", "Click again", "Confirm", "Choose none")):
+                    _click(top, button.rect.center)
+                    break
     return frames
 
 

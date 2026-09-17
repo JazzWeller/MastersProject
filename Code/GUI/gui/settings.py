@@ -33,11 +33,13 @@ FPS = 60
 # ------------------------------------------------------------- card sizes ----
 
 CARD_ART_W, CARD_ART_H = 300, 420           # native art resolution
-BOARD_CARD_W, BOARD_CARD_H = 105, 147       # creatures/artifacts on the board
-HAND_CARD_W, HAND_CARD_H = 112, 157         # cards in a hand fan
+BOARD_CARD_W, BOARD_CARD_H = 120, 168       # creatures/artifacts on the board
+HAND_CARD_W, HAND_CARD_H = 130, 182         # the viewer's own hand fan
+OPP_HAND_CARD_W, OPP_HAND_CARD_H = 64, 90   # the opponent's hand: a compact flat row
+UPGRADE_TAB_W, UPGRADE_TAB_H = 44, 62       # an upgrade, tucked inside its host's corner
 ZOOM_CARD_W, ZOOM_CARD_H = 300, 420         # hover zoom panel
 PILE_CARD_W, PILE_CARD_H = 90, 126          # deck/discard/archive/purged, in the browser modal
-PILE_ICON_W, PILE_ICON_H = 56, 78           # compact pile stack shown in the left column
+PILE_ICON_W, PILE_ICON_H = 50, 70           # compact pile stack shown in the left column
 BROWSER_CARD_W, BROWSER_CARD_H = 140, 196   # pile browser / decklist grid cells
 INSPECT_MAX_W, INSPECT_MAX_H = 520, 728     # full-size card inspector (B1)
 MULLIGAN_CARD_W, MULLIGAN_CARD_H = 190, 266 # mulligan hand review screen
@@ -48,31 +50,31 @@ MULLIGAN_CARD_W, MULLIGAN_CARD_H = 190, 266 # mulligan hand review screen
 
 LEFT_COL_X, LEFT_COL_W = 10, 140
 PLAY_X, PLAY_W = 160, 1130   # PLAY_X + PLAY_W == BOARD_W - 10
-PILE_SLOT_H, PILE_GAP = 70, 4
+PILE_SLOT_H, PILE_GAP = 70, 16  # gap holds each pile's label
 
-# Every band below was solved as a system, not eyeballed: given the hand
-# card size/lift/rotation above, a hand fan's worst-case card (rotated,
-# fully lifted) has a bounding-box half-height of roughly 97px on the side
-# that arcs toward the board, and the plain card half-height (79px) on the
-# side that faces the true canvas edge. That means each hand needs ~154px
-# of *dedicated* vertical room, and is allowed a bounded ~19px bleed of its
-# outermost cards into the neighbouring HUD band (same tolerance the
-# artifact row already relies on against creatures/HUD) -- never off the
-# canvas. test_snapshot_layout.py checks the on-canvas half; the HUD-bleed
-# half is a visual judgement call, re-verified with real screenshots.
-BAND_OPP_HAND = (12, 160)
-BAND_OPP_HUD = (163, 203)
-BAND_OPP_ARTIFACTS = (206, 262)
-BAND_OPP_CREATURES = (265, 415)
-BAND_PROMPT = (418, 446)
-BAND_YOUR_CREATURES = (449, 599)
-BAND_YOUR_ARTIFACTS = (602, 658)
-BAND_YOUR_HUD = (661, 701)
-BAND_YOUR_HAND = (704, 858)
-BAND_ACTION_BAR = (861, 898)
+# Every band fully contains its own cards -- no row may overlap another (see
+# Code/PLAYTEST_FIX_PLAN.md 0.6, and test_snapshot_layout.py, which checks
+# each card's rotated bounding box against its band for 1-12 cards).
+#
+# Creatures and artifacts share one "board" band per player, split into two
+# lanes side by side (creatures left, artifacts right, divider between), so
+# there are 8 bands instead of 10 and every card can be larger.
+BAND_OPP_HAND = (6, 100)          # 64x90 card backs, flat
+BAND_OPP_HUD = (108, 148)
+BAND_OPP_BOARD = (156, 340)       # 120x168 cards + 8px padding
+BAND_PROMPT = (348, 384)
+BAND_YOUR_BOARD = (392, 576)
+BAND_YOUR_HUD = (584, 624)
+BAND_YOUR_HAND = (632, 852)       # 130x182 fan, see HAND_FAN_* below
+BAND_ACTION_BAR = (858, 894)
 
-BAND_PILES_OPP = (30, 300)
-BAND_PILES_YOU = (600, 878)
+CREATURE_LANE_W = 718
+LANE_DIVIDER_W = 12
+ARTIFACT_LANE_W = PLAY_W - CREATURE_LANE_W - LANE_DIVIDER_W   # 400: three artifacts side by side
+LANE_PAD = 8
+
+BAND_PILES_OPP = (4, 348)
+BAND_PILES_YOU = (548, 892)
 
 SIDE_ZOOM = (10, 440)
 SIDE_LOG = (450, 892)
@@ -148,7 +150,7 @@ T_DESTROY = 650
 T_PURGE = 600
 T_MOVE_ZONE = 350
 T_AEMBER_GEM = 500
-T_KEY_FORGE = 1200
+T_KEY_FORGE = 2200
 T_CHAIN = 400
 T_CHIP = 400
 T_SETTLE = 300
@@ -161,7 +163,8 @@ MAX_AEMBER_GEMS = 8
 
 BUTTON_H = 44
 HAND_FAN_MAX_SPREAD = 900
-HAND_FAN_LIFT = 10          # px the outermost card is lifted, arcing toward the board
-HAND_FAN_MAX_ROT = 10       # degrees, clamp on the outermost card's tilt
-HAND_FAN_ROT_SLOPE = 6.0    # degrees of tilt per card-index away from center, before the clamp
+HAND_FAN_LIFT = 8           # px the outermost card is lifted, arcing toward the board
+HAND_FAN_MAX_ROT = 5        # degrees, clamp on the outermost card's tilt
+HAND_FAN_ROT_SLOPE = 2.0    # degrees of tilt per card-index away from center, before the clamp
+MIN_FONT = 12               # no label anywhere is drawn smaller than this
 LOG_LINES_VISIBLE = 14

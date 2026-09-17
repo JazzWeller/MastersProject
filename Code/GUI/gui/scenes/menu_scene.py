@@ -61,6 +61,8 @@ class MenuScene(Scene):
         self.buttons["seed"] = (Button(pygame.Rect(cx + 40, y, bw, bh), "Fixed (42)" if self.fixed_seed else "Random"), self._toggle_seed)
         y += row_h + 30
         self.buttons["start"] = (Button(pygame.Rect(cx - 110, y, 220, 54), "Start Game", primary=True), self._start)
+        self.buttons["history"] = (Button(pygame.Rect(cx - 350, y, 220, 54), "Past Games"), self._history)
+        self.buttons["quit"] = (Button(pygame.Rect(cx + 130, y, 220, 54), "Quit"), self.app.quit)
 
     def _cycle_p1_deck(self):
         self.p1_deck_i = (self.p1_deck_i + 1) % len(DECKS)
@@ -85,6 +87,11 @@ class MenuScene(Scene):
     def _toggle_seed(self):
         self.fixed_seed = not self.fixed_seed
         self._layout_buttons()
+
+    def _history(self):
+        from .history_scene import HistoryScene
+
+        self.app.push(HistoryScene())
 
     def _start(self):
         from .game_scene import GameScene

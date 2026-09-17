@@ -53,7 +53,12 @@ def creeping_oblivion(game, card):
 
 def dominator_bauble(game, card):
     player = controller_of(game, card)
-    options = [c for c in player.play_area.creatures]
+    # Only creatures that can actually be used: picking an exhausted one (or
+    # one past the rule of six) would silently waste the Bauble.
+    options = [
+        c for c in player.play_area.creatures
+        if not c.Exhausted and game._rule_of_six_ok(player, c.name)
+    ]
     if not options:
         return
     choice = yield from game.choose_cards(player.id, "Choose a friendly creature to use", options, 1, 1)
@@ -67,6 +72,10 @@ def dust_imp_destroyed(game, card):
 
 
 def ember_imp_register(game, card):
+    # Deliberately follows the spec, not the printed card: CardPlayedLimit
+    # counts only cards played from hand, so effect plays (Wild Wormhole)
+    # don't count toward Ember Imp's limit. Confirmed as the intended
+    # behavior by the project owner; see tests/test_rules_fixes.py.
     effect = DurationEffect(card, card.controller, INFINITE, 3 - card.controller, "CardPlayedLimit", "=", 2)
     card._ember_imp_effect = effect
     game.active_effects.add(effect)
@@ -85,16 +94,20 @@ def gateway_to_dis(game, card):
 
 def guardian_demon(game, card):
     player = controller_of(game, card)
-    options = game.all_creatures("any", card)
+    creatures = game.all_creatures("any", card)
+    # Healing an undamaged creature heals 0 and deals 0, so only offer ones
+    # that can actually be healed.
+    options = [c for c in creatures if c.type_object.damage > 0]
     if not options:
         return
     heal_choice = yield from game.choose_cards(player.id, "Guardian Demon: heal up to 2 from a creature", options, 1, 1)
     healed = steps.heal(game, heal_choice[0], 2)
     if healed <= 0:
         return
-    damage_targets = [c for c in options if c is not heal_choice[0]]
+    # Printed text: deal the damage to *another* creature. None -> no damage.
+    damage_targets = [c for c in creatures if c is not heal_choice[0]]
     if not damage_targets:
-        damage_targets = options
+        return
     dmg_choice = yield from game.choose_cards(player.id, f"Deal {healed} damage to another creature", damage_targets, 1, 1)
     steps.deal_damage(game, dmg_choice[0], healed)
     yield from game.check_destroyed(dmg_choice)
@@ -239,8 +252,12 @@ def quixo_after_fight(game, card):
 
 
 def the_howling_pit_register(game, card):
-    game.active_effects.add(DurationEffect(card, card.controller, INFINITE, 1, "CardDrawModifier", "+", 1))
-    game.active_effects.add(DurationEffect(card, card.controller, INFINITE, 2, "CardDrawModifier", "+", 1))
+    # Printed text: "During their 'draw cards' step, each player refills their
+    # hand to 1 additional card." That is a DrawUpToLimit increase (like
+    # Mother), not the spec's CardDrawModifier, which would draw nothing when
+    # a hand is already full. Follows the card over the spec, as approved.
+    game.active_effects.add(DurationEffect(card, card.controller, INFINITE, 1, "DrawUpToLimit", "+", 1))
+    game.active_effects.add(DurationEffect(card, card.controller, INFINITE, 2, "DrawUpToLimit", "+", 1))
 
 
 def timetraveler_action(game, card):
@@ -343,8 +360,9 @@ def lights_out(game, card):
     options = list(opponent.play_area.creatures)
     if not options:
         return
-    n_max = min(2, len(options))
-    choice = yield from game.choose_cards(card.controller, "Lights Out: return up to 2 enemy creatures", options, 0, n_max)
+    # Printed text: "Return 2 enemy creatures" -- exactly 2, or all if fewer.
+    n = min(2, len(options))
+    choice = yield from game.choose_cards(card.controller, f"Lights Out: return {n} enemy creature{'s' if n != 1 else ''}", options, n, n)
     for c in choice:
         steps.return_to_hand(game, c)
 

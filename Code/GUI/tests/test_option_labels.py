@@ -65,7 +65,7 @@ class TestOptionLabels(unittest.TestCase):
     def test_every_log_event_kind_has_a_sentence_or_is_intentionally_silent(self):
         # Kinds describe_log_event deliberately returns None for (nothing
         # interesting to tell a player) — everything else must render.
-        silent_ok = set()
+        silent_ok = {"turn_start"}  # rendered by GameScene as a turn separator line, not a sentence
 
         seen_kinds = set()
         for seed in range(10):

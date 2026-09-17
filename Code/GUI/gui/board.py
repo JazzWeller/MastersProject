@@ -19,12 +19,23 @@ from .sprites.card_sprite import CardSprite
 from .sprites.hud import PlayerHUDState
 from .sprites.overlays import Banner, FloatingText, Toast
 
+# Draw order, back to front. Hit-testing walks the same order in reverse, so
+# whatever is drawn on top is what the mouse gets (Code/PLAYTEST_FIX_PLAN.md M2).
+ZONE_DRAW_RANK = {
+    "deck": 0, "discard": 1, "archive": 2, "purged": 3,
+    "play_artifact": 4, "play_creature": 5, "upgrade": 6, "hand": 7,
+}
+
+
+def draw_key(cs: CardState) -> int:
+    return ZONE_DRAW_RANK.get(cs.zone, 0) * 1000 + cs.index
+
 
 class Board:
     def __init__(self, assets: AssetCache, viewer: int, spectating: bool = False):
         self.assets = assets
         self.viewer = viewer
-        self.spectating = spectating  # True when no seat is human (bot vs. bot)
+        self.spectating = spectating  # True when no seat is human (bot vs. bot, replays)
         self.layout = Layout(viewer)
         self.sprites: Dict[int, CardSprite] = {}
         self.hud_states: Dict[int, PlayerHUDState] = {1: PlayerHUDState(), 2: PlayerHUDState()}
@@ -33,6 +44,10 @@ class Board:
         self.toasts: List[Toast] = []
         self.banners: List[Banner] = []
         self.snapshot: Optional[BoardSnapshot] = None
+        # Filled in by draw_hud each frame: where each player's aember number
+        # and key icons actually are, for animations and hover tooltips.
+        self.hud_rects: Dict[int, dict] = {1: {}, 2: {}}
+        self.hidden_iids: set = set()  # sprites a full-screen overlay has taken over
 
     # ---------------------------------------------------------- perspective ----
 
@@ -48,6 +63,10 @@ class Board:
         "you"-conjugated verb form: "choose"/"have", not "chooses"/"has")."""
         return (not self.spectating) and pid == self.viewer
 
+    def set_viewer(self, viewer: int) -> None:
+        self.viewer = viewer
+        self.layout = Layout(viewer)
+
     # ------------------------------------------------------------ sprites ----
 
     def sprite_for(self, iid: int) -> CardSprite:
@@ -57,28 +76,63 @@ class Board:
             self.sprites[iid] = sprite
         return sprite
 
+    def draw_order(self, snap: Optional[BoardSnapshot] = None) -> List[CardState]:
+        snap = snap or self.snapshot
+        if snap is None:
+            return []
+        return sorted(snap.cards.values(), key=draw_key)
+
+    def card_at(self, pos, face_up_only: bool = False) -> Optional[int]:
+        """The topmost visible card under `pos` -- the single answer every
+        hover, click and inspect uses."""
+        x, y = pos
+        for cs in reversed(self.draw_order()):
+            if cs.iid in self.hidden_iids:
+                continue
+            sprite = self.sprites.get(cs.iid)
+            if sprite is None or not sprite.visible or sprite.alpha <= 1:
+                continue
+            if face_up_only and not sprite.face_up:
+                continue
+            if sprite.contains_point(x, y):
+                return cs.iid
+        return None
+
+    def click_target_at(self, pos) -> Optional[int]:
+        """Like `card_at`, but an upgrade forwards the click to the creature
+        it's attached to: the upgrade covers part of its host, and is never a
+        legal target on its own (Code/PLAYTEST_FIX_PLAN.md M5)."""
+        iid = self.card_at(pos)
+        if iid is None or self.snapshot is None:
+            return iid
+        cs = self.snapshot.cards.get(iid)
+        if cs is not None and cs.zone == "upgrade" and cs.host_iid is not None:
+            return cs.host_iid
+        return iid
+
     def slot(self, cs: CardState, snap: BoardSnapshot) -> Tuple[float, float, float, int, int]:
         """Where (center x, y, rotation degrees, w, h) `cs` belongs right now."""
         L = self.layout
         pid = cs.owner
         if cs.zone == "hand":
-            rect = L.hand_rect(pid)
-            slots = L.fan_slots(cs.zone_count, rect, S.HAND_CARD_W, S.HAND_CARD_H, arc_up=L.is_bottom(pid))
+            slots = L.hand_slots(pid, cs.zone_count)
             x, y, rot = slots[cs.index]
-            return x, y, rot, S.HAND_CARD_W, S.HAND_CARD_H
+            w, h = L.hand_card_size(pid)
+            return x, y, rot, w, h
         if cs.zone in ("play_creature", "play_artifact"):
+            # build_snapshot sets `owner` to the player whose play area the
+            # card is in, which is what index/zone_count are relative to.
             rect = L.creature_row_rect(pid) if cs.zone == "play_creature" else L.artifact_row_rect(pid)
             slots = L.row_slots(cs.zone_count, rect, S.BOARD_CARD_W, S.BOARD_CARD_H)
             x, y = slots[cs.index]
-            rot = 90.0 if (cs.exhausted and cs.zone == "play_creature") else 0.0
-            return x, y, rot, S.BOARD_CARD_W, S.BOARD_CARD_H
+            return x, y, 0.0, S.BOARD_CARD_W, S.BOARD_CARD_H
         if cs.zone == "upgrade":
             host = snap.cards.get(cs.host_iid)
             if host is not None:
-                hx, hy, hrot, hw, hh = self.slot(host, snap)
-                ox = -16 + cs.index * 12
-                return hx + ox, hy - 20, 0.0, int(S.BOARD_CARD_W * 0.55), int(S.BOARD_CARD_H * 0.55)
-            return 0.0, 0.0, 0.0, S.BOARD_CARD_W, S.BOARD_CARD_H
+                hx, hy, _hrot, _hw, _hh = self.slot(host, snap)
+                x, y, w, h = L.upgrade_slot(hx, hy, cs.index)
+                return x, y, 0.0, w, h
+            return 0.0, 0.0, 0.0, S.UPGRADE_TAB_W, S.UPGRADE_TAB_H
         if cs.zone in ("discard", "archive", "purged", "deck"):
             rect = L.pile_rect(pid, cs.zone)
             return float(rect.centerx), float(rect.centery), 0.0, rect.width, rect.height
@@ -145,7 +199,10 @@ class Board:
         for t in self.toasts:
             t.draw(surface, self.assets)
         if self.banners:
+            # Over the middle of the opponent's board: clear of the prompt
+            # band, the action bar and any decision modal (which open lower).
             cx = S.PLAY_X + S.PLAY_W / 2
-            cy = 60
-            for b in self.banners:
+            cy = self.layout.board_rect(3 - self.viewer).centery - 30
+            for b in self.banners[-2:]:
                 b.draw(surface, self.assets, cx, cy)
+                cy += 74

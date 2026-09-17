@@ -16,7 +16,10 @@ standard library, no dependencies.
   - `game.py` — `Game`: setup, turn order, legal actions, play/reap/fight/destroy, `submit()`
   - `view.py` — `PlayerView`, a read-only snapshot with hidden information removed
   - `log.py` — structured event log
-- `bots/` — `Controller` interface and a seeded `RandomBot`
+- `bots/` — `Controller` interface, a seeded `RandomBot` (fuzz tests) and a
+  rules-aware `HeuristicBot` (the GUI's opponent)
+- `keyforge/replay.py` — compact, exact game records: each decision stored as
+  the index of the chosen option, replayable from the config's seed
 - `text_ui/` — a playable command-line client (`python -m text_ui.main`)
 - `sim/` — headless batch simulation (`python -m sim.simulate`)
 - `tests/` — unit and interaction tests, `unittest`-based (also runs under `pytest`)

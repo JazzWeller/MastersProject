@@ -115,12 +115,15 @@ class TestLogos(unittest.TestCase):
         self.assertIn(c1, p1.archive.cards())
         self.assertIn(c2, p1.discard.cards())
 
-    def test_the_howling_pit_raises_both_draw_modifiers(self):
+    def test_the_howling_pit_raises_both_draw_up_to_limits(self):
+        # Follows the printed card ("refills their hand to 1 additional
+        # card"), not the spec's CardDrawModifier -- approved divergence.
         game = new_game()
         pit = make_card("The Howling Pit", 1)
         pit.card_def.register_passive(game, pit)
-        self.assertEqual(game.players[1].get_card_draw_modifier(game), 1)
-        self.assertEqual(game.players[2].get_card_draw_modifier(game), 1)
+        self.assertEqual(game.players[1].get_draw_up_to_limit(game), 7)
+        self.assertEqual(game.players[2].get_draw_up_to_limit(game), 7)
+        self.assertEqual(game.players[1].get_card_draw_modifier(game), 0)
 
     def test_timetraveler_play_draws_two_and_action_shuffles_self(self):
         game = new_game()

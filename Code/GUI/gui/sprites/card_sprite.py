@@ -26,7 +26,7 @@ class CardSprite:
 
         self.x = 0.0
         self.y = 0.0
-        self.rot = 0.0       # degrees, clockwise
+        self.rot = 0.0       # degrees, counter-clockwise (pygame's convention)
         self.scale = 1.0
         self.alpha = 255.0
 
@@ -35,9 +35,11 @@ class CardSprite:
 
         self.face_up = True
         self.image_path: Optional[str] = None
-        self.dim = False
-        self.glow: Optional[str] = None   # None | "legal" | "selected" | "target"
-        self.selected = False
+        self.exhausted = False
+        self.glow: Optional[str] = None   # None | "legal" | "selected" | "target" | "hint"
+        self.unusable_reason: Optional[str] = None  # set while it's your turn and this card can't be used
+        self.hint: Optional[str] = None             # informational tooltip (e.g. "can't play, can discard")
+        self.pick_number: Optional[int] = None      # multi-select / ordering badge
         self.visible = True
 
         self.card_state: Optional[CardState] = None
@@ -52,16 +54,23 @@ class CardSprite:
         self.card_state = cs
         self.face_up = cs.face_up
         self.image_path = cs.image if cs.face_up else None
-        self.dim = cs.exhausted and cs.zone in ("play_creature", "play_artifact")
+        self.exhausted = cs.exhausted and cs.zone in ("play_creature", "play_artifact")
 
     def rect(self) -> pygame.Rect:
         w, h = self.w * self.scale, self.h * self.scale
         return pygame.Rect(int(self.x - w / 2), int(self.y - h / 2), int(w), int(h))
 
     def contains_point(self, px: float, py: float) -> bool:
+        """Point-in-rotated-rectangle, matching how `draw` renders the card.
+
+        `pygame.transform.rotozoom(img, rot, ...)` turns the image
+        counter-clockwise on screen by `rot` degrees. With y pointing down,
+        mapping a screen offset back into the card's own frame therefore
+        rotates by +rot. (It used -rot, which tilted every hitbox the wrong
+        way -- Code/PLAYTEST_FIX_PLAN.md M1.)"""
         if not self.visible:
             return False
-        rad = math.radians(-self.rot)
+        rad = math.radians(self.rot)
         dx, dy = px - self.x, py - self.y
         lx = dx * math.cos(rad) - dy * math.sin(rad)
         ly = dx * math.sin(rad) + dy * math.cos(rad)
@@ -70,7 +79,7 @@ class CardSprite:
     # ------------------------------------------------------------- drawing ----
 
     def _face_surface(self) -> pygame.Surface:
-        size = (self.w, self.h)
+        size = (int(self.w), int(self.h))
         if self.face_up:
             return self.assets.card_face(self.image_path, size)
         return self.assets.card_back(size)
@@ -80,71 +89,95 @@ class CardSprite:
             "legal": S.GLOW_LEGAL,
             "selected": S.GLOW_SELECTED,
             "target": S.GLOW_TARGET,
+            "hint": S.TEXT_DIM,
         }.get(self.glow)
 
     def draw(self, surface: pygame.Surface) -> None:
         if not self.visible or self.alpha <= 1:
             return
         img = self._face_surface()
-        if self.dim:
+        shade = 0
+        if self.exhausted:
+            shade = 110
+        if self.unusable_reason:
+            shade = max(shade, 120)
+        if shade:
             dark = pygame.Surface(img.get_size(), pygame.SRCALPHA)
-            dark.fill((0, 0, 0, 100))
+            pygame.draw.rect(dark, (0, 0, 0, shade), dark.get_rect(), border_radius=max(4, int(self.w * 0.07)))
             img = img.copy()
             img.blit(dark, (0, 0))
 
         color = self._glow_color()
         if color is not None:
-            pad = 10
+            pad = 8
             glow = pygame.Surface((img.get_width() + pad * 2, img.get_height() + pad * 2), pygame.SRCALPHA)
             radius = max(4, int(self.w * 0.09))
-            for i, a in ((0, 70), (1, 110), (2, 170)):
-                rect = glow.get_rect().inflate(-i * 6, -i * 6)
-                pygame.draw.rect(glow, (*color, a), rect, width=3, border_radius=radius)
-            combined = pygame.Surface(glow.get_size(), pygame.SRCALPHA)
-            combined.blit(glow, (0, 0))
-            combined.blit(img, (pad, pad))
-            img = combined
+            for i, a in ((0, 70), (1, 120), (2, 190)):
+                r = glow.get_rect().inflate(-i * 5, -i * 5)
+                pygame.draw.rect(glow, (*color, a), r, width=3, border_radius=radius)
+            glow.blit(img, (pad, pad))
+            img = glow
 
         transformed = pygame.transform.rotozoom(img, self.rot, self.scale) if (self.rot or self.scale != 1.0) else img
         if self.alpha < 255:
             transformed = transformed.copy()
             transformed.set_alpha(int(self.alpha))
-        rect = transformed.get_rect(center=(self.x, self.y))
-        surface.blit(transformed, rect)
+        surface.blit(transformed, transformed.get_rect(center=(self.x, self.y)))
 
         self._draw_tokens(surface)
 
     def _draw_tokens(self, surface: pygame.Surface) -> None:
         cs = self.card_state
-        if cs is None or not self.face_up or self.scale < 0.3:
+        base = self.rect()
+        if self.pick_number is not None:
+            self._badge(surface, (base.centerx, base.top + 16), S.WHITE, str(self.pick_number),
+                        self.assets.font("inter", 16, bold=True), fg=S.BLACK)
+        if cs is None or not self.face_up or self.scale < 0.3 or self.w < 90:
             return
-        base_rect = self.rect()
-        font = self.assets.font("inter", max(11, int(self.h * 0.14)), bold=True)
+        font = self.assets.font("inter", 13, bold=True)
 
-        if cs.type == "Creature":
-            if cs.damage > 0:
-                self._badge(surface, base_rect.bottomleft, S.DANGER, f"-{cs.damage}", font, anchor="bottomleft")
+        if cs.zone == "play_creature":
+            remaining = cs.power - cs.damage
+            # Power (remaining after damage) bottom-left, damage beside it.
+            color = S.DANGER if cs.damage else (40, 36, 52)
+            self._badge(surface, (base.left + 16, base.bottom - 16), color, str(remaining), font)
+            if cs.damage:
+                self._badge(surface, (base.left + 44, base.bottom - 16), (60, 20, 24), f"-{cs.damage}", self.assets.font("inter", 12, bold=True))
+            if cs.armor:
+                self._badge(surface, (base.left + 16, base.bottom - 42), (60, 70, 90), f"A{cs.armor}", self.assets.font("inter", 12, bold=True))
             if cs.aember_captured > 0:
-                self._badge(surface, base_rect.bottomright, S.AEMBER, str(cs.aember_captured), font, anchor="bottomright")
+                self._badge(surface, (base.right - 16, base.bottom - 16), S.AEMBER, str(cs.aember_captured), font, fg=S.BLACK)
             chips = []
             if cs.elusive:
-                chips.append(("E", S.PURGE))
+                chips.append(("Elusive", S.PURGE))
             if cs.skirmish:
-                chips.append(("S", S.HEAL))
-            for i, (letter, color) in enumerate(chips):
-                cx = base_rect.left + 10 + i * 18
-                cy = base_rect.top + 10
-                pygame.draw.circle(surface, color, (cx, cy), 8)
-                pygame.draw.circle(surface, S.BLACK, (cx, cy), 8, width=1)
-                t = self.assets.font("inter", 11, bold=True).render(letter, True, S.WHITE)
-                surface.blit(t, t.get_rect(center=(cx, cy)))
+                chips.append(("Skirmish", S.HEAL))
+            y = base.top + 12
+            for text, chip_color in chips:
+                self._pill(surface, (base.left + 6, y), chip_color, text)
+                y += 18
+        if self.exhausted:
+            self._pill(surface, (base.centerx, base.centery), (30, 26, 40), "Exhausted", center=True)
 
-    def _badge(self, surface, pos, color, text, font, anchor="center"):
+    def _badge(self, surface, center, color, text, font, fg=S.WHITE):
+        t = font.render(text, True, fg)
+        r = t.get_rect(center=center)
+        bubble = r.inflate(12, 6)
+        bubble.width = max(bubble.width, bubble.height)
+        bubble.center = center
+        pygame.draw.rect(surface, color, bubble, border_radius=bubble.height // 2)
+        pygame.draw.rect(surface, S.BLACK, bubble, width=1, border_radius=bubble.height // 2)
+        surface.blit(t, t.get_rect(center=bubble.center))
+
+    def _pill(self, surface, pos, color, text, center=False):
+        font = self.assets.font("inter", 12, bold=True)
         t = font.render(text, True, S.WHITE)
-        r = t.get_rect()
-        setattr(r, anchor, pos)
-        pad = 4
-        bubble = pygame.Rect(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2)
-        pygame.draw.ellipse(surface, color, bubble)
-        pygame.draw.ellipse(surface, S.BLACK, bubble, width=1)
-        surface.blit(t, r)
+        r = pygame.Rect(0, 0, t.get_width() + 10, t.get_height() + 2)
+        if center:
+            r.center = pos
+        else:
+            r.topleft = pos
+        pill = pygame.Surface(r.size, pygame.SRCALPHA)
+        pygame.draw.rect(pill, (*color, 220), pill.get_rect(), border_radius=r.height // 2)
+        surface.blit(pill, r)
+        surface.blit(t, t.get_rect(center=r.center))

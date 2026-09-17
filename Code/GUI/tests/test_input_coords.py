@@ -20,6 +20,24 @@ def _settle(scene, frames=10):
         scene.update(0)
 
 
+def _past_mulligans(scene):
+    """Answer mulligans (keep) so the hand is on the board, not under the
+    full-screen mulligan review."""
+    from keyforge.enums import DecisionKind
+
+    for _ in range(4000):
+        scene.update(50)
+        d = scene.bridge.pending_decision
+        if scene.animator.is_busy or d is None:
+            continue
+        if d.kind != DecisionKind.MULLIGAN:
+            if not scene.bridge.seat_is_bot(d.player) and scene.panel.decision is d:
+                return
+            continue
+        if scene.panel.decision is d:
+            scene.panel._submit(False)
+
+
 class TestMouseCanvasCoordinates(unittest.TestCase):
     def test_to_canvas_scales_correctly_at_a_non_1to1_window_size(self):
         app = App(window_size=(1280, 720))  # 0.8x the 1600x900 canvas
@@ -40,7 +58,7 @@ class TestMouseCanvasCoordinates(unittest.TestCase):
         app._recompute_dest_rect()
         app.push(GameScene(MatchSettings(p1_seat="human", p2_seat="bot", seed=3, max_turns=10)))
         scene = app.scenes[-1]
-        _settle(scene)
+        _past_mulligans(scene)
 
         # Pick a face-up, visible sprite (one of the viewer's own hand
         # cards) and compute the WINDOW pixel that sits exactly on it, then
@@ -63,7 +81,7 @@ class TestMouseCanvasCoordinates(unittest.TestCase):
         app._recompute_dest_rect()
         app.push(GameScene(MatchSettings(p1_seat="human", p2_seat="bot", seed=3, max_turns=10)))
         scene = app.scenes[-1]
-        _settle(scene)
+        _past_mulligans(scene)
 
         iid = next(cs.iid for cs in scene.last_snapshot.cards.values() if cs.face_up and cs.zone == "hand")
         sprite = scene.board.sprites[iid]

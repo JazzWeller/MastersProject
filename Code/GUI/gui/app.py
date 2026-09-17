@@ -91,6 +91,21 @@ class App:
         self._dest_rect = pygame.Rect(0, 0, *window_size)
         self.show_fps = False
         self.mouse_canvas = (0.0, 0.0)
+        self._history = None
+
+    @property
+    def history(self):
+        """The game-history database, opened on first use. None if it can't
+        be opened (read-only disk, etc.) -- games still play, unrecorded."""
+        if self._history is None:
+            try:
+                from .history import GameHistory
+
+                self._history = GameHistory()
+            except Exception as exc:  # pragma: no cover - environment dependent
+                print(f"Game history disabled: {exc}")
+                self._history = False
+        return self._history or None
 
     # ------------------------------------------------------------ scenes ----
 
@@ -156,6 +171,17 @@ class App:
         else:
             self.window = pygame.display.set_mode(self._pre_fullscreen_size, pygame.RESIZABLE)
 
+    def draw_scenes(self) -> None:
+        """Draw the top scene, and the scene beneath it first if the top one
+        is an overlay (game over draws over the final board)."""
+        self.canvas.fill(S.BG_DEEP)
+        if not self.scenes:
+            return
+        top = self.scenes[-1]
+        if getattr(top, "overlay", False) and len(self.scenes) > 1:
+            self.scenes[-2].draw(self.canvas)
+        top.draw(self.canvas)
+
     # ------------------------------------------------------------- present ----
 
     def _present(self) -> None:
@@ -199,8 +225,7 @@ class App:
                 break
             scene = self.scenes[-1]
             scene.update(dt_ms)
-            self.canvas.fill(S.BG_DEEP)
-            scene.draw(self.canvas)
+            self.draw_scenes()
             self._present()
 
         pygame.quit()

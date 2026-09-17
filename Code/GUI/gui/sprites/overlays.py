@@ -95,16 +95,15 @@ class Banner:
             alpha = int(255 * (1 - (t - 0.75) / 0.25))
         font = assets.font("cinzel", 26)
         img = font.render(self.text, True, S.TEXT)
-        w = img.get_width() + 260 * slide
-        box = pygame.Rect(0, 0, img.get_width() + 60, img.get_height() + 26 if not self.subtext else img.get_height() + 50)
+        simg = assets.font("inter", 14).render(self.subtext, True, S.TEXT_DIM) if self.subtext else None
+        content_w = max(img.get_width(), simg.get_width() if simg else 0)
+        box = pygame.Rect(0, 0, content_w + 60, img.get_height() + (50 if simg else 26))
         box.center = (int(cx - 260 * slide), int(cy))
         panel = pygame.Surface(box.size, pygame.SRCALPHA)
         pygame.draw.rect(panel, (*S.PANEL, 235), panel.get_rect(), border_radius=8)
         pygame.draw.rect(panel, (*self.color, 220), panel.get_rect(), width=2, border_radius=8)
-        panel.blit(img, (30, 10))
-        if self.subtext:
-            sfont = assets.font("inter", 14)
-            simg = sfont.render(self.subtext, True, S.TEXT_DIM)
-            panel.blit(simg, (30, img.get_height() + 16))
+        panel.blit(img, img.get_rect(midtop=(box.width // 2, 10)))
+        if simg:
+            panel.blit(simg, simg.get_rect(midtop=(box.width // 2, img.get_height() + 16)))
         panel.set_alpha(max(0, alpha))
         surface.blit(panel, box)

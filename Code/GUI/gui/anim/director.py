@@ -60,8 +60,11 @@ def _move_to(board, snap, iid, duration, ease=ease_out_cubic) -> Optional[Playab
 
 
 def _hud_pos(board, pid):
+    aember = board.hud_rects.get(pid, {}).get("aember")
+    if aember is not None:
+        return aember.center
     r = board.layout.hud_rect(pid)
-    return (r.left + 40, r.centery)
+    return (r.left + 260, r.centery)
 
 
 def _pop(sprite, up=1.15, down=1.0, dur=140):
@@ -149,19 +152,59 @@ def _h_take_archive(ctx: Ctx):
 
 @handler("forge_key")
 def _h_forge_key(ctx: Ctx):
+    """Keys are forged at the very start of a turn, right after the previous
+    player clicked End Turn -- easy to miss. So: a long banner in the middle
+    of the board, a gold burst on the actual key slot in that player's HUD,
+    and a pause before play continues (Code/PLAYTEST_FIX_PLAN.md W3)."""
     pid = ctx.data["player"]
-    hud = ctx.board.layout.hud_rect(pid)
-    x, y = hud.left + 100 + (ctx.data["keys"] - 1) * 20, hud.centery
+    n = ctx.data["keys"]
+    x, y = _key_slot(ctx.board, pid, n)
 
     def fx():
-        ctx.board.particles.emit_burst_ring(x, y, color=S.KEY_GOLD, n=26)
+        ctx.board.particles.emit_burst_ring(x, y, color=S.KEY_GOLD, n=40)
+        ctx.board.floaters.append(FloatingText(x, y - 26, "Key forged!", S.KEY_GOLD, life_ms=1600, big=True))
         who = ctx.board.player_label(pid)
         verb = "have" if ctx.board.is_second_person(pid) else "has"
-        subtext = f"{who} now {verb} {ctx.data['keys']} key(s)"
-        ctx.board.banners.append(Banner("Key Forged!", subtext, color=S.KEY_GOLD, life_ms=S.T_KEY_FORGE))
+        cost = f" for {ctx.data['cost']} Æmber" if ctx.data.get("cost") is not None else ""
+        ctx.board.banners.append(Banner(f"{who} forged a key{cost}!", f"{who} now {verb} {n} of 3 keys", color=S.KEY_GOLD, life_ms=S.T_KEY_FORGE))
         ctx.board.assets.play("key_forge", 0.6)
 
-    return Sequence(Call(fx), Delay(S.T_KEY_FORGE * 0.6))
+    def fx2():
+        ctx.board.particles.emit_burst_ring(x, y, color=S.AEMBER_GLOW, n=24)
+
+    return Sequence(Call(fx), Delay(450), Call(fx2), Delay(S.T_KEY_FORGE * 0.5))
+
+
+def _key_slot(board, pid, n):
+    keys = board.hud_rects.get(pid, {}).get("keys") or []
+    if 0 < n <= len(keys):
+        return keys[n - 1][0].center
+    hud = board.layout.hud_rect(pid)
+    return hud.left + 300 + (n - 1) * 27, hud.centery
+
+
+@handler("forge_skipped")
+def _h_forge_skipped(ctx: Ctx):
+    pid = ctx.data["player"]
+    who = ctx.board.player_label(pid)
+    reason = f" ({ctx.data['source']})" if ctx.data.get("source") else ""
+    x, y = _key_slot(ctx.board, pid, 1)
+
+    def fx():
+        ctx.board.banners.append(Banner(f"{who} can't forge a key{reason}", f"Had {ctx.data['aember']} Æmber, key cost {ctx.data['cost']}", color=S.DANGER, life_ms=2200))
+        ctx.board.particles.emit_sparks(x, y, color=S.DANGER, n=10)
+
+    return Sequence(Call(fx), Delay(900))
+
+
+@handler("house_forced")
+def _h_house_forced(ctx: Ctx):
+    pid = ctx.data["player"]
+    house = ctx.data["house"]
+    who = ctx.board.player_label(pid)
+    source = f"({ctx.data['source']})" if ctx.data.get("source") else ""
+    ctx.board.banners.append(Banner(f"{who} must use house {house}", source, color=S.HOUSE_COLORS.get(house, S.AEMBER), life_ms=2000))
+    return Delay(700)
 
 
 # ------------------------------------------------------------- hand/play ----
@@ -174,7 +217,7 @@ def _h_play_card(ctx: Ctx):
     sprite = ctx.board.sprite_for(iid)
     if ctype == "Action":
         stage_x = S.PLAY_X + S.PLAY_W / 2
-        stage_y = (S.BAND_PROMPT[0] + S.BAND_YOUR_CREATURES[0]) / 2
+        stage_y = (S.BAND_PROMPT[0] + S.BAND_PROMPT[1]) / 2
         return Sequence(
             _sound(ctx.board, "card_move"),
             Parallel(

@@ -16,6 +16,7 @@ from .effects.effect_object import ActiveEffectList
 from .enums import CardType, DecisionKind, House
 from .log import GameLog
 from .player import Player
+from .replay import encode_choice
 from .view import build_view
 from .zones import Deck
 
@@ -28,6 +29,9 @@ class Game:
         self.active_effects = ActiveEffectList()
         self.log = GameLog()
         self.choice_log: list = []
+        # The same choices as option indices (see keyforge/replay.py): with
+        # the config's seed, this reproduces the game exactly.
+        self.choice_record: list = []
         self.is_over = False
         self.result = None
         self.active_player_id = 1
@@ -52,6 +56,7 @@ class Game:
         if not self.pending_decision.validate(choice):
             raise ValueError(f"Invalid choice {choice!r} for decision {self.pending_decision}")
         self.choice_log.append(choice)
+        self.choice_record.append(encode_choice(self.pending_decision, choice))
         try:
             self.pending_decision = self._driver.send(choice)
         except StopIteration:
@@ -85,13 +90,11 @@ class Game:
         choice = yield Decision(player, DecisionKind.YES_NO, prompt, [True, False], 1, 1)
         return choice
 
-    def order_effects(self, player, items):
+    def order_effects(self, player, items, prompt="Choose the order these resolve"):
         items = list(items)
         if len(items) <= 1:
             return items
-        choice = yield Decision(
-            player, DecisionKind.ORDER_EFFECTS, "Choose the order these resolve", items, len(items), len(items)
-        )
+        choice = yield Decision(player, DecisionKind.ORDER_EFFECTS, prompt, items, len(items), len(items))
         return choice
 
     # ------------------------------------------------------- get funcs ----
@@ -162,21 +165,27 @@ class Game:
     def _take_turn(self, pid: int):
         player = self.players[pid]
         self.active_player_id = pid
+        self.log.add("turn_start", player=pid, turn=self.turn_number)
 
         # Step 1: forge a key
-        if player.get_can_key_forge(self) and player.aember >= player.get_key_forge_cost(self):
-            cost = player.get_key_forge_cost(self)
-            player.aember -= cost
-            player.keys += 1
-            self.log.add("forge_key", player=pid, keys=player.keys)
-            if player.keys >= 3:
-                self.result = {"winner": pid, "turns": self.turn_number, "reason": "3 keys"}
-                return True
+        cost = player.get_key_forge_cost(self)
+        if player.aember >= cost:
+            if player.get_can_key_forge(self):
+                player.aember -= cost
+                player.keys += 1
+                self.log.add("forge_key", player=pid, keys=player.keys, cost=cost, turn=self.turn_number)
+                if player.keys >= 3:
+                    self.result = {"winner": pid, "turns": self.turn_number, "reason": "3 keys"}
+                    return True
+            else:
+                source = self._effect_source("CanKeyForge", pid)
+                self.log.add("forge_skipped", player=pid, aember=player.aember, cost=cost, source=source)
 
         # Step 2: choose a house
         forced = player.get_house_selection(self)
         if forced is not None:
             house = forced
+            self.log.add("house_forced", player=pid, house=house.value, source=self._effect_source("HouseSelection", pid))
         else:
             options = self.player_houses(pid)
             house = yield Decision(pid, DecisionKind.CHOOSE_HOUSE, "Choose your house", options, 1, 1)
@@ -238,30 +247,67 @@ class Game:
     def _rule_of_six_ok(self, player: Player, name: str) -> bool:
         return player.CardsPlayed.get(name, 0) + player.used_this_turn.get(name, 0) < 6
 
+    def _effect_source(self, variable: str, pid: int) -> Optional[str]:
+        """Name of the card behind the active effect on `variable` for `pid`, if any."""
+        for e in self.active_effects.duration_effects_for(variable, pid):
+            if e.is_active(self) and e.source_card is not None:
+                return e.source_card.name
+        return None
+
+    @property
+    def first_player(self) -> int:
+        return self._first_player
+
+    def first_turn_limited(self, pid: int) -> bool:
+        """True while `pid` is the first player on the game's first turn and has
+        already used their one play-or-discard (spec: First Turn Rule)."""
+        return (
+            self.turn_number == 1
+            and pid == self._first_player
+            and self.players[pid].cards_played_or_discarded_this_turn >= 1
+        )
+
+    def why_not_playable(self, pid: int, card: Card) -> Optional[str]:
+        """Why `card` in `pid`'s hand can't be played right now, or None if it can.
+        Uses exactly the checks `_legal_actions` uses, so the two can't disagree."""
+        player = self.players[pid]
+        if card not in player.hand.cards():
+            return "Not in hand"
+        if pid != self.active_player_id or player.selected_house is None:
+            return "Not your turn"
+        if self.first_turn_limited(pid):
+            return "First turn: you may play or discard only one card"
+        house = player.selected_house
+        allowance = player.get_non_logos_cards_playable(self)
+        if not ((card.house == house) or (card.house != House.LOGOS and allowance > 0)):
+            return f"Not of your active house ({house.value})"
+        limit = player.get_card_played_limit(self)
+        if limit is not None and player.hand_plays_this_turn >= limit:
+            source = self._effect_source("CardPlayedLimit", pid)
+            return f"Card play limit reached ({limit}{', ' + source if source else ''})"
+        if card.type == CardType.CREATURE and not player.get_can_play_creatures(self):
+            source = self._effect_source("CanPlayCreatures", pid)
+            return "You cannot play creatures this turn" + (f" ({source})" if source else "")
+        if card.type == CardType.ACTION and not player.get_can_play_actions(self):
+            source = self._effect_source("CanPlayActions", pid)
+            return "You cannot play actions this turn" + (f" ({source})" if source else "")
+        if card.type == CardType.UPGRADE and not (self.players[1].play_area.creatures or self.players[2].play_area.creatures):
+            return "No creature to attach it to"
+        if not self._rule_of_six_ok(player, card.name):
+            return "Rule of six: already played or used 6 times this turn"
+        return None
+
     def _legal_actions(self, pid: int):
         player = self.players[pid]
         opponent = self.players[3 - pid]
         house = player.selected_house
         actions = []
-        first_turn_limited = self.turn_number == 1 and pid == self._first_player
-        limited_now = first_turn_limited and player.cards_played_or_discarded_this_turn >= 1
-        limit = player.get_card_played_limit(self)
-        can_play_creatures = player.get_can_play_creatures(self)
-        allowance = player.get_non_logos_cards_playable(self)
+        limited_now = self.first_turn_limited(pid)
 
         if not limited_now:
             for card in player.hand.cards():
-                eligible_house = (card.house == house) or (card.house != House.LOGOS and allowance > 0)
-                if eligible_house:
-                    ok = True
-                    if card.type == CardType.UPGRADE and not player.play_area.creatures:
-                        ok = False
-                    if card.type == CardType.CREATURE and not can_play_creatures:
-                        ok = False
-                    if limit is not None and player.hand_plays_this_turn >= limit:
-                        ok = False
-                    if ok and self._rule_of_six_ok(player, card.name):
-                        actions.append(PlayCard(card))
+                if self.why_not_playable(pid, card) is None:
+                    actions.append(PlayCard(card))
                 if card.house == house:
                     actions.append(DiscardCard(card))
 
@@ -333,6 +379,8 @@ class Game:
             return False
         if card.type == CardType.CREATURE and not player.get_can_play_creatures(self):
             return False
+        if card.type == CardType.ACTION and not player.get_can_play_actions(self):
+            return False
         if card.type == CardType.UPGRADE:
             targets = list(self.players[1].play_area.creatures) + list(self.players[2].play_area.creatures)
             if not targets:
@@ -376,6 +424,10 @@ class Game:
         if card.type == CardType.CREATURE:
             player.play_area.add_creature(card, flank)
             card.Exhausted = True
+            # Step 2 of the turn only flags cards already in play; anything
+            # entering play later must be flagged too, or a card readied on
+            # entry (Silvertooth) could never be used that turn.
+            card.CanBeUsed = card.house == player.selected_house
             if cdef.register_passive:
                 cdef.register_passive(self, card)
             if card.aember_on_play:
@@ -384,6 +436,7 @@ class Game:
         elif card.type == CardType.ARTIFACT:
             player.play_area.add_artifact(card)
             card.Exhausted = True
+            card.CanBeUsed = card.house == player.selected_house
             if cdef.register_passive:
                 cdef.register_passive(self, card)
             if card.aember_on_play:
@@ -413,7 +466,9 @@ class Game:
             t for t in self.active_effects.triggers_for("card_played") if t.controller == card.controller
         ]
         if pre_existing:
-            order = yield from self.order_effects(card.controller, ["effect", "check"])
+            order = yield from self.order_effects(
+                card.controller, ["effect", "check"], f"{card.name}: choose what resolves first"
+            )
         else:
             order = ["effect", "check"]
         for step_name in order:
@@ -433,7 +488,9 @@ class Game:
         if not triggers:
             return
         if len(triggers) > 1:
-            ordered = yield from self.order_effects(event_player, triggers)
+            ordered = yield from self.order_effects(
+                event_player, triggers, f"Playing {card.name} triggered these: choose their order"
+            )
         else:
             ordered = triggers
         for trig in ordered:
@@ -565,7 +622,9 @@ class Game:
             for extra in list(c.extra_triggers.get("destroyed", [])):
                 to_resolve.append(("extra", c, extra))
         if len(to_resolve) > 1:
-            ordered = yield from self.order_effects(self.active_player_id, to_resolve)
+            ordered = yield from self.order_effects(
+                self.active_player_id, to_resolve, "Destroyed effects: choose the order they resolve"
+            )
         else:
             ordered = to_resolve
         for item in ordered:
