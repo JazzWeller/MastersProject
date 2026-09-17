@@ -27,6 +27,7 @@ from keyforge.enums import DecisionKind
 _ZONE_DRAW_RANK = ZONE_DRAW_RANK  # kept for older imports
 
 QUEUED_CLICK_MS = 1500
+LEAVE_CONFIRM_MS = 3000  # a second Esc within this window leaves the game
 
 
 def _card_info_from_state(cs) -> SimpleNamespace:
@@ -82,6 +83,7 @@ class GameScene(Scene):
         self.inspect_info = None
         self._inspect_card_rect: Optional[pygame.Rect] = None
         self._announced_first = False
+        self._leave_armed_ms = 0.0
         self._queued_click: Optional[Tuple[tuple, int, float]] = None
         # Rebuilt every draw; read on the next update/event.
         self._overlay_targets: List[Tuple[pygame.Rect, int]] = []
@@ -182,6 +184,7 @@ class GameScene(Scene):
 
     def update(self, dt_ms: float) -> None:
         self.board.update(dt_ms)
+        self._leave_armed_ms = max(0.0, self._leave_armed_ms - dt_ms)
         self.animator.update(dt_ms)
         self._update_hover()
         if self._queued_click is not None:
@@ -350,10 +353,10 @@ class GameScene(Scene):
             hidden = {cs.iid for cs in self.last_snapshot.zone_cards(self.panel.decision.player, zone)}
         self.board.hidden_iids = hidden
 
-    def _update_hover(self) -> None:
+    def _update_hover(self, pos=None) -> None:
         """One answer to "what card is the mouse over", used by the zoom panel,
         right/middle-click inspect and tooltips."""
-        pos = self.mouse
+        pos = self.mouse if pos is None else pos
         self._sync_hidden()
         self.hover_iid, self._hover_info = None, None
         for rect, iid in reversed(self._overlay_targets):
@@ -417,6 +420,7 @@ class GameScene(Scene):
         # Inspect: right-click or middle-click whatever is hovered, or click
         # the zoom panel itself (U4 -- most trackpads have no middle button).
         if event.type == pygame.MOUSEBUTTONDOWN and event.button in (2, 3):
+            self._update_hover(event.pos)  # the hover from the last frame may be a card the mouse has since left
             if self._hover_info is not None:
                 self._open_inspector(self._hover_info)
             return
@@ -458,8 +462,18 @@ class GameScene(Scene):
                 return True
             if self.panel.chooser_iid is not None or self.panel.modal_open:
                 return False  # the panel closes its own popups
-            if not self.animator.is_busy:
-                self.app.pop()
+            if self.animator.is_busy:
+                return True
+            if self.human_seats and not self.bridge.is_over and self._leave_armed_ms <= 0:
+                # One stray Esc (e.g. meant for a popup that already closed)
+                # used to throw the whole game away.
+                self._leave_armed_ms = LEAVE_CONFIRM_MS
+                rect = self.board.layout.action_bar_rect()
+                self.board.toasts.append(
+                    Toast(rect.centerx, rect.top - 40, "Press Esc again to leave this game (it's saved as unfinished)", life_ms=LEAVE_CONFIRM_MS)
+                )
+                return True
+            self.app.pop()
             return True
         if key == pygame.K_SPACE and self.animator.is_busy:
             self.animator.skip()

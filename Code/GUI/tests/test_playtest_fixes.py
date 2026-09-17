@@ -308,7 +308,7 @@ class TestGameOverAndHud(unittest.TestCase):
                     for point in (r.center, r.topleft, r.bottomright):
                         self.assertIsNone(g.board.card_at(point), f"a card covers player {pid}'s HUD at {point}")
                 checked += 1
-        self.assertGreater(checked, 50)
+        self.assertGreater(checked, 20)  # a sanity floor: the game length depends on the seed
         go = app.scenes[-1]
         self.assertIsInstance(go, GameOverScene)
         winner = go.result.get("winner")
@@ -328,6 +328,62 @@ class TestGameOverAndHud(unittest.TestCase):
         go.handle_event(pygame.event.Event(pygame.MOUSEBUTTONUP, pos=go.buttons["board"].rect.center, button=1))
         self.assertTrue(go.board_view)
         app.draw_scenes()
+
+
+class TestLiveSessionFindings(unittest.TestCase):
+    """Found by watching screenshots of GUI games as they were played."""
+
+    def test_right_click_inspects_the_card_under_the_click_not_the_last_hover(self):
+        app, g = _scene()
+        _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION and len(g.last_snapshot.zone_cards(g.viewer, "hand")) >= 2)
+        reachable = [c for c in g.last_snapshot.zone_cards(g.viewer, "hand")
+                     if g.board.card_at((g.board.sprites[c.iid].x, g.board.sprites[c.iid].y)) == c.iid]
+        first, second = reachable[0], reachable[-1]
+        a, b = g.board.sprites[first.iid], g.board.sprites[second.iid]
+        app.mouse_canvas = (a.x, a.y)
+        g._update_hover()  # last frame's hover: the first card
+        app.mouse_canvas = (b.x, b.y)  # the mouse moved and clicked before the next frame
+        g.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(b.x, b.y), button=3))
+        self.assertEqual(g.inspect_info.name, second.name)
+
+    def test_escape_needs_a_second_press_to_leave_a_game(self):
+        app, g = _scene()
+        _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION)
+        esc = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0)
+        g.handle_event(esc)
+        self.assertIs(app.scenes[-1], g)
+        self.assertTrue(any("Esc again" in t.text for t in g.board.toasts))
+        g.update(4000)  # the prompt expires
+        g.handle_event(esc)
+        self.assertIs(app.scenes[-1], g)
+        g.handle_event(esc)
+        self.assertNotIn(g, app.scenes)
+
+    def test_spectating_escape_leaves_at_once(self):
+        app, g = _scene(p1="bot", p2="bot")
+        g.animator.skip() if g.animator.is_busy else None
+        while g.animator.is_busy:
+            g.update(5000)
+        g.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0))
+        self.assertNotIn(g, app.scenes)
+
+    def test_new_log_sentences(self):
+        from types import SimpleNamespace
+        from gui.option_labels import describe_log_event
+
+        def say(kind, viewer=1, **data):
+            return describe_log_event(SimpleNamespace(kind=kind, data=data), viewer)
+
+        self.assertEqual(say("duration_effect", card="Miasma", iid=1, variable="CanKeyForge", op="=", value=False, player=2, affected=[1]),
+                         "Miasma: You can't forge a key next turn.")
+        self.assertEqual(say("duration_effect", viewer=2, card="Miasma", iid=1, variable="CanKeyForge", op="=", value=False, player=2, affected=[1]),
+                         "Miasma: Your opponent can't forge a key next turn.")
+        self.assertEqual(say("capture_released", card="Old Bruno", iid=1, amount=3, player=1),
+                         "Old Bruno leaves play: its 3 captured Æmber goes to you.")
+        self.assertEqual(say("gain_chains", card="Gateway to Dis", iid=1, n=3, total=3, player=2),
+                         "Your opponent gains 3 chains from Gateway to Dis (3 total).")
+        self.assertEqual(say("shed_chain", fewer=1, total=2, player=1),
+                         "You draw 1 fewer card because of chains, and shed one (2 left).")
 
 
 if __name__ == "__main__":

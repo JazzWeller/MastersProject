@@ -18,7 +18,9 @@ def arise(game, card):
     for c in creatures:
         player.discard.remove(c)
         player.hand.add(c)
+    before = player.chains
     player.chains = min(24, player.chains + 1)
+    game.log.add("gain_chains", player=player.id, n=player.chains - before, total=player.chains, card=card.name, iid=card.instance_id)
     game.log.add("arise", player=player.id, house=chosen.value, n=len(creatures), iids=[c.instance_id for c in creatures])
 
 
@@ -89,7 +91,9 @@ def gateway_to_dis(game, card):
     player = controller_of(game, card)
     targets = game.all_creatures("any", card)
     yield from game.destroy_cards(targets)
+    before = player.chains
     player.chains = min(24, player.chains + 3)
+    game.log.add("gain_chains", player=player.id, n=player.chains - before, total=player.chains, card=card.name, iid=card.instance_id)
 
 
 def guardian_demon(game, card):
@@ -163,18 +167,21 @@ def three_fates(game, card):
         return
     remaining = list(targets)
     chosen = []
-    for _ in range(min(3, len(remaining))):
+    while remaining and len(chosen) < 3:
+        slots = 3 - len(chosen)
         max_power = max(game.get_power(c) for c in remaining)
         tied = [c for c in remaining if game.get_power(c) == max_power]
-        if len(tied) > 1:
-            pick = yield from game.choose_cards(
-                card.controller, "Three Fates: choose among tied creatures", tied, 1, 1
+        if len(tied) > slots:
+            # Only a tie that crosses the cut needs a choice; a tie that all
+            # fits is destroyed whole.
+            picked = yield from game.choose_cards(
+                card.controller, f"Three Fates: choose {slots} of the tied creatures to destroy", tied, slots, slots
             )
-            picked = pick[0]
         else:
-            picked = tied[0]
-        chosen.append(picked)
-        remaining.remove(picked)
+            picked = tied
+        for c in picked:
+            chosen.append(c)
+            remaining.remove(c)
     yield from game.destroy_cards(chosen)
 
 

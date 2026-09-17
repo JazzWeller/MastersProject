@@ -238,8 +238,10 @@ class Game:
             return
         n = base + player.get_card_draw_modifier(self)
         if player.chains > 0:
-            n -= math.ceil(player.chains / 6)
+            penalty = math.ceil(player.chains / 6)
+            n -= penalty
             player.chains -= 1
+            self.log.add("shed_chain", player=pid, fewer=penalty, total=player.chains)
         steps.draw(self, player, max(0, n))
 
     # ----------------------------------------------------- legal actions ----
@@ -641,6 +643,9 @@ class Game:
         controller = self.players[card.controller]
         owner = self.players[card.owner]
         destination = card.destined_zone or "discard"
+        # Logged first so what leaving play causes (captured Æmber going
+        # back) reads after "X is destroyed", not before it.
+        self.log.add("destroyed", card=card.name, iid=card.instance_id, destination=destination)
         if card in controller.play_area.creatures or card in controller.play_area.artifacts:
             controller.play_area.remove(card)
             self.leave_play(card)
@@ -648,7 +653,6 @@ class Game:
             owner.hand.add(card)
         else:
             owner.discard.push(card)
-        self.log.add("destroyed", card=card.name, iid=card.instance_id, destination=destination)
 
     def leave_play(self, card: Card):
         if card.card_def.unregister_passive is not None:
@@ -663,5 +667,6 @@ class Game:
         if card.aember_captured > 0:
             opponent = self.players[3 - card.controller]
             opponent.aember += card.aember_captured
+            self.log.add("capture_released", card=card.name, iid=card.instance_id, amount=card.aember_captured, player=opponent.id)
             card.aember_captured = 0
         card.reset_on_leave_play()

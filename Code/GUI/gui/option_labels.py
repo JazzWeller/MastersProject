@@ -108,7 +108,7 @@ def describe_option(opt: Any, decision=None, view=None) -> str:
 _HIDDEN_ZONE_EVENTS = {"archive"}  # events that name a card moving into a hidden zone
 
 _LOG_CATEGORY = {
-    "gain": "aember", "steal": "aember", "capture": "aember",
+    "gain": "aember", "steal": "aember", "capture": "aember", "capture_released": "aember",
     "forge_key": "key",
     "purge": "purge",
     "damage": "damage", "destroyed": "damage",
@@ -138,6 +138,11 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
         if spectating:
             return f"Player {pid}"
         return "You" if pid == viewer else "Your opponent"
+
+    def whom(pid):
+        if spectating:
+            return f"Player {pid}"
+        return "you" if pid == viewer else "your opponent"
 
     def whose(pid):
         if spectating:
@@ -192,6 +197,14 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
         return f"{who(d['frm'])} lose{s(d['frm'])} {d['amount']} Æmber to {to_txt}."
     if k == "capture":
         return f"{d['card']} captures {d['amount']} Æmber."
+    if k == "capture_released":
+        return f"{d['card']} leaves play: its {d['amount']} captured Æmber goes to {whom(d['player'])}."
+    if k == "gain_chains":
+        n = d["n"]
+        return f"{who(d['player'])} gain{s(d['player'])} {n} chain{'' if n == 1 else 's'} from {d['card']} ({d['total']} total)."
+    if k == "shed_chain":
+        fewer = d["fewer"]
+        return f"{who(d['player'])} draw{s(d['player'])} {fewer} fewer card{'' if fewer == 1 else 's'} because of chains, and shed{s(d['player'])} one ({d['total']} left)."
     if k == "draw":
         return f"{who(d['player'])} draw{s(d['player'])} {d['n']} card(s)."
     if k == "reshuffle":
@@ -219,7 +232,7 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
     if k == "destroyed":
         return f"{d['card']} is destroyed."
     if k == "duration_effect":
-        return f"{d['card']}: {_duration_text(d)}."
+        return f"{d['card']}: {_duration_text(d, who)}."
     if k == "arise":
         return f"Arise returns {d['n']} creature(s) to hand."
     if k == "help_from_future_self":
@@ -236,8 +249,17 @@ _DURATION_TEXT = {
 }
 
 
-def _duration_text(d) -> str:
+def _duration_text(d, who=None) -> str:
     var, op, value = d.get("variable"), d.get("op"), d.get("value")
+    affected = d.get("affected") or []
+    # Name who it hits ("You can't forge a key next turn") instead of "the
+    # opponent", which reads backwards when the opponent played the card.
+    if who is not None and len(affected) == 1 and affected[0] != d.get("player"):
+        target = who(affected[0])
+        if (var, value) in _DURATION_TEXT:
+            return target + _DURATION_TEXT[(var, value)].replace("the opponent", "", 1)
+        if var == "KeyForgeCost":
+            return f"keys cost {op}{value} Æmber for {target.lower() if target in ('You', 'Your opponent') else target} next turn"
     if (var, value) in _DURATION_TEXT:
         return _DURATION_TEXT[(var, value)]
     if var == "KeyForgeCost":

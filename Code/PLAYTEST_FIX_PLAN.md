@@ -557,3 +557,56 @@ serves a human-verification page to automated requests, so it couldn't be
 read. Card behavior was checked against the printed text on the card art
 instead (official FFG text). A pass against Archon Arcana's rulings is
 still open.
+
+## 5. Live-play screenshot session
+
+75 complete games were played through the real GUI click path: human as P1
+vs the bot, human as P2 vs the bot, and hot-seat. The "human" clicked at
+random among what the UI offered (cards, modal rows, flank slots, action
+bar), with random hovers and right-click inspections. Screenshots were taken
+at decisions, mid-animation and at game over, and read by eye. Every idle
+frame was also checked automatically:
+- HUD Æmber against the engine.
+- The drawn snapshot against a fresh one: players, cards, zones, damage,
+  exhaustion.
+- Each card sprite in its slot, visible, and face-up only when it should be.
+- A click on a card's centre hits that card.
+- At game over, the winner has 3 keys and the title matches the seat.
+
+**Win condition.** Not reproduced. Every game ended by 3 keys, with the
+winner holding three keys and the title matching.
+
+**Fixed:**
+- **Escape left the game at once.** One stray Esc, for example for a
+  popup that had already closed, threw the game away. A human-seat game now
+  asks for a second Esc within 3 s. Spectating still leaves at once.
+- **Right-click could open the wrong card.** Inspect used the previous
+  frame's hover. It now resolves the card under the click itself.
+- **Three Fates asked pointless questions.** It asked for a choice among
+  tied creatures even when all of them were going to be destroyed. It now
+  asks only when a tie crosses the cut-off, as "choose N of the tied".
+- **Log gaps:**
+  - Chains gained (Gateway to Dis, Arise) weren't logged.
+  - Chains shed during the draw step weren't logged: "draw 1 fewer card
+    because of chains".
+  - Captured Æmber returning when its creature left play wasn't logged.
+    It now also gets a "+N Æ" floater.
+- **Log wording.**
+  - Lasting-effect lines said "the opponent can't forge a key", which read
+    backwards when the opponent played the card. They now name who is hit:
+    "Miasma: You can't forge a key next turn."
+  - "X is destroyed" now comes before what leaving play causes.
+
+**Checked and correct:**
+- Hand refill chips (Mother, The Howling Pit, Succubus) and chains
+  lowering the refill.
+- Titan Mechanic's key cost for both players.
+- Phase Shift allowing a Dis creature.
+- Too Much To Protect, Old Bruno capture/release, Pawn Sacrifice targets,
+  Guardian Demon excluding the healed creature, and Control the Weak.
+
+**Noted, not changed:**
+- **Crowded rows.** Rows of 4+ artifacts or 8 creatures overlap heavily.
+  Hover and inspect still pick the right card.
+- **Bot targeting.** The bot sometimes damages its own creatures with
+  Pawn Sacrifice.

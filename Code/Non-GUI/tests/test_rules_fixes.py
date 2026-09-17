@@ -261,3 +261,83 @@ class TestReplayRecord(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _drive_recording(gen, answer=None):
+    """Like `drive`, but returns every Decision the effect asked."""
+    asked = []
+    try:
+        d = next(gen)
+    except StopIteration:
+        return asked
+    while True:
+        asked.append(d)
+        choice = answer(d) if answer else list(d.options[: d.min_n])
+        try:
+            d = gen.send(choice)
+        except StopIteration:
+            return asked
+
+
+def _in_play(game, card):
+    return any(card in p.play_area.creatures for p in game.players.values())
+
+
+class TestThreeFatesTies(unittest.TestCase):
+    def test_no_choice_when_the_whole_tie_is_destroyed(self):
+        game = new_game()
+        a = put_creature(game, 1, "Doc Bookton")  # 5
+        b = put_creature(game, 2, "The Terror")  # 5
+        c = put_creature(game, 2, "Snudge")  # 4
+        survivor = put_creature(game, 1, "Dust Imp")  # 2
+        card = make_card("Three Fates", 1)
+        asked = _drive_recording(named.three_fates(game, card))
+        self.assertEqual(asked, [])
+        for victim in (a, b, c):
+            self.assertFalse(_in_play(game, victim))
+        self.assertTrue(_in_play(game, survivor))
+
+    def test_choice_only_for_the_tie_that_crosses_the_cut(self):
+        game = new_game()
+        top = put_creature(game, 1, "Titan Mechanic")  # 6
+        tied = [put_creature(game, 1, "Doc Bookton"), put_creature(game, 2, "The Terror"), put_creature(game, 2, "Shooler")]  # 5s
+        card = make_card("Three Fates", 1)
+        asked = _drive_recording(named.three_fates(game, card), answer=lambda d: [tied[0], tied[2]])
+        self.assertEqual(len(asked), 1)
+        self.assertEqual((asked[0].min_n, asked[0].max_n), (2, 2))
+        self.assertEqual(set(asked[0].options), set(tied))
+        for victim in (top, tied[0], tied[2]):
+            self.assertFalse(_in_play(game, victim))
+        self.assertTrue(_in_play(game, tied[1]))
+
+
+class TestChainAndCaptureLogging(unittest.TestCase):
+    def test_draw_step_logs_shed_chain(self):
+        game = new_game()
+        p1 = game.players[1]
+        p1.chains = 3
+        p1.hand.take_all()
+        game._draw_step(1)
+        ev = [e for e in game.log.events if e.kind == "shed_chain"]
+        self.assertEqual(len(ev), 1)
+        self.assertEqual((ev[0].data["fewer"], ev[0].data["total"]), (1, 2))
+        self.assertEqual(len(p1.hand), 5)
+
+    def test_gateway_to_dis_logs_chains(self):
+        game = new_game()
+        run_hook(game, named.gateway_to_dis, make_card("Gateway to Dis", 1))
+        ev = [e for e in game.log.events if e.kind == "gain_chains"]
+        self.assertEqual((ev[-1].data["n"], ev[-1].data["total"]), (3, 3))
+
+    def test_captured_aember_release_is_logged(self):
+        game = new_game()
+        game.players[2].aember = 0
+        bruno = put_creature(game, 1, "Old Bruno")
+        bruno.aember_captured = 3
+        drive(game.destroy_cards([bruno]))
+        kinds = [e.kind for e in game.log.events]
+        self.assertLess(kinds.index("destroyed"), kinds.index("capture_released"))
+        ev = [e for e in game.log.events if e.kind == "capture_released"]
+        self.assertEqual(len(ev), 1)
+        self.assertEqual((ev[0].data["amount"], ev[0].data["player"]), (3, 2))
+        self.assertEqual(game.players[2].aember, 3)

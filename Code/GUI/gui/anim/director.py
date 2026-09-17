@@ -441,6 +441,19 @@ def _h_capture(ctx: Ctx):
     return Call(fx)
 
 
+@handler("capture_released")
+def _h_capture_released(ctx: Ctx):
+    pid = ctx.data["player"]
+    amount = ctx.data["amount"]
+    x, y = _hud_pos(ctx.board, pid)
+
+    def fx():
+        ctx.board.particles.emit_sparks(x, y, n=6)
+        ctx.board.floaters.append(FloatingText(x, y - 14, f"+{amount} Æ", S.AEMBER))
+
+    return Call(fx)
+
+
 @handler("duration_effect")
 def _h_duration_effect(ctx: Ctx):
     iid = ctx.data.get("iid")

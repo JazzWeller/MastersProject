@@ -98,7 +98,8 @@ def duration_effect(variable: str, op: str, value, duration, scope: str):
                 DurationEffect(card, controller, duration, player_affected, variable, op, value)
             )
         game.log.add(
-            "duration_effect", card=card.name, iid=card.instance_id, variable=variable, op=op, value=value
+            "duration_effect", card=card.name, iid=card.instance_id, variable=variable, op=op, value=value,
+            player=controller, affected=targets,
         )
         return
         yield
