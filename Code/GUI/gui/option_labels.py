@@ -8,6 +8,8 @@ TriggerEffect, or a destroy-pipeline tuple) into a label a player can read.
 
 from __future__ import annotations
 
+import re
+
 from typing import Any, Optional
 
 from keyforge.actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
@@ -113,7 +115,30 @@ _LOG_CATEGORY = {
     "purge": "purge",
     "damage": "damage", "destroyed": "damage",
     "heal": "heal",
+    "shortfall": "shortfall",
 }
+
+
+_PLAYER_REF = re.compile(r"\{(pos|obj|mine):([12])\}")
+
+
+def fill_players(text: str, viewer: int, spectating: bool = False) -> str:
+    """Resolve the engine's player placeholders for whoever is reading:
+    {pos:N} -> your / your opponent's / Player N's, {obj:N} -> you / your
+    opponent / Player N, {mine:N} -> yours / your opponent's / Player N's."""
+
+    def one(m):
+        form, pid = m.group(1), int(m.group(2))
+        if spectating:
+            return f"Player {pid}" if form == "obj" else f"Player {pid}'s"
+        mine = pid == viewer
+        if form == "pos":
+            return "your" if mine else "your opponent's"
+        if form == "mine":
+            return "yours" if mine else "your opponent's"
+        return "you" if mine else "your opponent"
+
+    return _PLAYER_REF.sub(one, text)
 
 
 def log_event_category(event) -> str:
@@ -218,7 +243,14 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
     if k == "purge":
         return f"{d['card']} is purged."
     if k == "damage":
+        absorbed = d.get("absorbed") or 0
+        if absorbed >= d["amount"]:
+            return f"{d['card']}'s armor absorbs all {d['amount']} damage."
+        if absorbed:
+            return f"{d['card']} takes {d['amount'] - absorbed} damage ({absorbed} absorbed by armor)."
         return f"{d['card']} takes {d['amount']} damage."
+    if k == "shortfall":
+        return f"{d['card']} {fill_players(d['reason'], viewer, spectating)}."
     if k == "heal":
         return f"{d['card']} heals {d['amount']} damage."
     if k == "return_to_hand":

@@ -27,15 +27,18 @@ class TestShadows(unittest.TestCase):
         self.assertEqual(p1.aember, 2)
         self.assertEqual(p2.aember, 1)
 
-    def test_bait_and_switch_always_steals_once(self):
+    def test_bait_and_switch_steals_nothing_when_not_behind(self):
+        # Printed card: the "opponent has more" check comes before the first steal.
         game = new_game()
         p1, p2 = game.players[1], game.players[2]
         p2.aember = 5
         p1.aember = 5
         card = make_card("Bait and Switch", 1)
         run_hook(game, named.bait_and_switch, card)
-        self.assertEqual(p1.aember, 6)
-        self.assertEqual(p2.aember, 4)
+        self.assertEqual(p1.aember, 5)
+        self.assertEqual(p2.aember, 5)
+        [sf] = [e.data for e in game.log.events if e.kind == "shortfall"]
+        self.assertIn("isn't more than", sf["reason"])
 
     def test_booby_trap_hits_center_and_neighbors(self):
         game = new_game()

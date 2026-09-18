@@ -454,6 +454,28 @@ def _h_capture_released(ctx: Ctx):
     return Call(fx)
 
 
+@handler("shortfall")
+def _h_shortfall(ctx: Ctx):
+    """An effect that couldn't fully happen: a lingering boxed popup on the
+    card (or mid-board when there's no card to point at), with a short pause
+    so it can be read. The full reason is in the log."""
+    text = ctx.data.get("short") or "No effect"
+    iid = ctx.data.get("iid")
+    cs = ctx.after.cards.get(iid) if (iid is not None and ctx.after is not None) else None
+    if cs is not None and cs.zone in ("hand", "play_creature", "play_artifact", "upgrade") and cs.face_up:
+        sprite = ctx.board.sprite_for(iid)
+        pos = lambda: (sprite.x, sprite.y - 30)
+    else:
+        rect = ctx.board.layout.board_rect(ctx.board.viewer)
+        pos = lambda: (S.PLAY_X + S.PLAY_W / 2, rect.top - 20)
+
+    def fx():
+        x, y = pos()
+        ctx.board.toasts.append(Toast(x, y, text, life_ms=S.T_SHORTFALL_TEXT, color=S.NOTE, text_color=S.NOTE))
+
+    return Sequence(Call(fx), Delay(S.T_SHORTFALL))
+
+
 @handler("duration_effect")
 def _h_duration_effect(ctx: Ctx):
     iid = ctx.data.get("iid")

@@ -242,7 +242,7 @@ class Game:
             n -= penalty
             player.chains -= 1
             self.log.add("shed_chain", player=pid, fewer=penalty, total=player.chains)
-        steps.draw(self, player, max(0, n))
+        steps.draw(self, player, max(0, n), source="Hand refill")
 
     # ----------------------------------------------------- legal actions ----
 
@@ -498,11 +498,33 @@ class Game:
         for trig in ordered:
             yield from trig.handler(self, {"player": event_player, "card": card})
 
-    def play_card_from_deck_top(self, player: Player, top_card: Card, ignore_house: bool = True):
+    def play_card_from_deck_top(self, player: Player, top_card: Card, ignore_house: bool = True, source=None):
+        reason = self._effect_play_refusal(player, top_card)
         player.deck.remove(top_card)
         ok = yield from self._play_card(player.id, top_card, from_deck_top=True)
         if not ok:
             player.deck.put_on_top(top_card)
+            if source is not None:
+                steps.shortfall(
+                    self, source,
+                    f"can't play {top_card.name} from the top of {{pos:{player.id}}} deck: {reason or 'it cannot be played right now'}. It stays on top of the deck",
+                    f"Can't play {top_card.name}",
+                )
+
+    def _effect_play_refusal(self, player: Player, card: Card) -> Optional[str]:
+        """Why `_play_card` would refuse `card` when an effect plays it (the
+        house and hand-size limits don't apply there), or None."""
+        if not self._rule_of_six_ok(player, card.name):
+            return f"{card.name} has already been played or used 6 times this turn (rule of six)"
+        if card.type == CardType.CREATURE and not player.get_can_play_creatures(self):
+            src = self._effect_source("CanPlayCreatures", player.id)
+            return "creatures can't be played this turn" + (f" ({src})" if src else "")
+        if card.type == CardType.ACTION and not player.get_can_play_actions(self):
+            src = self._effect_source("CanPlayActions", player.id)
+            return "actions can't be played this turn" + (f" ({src})" if src else "")
+        if card.type == CardType.UPGRADE and not (self.players[1].play_area.creatures or self.players[2].play_area.creatures):
+            return "it is an upgrade and there is no creature to attach it to"
+        return None
 
     # --------------------------------------------------- reap/fight/use ----
 
@@ -556,6 +578,12 @@ class Game:
 
         skip_fight = target.Elusive and not target.fought_this_turn and not target.IgnoreElusive
         target.fought_this_turn = True
+        if skip_fight:
+            steps.shortfall(
+                self, target,
+                "is elusive: the first time it is attacked each turn, no damage is dealt by either creature",
+                "Elusive: no damage",
+            )
         if not skip_fight:
             if not attacker.Skirmish:
                 steps.deal_damage(self, attacker, self.get_power(target))

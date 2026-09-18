@@ -52,6 +52,8 @@ class Toast:
     text: str
     life_ms: float = 1400
     age_ms: float = 0.0
+    color: tuple = S.AEMBER  # border
+    text_color: tuple = S.TEXT
 
     def update(self, dt_ms: float) -> bool:
         self.age_ms += dt_ms
@@ -65,11 +67,11 @@ class Toast:
         elif t > 0.8:
             alpha = int(255 * (1 - (t - 0.8) / 0.2))
         font = assets.font("inter", 16, bold=True)
-        img = font.render(self.text, True, S.TEXT)
+        img = font.render(self.text, True, self.text_color)
         pad_x, pad_y = 14, 8
         box = pygame.Surface((img.get_width() + pad_x * 2, img.get_height() + pad_y * 2), pygame.SRCALPHA)
         pygame.draw.rect(box, (*S.PANEL_LIGHT, 235), box.get_rect(), border_radius=10)
-        pygame.draw.rect(box, (*S.AEMBER, 200), box.get_rect(), width=2, border_radius=10)
+        pygame.draw.rect(box, (*self.color, 200), box.get_rect(), width=2, border_radius=10)
         box.blit(img, (pad_x, pad_y))
         box.set_alpha(max(0, alpha))
         surface.blit(box, box.get_rect(center=(self.x, self.y)))

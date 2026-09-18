@@ -17,6 +17,7 @@ _CATEGORY_COLOR = {
     "purge": S.PURGE,
     "damage": S.DANGER,
     "heal": S.HEAL,
+    "shortfall": S.NOTE,
     "turn": S.TEXT_FAINT,
     "neutral": S.TEXT_DIM,
 }

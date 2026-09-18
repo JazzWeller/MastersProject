@@ -268,7 +268,7 @@ Targeting: "a creature" means any creature on either side, "friendly" means your
 | Card | Implementation |
 |---|---|
 | Bad Penny (1) | InsteadEffect: when destroyed, goes to hand instead of discard |
-| Bait and Switch | Steal 1. Repeat while the enemy has more æmber than you and the steal succeeded. |
+| Bait and Switch | If the enemy has more æmber than you, steal 1; repeat while that is still true (printed card; the spec stole once unconditionally). |
 | Booby Trap | Choose a non-flank creature: deal 4 to it and 2 to each neighbor |
 | Duskrunner (upgrade) | Host creature gains After Reap: steal 1 |
 | Ghostly Hand | If the enemy has exactly 1, steal 1 |

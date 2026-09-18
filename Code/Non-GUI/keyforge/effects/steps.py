@@ -12,6 +12,22 @@ from __future__ import annotations
 from ..cards.card import CreatureType
 
 
+def shortfall(game, source, reason: str, short: str = "") -> None:
+    """Log that an effect couldn't be carried out in full, and why.
+
+    `source` is the Card whose effect fell short (or a plain name for
+    things like the draw step). `reason` is a predicate that reads after
+    the card's name ("steals nothing: {pos:2} Æmber pool is empty").
+    Player references are placeholders the UI resolves for whoever is
+    reading: {pos:N} -> "your" / "your opponent's" / "Player N's",
+    {obj:N} -> "you" / "your opponent" / "Player N". `short` is a few words
+    for an on-board popup ("Nothing to steal")."""
+    name = getattr(source, "name", source)
+    iid = getattr(source, "instance_id", None)
+    controller = getattr(source, "controller", None)
+    game.log.add("shortfall", card=name, iid=iid, player=controller, reason=reason, short=short)
+
+
 def gain(game, player, amount: int) -> bool:
     if amount <= 0:
         return False
@@ -20,9 +36,13 @@ def gain(game, player, amount: int) -> bool:
     return True
 
 
-def steal(game, from_player, to_player, amount: int) -> bool:
+def steal(game, from_player, to_player, amount: int, source=None) -> bool:
     n = min(amount, from_player.aember)
+    if source is not None and 0 < n < amount:
+        shortfall(game, source, f"steals only {n} of {amount} Æmber: that was all of {{pos:{from_player.id}}} Æmber", f"Only {n} Æmber to steal")
     if n <= 0:
+        if source is not None and amount > 0:
+            shortfall(game, source, f"steals nothing: {{pos:{from_player.id}}} Æmber pool is empty", "Nothing to steal")
         return False
     from_player.aember -= n
     to_player.aember += n
@@ -36,14 +56,17 @@ def capture(game, card, amount: int) -> bool:
     opponent = game.players[3 - card.controller]
     n = min(amount, opponent.aember)
     if n <= 0:
+        shortfall(game, card, f"captures nothing: {{pos:{opponent.id}}} Æmber pool is empty", "Nothing to capture")
         return False
+    if n < amount:
+        shortfall(game, card, f"captures only {n} of {amount} Æmber: that was all of {{pos:{opponent.id}}} Æmber", f"Only {n} Æmber to capture")
     opponent.aember -= n
     card.aember_captured += n
     game.log.add("capture", card=card.name, iid=card.instance_id, amount=n)
     return True
 
 
-def draw(game, player, n: int) -> bool:
+def draw(game, player, n: int, source=None) -> bool:
     if n <= 0:
         return False
     drawn_iids = []
@@ -61,6 +84,12 @@ def draw(game, player, n: int) -> bool:
         drawn_iids.append(card.instance_id)
     if drawn_iids:
         game.log.add("draw", player=player.id, n=len(drawn_iids), iids=drawn_iids)
+    if source is not None and len(drawn_iids) < n:
+        why = f"{{pos:{player.id}}} deck and discard pile are both empty"
+        if drawn_iids:
+            shortfall(game, source, f"draws only {len(drawn_iids)} of {n} cards: {why}", "Deck ran out")
+        else:
+            shortfall(game, source, f"draws nothing: {why}", "No cards left to draw")
     return len(drawn_iids) > 0
 
 
@@ -81,9 +110,11 @@ def discard_from_hand(game, player, card) -> bool:
     return True
 
 
-def discard_random(game, player) -> bool:
+def discard_random(game, player, source=None) -> bool:
     cards = player.hand.cards()
     if not cards:
+        if source is not None:
+            shortfall(game, source, f"discards nothing: {{pos:{player.id}}} hand is empty", "Hand is empty")
         return False
     card = game.rng.choice(cards)
     player.hand.remove(card)

@@ -18,6 +18,8 @@ def arise(game, card):
     for c in creatures:
         player.discard.remove(c)
         player.hand.add(c)
+    if not creatures:
+        steps.shortfall(game, card, f"returns no creatures: {{pos:{player.id}}} discard pile has no {chosen.value} creatures (the chain is still gained)", "No creatures to return")
     before = player.chains
     player.chains = min(24, player.chains + 1)
     game.log.add("gain_chains", player=player.id, n=player.chains - before, total=player.chains, card=card.name, iid=card.instance_id)
@@ -41,6 +43,7 @@ def creeping_oblivion(game, card):
     if game.players[2].discard.cards():
         piles.append(2)
     if not piles:
+        steps.shortfall(game, card, "purges nothing: both discard piles are empty", "Nothing to purge")
         return
     pile_choice = yield from game.choose_cards(player_id, "Choose a discard pile", piles, 1, 1)
     target_player = game.players[pile_choice[0]]
@@ -62,6 +65,10 @@ def dominator_bauble(game, card):
         if not c.Exhausted and game._rule_of_six_ok(player, c.name)
     ]
     if not options:
+        if player.play_area.creatures:
+            steps.shortfall(game, card, "does nothing: every friendly creature is exhausted (or already used 6 times this turn)", "No ready creature")
+        else:
+            steps.shortfall(game, card, "does nothing: there are no friendly creatures in play", "No creature to use")
         return
     choice = yield from game.choose_cards(player.id, "Choose a friendly creature to use", options, 1, 1)
     yield from steps.use_creature(game, choice[0])
@@ -103,6 +110,7 @@ def guardian_demon(game, card):
     # that can actually be healed.
     options = [c for c in creatures if c.type_object.damage > 0]
     if not options:
+        steps.shortfall(game, card, "heals nothing and deals no damage: no creature is damaged", "No damage to heal")
         return
     heal_choice = yield from game.choose_cards(player.id, "Guardian Demon: heal up to 2 from a creature", options, 1, 1)
     healed = steps.heal(game, heal_choice[0], 2)
@@ -111,6 +119,7 @@ def guardian_demon(game, card):
     # Printed text: deal the damage to *another* creature. None -> no damage.
     damage_targets = [c for c in creatures if c is not heal_choice[0]]
     if not damage_targets:
+        steps.shortfall(game, card, f"heals {healed} but deals no damage: there is no other creature in play", "No creature to damage")
         return
     dmg_choice = yield from game.choose_cards(player.id, f"Deal {healed} damage to another creature", damage_targets, 1, 1)
     steps.deal_damage(game, dmg_choice[0], healed)
@@ -127,7 +136,9 @@ def lifeward_omni(game, card):
 def shooler_play(game, card):
     opponent = opponent_of(game, card)
     if opponent.aember >= 4:
-        steps.steal(game, opponent, controller_of(game, card), 1)
+        steps.steal(game, opponent, controller_of(game, card), 1, source=card)
+    else:
+        steps.shortfall(game, card, f"steals nothing: {{pos:{opponent.id}}} Æmber is {opponent.aember}, and it needs 4 or more", "Needs 4+ enemy Æmber")
     return
     yield
 
@@ -143,6 +154,7 @@ def snudge(game, card):
     ]
     options = artifacts + flank_creatures
     if not options:
+        steps.shortfall(game, card, "returns nothing: there are no artifacts or flank creatures in play", "Nothing to return")
         return
     choice = yield from game.choose_cards(player.id, "Snudge: return an artifact or a flank creature", options, 1, 1)
     steps.return_to_hand(game, choice[0])
@@ -157,6 +169,8 @@ def the_terror_play(game, card):
     opponent = opponent_of(game, card)
     if opponent.aember == 0:
         steps.gain(game, controller_of(game, card), 2)
+    else:
+        steps.shortfall(game, card, f"gains nothing: {{pos:{opponent.id}}} Æmber is {opponent.aember}, and it pays out only at 0", "Enemy has Æmber")
     return
     yield
 
@@ -164,7 +178,10 @@ def the_terror_play(game, card):
 def three_fates(game, card):
     targets = game.all_creatures("any", card)
     if not targets:
+        steps.shortfall(game, card, "destroys nothing: there are no creatures in play", "No creatures")
         return
+    if len(targets) < 3:
+        steps.shortfall(game, card, f"destroys only {len(targets)}: that is every creature in play", f"Only {len(targets)} in play")
     remaining = list(targets)
     chosen = []
     while remaining and len(chosen) < 3:
@@ -206,6 +223,8 @@ def help_from_future_self(game, card):
     if found is not None:
         player.hand.add(found)
         game.log.add("help_from_future_self", player=player.id, found=True, iid=found.instance_id)
+    else:
+        steps.shortfall(game, card, f"finds no Timetraveler in {{pos:{player.id}}} deck or discard pile (the discard is still shuffled in)", "No Timetraveler")
     discard_cards = player.discard.take_all()
     if discard_cards:
         player.deck.shuffle_in(discard_cards, game.rng)
@@ -228,7 +247,7 @@ def library_access_play(game, card):
 
 def library_access_trigger(game, event):
     player = game.players[event["player"]]
-    steps.draw(game, player, 1)
+    steps.draw(game, player, 1, source="Library Access")
     return
     yield
 
@@ -253,7 +272,7 @@ def quixo_unregister(game, card):
 
 
 def quixo_after_fight(game, card):
-    steps.draw(game, controller_of(game, card), 1)
+    steps.draw(game, controller_of(game, card), 1, source=card)
     return
     yield
 
@@ -298,21 +317,29 @@ def wild_wormhole(game, card):
     player = controller_of(game, card)
     top = player.deck.peek_top()
     if top is None:
+        steps.shortfall(game, card, f"plays nothing: {{pos:{player.id}}} deck is empty", "Deck is empty")
         return
-    yield from game.play_card_from_deck_top(player, top, ignore_house=True)
+    yield from game.play_card_from_deck_top(player, top, ignore_house=True, source=card)
 
 
 # ------------------------------------------------------------ Shadows ----
 
 def bait_and_switch(game, card):
+    # Follows the printed card over the spec, as approved by the project
+    # owner: "If your opponent has more A than you, steal 1A. Repeat this
+    # card's effect if your opponent still has more A than you." The check
+    # comes before the first steal, so equal or less means no steal at all.
     player = controller_of(game, card)
     opponent = opponent_of(game, card)
-    while True:
-        ok = steps.steal(game, opponent, player, 1)
-        if not ok:
-            break
-        if not (player.aember < opponent.aember):
-            break
+    if not opponent.aember > player.aember:
+        steps.shortfall(
+            game, card,
+            f"steals nothing: {{pos:{opponent.id}}} Æmber ({opponent.aember}) isn't more than {{mine:{player.id}}} ({player.aember})",
+            "Enemy doesn't have more Æmber",
+        )
+        return
+    while opponent.aember > player.aember:
+        steps.steal(game, opponent, player, 1)
     return
     yield
 
@@ -325,6 +352,7 @@ def booby_trap(game, card):
         if not game.players[pid].play_area.is_flank(c)
     ]
     if not non_flank:
+        steps.shortfall(game, card, "deals no damage: every creature in play is on a flank", "No non-flank creature")
         return
     choice = yield from game.choose_cards(card.controller, "Booby Trap: choose a non-flank creature", non_flank, 1, 1)
     target = choice[0]
@@ -349,7 +377,7 @@ def duskrunner_unregister(game, card):
 
 def duskrunner_effect(game, host_card):
     controller = game.players[host_card.controller]
-    steps.steal(game, game.players[3 - host_card.controller], controller, 1)
+    steps.steal(game, game.players[3 - host_card.controller], controller, 1, source="Duskrunner")
     return
     yield
 
@@ -358,6 +386,8 @@ def ghostly_hand(game, card):
     opponent = opponent_of(game, card)
     if opponent.aember == 1:
         steps.steal(game, opponent, controller_of(game, card), 1)
+    else:
+        steps.shortfall(game, card, f"steals nothing: {{pos:{opponent.id}}} Æmber is {opponent.aember}, and it steals only when that is exactly 1", "Needs exactly 1 enemy Æmber")
     return
     yield
 
@@ -366,9 +396,12 @@ def lights_out(game, card):
     opponent = opponent_of(game, card)
     options = list(opponent.play_area.creatures)
     if not options:
+        steps.shortfall(game, card, "returns nothing: there are no enemy creatures in play", "No enemy creatures")
         return
     # Printed text: "Return 2 enemy creatures" -- exactly 2, or all if fewer.
     n = min(2, len(options))
+    if n < 2:
+        steps.shortfall(game, card, "returns only 1 creature: it was the only enemy creature in play", "Only 1 enemy creature")
     choice = yield from game.choose_cards(card.controller, f"Lights Out: return {n} enemy creature{'s' if n != 1 else ''}", options, n, n)
     for c in choice:
         steps.return_to_hand(game, c)
@@ -379,9 +412,11 @@ def nerve_blast(game, card):
     opponent = opponent_of(game, card)
     ok = steps.steal(game, opponent, player, 1)
     if not ok:
+        steps.shortfall(game, card, f"steals nothing, so deals no damage: {{pos:{opponent.id}}} Æmber pool is empty", "Nothing to steal")
         return
     targets = game.all_creatures("any", card)
     if not targets:
+        steps.shortfall(game, card, "steals 1 but deals no damage: there are no creatures in play", "No creature to damage")
         return
     choice = yield from game.choose_cards(player.id, "Nerve Blast: deal 2 damage", targets, 1, 1)
     steps.deal_damage(game, choice[0], 2)
@@ -389,7 +424,7 @@ def nerve_blast(game, card):
 
 
 def noddy_action(game, card):
-    steps.steal(game, opponent_of(game, card), controller_of(game, card), 1)
+    steps.steal(game, opponent_of(game, card), controller_of(game, card), 1, source=card)
     return
     yield
 
@@ -408,7 +443,9 @@ def one_last_job(game, card):
         if steps.purge(game, c):
             n += 1
     if n:
-        steps.steal(game, opponent_of(game, card), player, n)
+        steps.steal(game, opponent_of(game, card), player, n, source=card)
+    else:
+        steps.shortfall(game, card, "purges nothing, so steals nothing: there are no friendly Shadows creatures in play", "No Shadows creatures")
     return
     yield
 
@@ -416,6 +453,7 @@ def one_last_job(game, card):
 def oubliette(game, card):
     targets = [c for c in game.all_creatures("any", card) if game.get_power(c) <= 3]
     if not targets:
+        steps.shortfall(game, card, "purges nothing: no creature in play has power 3 or less", "No creature with power 3 or less")
         return
     choice = yield from game.choose_cards(card.controller, "Oubliette: purge a creature (power <= 3)", targets, 1, 1)
     steps.purge(game, choice[0])
@@ -425,6 +463,7 @@ def pawn_sacrifice(game, card):
     player = controller_of(game, card)
     options = list(player.play_area.creatures)
     if not options:
+        steps.shortfall(game, card, "does nothing: there is no friendly creature to sacrifice", "Nothing to sacrifice")
         return
     choice = yield from game.choose_cards(player.id, "Pawn Sacrifice: sacrifice a friendly creature", options, 1, 1)
     victim = choice[0]
@@ -433,8 +472,10 @@ def pawn_sacrifice(game, card):
         return
     remaining_targets = game.all_creatures("any", card)
     if not remaining_targets:
+        steps.shortfall(game, card, "deals no damage: no creatures are left in play after the sacrifice", "No creatures left")
         return
     if len(remaining_targets) == 1:
+        steps.shortfall(game, card, "damages only 1 creature: it was the only one left in play", "Only 1 creature left")
         targets = remaining_targets
     else:
         targets = yield from game.choose_cards(
@@ -449,13 +490,14 @@ def relentless_whispers(game, card):
     player = controller_of(game, card)
     targets = game.all_creatures("any", card)
     if not targets:
+        steps.shortfall(game, card, "deals no damage: there are no creatures in play", "No creature to damage")
         return
     choice = yield from game.choose_cards(player.id, "Relentless Whispers: deal 2 damage", targets, 1, 1)
     target = choice[0]
     steps.deal_damage(game, target, 2)
     destroyed = yield from game.check_destroyed([target])
     if target in destroyed:
-        steps.steal(game, opponent_of(game, card), player, 1)
+        steps.steal(game, opponent_of(game, card), player, 1, source=card)
 
 
 def silvertooth_play(game, card):
@@ -465,7 +507,7 @@ def silvertooth_play(game, card):
 
 
 def subtle_maul(game, card):
-    steps.discard_random(game, opponent_of(game, card))
+    steps.discard_random(game, opponent_of(game, card), source=card)
     return
     yield
 
@@ -473,13 +515,15 @@ def subtle_maul(game, card):
 def too_much_to_protect(game, card):
     opponent = opponent_of(game, card)
     amount = max(opponent.aember - 6, 0)
+    if amount == 0:
+        steps.shortfall(game, card, f"steals nothing: {{pos:{opponent.id}}} Æmber is {opponent.aember}, and it takes only what is above 6", "6 or less to take")
     steps.steal(game, opponent, controller_of(game, card), amount)
     return
     yield
 
 
 def urchin_play(game, card):
-    steps.steal(game, opponent_of(game, card), controller_of(game, card), 1)
+    steps.steal(game, opponent_of(game, card), controller_of(game, card), 1, source=card)
     return
     yield
 
@@ -504,7 +548,12 @@ def sloppy_labwork(game, card):
         options = player.hand.cards()
         choice = yield from game.choose_cards(player.id, "Sloppy Labwork: archive a card", options, 1, 1)
         steps.archive_card(game, player, choice[0])
+    else:
+        steps.shortfall(game, card, f"archives and discards nothing: {{pos:{player.id}}} hand is empty", "Hand is empty")
+        return
     if player.hand.cards():
         options = player.hand.cards()
         choice = yield from game.choose_cards(player.id, "Sloppy Labwork: discard a card", options, 1, 1)
         steps.discard_from_hand(game, player, choice[0])
+    else:
+        steps.shortfall(game, card, f"discards nothing: {{pos:{player.id}}} hand was empty after archiving", "Nothing left to discard")

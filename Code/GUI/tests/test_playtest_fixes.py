@@ -386,5 +386,35 @@ class TestLiveSessionFindings(unittest.TestCase):
                          "You draw 1 fewer card because of chains, and shed one (2 left).")
 
 
+class TestShortfallsAreExplained(unittest.TestCase):
+    def test_sentence_resolves_players_for_each_reader(self):
+        from types import SimpleNamespace
+        from gui.option_labels import describe_log_event, log_event_category
+
+        ev = SimpleNamespace(kind="shortfall", data=dict(
+            card="Urchin", iid=7, player=1, reason="steals nothing: {pos:2} Æmber pool is empty", short="Nothing to steal"))
+        self.assertEqual(describe_log_event(ev, 1), "Urchin steals nothing: your opponent's Æmber pool is empty.")
+        self.assertEqual(describe_log_event(ev, 2), "Urchin steals nothing: your Æmber pool is empty.")
+        self.assertEqual(describe_log_event(ev, 1, spectating=True), "Urchin steals nothing: Player 2's Æmber pool is empty.")
+        self.assertEqual(log_event_category(ev), "shortfall")
+
+    def test_board_shows_a_lingering_popup(self):
+        from keyforge.log import LogEvent
+        from gui.anim.director import Director
+
+        app, g = _scene()
+        _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION)
+        snap = g.last_snapshot
+        iid = snap.zone_cards(g.viewer, "hand")[0].iid
+        ev = LogEvent("shortfall", dict(card="X", iid=iid, player=1, reason="does nothing: test", short="Nothing to steal"))
+        beat = Director.build(g.board, snap, snap, [ev])
+        g.animator.enqueue(beat)
+        g.update(50)
+        texts = [t.text for t in g.board.toasts]
+        self.assertIn("Nothing to steal", texts)
+        popup = next(t for t in g.board.toasts if t.text == "Nothing to steal")
+        self.assertGreaterEqual(popup.life_ms, 2000)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -105,6 +105,7 @@ TEXT_FAINT = _hex("6B6480")
 DANGER = _hex("E5484D")
 HEAL = _hex("46C18F")
 PURGE = _hex("8B5CF6")
+NOTE = _hex("F0A35E")  # an effect that could not be carried out in full
 
 HOUSE_COLORS = {
     "Dis": _hex("D0246E"),
@@ -147,6 +148,8 @@ T_FIGHT = 700
 T_DAMAGE = 400
 T_HEAL = 350
 T_DESTROY = 650
+T_SHORTFALL = 900        # pause so an "it did nothing, because..." popup can be read
+T_SHORTFALL_TEXT = 2200  # how long that popup stays up
 T_PURGE = 600
 T_MOVE_ZONE = 350
 T_AEMBER_GEM = 500

@@ -4,7 +4,7 @@ plus the move record used for game history and replays."""
 import random
 import unittest
 
-from tests.helpers import drive, hand_card, make_card, new_game, put_creature, run_hook
+from tests.helpers import drive, hand_card, make_card, new_game, put_artifact, put_creature, run_hook
 
 from bots.random_bot import RandomBot
 from keyforge.actions import DiscardCard, EndTurn, PlayCard, Reap, UseAction
@@ -341,3 +341,68 @@ class TestChainAndCaptureLogging(unittest.TestCase):
         self.assertEqual(len(ev), 1)
         self.assertEqual((ev[0].data["amount"], ev[0].data["player"]), (3, 2))
         self.assertEqual(game.players[2].aember, 3)
+
+
+class TestShortfallExplanations(unittest.TestCase):
+    """An effect that can't be carried out in full says so, and why."""
+
+    def _shortfalls(self, game):
+        return [e.data for e in game.log.events if e.kind == "shortfall"]
+
+    def test_steal_from_an_empty_pool(self):
+        game = new_game()
+        game.players[2].aember = 0
+        run_hook(game, named.urchin_play, make_card("Urchin", 1))
+        [sf] = self._shortfalls(game)
+        self.assertEqual(sf["card"], "Urchin")
+        self.assertIn("steals nothing", sf["reason"])
+        self.assertIn("{pos:2}", sf["reason"])
+
+    def test_partial_capture_names_both_numbers(self):
+        game = new_game()
+        game.players[2].aember = 2
+        bruno = put_creature(game, 1, "Old Bruno")
+        run_hook(game, named.old_bruno_play, bruno)
+        [sf] = self._shortfalls(game)
+        self.assertIn("only 2 of 3", sf["reason"])
+        self.assertEqual(bruno.aember_captured, 2)
+
+    def test_nerve_blast_explains_why_no_damage(self):
+        game = new_game()
+        game.players[2].aember = 0
+        run_hook(game, named.nerve_blast, make_card("Nerve Blast", 1))
+        [sf] = self._shortfalls(game)
+        self.assertIn("so deals no damage", sf["reason"])
+
+    def test_wild_wormhole_refusal_gives_the_reason(self):
+        game = _mid_game(House.LOGOS)
+        run_hook(game, named.lifeward_omni, put_artifact(game, 2, "Lifeward"))  # player 1 can't play creatures
+        p1 = game.players[1]
+        top = make_card("Mother", 1)
+        p1.deck.put_on_top(top)
+        run_hook(game, named.wild_wormhole, make_card("Wild Wormhole", 1))
+        sf = self._shortfalls(game)[-1]
+        self.assertIn("can't play Mother", sf["reason"])
+        self.assertIn("creatures can't be played", sf["reason"])
+        self.assertIs(p1.deck.peek_top(), top)
+
+    def test_elusive_explains_the_missing_damage(self):
+        game = _mid_game(House.SHADOWS)
+        attacker = put_creature(game, 1, "Silvertooth")
+        target = put_creature(game, 2, "Urchin")
+        drive(game._fight(1, attacker), [[target]])
+        sf = self._shortfalls(game)[-1]
+        self.assertEqual(sf["card"], "Urchin")
+        self.assertIn("elusive", sf["reason"])
+
+    def test_conditions_not_met_are_explained(self):
+        game = new_game()
+        game.players[2].aember = 3
+        run_hook(game, named.shooler_play, make_card("Shooler", 1))
+        run_hook(game, named.ghostly_hand, make_card("Ghostly Hand", 1))
+        run_hook(game, named.the_terror_play, make_card("The Terror", 1))
+        reasons = [sf["reason"] for sf in self._shortfalls(game)]
+        self.assertEqual(len(reasons), 3)
+        self.assertIn("needs 4 or more", reasons[0])
+        self.assertIn("exactly 1", reasons[1])
+        self.assertIn("only at 0", reasons[2])

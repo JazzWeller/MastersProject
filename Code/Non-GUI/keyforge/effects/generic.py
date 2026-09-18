@@ -28,7 +28,7 @@ def gain_n(n: int):
 
 def steal_n(n: int):
     def effect(game, card):
-        steps.steal(game, opponent_of(game, card), controller_of(game, card), n)
+        steps.steal(game, opponent_of(game, card), controller_of(game, card), n, source=card)
         return
         yield
 
@@ -38,8 +38,10 @@ def steal_n(n: int):
 def archive_n(n: int):
     def effect(game, card):
         player = controller_of(game, card)
-        for _ in range(n):
+        for i in range(n):
             if not player.hand.cards():
+                what = "archives nothing" if i == 0 else f"archives only {i} of {n} cards"
+                steps.shortfall(game, card, f"{what}: {{pos:{player.id}}} hand is empty", "Hand is empty")
                 break
             options = player.hand.cards()
             choice = yield from game.choose_cards(
@@ -52,7 +54,7 @@ def archive_n(n: int):
 
 def draw_n(n: int):
     def effect(game, card):
-        steps.draw(game, controller_of(game, card), n)
+        steps.draw(game, controller_of(game, card), n, source=card)
         return
         yield
 
@@ -73,6 +75,8 @@ def deal_damage_to_chosen(n: int, targets="any"):
         player = controller_of(game, card)
         options = game.all_creatures(targets, card)
         if not options:
+            kind = {"friendly": "friendly creatures", "enemy": "enemy creatures"}.get(targets, "creatures")
+            steps.shortfall(game, card, f"deals no damage: there are no {kind} in play", "No creature to damage")
             return
         choice = yield from game.choose_cards(
             player.id, f"Deal {n} damage ({card.name})", options, 1, 1

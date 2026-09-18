@@ -610,3 +610,36 @@ winner holding three keys and the title matching.
   Hover and inspect still pick the right card.
 - **Bot targeting.** The bot sometimes damages its own creatures with
   Pawn Sacrifice.
+
+## 6. Effects that can't be carried out in full
+
+Effects used to fail silently when there was nothing to steal, no legal
+target, or an unmet condition. Every such case now logs a `shortfall`
+event with the source card, the reason and a short label. The UI shows it
+two ways:
+- **Log.** A line in its own orange colour, worded for whoever is reading.
+  For example: "Urchin steals nothing: your opponent's Æmber pool is
+  empty." or "Old Bruno captures only 2 of 3 Æmber: that was all of your
+  opponent's Æmber."
+- **Board.** A boxed popup on the card, or mid-board when the card has
+  already left, with a short pause so it can be read.
+
+**What is covered:**
+- **Shortfalls in the basic steps.** Steals, captures, draws (including
+  the hand refill), random discards, archiving from an empty hand, and
+  damage with no target.
+- **Every card that can come up short or have a condition not met.**
+  Shooler, Ghostly Hand, The Terror, Too Much To Protect, Nerve Blast,
+  Lights Out, Three Fates, Pawn Sacrifice, Booby Trap, Oubliette,
+  Guardian Demon, Dominator Bauble, Snudge, Arise, Creeping Oblivion,
+  Help From Future Self, One Last Job, Sloppy Labwork, and Wild Wormhole.
+  Wild Wormhole explains when the top card can't be played (for example
+  "creatures can't be played this turn (Lifeward)") and says that card
+  stays on top of the deck.
+- **Elusive.** When it cancels a fight's damage, the log says why.
+- **Armor.** Damage lines now show how much armor absorbed.
+
+**Bait and Switch now follows the printed card**, as the project owner
+decided. It checks "opponent has more Æmber than you" before the first
+steal too, so it steals nothing when you aren't behind. The spec version
+stole once unconditionally.
