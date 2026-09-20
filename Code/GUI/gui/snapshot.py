@@ -51,6 +51,7 @@ class CardState:
     exhausted: bool = False
     power: int = 0
     armor: int = 0
+    armor_used: int = 0
     damage: int = 0
     aember_captured: int = 0
     elusive: bool = False
@@ -58,7 +59,9 @@ class CardState:
     taunt: bool = False
     poison: bool = False
     hazardous: int = 0
+    assault: int = 0
     versatile: bool = False
+    cannot_be_dealt_damage: bool = False
     stunned: bool = False
     power_counters: int = 0
     aember_stored: int = 0
@@ -111,8 +114,12 @@ def _card_state(game, card, owner: int, zone: str, index: int, zone_count: int, 
     is_creature = isinstance(to, CreatureType)
     power = game.get_power(card) if is_creature else getattr(to, "base_power", 0)
     armor = game.get_armor(card) if is_creature else getattr(to, "base_armor", 0)
+    armor_used = getattr(to, "armor_used_this_turn", 0)
     damage = getattr(to, "damage", 0)
     keywords = game.get_keywords(card)
+    cannot_be_dealt_damage = is_creature and (
+        card.damage_prevented or game.players[card.controller].get_cannot_be_dealt_damage(game)
+    )
     host_iid = None
     if hasattr(to, "host") and to.host is not None:
         host_iid = to.host.instance_id
@@ -141,6 +148,7 @@ def _card_state(game, card, owner: int, zone: str, index: int, zone_count: int, 
         exhausted=card.Exhausted,
         power=power,
         armor=armor,
+        armor_used=armor_used,
         damage=damage,
         aember_captured=card.aember_captured,
         elusive="elusive" in keywords,
@@ -148,7 +156,9 @@ def _card_state(game, card, owner: int, zone: str, index: int, zone_count: int, 
         taunt="taunt" in keywords,
         poison="poison" in keywords,
         hazardous=game.get_hazardous(card) if is_creature else 0,
+        assault=game.get_assault(card) if is_creature else 0,
         versatile="versatile" in keywords,
+        cannot_be_dealt_damage=cannot_be_dealt_damage,
         stunned=card.stunned,
         power_counters=card.power_counters,
         aember_stored=card.aember_stored,

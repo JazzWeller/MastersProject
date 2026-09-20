@@ -147,7 +147,10 @@ class CardSprite:
             if cs.damage:
                 self._badge(surface, (base.left + 44, base.bottom - 16), (60, 20, 24), f"-{cs.damage}", self.assets.font("inter", 12, bold=True))
             if cs.armor:
-                self._badge(surface, (base.left + 16, base.bottom - 42), (60, 70, 90), f"A{cs.armor}", self.assets.font("inter", 12, bold=True))
+                remaining = max(0, cs.armor - cs.armor_used)
+                armor_text = f"A{remaining}/{cs.armor}" if cs.armor_used else f"A{cs.armor}"
+                armor_color = (90, 60, 40) if cs.armor_used else (60, 70, 90)
+                self._badge(surface, (base.left + 16, base.bottom - 42), armor_color, armor_text, self.assets.font("inter", 12, bold=True))
             if cs.aember_captured > 0:
                 self._badge(surface, (base.right - 16, base.bottom - 16), S.AEMBER, str(cs.aember_captured), font, fg=S.BLACK)
             if cs.under_count:
@@ -163,8 +166,12 @@ class CardSprite:
                 chips.append(("Poison", S.POISON))
             if cs.hazardous:
                 chips.append((f"Hazardous {cs.hazardous}", S.DANGER))
+            if cs.assault:
+                chips.append((f"Assault {cs.assault}", S.NOTE))
             if cs.versatile:
                 chips.append(("Versatile", S.VERSATILE))
+            if cs.cannot_be_dealt_damage:
+                chips.append(("Shielded", S.HEAL))
             y = base.top + 12
             for text, chip_color in chips:
                 self._pill(surface, (base.left + 6, y), chip_color, text)

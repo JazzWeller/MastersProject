@@ -88,7 +88,11 @@ class TestOptionLabels(unittest.TestCase):
     def test_every_log_event_kind_has_a_sentence_or_is_intentionally_silent(self):
         # Kinds describe_log_event deliberately returns None for (nothing
         # interesting to tell a player) — everything else must render.
-        silent_ok = {"turn_start"}  # rendered by GameScene as a turn separator line, not a sentence
+        silent_ok = {
+            "turn_start",  # rendered by GameScene as a turn separator line, not a sentence
+            "destroyed_in_fight",  # internal marker for Warchest-style queries; the same
+            # destruction already gets its own "destroyed" log entry with a real sentence
+        }
 
         seen_kinds = set()
         # A spread of decks: the original Phase 1 pair, plus two of the

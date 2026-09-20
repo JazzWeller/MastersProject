@@ -52,6 +52,12 @@ class TestCardSpriteChips(unittest.TestCase):
     def test_artifact_with_stored_aember_and_under_cards(self):
         self._draw(_state(zone="play_artifact", type="Artifact", aember_stored=3, under_count=1, owner=1, controller=2))
 
+    def test_creature_with_phase_3_chips_assault_and_shield(self):
+        self._draw(_state(assault=2, cannot_be_dealt_damage=True))
+
+    def test_creature_with_partially_used_armor(self):
+        self._draw(_state(armor=2, armor_used=1))
+
 
 if __name__ == "__main__":
     unittest.main()
