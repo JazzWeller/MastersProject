@@ -12,6 +12,8 @@ from keyforge.decision import Decision
 from keyforge.enums import DecisionKind, House
 from keyforge.game import Game
 
+from keyforge.log import LogEvent
+
 from gui.option_labels import describe_log_event, describe_option
 
 
@@ -134,6 +136,29 @@ class TestOptionLabels(unittest.TestCase):
                     continue
                 self.assertNotIn("You", text, (ev.kind, ev.data, text))
                 self.assertNotIn("your", text.lower(), (ev.kind, ev.data, text))
+
+    def test_phase_3_log_event_sentences(self):
+        # Milestone D added log kinds (damage prevention/redirection, Blood
+        # Money's place_aember, Mimicry's copy) that the fignor/igor/wraith/
+        # cinder/riftwalker/gambit preset decks (all Phase 1/2 houses) never
+        # exercise, so the fuzz-coverage test above can't catch a missing
+        # sentence for them -- check each directly instead.
+        cases = [
+            (LogEvent("damage_prevented", {"card": "Protectrix", "iid": 1, "amount": 3}),
+             "Protectrix can't be dealt damage: 3 damage is prevented."),
+            (LogEvent("damage_redirected", {"card": "Shadow Self", "iid": 1, "to": "Snudge", "to_iid": 2, "amount": 2}),
+             "2 of Shadow Self's damage is redirected to Snudge."),
+            (LogEvent("place_aember", {"card": "Blood Money", "iid": 1, "amount": 2}),
+             "2 Æmber is placed on Blood Money."),
+            (LogEvent("mimicry_copy", {"card": "Mimicry", "iid": 1, "copied": "Lash of Broken Dreams"}),
+             "Mimicry copies Lash of Broken Dreams."),
+            (LogEvent("reveal", {"player": 1, "cards": ["Battle Fleet"], "iids": [1]}),
+             "You reveal Battle Fleet from your hand."),
+            (LogEvent("reveal", {"player": 1, "cards": [], "iids": []}),
+             "You reveal no cards from your hand."),
+        ]
+        for event, expected in cases:
+            self.assertEqual(describe_log_event(event, viewer=1), expected)
 
     def test_you_is_never_mis_conjugated(self):
         # Every "You <verb>" sentence must use the you-form of the verb

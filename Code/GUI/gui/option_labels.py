@@ -120,9 +120,10 @@ _HIDDEN_ZONE_EVENTS = {"archive"}  # events that name a card moving into a hidde
 
 _LOG_CATEGORY = {
     "gain": "aember", "steal": "aember", "capture": "aember", "capture_released": "aember",
+    "place_aember": "aember",
     "forge_key": "key",
     "purge": "purge",
-    "damage": "damage", "destroyed": "damage",
+    "damage": "damage", "destroyed": "damage", "damage_prevented": "damage", "damage_redirected": "damage",
     "heal": "heal",
     "shortfall": "shortfall",
 }
@@ -263,6 +264,10 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
         if absorbed:
             return f"{d['card']} takes {d['amount'] - absorbed} damage ({absorbed} absorbed by armor)."
         return f"{d['card']} takes {d['amount']} damage."
+    if k == "damage_prevented":
+        return f"{d['card']} can't be dealt damage: {d['amount']} damage is prevented."
+    if k == "damage_redirected":
+        return f"{d['amount']} of {d['card']}'s damage is redirected to {d['to']}."
     if k == "shortfall":
         return f"{d['card']} {fill_players(d['reason'], viewer, spectating)}."
     if k == "heal":
@@ -305,6 +310,13 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
         return f"{whose(d['player'])} hand is revealed."
     if k == "reveal_top":
         return f"{whose(d['player'])} top card is revealed: {d['card']}."
+    if k == "reveal":
+        names = d.get("cards") or []
+        if not names:
+            return f"{who(d['player'])} reveal{s(d['player'])} no cards from {whose(d['player'])} hand."
+        return f"{who(d['player'])} reveal{s(d['player'])} {', '.join(names)} from {whose(d['player'])} hand."
+    if k == "mimicry_copy":
+        return f"{d['card']} copies {d['copied']}."
     if k == "swap":
         if d.get("swap_kind") == "deck_discard":
             return f"{who(d['player'])} swap{s(d['player'])} {whose(d['player'])} deck and discard pile."
@@ -317,6 +329,8 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
         if d.get("to") == "pool":
             return f"{d['amount']} Æmber moves from {d['card']} to {whose(d['player'])} pool."
         return f"{d['amount']} Æmber moves from {whose(d['player'])} pool to {d['card']}."
+    if k == "place_aember":
+        return f"{d['amount']} Æmber is placed on {d['card']}."
     if k == "pay":
         if d.get("to_player") is not None:
             return f"{who(d['player'])} pay{s(d['player'])} {d['amount']} Æmber to {whom(d['to_player'])} to play {d['card']}."

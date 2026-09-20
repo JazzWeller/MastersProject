@@ -230,6 +230,72 @@ class TestFirstTurnRule(unittest.TestCase):
         self.assertIn("First turn", game.why_not_playable(1, other))
 
 
+class TestWhyNotUsable(unittest.TestCase):
+    """Phase 3 Milestone E: `why_not_usable` mirrors `_legal_actions`'
+    creature/artifact gating so the GUI can dim unusable cards with a real
+    reason instead of a generic fallback."""
+
+    def test_usable_creature_returns_none(self):
+        game = _mid_game(House.BROBNAR)
+        krump = put_creature(game, 1, "Krump")
+        self.assertIsNone(game.why_not_usable(1, krump))
+
+    def test_exhausted_creature(self):
+        game = _mid_game(House.BROBNAR)
+        krump = put_creature(game, 1, "Krump", exhausted=True)
+        self.assertIn("Exhausted", game.why_not_usable(1, krump))
+
+    def test_off_house_creature_with_no_exception(self):
+        game = _mid_game(House.BROBNAR)
+        charette = put_creature(game, 1, "Charette", can_be_used=False)  # Dis
+        self.assertIn("Not of your active house", game.why_not_usable(1, charette))
+
+    def test_can_only_fight_with_no_legal_target_explains_both(self):
+        game = _mid_game(House.BROBNAR)
+        krump = put_creature(game, 1, "Krump")
+        game.players[1].CanOnlyFight = True
+        reason = game.why_not_usable(1, krump)
+        self.assertIn("only fight", reason)
+        self.assertIn("no legal fight target", reason)
+
+    def test_cannot_reap_with_no_fight_target_and_no_other_action(self):
+        game = _mid_game(House.BROBNAR)
+        crocag = put_creature(game, 1, "Tireless Crocag")  # cannot_reap, no action/omni
+        self.assertEqual(game.players[2].play_area.creatures, [])  # no enemy creatures to fight
+        reason = game.why_not_usable(1, crocag)
+        self.assertIn("Cannot reap", reason)
+        self.assertIn("no legal fight target", reason)
+
+    def test_usable_artifact_returns_none(self):
+        game = _mid_game(House.BROBNAR)
+        cannon = put_artifact(game, 1, "Cannon")  # has an Action, no Omni
+        self.assertIsNone(game.why_not_usable(1, cannon))
+
+    def test_exhausted_artifact(self):
+        game = _mid_game(House.BROBNAR)
+        cannon = put_artifact(game, 1, "Cannon", exhausted=True)
+        self.assertIn("Exhausted", game.why_not_usable(1, cannon))
+
+    def test_why_not_usable_matches_legal_actions_for_every_creature_and_artifact(self):
+        # Fuzz check: whenever why_not_usable says None, the card must
+        # actually have at least one legal action in _legal_actions, and
+        # vice versa -- the two must never disagree.
+        for seed in range(8):
+            game = Game(GameConfig(decks=("fignor", "igor"), seed=seed, max_turns=25))
+            bots = {1: RandomBot(seed=seed), 2: RandomBot(seed=seed + 1000)}
+            while not game.is_over:
+                d = game.pending_decision
+                if d.kind == DecisionKind.CHOOSE_ACTION:
+                    pid = d.player
+                    player = game.players[pid]
+                    usable_cards = {a.card.instance_id for a in d.options if hasattr(a, "card") and a.card in (list(player.play_area.creatures) + list(player.play_area.artifacts))}
+                    for card in list(player.play_area.creatures) + list(player.play_area.artifacts):
+                        reason = game.why_not_usable(pid, card)
+                        has_action = card.instance_id in usable_cards
+                        self.assertEqual(reason is None, has_action, (seed, card.name, reason, has_action))
+                game.submit(bots[d.player].decide(game.view_for(d.player), d))
+
+
 class TestReplayRecord(unittest.TestCase):
     def test_replaying_a_record_reproduces_the_game_exactly(self):
         for seed in range(15):

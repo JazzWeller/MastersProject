@@ -9,11 +9,20 @@ from __future__ import annotations
 
 import math
 import os
+from collections import OrderedDict
 from typing import Dict, Optional, Tuple
 
 import pygame
 
 from . import settings as S
+
+# Raw card art loaded at full resolution (~200x280, ~0.2MB each as an alpha
+# surface) is the expensive thing to cache -- with 370 Phase 3 cards across
+# 7 houses browsable in the deck builder, caching every one forever would
+# hold ~83MB of surfaces that are mostly never drawn again. The much smaller
+# scaled/rounded `_card_sized` cache (bounded by the handful of on-screen
+# sizes actually used) is left uncapped.
+_RAW_ART_CACHE_LIMIT = 120
 
 
 def _rounded_mask(size: Tuple[int, int], radius: int) -> pygame.Surface:
@@ -34,7 +43,7 @@ def _apply_rounded_corners(surface: pygame.Surface, radius: int) -> pygame.Surfa
 class AssetCache:
     def __init__(self):
         pygame.font.init()
-        self._raw_art: Dict[str, Optional[pygame.Surface]] = {}
+        self._raw_art: "OrderedDict[str, Optional[pygame.Surface]]" = OrderedDict()
         self._card_sized: Dict[Tuple[str, int, int], pygame.Surface] = {}
         self._card_back: Dict[Tuple[int, int], pygame.Surface] = {}
         self._fonts: Dict[Tuple[str, int, bool], pygame.font.Font] = {}
@@ -65,6 +74,7 @@ class AssetCache:
 
     def _raw(self, rel_path: str) -> Optional[pygame.Surface]:
         if rel_path in self._raw_art:
+            self._raw_art.move_to_end(rel_path)
             return self._raw_art[rel_path]
         full = os.path.join(S.CARD_ART_DIR, rel_path)
         surf = None
@@ -74,6 +84,8 @@ class AssetCache:
             if rel_path not in self._missing_art_logged:
                 self._missing_art_logged.add(rel_path)
         self._raw_art[rel_path] = surf
+        if len(self._raw_art) > _RAW_ART_CACHE_LIMIT:
+            self._raw_art.popitem(last=False)
         return surf
 
     def card_face(self, rel_path: Optional[str], size: Tuple[int, int]) -> pygame.Surface:

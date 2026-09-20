@@ -606,6 +606,69 @@ class Game:
                 return f"Costs {toll[0]} Æmber to play (Customs Office) and you have {player.aember}"
         return None
 
+    def why_not_usable(self, pid: int, card: Card) -> Optional[str]:
+        """Why `card` (a creature or artifact already in `pid`'s play area)
+        has no usable action at all right now (no Reap, Fight, Action, or
+        Omni), or None if it has at least one. Uses exactly the checks
+        `_legal_actions` uses, so the two can't disagree."""
+        player = self.players[pid]
+        cannot_use = player.get_cannot_use_cards(self)
+
+        if card.type == CardType.ARTIFACT:
+            toll = player.get_artifact_use_toll(self)
+            can_afford_toll = toll is None or player.aember >= toll[0]
+            has_action = card.CanBeUsed and card.card_def.on_action is not None
+            has_omni = card.card_def.on_omni is not None
+            if not cannot_use and not card.Exhausted and can_afford_toll and self._rule_of_six_ok(player, card.name) and (has_action or has_omni):
+                return None
+            if cannot_use:
+                source = self._effect_source("CannotUseCards", pid)
+                return "Your cards can't be used this turn" + (f" ({source})" if source else "")
+            if card.Exhausted:
+                return "Exhausted: already used or played this turn"
+            if not can_afford_toll:
+                return f"Costs {toll[0]} Æmber to use (you have {player.aember})"
+            if not self._rule_of_six_ok(player, card.name):
+                return "Rule of six: already used 6 times this turn"
+            if not card.CanBeUsed and card.card_def.on_action is not None and not has_omni:
+                return f"Not of your active house ({player.selected_house.value})" if player.selected_house else "No active house chosen"
+            return "No usable ability right now"
+
+        # creature
+        only_fight = player.get_can_only_fight(self)
+        usable = (
+            not cannot_use and not card.Exhausted and self._rule_of_six_ok(player, card.name)
+            and (card.card_def.use_restriction is None or card.card_def.use_restriction(self, card))
+        )
+        can_use_house = card.CanBeUsed or self._can_use_off_house(card)
+        has_fight_target = bool(self.legal_fight_targets(card))
+        can_fight = usable and (can_use_house or self._can_fight_off_house(card)) and has_fight_target
+        can_reap_or_action = usable and can_use_house and not only_fight and (
+            not card.card_def.cannot_reap or card.card_def.on_action is not None or card.granted_action is not None
+        )
+        can_omni = usable and not only_fight and card.card_def.on_omni is not None
+        if can_reap_or_action or can_fight or can_omni:
+            return None
+
+        if cannot_use:
+            source = self._effect_source("CannotUseCards", pid)
+            return "Your cards can't be used this turn" + (f" ({source})" if source else "")
+        if card.Exhausted:
+            return "Exhausted: already used or played this turn"
+        if not self._rule_of_six_ok(player, card.name):
+            return "Rule of six: already used 6 times this turn"
+        if card.card_def.use_restriction is not None and not card.card_def.use_restriction(self, card):
+            return "This creature's ability can't be used right now"
+        if not can_use_house and not self._can_fight_off_house(card):
+            return f"Not of your active house ({player.selected_house.value})" if player.selected_house else "No active house chosen"
+        if only_fight and not can_fight:
+            source = self._effect_source("CanOnlyFight", pid)
+            base = "You can only fight this turn" + (f" ({source})" if source else "")
+            return base + ("" if has_fight_target else ", and this creature has no legal fight target")
+        if card.card_def.cannot_reap and card.card_def.on_action is None and card.granted_action is None and not can_omni and not can_fight:
+            return "Cannot reap, and no legal fight target right now"
+        return "No usable ability right now"
+
     def _legal_actions(self, pid: int):
         player = self.players[pid]
         house = player.selected_house

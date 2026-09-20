@@ -23,7 +23,7 @@ from ..sprites.piles import draw_pile
 from ..sprites.widgets import draw_panel
 
 from keyforge.cards.card_data import get_card_def
-from keyforge.enums import CardType, DecisionKind
+from keyforge.enums import DecisionKind
 
 _ZONE_DRAW_RANK = ZONE_DRAW_RANK  # kept for older imports
 
@@ -337,31 +337,20 @@ class GameScene(Scene):
                 sprite.hint = f"Can't play: {reason}. You can still discard it."
             else:
                 sprite.unusable_reason = reason
-        toll = player.get_artifact_use_toll(game)
         for card in list(player.play_area.creatures) + list(player.play_area.artifacts):
             sprite = self.board.sprites.get(card.instance_id)
             if sprite is None:
                 continue
             if card.instance_id in options:
-                # Still usable, but stun will consume it with no effect --
-                # worth a hover hint even though it isn't dimmed.
+                # Still usable, but stun will consume it with no effect, or
+                # it can only fight this turn -- worth a hover hint even
+                # though it isn't dimmed.
                 if card.stunned:
                     sprite.hint = f"{card.name} is stunned: this use will have no effect."
+                elif player.get_can_only_fight(game):
+                    sprite.hint = f"{card.name} can only be used to fight this turn."
                 continue
-            if card.Exhausted:
-                reason = "Exhausted: already used or played this turn"
-            elif player.get_cannot_use_cards(game):
-                src = game._effect_source("CannotUseCards", pid)
-                reason = "Your cards can't be used this turn" + (f" ({src})" if src else "")
-            elif card.type == CardType.ARTIFACT and toll is not None and toll[0] > player.aember:
-                reason = f"Costs {toll[0]}Æ to use and you have {player.aember}Æ"
-            elif not card.CanBeUsed and card.house != player.selected_house:
-                reason = f"Not of your active house ({player.selected_house.value})"
-            elif not game._rule_of_six_ok(player, card.name):
-                reason = "Rule of six: used 6 times this turn"
-            else:
-                reason = "No usable ability right now"
-            sprite.unusable_reason = reason
+            sprite.unusable_reason = game.why_not_usable(pid, card)
 
     # ------------------------------------------------------------- hover ----
 

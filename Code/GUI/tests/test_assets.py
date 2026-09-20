@@ -35,6 +35,20 @@ class TestAssets(unittest.TestCase):
                 face = self.assets.card_face(card_def.image, size)
                 self.assertEqual(face.get_size(), size)
 
+    def test_raw_art_cache_evicts_least_recently_used_beyond_its_cap(self):
+        from gui.assets import _RAW_ART_CACHE_LIMIT
+
+        names = list(CARD_DEFS.keys())[: _RAW_ART_CACHE_LIMIT + 10]
+        for name in names:
+            self.assets._raw(CARD_DEFS[name].image)
+        self.assertLessEqual(len(self.assets._raw_art), _RAW_ART_CACHE_LIMIT)
+        # the least-recently-used entries (loaded first) were evicted...
+        for name in names[:10]:
+            self.assertNotIn(CARD_DEFS[name].image, self.assets._raw_art)
+        # ...but the most recently loaded ones are still cached.
+        for name in names[-10:]:
+            self.assertIn(CARD_DEFS[name].image, self.assets._raw_art)
+
     def test_missing_art_falls_back_to_a_placeholder_without_crashing(self):
         face = self.assets.card_face("Nope/does-not-exist.png", (100, 140))
         self.assertEqual(face.get_size(), (100, 140))
