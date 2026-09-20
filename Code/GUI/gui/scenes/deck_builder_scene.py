@@ -88,6 +88,8 @@ class DeckBuilderScene(Scene):
         self.scroll = 0
         self.editing_name = False
         self.name_buffer = ""
+        self.search_active = False
+        self.search_query = ""
         self.message: Optional[str] = None
         self.message_is_error = False
         self.picker_open = False  # the Load picker
@@ -109,7 +111,7 @@ class DeckBuilderScene(Scene):
         os.makedirs(S.USER_DECKS_DIR, exist_ok=True)
 
     def on_exit(self) -> None:
-        if self.editing_name:
+        if self.editing_name or self.search_active:
             pygame.key.stop_text_input()
 
     # -------------------------------------------------------------- data ----
@@ -118,9 +120,12 @@ class DeckBuilderScene(Scene):
         if house is None:
             return []
         names = _NAMES_BY_HOUSE[house]
-        if self.type_filter is None:
-            return names
-        return [n for n in names if CARD_DEFS[n].type == self.type_filter]
+        if self.type_filter is not None:
+            names = [n for n in names if CARD_DEFS[n].type == self.type_filter]
+        query = self.search_query.strip().lower()
+        if query:
+            names = [n for n in names if query in n.lower()]
+        return names
 
     def _pod(self) -> List[str]:
         if self.active_house is None:
@@ -261,6 +266,17 @@ class DeckBuilderScene(Scene):
             x += w + 8
         return rects
 
+    def _search_rect(self) -> pygame.Rect:
+        p = self._panel()
+        filters = self._type_filter_rects()
+        x = max(r.right for r in filters.values()) + 16
+        grid = self._grid_rect()
+        return pygame.Rect(x, p.top + 116, max(160, grid.right - x), 32)
+
+    def _search_clear_rect(self) -> pygame.Rect:
+        r = self._search_rect()
+        return pygame.Rect(r.right - 26, r.top + 4, 22, r.height - 8)
+
     def _grid_cols(self) -> int:
         return max(1, self._grid_rect().width // GRID_STRIDE_X)
 
@@ -291,6 +307,9 @@ class DeckBuilderScene(Scene):
         if self.house_picker.is_open:
             self.house_picker.handle_event(event)
             return
+        if self.search_active and event.type in (pygame.TEXTINPUT, pygame.KEYDOWN):
+            self._handle_search_edit(event)
+            return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             if self.picker_open:
                 self.picker_open = False
@@ -320,7 +339,16 @@ class DeckBuilderScene(Scene):
                 return
         if self._name_rect().collidepoint(event.pos):
             self.editing_name = True
+            self.search_active = False
             self.name_buffer = self.name
+            pygame.key.start_text_input()
+            return
+        if self.search_query and self._search_clear_rect().collidepoint(event.pos):
+            self.search_query = ""
+            self.scroll = 0
+            return
+        if self._search_rect().collidepoint(event.pos):
+            self.search_active = True
             pygame.key.start_text_input()
             return
         for house, rect in self._house_tab_rects().items():
@@ -380,6 +408,19 @@ class DeckBuilderScene(Scene):
             if row_rect.collidepoint(pos):
                 self.inspect_info = _info_from_name(name)
                 return
+
+    def _handle_search_edit(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.TEXTINPUT:
+            if len(self.search_query) < 40:
+                self.search_query += event.text
+                self.scroll = 0
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.search_query = self.search_query[:-1]
+                self.scroll = 0
+            elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_ESCAPE):
+                self.search_active = False
+                pygame.key.stop_text_input()
 
     def _handle_name_edit(self, event: pygame.event.Event) -> None:
         if event.type == pygame.TEXTINPUT:
@@ -512,6 +553,7 @@ class DeckBuilderScene(Scene):
             label = assets.font("inter", 13, bold=active).render(TYPE_LABELS[tf], True, fg)
             surface.blit(label, label.get_rect(center=rect.center))
 
+        self._draw_search(surface, assets, mouse)
         self._draw_grid(surface, assets, mouse)
         self._draw_pod(surface, assets, mouse)
 
@@ -526,8 +568,33 @@ class DeckBuilderScene(Scene):
             self._draw_inspector(surface, assets)
         self.house_picker.draw(surface, assets, mouse)
 
+    def _draw_search(self, surface, assets, mouse) -> None:
+        rect = self._search_rect()
+        hovered = rect.collidepoint(mouse)
+        bg = S.PANEL_LIGHT if (self.search_active or hovered) else S.PANEL
+        pygame.draw.rect(surface, bg, rect, border_radius=6)
+        pygame.draw.rect(surface, S.AEMBER if self.search_active else S.TEXT_FAINT, rect, width=1, border_radius=6)
+        cursor = "|" if self.search_active and (pygame.time.get_ticks() // 500) % 2 == 0 else ""
+        text = self.search_query + cursor
+        font = assets.font("inter", 14)
+        if text:
+            img = font.render(text, True, S.TEXT)
+        else:
+            img = font.render("Search all 370 cards by name...", True, S.TEXT_FAINT)
+        clip = rect.inflate(-16, 0)
+        surface.blit(img, img.get_rect(midleft=(clip.left, clip.centery)), area=pygame.Rect(0, 0, clip.width, img.get_height()))
+        if self.search_query:
+            clear = self._search_clear_rect()
+            pygame.draw.rect(surface, S.DANGER if clear.collidepoint(mouse) else S.PANEL_LIGHT, clear, border_radius=4)
+            x_img = assets.font("inter", 12, bold=True).render("x", True, S.WHITE)
+            surface.blit(x_img, x_img.get_rect(center=clear.center))
+
     def _draw_grid(self, surface, assets, mouse) -> None:
         rect = self._grid_rect()
+        if self.active_house is not None and not self._house_cards(self.active_house):
+            hint = assets.font("inter", 14).render("No cards match this search/filter.", True, S.TEXT_FAINT)
+            surface.blit(hint, hint.get_rect(midtop=(rect.centerx, rect.top + 20)))
+            return
         counts: Dict[str, int] = {}
         for name in self._pod():
             counts[name] = counts.get(name, 0) + 1

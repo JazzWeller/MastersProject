@@ -79,6 +79,45 @@ class TestDeckBuilderScene(unittest.TestCase):
         for name in g._house_cards(House.DIS):
             self.assertEqual(CARD_DEFS[name].type, CardType.CREATURE)
 
+    def test_search_filters_grid_by_name_substring_case_insensitively(self):
+        app, g = _scene()
+        g.search_query = "SNUDGE"
+        self.assertEqual(g._house_cards(House.DIS), ["Snudge"])
+
+    def test_search_combines_with_type_filter(self):
+        from keyforge.enums import CardType
+
+        app, g = _scene()
+        g.search_query = "snudge"  # Snudge is a Creature
+        g.type_filter = CardType.ACTION
+        self.assertEqual(g._house_cards(House.DIS), [])
+
+    def test_clicking_search_box_activates_typing_and_filters_live(self):
+        app, g = _scene()
+        _click(g, g._search_rect().center)
+        self.assertTrue(g.search_active)
+        for ch in "snudge":
+            g.handle_event(pygame.event.Event(pygame.TEXTINPUT, text=ch))
+        self.assertEqual(g.search_query, "snudge")
+        self.assertEqual(g._house_cards(House.DIS), ["Snudge"])
+        g.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE))
+        self.assertFalse(g.search_active)
+        self.assertEqual(g.search_query, "snudge")  # Escape unfocuses, doesn't clear the filter
+
+    def test_search_backspace_removes_last_character(self):
+        app, g = _scene()
+        _click(g, g._search_rect().center)
+        for ch in "snudge":
+            g.handle_event(pygame.event.Event(pygame.TEXTINPUT, text=ch))
+        g.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_BACKSPACE))
+        self.assertEqual(g.search_query, "snudg")
+
+    def test_search_clear_button_resets_query(self):
+        app, g = _scene()
+        g.search_query = "snudge"
+        _click(g, g._search_clear_rect().center)
+        self.assertEqual(g.search_query, "")
+
     def test_removing_a_card_from_the_pod(self):
         app, g = _scene()
         cell, name = g._grid_cells()[0]
