@@ -4,9 +4,13 @@ from enum import Enum, auto
 
 
 class House(Enum):
+    BROBNAR = "Brobnar"
     DIS = "Dis"
     LOGOS = "Logos"
+    MARS = "Mars"
+    SANCTUM = "Sanctum"
     SHADOWS = "Shadows"
+    UNTAMED = "Untamed"
 
 
 class CardType(Enum):

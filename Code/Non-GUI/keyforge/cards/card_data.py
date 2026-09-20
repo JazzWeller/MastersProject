@@ -1,11 +1,12 @@
-"""Card definitions for the full 159-card CotA pool (Dis/Logos/Shadows),
-loaded from the generated `cards/data/cota_pool.json` (built by
-`Code/Non-GUI/tools/build_card_data.py` from `Code/PHASE_2_CARD_POOL.md` --
-no network access at runtime). Base stats, traits, keywords and canonical
-text come from that JSON; gameplay hooks (on_play, on_reap, register_passive,
-...) are wired up here by card name, in `HOOKS`. A card not yet in `HOOKS`
-still gets a fully-formed `CardDef` (so art/text/registry tests pass), just
-with no scripted behavior yet -- see Code/PHASE_2_PLAN.md Milestone C."""
+"""Card definitions for the full 370-card CotA pool (all 7 houses), loaded
+from the generated `cards/data/cota_pool.json` (built by
+`Code/Non-GUI/tools/build_card_data.py` from `Code/PHASE_2_CARD_POOL.md` and
+`Code/PHASE_3_CARD_POOL.md` -- no network access at runtime). Base stats,
+traits, keywords and canonical text come from that JSON; gameplay hooks
+(on_play, on_reap, register_passive, ...) are wired up here by card name, in
+`HOOKS`. A card not yet in `HOOKS` still gets a fully-formed `CardDef` (so
+art/text/registry tests pass), just with no scripted behavior yet -- see
+Code/PHASE_2_PLAN.md Milestone C and Code/PHASE_3_PLAN.md Milestone D."""
 
 from __future__ import annotations
 
@@ -15,9 +16,13 @@ from typing import Dict
 
 from ..enums import CardType, House
 from ..effects import generic
+from ..effects.named import brobnar as named_brobnar
 from ..effects.named import dis as named_dis
 from ..effects.named import logos as named_logos
+from ..effects.named import mars as named_mars
+from ..effects.named import sanctum as named_sanctum
 from ..effects.named import shadows as named_shadows
+from ..effects.named import untamed as named_untamed
 from .card import CardDef
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -203,6 +208,26 @@ hook("Sneklifter", on_play=named_shadows.sneklifter)
 hook("Umbra", on_fight=generic.steal_n(1))
 hook("Ring of Invisibility", grants_keywords=("elusive", "skirmish"))
 hook("Silent Dagger", register_passive=named_shadows.silent_dagger_register, unregister_passive=named_shadows.silent_dagger_unregister)
+
+
+# -------------------------------------------------------------- Brobnar --
+
+# See Code/PHASE_3_PLAN.md Milestone D.1.
+
+
+# -------------------------------------------------------------- Sanctum --
+
+# See Code/PHASE_3_PLAN.md Milestone D.2.
+
+
+# ----------------------------------------------------------------- Mars --
+
+# See Code/PHASE_3_PLAN.md Milestone D.3.
+
+
+# ------------------------------------------------------------- Untamed --
+
+# See Code/PHASE_3_PLAN.md Milestone D.4.
 
 
 # -------------------------------------------------------- build CARD_DEFS --

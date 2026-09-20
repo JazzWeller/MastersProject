@@ -24,7 +24,7 @@ from .card_data import CARD_DEFS, get_card_def
 
 PODS_PER_DECK = 3
 CARDS_PER_POD = 12
-IDENTITY_HOUSES = (House.DIS, House.LOGOS, House.SHADOWS)
+ALL_HOUSES = tuple(House)
 
 _PRESET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "decks")
 
@@ -35,7 +35,8 @@ for _name, _cdef in CARD_DEFS.items():
 
 @dataclass
 class Deck:
-    """A playable deck: exactly one 12-card pod per identity house."""
+    """A playable deck: exactly one 12-card pod per house, for 3 distinct
+    houses out of the 7."""
 
     name: str
     pods: Dict[House, List[str]] = field(default_factory=dict)
@@ -80,16 +81,14 @@ def build_alliance_deck(name: str, house_sources: Dict[House, "DeckSource"]) -> 
 
 
 def validate_deck(deck: Deck) -> List[str]:
-    """Human-readable problems with `deck`, or [] if it's legal: exactly the
-    3 identity houses, 12 cards per pod, every name in the pool and of the
-    right house. Duplicate card names within a pod are legal, as in real
-    KeyForge."""
+    """Human-readable problems with `deck`, or [] if it's legal: exactly 3
+    distinct houses (of the 7), 12 cards per pod, every name in the pool and
+    of the right house. Duplicate card names within a pod are legal, as in
+    real KeyForge."""
     errors: List[str] = []
     houses = set(deck.pods.keys())
-    if houses != set(IDENTITY_HOUSES):
-        errors.append(
-            f"must have exactly the houses {[h.value for h in IDENTITY_HOUSES]}, got {sorted(h.value for h in houses)}"
-        )
+    if len(houses) != PODS_PER_DECK:
+        errors.append(f"must have exactly {PODS_PER_DECK} distinct houses, got {sorted(h.value for h in houses)}")
     for house, names in deck.pods.items():
         if len(names) != CARDS_PER_POD:
             errors.append(f"{house.value} pod has {len(names)} cards, needs {CARDS_PER_POD}")
@@ -103,8 +102,10 @@ def validate_deck(deck: Deck) -> List[str]:
 
 
 def random_deck(rng: random.Random, name: str = "Random") -> Deck:
-    """A random legal deck: 12 random cards (with replacement) per house."""
-    pods = {house: [rng.choice(_NAMES_BY_HOUSE[house]) for _ in range(CARDS_PER_POD)] for house in IDENTITY_HOUSES}
+    """A random legal deck: 3 random distinct houses, then 12 random cards
+    (with replacement) per house."""
+    houses = rng.sample(ALL_HOUSES, PODS_PER_DECK)
+    pods = {house: [rng.choice(_NAMES_BY_HOUSE[house]) for _ in range(CARDS_PER_POD)] for house in houses}
     return Deck(name=name, pods=pods)
 
 
