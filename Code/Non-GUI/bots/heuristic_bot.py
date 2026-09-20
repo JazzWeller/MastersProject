@@ -39,31 +39,79 @@ def _remaining(card: Card) -> int:
 
 def _keywords(card: Card) -> set:
     """Printed keywords plus anything granted by attached upgrades --
-    mirrors `Game.get_keywords` without needing a `Game` reference."""
+    mirrors `Game.get_keywords` without needing a `Game` reference. Misses
+    keywords granted by another card's ModifierEffect (rare, and would need
+    a Game to see) -- same documented gap as `_armor`/`_hazardous`/`_assault`
+    below."""
     kw = set(card.keywords)
     for upg in getattr(card.type_object, "upgrades", []):
         kw |= set(upg.card_def.grants_keywords)
     return kw
 
 
+def _armor(card: Card) -> int:
+    """Mirrors `Game.get_armor` (own printed armor + upgrades), minus any
+    cross-card ModifierEffect bonus, which needs a Game to see."""
+    if card.armor_negated:
+        return 0
+    to = card.type_object
+    bonus = sum(upg.card_def.armor_bonus for upg in getattr(to, "upgrades", []))
+    return max(0, getattr(to, "base_armor", 0) + bonus)
+
+
+def _armor_remaining(card: Card) -> int:
+    return max(0, _armor(card) - getattr(card.type_object, "armor_used_this_turn", 0))
+
+
+def _hazardous(card: Card) -> int:
+    """Mirrors `Game.get_hazardous`: own printed value plus upgrades."""
+    if not hasattr(card.type_object, "upgrades"):
+        return 0
+    return card.card_def.hazardous + sum(upg.card_def.hazardous for upg in card.type_object.upgrades)
+
+
+def _assault(card: Card) -> int:
+    """Mirrors `Game.get_assault`: own printed value plus upgrades."""
+    if not hasattr(card.type_object, "upgrades"):
+        return 0
+    return card.card_def.assault + sum(upg.card_def.assault for upg in card.type_object.upgrades)
+
+
 class HeuristicBot(Controller):
     def __init__(self, seed=None, bid_ceiling=4):
         self.rng = random.Random(seed)
         self.bid_ceiling = bid_ceiling  # chains this bot will offer at most, for a decisively-won deck
+        self._last_mode = None  # the most recent CHOOSE_MODE answer (Ozmo's target step needs it)
 
     # ------------------------------------------------------------ helpers ----
 
     def _house_score(self, view, house) -> float:
+        # Omni abilities are usable no matter which house is active (that's
+        # the point of Omni), so they add the same value to every house's
+        # score and are deliberately left out here -- they'd never change
+        # which house the argmax in `decide()` picks, only inflate every
+        # score by the same constant.
         me = view.me()
         score = 0.0
         for c in me.hand or []:
             if c.house == house:
                 score += 1.0
         for c in me.creatures:
-            if c.house == house:
+            if c.house != house:
+                continue
+            # A creature that can't reap only gives up its Fight (already
+            # house-independent via off-house-fight exceptions this bot
+            # can't see anyway) for choosing this house, not the usual
+            # reap value -- unless it also has an Action, which this house
+            # choice does unlock.
+            if c.card_def.cannot_reap and c.card_def.on_action is None:
+                score += 0.5
+            else:
                 score += 1.5
+            if c.card_def.on_action is not None:
+                score += 0.5
         for c in me.artifacts:
-            if c.house == house and (c.card_def.on_action is not None):
+            if c.house == house and c.card_def.on_action is not None:
                 score += 0.75
         return score + self.rng.random() * 0.01
 
@@ -87,17 +135,49 @@ class HeuristicBot(Controller):
         return True
 
     def _fight_value(self, attacker: Card, target: Card) -> float:
-        """Positive when the fight is worth it."""
-        kills = _power(attacker) >= _remaining(target)
-        survives = "skirmish" in _keywords(attacker) or _power(target) < _remaining(attacker)
-        elusive_blocks = "elusive" in _keywords(target) and not target.fought_this_turn
-        if elusive_blocks:
-            return -1.0
-        if kills and survives:
+        """Positive when the fight is worth it. Walks the engine's own fight
+        order (assault, then hazardous, then the main power exchange) so
+        armor, assault, and hazardous all factor in, not just raw power."""
+        if target.damage_prevented:
+            return -1.0  # every point of this fight's own damage would be wasted
+
+        kw_a, kw_t = _keywords(attacker), _keywords(target)
+        attacker_hp = _remaining(attacker)
+        target_hp = _remaining(target)
+        target_armor = _armor_remaining(target)
+
+        # Assault: the attacker's assault damage lands on the target first,
+        # through its armor, before anything else -- can end the fight
+        # outright with the attacker taking nothing back.
+        assault = _assault(attacker)
+        if assault:
+            absorbed = min(target_armor, assault)
+            target_armor -= absorbed
+            target_hp -= assault - absorbed
+        if target_hp <= 0:
             return 3.0 + _power(target) * 0.1 + target.aember_captured
+
+        # Hazardous: the target's hazardous damage lands on the attacker
+        # next, bypassing armor -- can kill the attacker before it ever
+        # gets to deal its own damage.
+        hazardous = _hazardous(target)
+        if hazardous >= attacker_hp:
+            return -2.0
+        attacker_hp -= hazardous
+
+        if "elusive" in kw_t and not target.fought_this_turn:
+            # The main power trade is skipped entirely; assault/hazardous
+            # above are the only damage this fight would ever deal.
+            return -1.0 - hazardous * 0.3
+
+        kills = _power(attacker) >= target_hp + target_armor
+        counter = 0 if "skirmish" in kw_a else _power(target)
+        survives = counter < attacker_hp
+        if kills and survives:
+            return 3.0 + _power(target) * 0.1 + target.aember_captured - hazardous * 0.5
         if kills and not survives:
-            return 1.0 if _power(target) > _power(attacker) else -0.5
-        return -1.0
+            return (1.0 if _power(target) > _power(attacker) else -0.5) - hazardous * 0.3
+        return -1.0 - hazardous * 0.3
 
     # ------------------------------------------------------------ decide ----
 
@@ -155,6 +235,9 @@ class HeuristicBot(Controller):
                 friendly = sum(1 for c in me.creatures if _power(c) == n)
                 return enemy - friendly
             return max(opts, key=score)
+
+        if kind == DecisionKind.CHOOSE_MODE:
+            return self._choose_mode(view, decision, opts)
 
         return self.rng.choice(opts)
 
@@ -235,19 +318,73 @@ class HeuristicBot(Controller):
 
         if "sacrifice" in prompt:
             return pick(sorted(cards, key=_power), decision.min_n or 1)
+        if "ready and" in prompt:
+            # Anger, Ganger Chieftain, Gauntlet of Command, Sanctum's ready-
+            # and-use/ready-and-fight-3-times: pick whichever friendly
+            # creature makes the best fight against the current board, not
+            # just the weakest one (its previous heuristic).
+            if opp.creatures:
+                return [max(cards, key=lambda c: max((self._fight_value(c, t) for t in opp.creatures), default=-1.0))]
+            return [max(cards, key=_power)]
         if "to fight" in prompt:
             attacker = next((c for c in me.creatures if f"for {c.name.lower()} to fight" in prompt), None)
             if attacker is not None:
                 return [max(cards, key=lambda t: self._fight_value(attacker, t))]
             return [min(cards, key=_remaining)]
+        if "to ready" in prompt:
+            # Squawker: options are already friendly-only.
+            return [max(cards, key=_power)]
+        if prompt.startswith("ozmo:"):
+            # Its own mode ("Heal 3" vs "Stun") was chosen a decision ago and
+            # doesn't appear in this prompt at all -- only `self._last_mode`
+            # (set by `_choose_mode`, just below) says which one it was.
+            # `.startswith("ozmo:")` (the card's own name) rather than a
+            # generic "mars creature" substring keeps this from misfiring
+            # on Squawker's unrelated "choose a Mars creature to ready".
+            if self._last_mode == "Heal 3":
+                pool = [c for c in cards if id(c) in mine] or cards
+                return [min(pool, key=_remaining)]
+            theirs = [c for c in cards if id(c) not in mine and not c.stunned]
+            pool = theirs or [c for c in cards if not c.stunned] or cards
+            return [max(pool, key=_power)]
+        if "to stun" in prompt:
+            theirs = [c for c in cards if id(c) not in mine and not c.stunned]
+            pool = theirs or [c for c in cards if not c.stunned] or cards
+            return [max(pool, key=_power)]
         if "archive" in prompt or "discard a card" in prompt:
             house = me.selected_house
             ranked = sorted(cards, key=lambda c: (c.house == house, c.aember_on_play))
             return pick(ranked, max(decision.min_n, 1))
         if "heal" in prompt or "attach" in prompt:
             friendly = [c for c in cards if id(c) in mine]
-            return [friendly[0] if friendly else cards[0]]
+            return [min(friendly, key=_remaining) if friendly else cards[0]]
         # Default: hurt the opponent -- prefer their cards, strongest first.
         ranked = sorted(cards, key=lambda c: (id(c) in mine, -_power(c)))
         count = max(decision.min_n, min(n, len([c for c in ranked if id(c) not in mine]) or decision.min_n))
         return pick(ranked, count)
+
+    def _choose_mode(self, view, decision, opts):
+        me, opp = view.me(), view.opponent()
+        prompt = decision.prompt
+        if prompt.startswith("Begone!"):
+            mode = "Destroy each Dis creature" if any(c.house == House.DIS for c in opp.creatures) else "Gain 1Æ"
+        elif prompt.startswith("Knowledge is Power"):
+            archived = len(me.archive or [])
+            mode = "Gain 1Æ per archived card" if (not (me.hand or []) or archived >= 2) else "Archive a card"
+        elif prompt.startswith("Ozmo"):
+            mars_hurt = [c for c in me.creatures if c.house == House.MARS and _remaining(c) < _power(c)]
+            mars_enemy = [c for c in opp.creatures if c.house == House.MARS]
+            if mars_hurt:
+                mode = "Heal 3"
+            elif mars_enemy:
+                mode = "Stun"
+            else:
+                mode = "Heal 3"  # neither is useful; healing a full-health ally is at least harmless
+        else:
+            mode = opts[0]  # deterministic default beats an RNG coin flip here
+        # Remembered for the target-choice CHOOSE_CARDS decision that
+        # immediately follows (e.g. Ozmo's "heal or stun a Mars creature"
+        # names the mode first, then asks which creature -- the same
+        # prompt either way, so the target step alone can't disambiguate).
+        self._last_mode = mode
+        return mode
