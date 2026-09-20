@@ -103,7 +103,7 @@ class ParticleSystem:
             )
 
     def emit_confetti(self, x, y, n=40, spread=500):
-        colors = [S.AEMBER, S.KEY_GOLD, S.HOUSE_COLORS["Dis"], S.HOUSE_COLORS["Logos"], S.HOUSE_COLORS["Shadows"]]
+        colors = [S.AEMBER, S.KEY_GOLD, *S.HOUSE_COLORS.values()]
         for _ in range(n):
             vx = random.uniform(-spread, spread) * 0.4
             vy = random.uniform(-spread, -spread * 0.3)

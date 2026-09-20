@@ -165,6 +165,29 @@ class AssetCache:
         elif house == "Shadows":
             pygame.draw.circle(surf, color, (int(c + r * 0.22), c), int(r * 0.55))
             pygame.draw.circle(surf, (0, 0, 0, 0), (int(c + r * 0.5), c), int(r * 0.5))
+        elif house == "Brobnar":
+            w = max(2, size // 10)
+            pygame.draw.line(surf, color, (c - r * 0.55, c + r * 0.55), (c + r * 0.55, c - r * 0.55), width=w)
+            pygame.draw.line(surf, color, (c - r * 0.55, c - r * 0.55), (c + r * 0.55, c + r * 0.55), width=w)
+        elif house == "Mars":
+            pygame.draw.circle(surf, color, (c, c), max(2, int(r * 0.22)))
+            for ang in (0, 90, 180, 270):
+                rad = math.radians(ang)
+                x0, y0 = c + math.cos(rad) * r * 0.45, c + math.sin(rad) * r * 0.45
+                x1, y1 = c + math.cos(rad) * r * 0.85, c + math.sin(rad) * r * 0.85
+                pygame.draw.line(surf, color, (x0, y0), (x1, y1), width=max(1, size // 18))
+        elif house == "Sanctum":
+            arm_w = max(2, int(r * 0.34))
+            pygame.draw.rect(surf, color, (c - arm_w / 2, c - r * 0.62, arm_w, r * 1.24))
+            pygame.draw.rect(surf, color, (c - r * 0.62, c - arm_w / 2, r * 1.24, arm_w))
+        elif house == "Untamed":
+            toe_r = max(2, int(r * 0.2))
+            for ang in (200, 270, 340):
+                rad = math.radians(ang)
+                tx = c + math.cos(rad) * r * 0.45
+                ty = c + math.sin(rad) * r * 0.45
+                pygame.draw.circle(surf, color, (int(tx), int(ty)), toe_r)
+            pygame.draw.circle(surf, color, (c, int(c + r * 0.4)), max(3, int(r * 0.32)))
         self._icons[key] = surf
         return surf
 

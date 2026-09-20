@@ -26,9 +26,18 @@ def _right_click(scene, pos):
     scene.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=pos, button=3))
 
 
+def _pick_default_houses(scene):
+    """Resolve the mandatory house-picker step with the classic Dis/Logos/
+    Shadows triple, so existing tests keep exercising the same houses."""
+    scene._on_houses_confirmed([House.DIS, House.LOGOS, House.SHADOWS])
+    scene.house_picker.is_open = False
+
+
 def _scene():
     app = App(window_size=(1600, 900))
-    app.push(DeckBuilderScene())
+    scene = DeckBuilderScene()
+    _pick_default_houses(scene)
+    app.push(scene)
     return app, app.scenes[-1]
 
 
@@ -165,12 +174,53 @@ class TestDeckBuilderScene(unittest.TestCase):
         _click(menu, button.rect.center)
         self.assertEqual([type(s).__name__ for s in app.scenes], ["MenuScene", "DeckBuilderScene"])
         builder = app.scenes[-1]
+        _pick_default_houses(builder)
         builder._random_fill()
         builder.name = "From Menu"
         builder._save()
         builder._back()
         self.assertEqual([type(s).__name__ for s in app.scenes], ["MenuScene"])
         self.assertIn(builder.saved_path, menu.decks)
+
+    def test_new_deck_forces_the_house_picker_open_and_blocks_interaction(self):
+        app = App(window_size=(1600, 900))
+        scene = DeckBuilderScene()
+        app.push(scene)
+        self.assertTrue(scene.house_picker.is_open)
+        self.assertFalse(scene.house_picker.dismissable)
+        self.assertEqual(scene.chosen_houses, [])
+        self.assertIsNone(scene.active_house)
+        # Interaction is blocked while it's open: clicking a top button does nothing.
+        _click(scene, scene._panel().topleft)
+        self.assertEqual(scene.chosen_houses, [])
+
+    def test_picking_three_houses_closes_the_picker_and_enables_the_builder(self):
+        app = App(window_size=(1600, 900))
+        scene = DeckBuilderScene()
+        app.push(scene)
+        rects = scene.house_picker.button_rects()
+        for house in (House.BROBNAR, House.MARS, House.SANCTUM):
+            _click(scene, rects[house].center)
+        self.assertEqual(scene.house_picker.selection, [House.BROBNAR, House.MARS, House.SANCTUM])
+        _click(scene, scene.house_picker.confirm_rect().center)
+        self.assertFalse(scene.house_picker.is_open)
+        self.assertEqual(set(scene.chosen_houses), {House.BROBNAR, House.MARS, House.SANCTUM})
+        self.assertIn(scene.active_house, scene.chosen_houses)
+        # The ordinary builder UI now works, scoped to the chosen houses.
+        cell, name = scene._grid_cells()[0]
+        _click(scene, cell.center)
+        self.assertEqual(CARD_DEFS[name].house, scene.active_house)
+
+    def test_change_houses_button_reopens_a_dismissable_picker(self):
+        app, g = _scene()
+        hb = g._houses_button_rect()
+        _click(g, hb.center)
+        self.assertTrue(g.house_picker.is_open)
+        self.assertTrue(g.house_picker.dismissable)
+        self.assertEqual(set(g.house_picker.selection), {House.DIS, House.LOGOS, House.SHADOWS})
+        g.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE))
+        self.assertFalse(g.house_picker.is_open)
+        self.assertEqual(set(g.chosen_houses), {House.DIS, House.LOGOS, House.SHADOWS})
 
 
 if __name__ == "__main__":

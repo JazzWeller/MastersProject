@@ -10,11 +10,12 @@ import pygame
 from gui import settings as S
 from gui.app import App
 from gui.scenes.alliance_builder_scene import AllianceBuilderScene
-from gui.scenes.deck_builder_scene import HOUSES
 from gui.scenes.menu_scene import MenuScene
 
 from keyforge.cards.decks import AllianceDeck, load_deck_json, validate_deck
 from keyforge.enums import House
+
+HOUSES = (House.DIS, House.LOGOS, House.SHADOWS)
 
 
 def _click(scene, pos):
@@ -26,9 +27,18 @@ def _right_click(scene, pos):
     scene.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=pos, button=3))
 
 
+def _pick_default_houses(scene):
+    """Resolve the mandatory house-picker step with the classic Dis/Logos/
+    Shadows triple, so existing tests keep exercising the same houses."""
+    scene._on_houses_confirmed(list(HOUSES))
+    scene.house_picker.is_open = False
+
+
 def _scene():
     app = App(window_size=(1600, 900))
-    app.push(AllianceBuilderScene())
+    scene = AllianceBuilderScene()
+    _pick_default_houses(scene)
+    app.push(scene)
     return app, app.scenes[-1]
 
 
@@ -109,6 +119,7 @@ class TestAllianceBuilderScene(unittest.TestCase):
         _click(menu, button.rect.center)
         self.assertEqual([type(s).__name__ for s in app.scenes], ["MenuScene", "AllianceBuilderScene"])
         builder = app.scenes[-1]
+        _pick_default_houses(builder)
         builder.name = "From Menu Alliance"
         builder._save()
         builder._back()
@@ -122,6 +133,59 @@ class TestAllianceBuilderScene(unittest.TestCase):
         g.name = "Tagged"
         g._save()
         self.assertEqual(deck_label(resolve_deck(g.saved_path)), "Tagged (Alliance)")
+
+    def test_new_alliance_forces_the_house_picker_open(self):
+        app = App(window_size=(1600, 900))
+        scene = AllianceBuilderScene()
+        app.push(scene)
+        self.assertTrue(scene.house_picker.is_open)
+        self.assertFalse(scene.house_picker.dismissable)
+        self.assertEqual(scene.chosen_houses, [])
+
+    def test_picking_three_houses_assigns_default_sources(self):
+        app = App(window_size=(1600, 900))
+        scene = AllianceBuilderScene()
+        app.push(scene)
+        rects = scene.house_picker.button_rects()
+        for house in (House.DIS, House.LOGOS, House.SHADOWS):
+            _click(scene, rects[house].center)
+        _click(scene, scene.house_picker.confirm_rect().center)
+        self.assertFalse(scene.house_picker.is_open)
+        self.assertEqual(set(scene.chosen_houses), {House.DIS, House.LOGOS, House.SHADOWS})
+        self.assertEqual(set(scene.house_sources.keys()), set(scene.chosen_houses))
+        # Every bundled preset has a pod for these 3 (Phase 2) houses, so a
+        # default-sourced alliance over them is immediately legal.
+        self.assertEqual(scene._errors(), [])
+        for house in scene.chosen_houses:
+            self.assertEqual(len(scene._pod(house)), 12)
+
+    def test_picking_a_house_with_no_source_pod_leaves_that_pod_empty(self):
+        # None of the bundled presets have a Brobnar pod yet (Code/PHASE_3_
+        # PLAN.md's new houses aren't in any preset deck) -- taking a pod
+        # "from" one of them is legitimately empty, not a crash.
+        app = App(window_size=(1600, 900))
+        scene = AllianceBuilderScene()
+        app.push(scene)
+        rects = scene.house_picker.button_rects()
+        for house in (House.BROBNAR, House.MARS, House.SANCTUM):
+            _click(scene, rects[house].center)
+        _click(scene, scene.house_picker.confirm_rect().center)
+        self.assertEqual(set(scene.chosen_houses), {House.BROBNAR, House.MARS, House.SANCTUM})
+        for house in scene.chosen_houses:
+            self.assertEqual(scene._pod(house), [])
+        self.assertIn("Brobnar pod has 0 cards, needs 12", scene._errors())
+
+    def test_change_houses_keeps_sources_for_houses_kept(self):
+        app, g = _scene()
+        dis_source = g.house_sources[House.DIS]
+        _click(g, g._houses_button_rect().center)
+        self.assertTrue(g.house_picker.is_open)
+        # Swap Shadows out for Brobnar, keep Dis and Logos.
+        g.house_picker.toggle(House.SHADOWS)
+        g.house_picker.toggle(House.BROBNAR)
+        _click(g, g.house_picker.confirm_rect().center)
+        self.assertEqual(set(g.chosen_houses), {House.DIS, House.LOGOS, House.BROBNAR})
+        self.assertEqual(g.house_sources[House.DIS], dis_source)
 
 
 if __name__ == "__main__":

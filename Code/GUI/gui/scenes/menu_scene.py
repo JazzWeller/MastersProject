@@ -217,9 +217,12 @@ class MenuScene(Scene):
             img = label_font.render(text, True, S.TEXT_DIM)
             surface.blit(img, (cx - 300, y + 10))
 
-        house_hint = self.app.assets.font("inter", 13).render(
-            "Fignor · Dis / Logos / Shadows      Igor · Dis / Logos / Shadows", True, S.TEXT_FAINT
-        )
+        p1_deck = resolve_deck(self.decks[self.p1_deck_i])
+        p2_deck = resolve_deck(self.decks[self.p2_deck_i])
+        p1_houses = " / ".join(h.value for h in p1_deck.houses())
+        p2_houses = " / ".join(h.value for h in p2_deck.houses())
+        hint_text = f"{deck_label(p1_deck)} · {p1_houses}      {deck_label(p2_deck)} · {p2_houses}"
+        house_hint = self.app.assets.font("inter", 13).render(hint_text, True, S.TEXT_FAINT)
         surface.blit(house_hint, (cx - 300, 790))
 
         for key, (button, _cb) in self.buttons.items():

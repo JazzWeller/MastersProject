@@ -113,9 +113,13 @@ POISON = _hex("6FA83A")
 VERSATILE = _hex("3FA9C9")
 
 HOUSE_COLORS = {
+    "Brobnar": _hex("D9622B"),
     "Dis": _hex("D0246E"),
     "Logos": _hex("2F9BD6"),
+    "Mars": _hex("C0392B"),
+    "Sanctum": _hex("D4AF37"),
     "Shadows": _hex("4E9C6B"),
+    "Untamed": _hex("5B8C3A"),
 }
 
 WHITE = (255, 255, 255)

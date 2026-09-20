@@ -1,6 +1,6 @@
-"""Every card in the full 159-card CotA pool must resolve to a real, loadable
-image file, at every size the app actually uses; the procedural card back
-and icons must render without crashing."""
+"""Every card in the full 370-card CotA pool (all 7 houses) must resolve to
+a real, loadable image file, at every size the app actually uses; the
+procedural card back and icons must render without crashing."""
 
 import unittest
 
@@ -25,7 +25,7 @@ class TestAssets(unittest.TestCase):
         self.assets = AssetCache()
 
     def test_every_decklist_card_has_real_art_at_every_used_size(self):
-        self.assertEqual(len(CARD_DEFS), 159)
+        self.assertEqual(len(CARD_DEFS), 370)
         for name, card_def in CARD_DEFS.items():
             self.assertIsNotNone(card_def.image, name)
             # the raw file must actually exist and decode
@@ -45,7 +45,7 @@ class TestAssets(unittest.TestCase):
             self.assertEqual(back.get_size(), size)
 
     def test_icons_render(self):
-        for house in ("Dis", "Logos", "Shadows"):
+        for house in ("Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"):
             img = self.assets.house_emblem(house, 32)
             self.assertEqual(img.get_size(), (32, 32))
         for forged in (True, False):

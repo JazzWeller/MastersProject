@@ -1,7 +1,8 @@
-"""Alliance Builder: assemble an `AllianceDeck` by picking, for each of the
-3 houses, which saved deck (preset or your own) to take that house's pod
-from, then preview and save it (Code/PHASE_2_PLAN.md v2.1 Milestone F).
-Reached from the main menu, alongside the single-deck Deck Builder.
+"""Alliance Builder: assemble an `AllianceDeck` by picking 3 distinct houses
+(of the 7, Code/PHASE_3_PLAN.md Milestone B) and, for each, which saved deck
+(preset or your own) to take that house's pod from, then preview and save
+it (Code/PHASE_2_PLAN.md v2.1 Milestone F). Reached from the main menu,
+alongside the single-deck Deck Builder.
 """
 
 from __future__ import annotations
@@ -14,7 +15,8 @@ import pygame
 from .. import settings as S
 from ..app import Scene
 from ..sprites.widgets import Button, draw_panel
-from .deck_builder_scene import HOUSES, _info_from_name, _slugify, _wrap
+from .deck_builder_scene import _info_from_name, _slugify, _wrap
+from .house_picker import HousePicker
 
 from keyforge.cards.decks import (
     DECKS as BUNDLED_DECKS,
@@ -35,12 +37,12 @@ ROW_H = 26
 class AllianceBuilderScene(Scene):
     def __init__(self):
         # A different bundled preset per house by default, so the initial
-        # preview is already a real (if arbitrary) 3-way alliance.
-        defaults = sorted(BUNDLED_DECKS.keys())
+        # preview is already a real (if arbitrary) alliance once houses are
+        # chosen.
         self.name = "New Alliance"
-        self.house_sources: Dict[House, str] = {
-            house: defaults[i % len(defaults)] for i, house in enumerate(HOUSES)
-        }
+        self.chosen_houses: List[House] = []
+        self.house_sources: Dict[House, str] = {}
+        self._default_sources = sorted(BUNDLED_DECKS.keys())
         self.saved_path: Optional[str] = None
         self.editing_name = False
         self.name_buffer = ""
@@ -50,6 +52,18 @@ class AllianceBuilderScene(Scene):
         self.load_picker_open = False
         self.confirm_delete: Optional[str] = None
         self.inspect_info = None
+        self.house_picker = HousePicker(self._panel, self._on_houses_confirmed)
+        self.house_picker.open([], dismissable=False)
+
+    def _on_houses_confirmed(self, houses: List[House]) -> None:
+        self.chosen_houses = houses
+        old_sources = self.house_sources
+        self.house_sources = {}
+        for i, house in enumerate(houses):
+            if house in old_sources:
+                self.house_sources[house] = old_sources[house]
+            elif self._default_sources:
+                self.house_sources[house] = self._default_sources[i % len(self._default_sources)]
 
     def on_enter(self) -> None:
         os.makedirs(S.USER_DECKS_DIR, exist_ok=True)
@@ -120,19 +134,22 @@ class AllianceBuilderScene(Scene):
             self._set_message(f"Couldn't load that deck: {exc}", error=True)
             return
         self.name = deck.name
+        self.chosen_houses = list(deck.houses())
+        self.house_sources = {}
         if isinstance(deck, AllianceDeck) and deck.sources:
             # Re-resolve each house's ORIGIN deck by name, falling back to
             # keeping the saved pod's own deck as its own source if the
             # origin can no longer be found (renamed, deleted).
-            for house in HOUSES:
+            for house in self.chosen_houses:
                 origin_name = deck.sources.get(house)
                 match = self._find_source_by_name(origin_name) if origin_name else None
                 self.house_sources[house] = match if match is not None else path
         else:
-            for house in HOUSES:
+            for house in self.chosen_houses:
                 self.house_sources[house] = path
         self.saved_path = path
         self.load_picker_open = False
+        self.house_picker.is_open = False
         self._set_message(f"Loaded {deck.name}.")
 
     def _find_source_by_name(self, name: str) -> Optional[str]:
@@ -185,19 +202,26 @@ class AllianceBuilderScene(Scene):
         return pygame.Rect(p.left + 20 + i * (w + COLUMN_GAP), top, w, p.bottom - top - 20)
 
     def _source_button_rect(self, house: House) -> pygame.Rect:
-        col = self._column_rect(HOUSES.index(house))
+        col = self._column_rect(self.chosen_houses.index(house))
         return pygame.Rect(col.left, col.top + 34, col.width, 34)
 
     def _pod_row_rects(self, house: House) -> List[pygame.Rect]:
-        col = self._column_rect(HOUSES.index(house))
+        col = self._column_rect(self.chosen_houses.index(house))
         top = col.top + 80
         return [pygame.Rect(col.left, top + i * ROW_H, col.width, ROW_H - 2) for i in range(len(self._pod(house)))]
+
+    def _houses_button_rect(self) -> pygame.Rect:
+        p = self._panel()
+        return pygame.Rect(p.right - 604, p.top + 60, 120, 30)
 
     # -------------------------------------------------------------- input ----
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if self.editing_name:
             self._handle_name_edit(event)
+            return
+        if self.house_picker.is_open:
+            self.house_picker.handle_event(event)
             return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             if self.picker_open is not None:
@@ -233,7 +257,11 @@ class AllianceBuilderScene(Scene):
             self.name_buffer = self.name
             pygame.key.start_text_input()
             return
-        for house in HOUSES:
+        if self._houses_button_rect().collidepoint(event.pos):
+            self.house_picker.open(self.chosen_houses, dismissable=True)
+            self.app.assets.play("click", 0.2)
+            return
+        for house in self.chosen_houses:
             if self._source_button_rect(house).collidepoint(event.pos):
                 self.picker_open = house
                 return
@@ -250,7 +278,7 @@ class AllianceBuilderScene(Scene):
             self._delete(self.saved_path)
 
     def _handle_right_click(self, pos) -> None:
-        for house in HOUSES:
+        for house in self.chosen_houses:
             for row_rect, name in zip(self._pod_row_rects(house), self._pod(house)):
                 if row_rect.collidepoint(pos):
                     self.inspect_info = _info_from_name(name)
@@ -351,7 +379,14 @@ class AllianceBuilderScene(Scene):
             status = status_font.render("Legal deck — ready to save.", True, S.HEAL)
         surface.blit(status, (p.left + 20, p.top + 60))
 
-        for i, house in enumerate(HOUSES):
+        hb = self._houses_button_rect()
+        hovered = hb.collidepoint(mouse)
+        pygame.draw.rect(surface, S.PANEL_LIGHT if hovered else S.PANEL, hb, border_radius=6)
+        pygame.draw.rect(surface, S.AEMBER if hovered else S.TEXT_FAINT, hb, width=1, border_radius=6)
+        hlabel = assets.font("inter", 13).render("Change houses", True, S.TEXT)
+        surface.blit(hlabel, hlabel.get_rect(center=hb.center))
+
+        for i, house in enumerate(self.chosen_houses):
             self._draw_column(surface, assets, mouse, house, i)
 
         if self.message:
@@ -365,6 +400,7 @@ class AllianceBuilderScene(Scene):
             self._draw_load_picker(surface, assets, mouse)
         if self.inspect_info is not None:
             self._draw_inspector(surface, assets)
+        self.house_picker.draw(surface, assets, mouse)
 
     def _draw_column(self, surface, assets, mouse, house: House, i: int) -> None:
         col = self._column_rect(i)

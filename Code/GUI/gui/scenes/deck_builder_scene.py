@@ -1,7 +1,9 @@
-"""Deck Builder: build or edit a 3-house, 12-card-per-house deck from the
-full card pool, validate it, and save it to `Code/GUI/data/decks/` (Code/
-PHASE_2_PLAN.md Milestone E). Reached from the main menu; `AllianceBuilder
-Scene` reuses its house-tab/grid layout for picking whole pods instead of
+"""Deck Builder: build or edit a deck of any 3 distinct houses (of the 7),
+12 cards per house, from the full card pool, validate it, and save it to
+`Code/GUI/data/decks/` (Code/PHASE_2_PLAN.md Milestone E; the house-of-7
+picker is Code/PHASE_3_PLAN.md Milestone B/E). Reached from the main menu;
+`AllianceBuilderScene` reuses its card-inspector/grid helpers, plus the
+shared `HousePicker` (house_picker.py), for picking whole pods instead of
 individual cards.
 """
 
@@ -18,21 +20,21 @@ import pygame
 from .. import settings as S
 from ..app import Scene
 from ..sprites.widgets import Button, draw_panel
+from .house_picker import ALL_HOUSES, HousePicker
 
 from keyforge.cards.card_data import CARD_DEFS, get_card_def
 from keyforge.cards.decks import (
     CARDS_PER_POD,
+    PODS_PER_DECK,
     DECKS as BUNDLED_DECKS,
     Deck,
     deck_label,
     load_deck_json,
-    random_deck,
     save_deck_json,
     validate_deck,
 )
 from keyforge.enums import CardType, House
 
-HOUSES = (House.DIS, House.LOGOS, House.SHADOWS)
 TYPE_FILTERS = (None, CardType.CREATURE, CardType.ACTION, CardType.ARTIFACT, CardType.UPGRADE)
 TYPE_LABELS = {None: "All", CardType.CREATURE: "Creature", CardType.ACTION: "Action",
                CardType.ARTIFACT: "Artifact", CardType.UPGRADE: "Upgrade"}
@@ -43,7 +45,8 @@ GRID_CELL_W, GRID_CELL_H = S.BROWSER_CARD_W, S.BROWSER_CARD_H
 _NAMES_BY_HOUSE: Dict[House, List[str]] = {}
 for _name, _cdef in CARD_DEFS.items():
     _NAMES_BY_HOUSE.setdefault(_cdef.house, []).append(_name)
-for _house in HOUSES:
+for _house in ALL_HOUSES:
+    _NAMES_BY_HOUSE.setdefault(_house, [])
     _NAMES_BY_HOUSE[_house].sort(key=lambda n: (CARD_DEFS[n].type.value, n))
 
 
@@ -77,9 +80,10 @@ def _wrap(text: str, font, max_w: int) -> List[str]:
 class DeckBuilderScene(Scene):
     def __init__(self, deck: Optional[Deck] = None, saved_path: Optional[str] = None):
         self.name = deck.name if deck is not None else "New Deck"
-        self.pods: Dict[House, List[str]] = {h: list(deck.pods.get(h, [])) if deck is not None else [] for h in HOUSES}
+        self.chosen_houses: List[House] = list(deck.houses()) if deck is not None else []
+        self.pods: Dict[House, List[str]] = {h: list(deck.pods.get(h, [])) for h in self.chosen_houses}
         self.saved_path = saved_path
-        self.active_house = House.DIS
+        self.active_house: Optional[House] = self.chosen_houses[0] if self.chosen_houses else None
         self.type_filter: Optional[CardType] = None
         self.scroll = 0
         self.editing_name = False
@@ -90,6 +94,16 @@ class DeckBuilderScene(Scene):
         self.confirm_delete: Optional[str] = None
         self.inspect_info: Optional[SimpleNamespace] = None
         self.rng = random.Random()
+        self.house_picker = HousePicker(self._panel, self._on_houses_confirmed)
+        if len(self.chosen_houses) != PODS_PER_DECK:
+            self.house_picker.open([], dismissable=False)
+
+    def _on_houses_confirmed(self, houses: List[House]) -> None:
+        self.chosen_houses = houses
+        self.pods = {h: list(self.pods.get(h, [])) for h in houses}
+        if self.active_house not in self.chosen_houses:
+            self.active_house = self.chosen_houses[0]
+        self.scroll = 0
 
     def on_enter(self) -> None:
         os.makedirs(S.USER_DECKS_DIR, exist_ok=True)
@@ -100,14 +114,18 @@ class DeckBuilderScene(Scene):
 
     # -------------------------------------------------------------- data ----
 
-    def _house_cards(self, house: House) -> List[str]:
+    def _house_cards(self, house: Optional[House]) -> List[str]:
+        if house is None:
+            return []
         names = _NAMES_BY_HOUSE[house]
         if self.type_filter is None:
             return names
         return [n for n in names if CARD_DEFS[n].type == self.type_filter]
 
     def _pod(self) -> List[str]:
-        return self.pods[self.active_house]
+        if self.active_house is None:
+            return []
+        return self.pods.setdefault(self.active_house, [])
 
     def _add_card(self, name: str) -> None:
         pod = self._pod()
@@ -133,8 +151,10 @@ class DeckBuilderScene(Scene):
         self.message, self.message_is_error = text, error
 
     def _random_fill(self) -> None:
-        deck = random_deck(self.rng, name=self.name)
-        self.pods = {h: list(deck.pods[h]) for h in HOUSES}
+        if len(self.chosen_houses) != PODS_PER_DECK:
+            return
+        for house in self.chosen_houses:
+            self.pods[house] = [self.rng.choice(_NAMES_BY_HOUSE[house]) for _ in range(CARDS_PER_POD)]
         self._set_message("Filled all three houses with random cards.")
 
     def _user_deck_files(self) -> List[str]:
@@ -161,7 +181,9 @@ class DeckBuilderScene(Scene):
             self._set_message(f"Couldn't load that deck: {exc}", error=True)
             return
         self.name = deck.name
-        self.pods = {h: list(deck.pods.get(h, [])) for h in HOUSES}
+        self.chosen_houses = list(deck.houses())
+        self.pods = {h: list(deck.pods.get(h, [])) for h in self.chosen_houses}
+        self.active_house = self.chosen_houses[0] if self.chosen_houses else None
         self.saved_path = path
         self.picker_open = False
         self._set_message(f"Loaded {deck.name}.")
@@ -169,7 +191,9 @@ class DeckBuilderScene(Scene):
     def _load_preset(self, key: str) -> None:
         deck = BUNDLED_DECKS[key]
         self.name = f"{deck.name} (copy)"
-        self.pods = {h: list(deck.pods.get(h, [])) for h in HOUSES}
+        self.chosen_houses = list(deck.houses())
+        self.pods = {h: list(deck.pods.get(h, [])) for h in self.chosen_houses}
+        self.active_house = self.chosen_houses[0] if self.chosen_houses else None
         self.saved_path = None
         self.picker_open = False
         self._set_message(f"Loaded a copy of {deck.name}. Save it to keep your changes.")
@@ -217,7 +241,14 @@ class DeckBuilderScene(Scene):
         p = self._panel()
         y = p.top + 64
         w = 240
-        return {h: pygame.Rect(p.left + 20 + i * (w + 10), y, w, 40) for i, h in enumerate(HOUSES)}
+        return {h: pygame.Rect(p.left + 20 + i * (w + 10), y, w, 40) for i, h in enumerate(self.chosen_houses)}
+
+    def _houses_button_rect(self) -> pygame.Rect:
+        p = self._panel()
+        y = p.top + 64
+        w = 240
+        x = p.left + 20 + len(self.chosen_houses) * (w + 10)
+        return pygame.Rect(x, y, 150, 40)
 
     def _type_filter_rects(self) -> Dict[Optional[CardType], pygame.Rect]:
         p = self._panel()
@@ -257,6 +288,9 @@ class DeckBuilderScene(Scene):
         if self.editing_name:
             self._handle_name_edit(event)
             return
+        if self.house_picker.is_open:
+            self.house_picker.handle_event(event)
+            return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             if self.picker_open:
                 self.picker_open = False
@@ -294,6 +328,10 @@ class DeckBuilderScene(Scene):
                 self.active_house, self.scroll = house, 0
                 self.app.assets.play("click", 0.2)
                 return
+        if self.chosen_houses and self._houses_button_rect().collidepoint(event.pos):
+            self.house_picker.open(self.chosen_houses, dismissable=True)
+            self.app.assets.play("click", 0.2)
+            return
         for tf, rect in self._type_filter_rects().items():
             if rect.collidepoint(event.pos):
                 self.type_filter, self.scroll = tf, 0
@@ -458,6 +496,13 @@ class DeckBuilderScene(Scene):
             pygame.draw.circle(surface, dot_color, (rect.left + 18, rect.centery), 5)
             label = assets.font("inter", 16, bold=active).render(f"{house.value}  {n}/{CARDS_PER_POD}", True, S.TEXT)
             surface.blit(label, label.get_rect(midleft=(rect.left + 32, rect.centery)))
+        if self.chosen_houses:
+            hb = self._houses_button_rect()
+            hovered = hb.collidepoint(mouse)
+            pygame.draw.rect(surface, S.PANEL_LIGHT if hovered else S.PANEL, hb, border_radius=8)
+            pygame.draw.rect(surface, S.AEMBER if hovered else S.TEXT_FAINT, hb, width=1, border_radius=8)
+            label = assets.font("inter", 14).render("Change houses", True, S.TEXT)
+            surface.blit(label, label.get_rect(center=hb.center))
 
         for tf, rect in self._type_filter_rects().items():
             active = tf == self.type_filter
@@ -479,6 +524,7 @@ class DeckBuilderScene(Scene):
             self._draw_picker(surface, assets, mouse)
         if self.inspect_info is not None:
             self._draw_inspector(surface, assets)
+        self.house_picker.draw(surface, assets, mouse)
 
     def _draw_grid(self, surface, assets, mouse) -> None:
         rect = self._grid_rect()
@@ -513,7 +559,8 @@ class DeckBuilderScene(Scene):
     def _draw_pod(self, surface, assets, mouse) -> None:
         rect = self._pod_rect()
         draw_panel(surface, rect, alpha=200, border=S.TEXT_FAINT)
-        title = assets.font("cinzel", 16).render(f"{self.active_house.value} pod ({len(self._pod())}/{CARDS_PER_POD})", True, S.TEXT)
+        house_label = self.active_house.value if self.active_house is not None else "No house chosen yet"
+        title = assets.font("cinzel", 16).render(f"{house_label} pod ({len(self._pod())}/{CARDS_PER_POD})", True, S.TEXT)
         surface.blit(title, (rect.left + 12, rect.top + 10))
         rows = self._pod_rows()
         if not rows:
