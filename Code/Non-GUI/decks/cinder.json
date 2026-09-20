@@ -1,0 +1,47 @@
+{
+  "name": "Cinder",
+  "pods": {
+    "Dis": [
+      "Fear",
+      "Hand of Dis",
+      "Hecatomb",
+      "Tendrils of Pain",
+      "Hysteria",
+      "Mind Barb",
+      "Red-Hot Armor",
+      "Annihilation Ritual",
+      "Sacrificial Altar",
+      "Screaming Cave",
+      "Soul Snatcher",
+      "Overlord Greking"
+    ],
+    "Logos": [
+      "Bouncing Deathquark",
+      "Dimension Door",
+      "Effervescent Principle",
+      "Foggify",
+      "Random Access Archives",
+      "Remote Access",
+      "Twin Bolt Emission",
+      "Crazy Killing Machine",
+      "Mobius Scroll",
+      "Pocket Universe",
+      "Spangler Box",
+      "Brain Eater"
+    ],
+    "Shadows": [
+      "Imperial Traitor",
+      "Key of Darkness",
+      "Treasure Map",
+      "Customs Office",
+      "Evasion Sigil",
+      "Longfused Mines",
+      "Masterplan",
+      "Safe Place",
+      "Special Delivery",
+      "Speed Sigil",
+      "The Sting",
+      "Mooncurser"
+    ]
+  }
+}

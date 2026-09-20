@@ -16,11 +16,12 @@ for _p in (_GUI_DIR, _NON_GUI_DIR):
 
 
 def main(argv=None) -> None:
-    parser = argparse.ArgumentParser(description="KeyForge Phase 1.1 (Archon) GUI")
+    parser = argparse.ArgumentParser(description="KeyForge GUI (Archon / Reversal / Adaptive)")
     parser.add_argument("--p1", choices=["human", "bot"], default=None)
     parser.add_argument("--p2", choices=["human", "bot"], default=None)
     parser.add_argument("--p1-deck", choices=["fignor", "igor"], default="fignor")
     parser.add_argument("--p2-deck", choices=["fignor", "igor"], default="igor")
+    parser.add_argument("--format", choices=["archon", "reversal", "adaptive"], default="archon")
     parser.add_argument("--first", choices=["p1", "p2"], default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max-turns", type=int, default=None)
@@ -33,7 +34,6 @@ def main(argv=None) -> None:
 
     if args.p1 or args.p2:
         from gui.engine_bridge import MatchSettings
-        from gui.scenes.game_scene import GameScene
 
         first_player = {"p1": 1, "p2": 2}.get(args.first)
         settings = MatchSettings(
@@ -41,11 +41,19 @@ def main(argv=None) -> None:
             p2_deck=args.p2_deck,
             p1_seat=args.p1 or "human",
             p2_seat=args.p2 or "bot",
+            format=args.format,
             first_player=first_player,
             seed=args.seed,
             max_turns=args.max_turns,
         )
-        app.push(GameScene(settings))
+        if args.format == "archon":
+            from gui.scenes.game_scene import GameScene
+
+            app.push(GameScene(settings))
+        else:
+            from gui.scenes.match_scene import MatchScene
+
+            app.push(MatchScene(settings))
     else:
         app.push(MenuScene())
 

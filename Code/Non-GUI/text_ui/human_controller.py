@@ -11,8 +11,8 @@ from .render import render_option
 
 
 class HumanController(Controller):
-    def __init__(self, game):
-        self.game = game
+    def __init__(self, match):
+        self.match = match  # a Match or, in older callers, a plain Game
 
     def decide(self, view, decision):
         while True:
@@ -23,7 +23,7 @@ class HumanController(Controller):
             if not text:
                 continue
             if is_info_command(text):
-                print(run_info_command(text, view, self.game))
+                print(run_info_command(text, view, self.match))
                 continue
             if text == "quit":
                 raise SystemExit(0)

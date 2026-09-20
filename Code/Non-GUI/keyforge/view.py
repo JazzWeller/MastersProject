@@ -57,7 +57,7 @@ class PlayerView:
 def build_view(game, viewer: int) -> PlayerView:
     states = {}
     for pid, player in game.players.items():
-        visible_hand = player.hand.cards() if pid == viewer else None
+        visible_hand = player.hand.cards() if (pid == viewer or viewer in player.hand_revealed_to) else None
         visible_archive = player.archive.cards() if pid == viewer else None
         states[pid] = PlayerPublicState(
             id=pid,

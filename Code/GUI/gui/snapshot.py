@@ -55,8 +55,16 @@ class CardState:
     aember_captured: int = 0
     elusive: bool = False
     skirmish: bool = False
+    taunt: bool = False
+    poison: bool = False
+    hazardous: int = 0
+    versatile: bool = False
+    stunned: bool = False
+    power_counters: int = 0
+    aember_stored: int = 0
     host_iid: Optional[int] = None
     upgrade_iids: List[int] = field(default_factory=list)
+    under_count: int = 0
     face_up: bool = True
 
 
@@ -100,9 +108,11 @@ class BoardSnapshot:
 def _card_state(game, card, owner: int, zone: str, index: int, zone_count: int, viewer: int) -> CardState:
     cdef = card.card_def
     to = card.type_object
-    power = getattr(to, "base_power", 0)
-    armor = getattr(to, "base_armor", 0)
+    is_creature = isinstance(to, CreatureType)
+    power = game.get_power(card) if is_creature else getattr(to, "base_power", 0)
+    armor = game.get_armor(card) if is_creature else getattr(to, "base_armor", 0)
     damage = getattr(to, "damage", 0)
+    keywords = game.get_keywords(card)
     host_iid = None
     if hasattr(to, "host") and to.host is not None:
         host_iid = to.host.instance_id
@@ -133,10 +143,18 @@ def _card_state(game, card, owner: int, zone: str, index: int, zone_count: int, 
         armor=armor,
         damage=damage,
         aember_captured=card.aember_captured,
-        elusive=card.Elusive,
-        skirmish=card.Skirmish,
+        elusive="elusive" in keywords,
+        skirmish="skirmish" in keywords,
+        taunt="taunt" in keywords,
+        poison="poison" in keywords,
+        hazardous=game.get_hazardous(card) if is_creature else 0,
+        versatile="versatile" in keywords,
+        stunned=card.stunned,
+        power_counters=card.power_counters,
+        aember_stored=card.aember_stored,
         host_iid=host_iid,
         upgrade_iids=upgrade_iids,
+        under_count=len(card.under_cards),
         face_up=face_up,
     )
 

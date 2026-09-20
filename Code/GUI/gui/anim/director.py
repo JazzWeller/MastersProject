@@ -128,6 +128,9 @@ def _h_choose_house(ctx: Ctx):
     pid = ctx.data["player"]
     house = ctx.data["house"]
     label = ctx.board.player_label(pid)
+    if house is None:
+        ctx.board.banners.append(Banner(f"{label} has no legal active house", color=S.TEXT_FAINT, life_ms=S.T_BANNER))
+        return Delay(220)
     verb = "choose" if ctx.board.is_second_person(pid) else "chooses"
     ctx.board.banners.append(Banner(f"{label} {verb} {house}", color=S.HOUSE_COLORS.get(house, S.AEMBER), life_ms=S.T_BANNER))
     return Delay(220)

@@ -141,23 +141,45 @@ class CardSprite:
             # Power (remaining after damage) bottom-left, damage beside it.
             color = S.DANGER if cs.damage else (40, 36, 52)
             self._badge(surface, (base.left + 16, base.bottom - 16), color, str(remaining), font)
+            if cs.power_counters:
+                self._badge(surface, (base.left + 44, base.bottom - 42), S.HEAL,
+                            f"+{cs.power_counters}", self.assets.font("inter", S.MIN_FONT, bold=True))
             if cs.damage:
                 self._badge(surface, (base.left + 44, base.bottom - 16), (60, 20, 24), f"-{cs.damage}", self.assets.font("inter", 12, bold=True))
             if cs.armor:
                 self._badge(surface, (base.left + 16, base.bottom - 42), (60, 70, 90), f"A{cs.armor}", self.assets.font("inter", 12, bold=True))
             if cs.aember_captured > 0:
                 self._badge(surface, (base.right - 16, base.bottom - 16), S.AEMBER, str(cs.aember_captured), font, fg=S.BLACK)
+            if cs.under_count:
+                self._badge(surface, (base.right - 16, base.bottom - 42), (60, 55, 80), str(cs.under_count), self.assets.font("inter", S.MIN_FONT, bold=True))
             chips = []
             if cs.elusive:
                 chips.append(("Elusive", S.PURGE))
             if cs.skirmish:
                 chips.append(("Skirmish", S.HEAL))
+            if cs.taunt:
+                chips.append(("Taunt", S.TAUNT))
+            if cs.poison:
+                chips.append(("Poison", S.POISON))
+            if cs.hazardous:
+                chips.append((f"Hazardous {cs.hazardous}", S.DANGER))
+            if cs.versatile:
+                chips.append(("Versatile", S.VERSATILE))
             y = base.top + 12
             for text, chip_color in chips:
                 self._pill(surface, (base.left + 6, y), chip_color, text)
                 y += 18
+        elif cs.zone == "play_artifact":
+            if cs.aember_stored > 0:
+                self._badge(surface, (base.right - 16, base.bottom - 16), S.AEMBER, str(cs.aember_stored), font, fg=S.BLACK)
+            if cs.under_count:
+                self._badge(surface, (base.left + 16, base.bottom - 16), (60, 55, 80), str(cs.under_count), self.assets.font("inter", S.MIN_FONT, bold=True))
+        if cs.zone in ("play_creature", "play_artifact") and cs.owner != cs.controller:
+            self._pill(surface, (base.right - 32, base.top + 14), (60, 55, 80), f"P{cs.owner}'s", center=True)
         if self.exhausted:
             self._pill(surface, (base.centerx, base.centery), (30, 26, 40), "Exhausted", center=True)
+        if cs.stunned:
+            self._pill(surface, (base.centerx, base.centery + (14 if self.exhausted else 0)), S.NOTE, "Stunned", center=True)
 
     def _badge(self, surface, center, color, text, font, fg=S.WHITE):
         t = font.render(text, True, fg)

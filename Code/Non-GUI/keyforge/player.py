@@ -33,6 +33,12 @@ class Player:
         self.KeyForgeCost = 6
         self.NonLogosCardsPlayable = 0
         self.HouseSelection = None  # forced house, or None
+        self.ReapGainBecomesSteal = False  # Dimension Door: reap gain is stolen from the opponent instead
+        self.CanFight = True  # Foggify: cannot use creatures to fight
+        self.CannotUseCards = False  # Skippy Timehog: cannot reap/fight/action/omni (playing/discarding still allowed)
+        self.CanPlayCards = True  # Treasure Map: cannot play any card for the rest of the turn
+        self.FirstCreatureEntersReady = False  # Speed Sigil
+        self.creatures_played_this_turn = 0
 
         self.selected_house = None
         self.cards_played_or_discarded_this_turn = 0
@@ -40,6 +46,11 @@ class Player:
         self.used_this_turn: Dict[str, int] = {}  # card name -> uses (rule of 6)
         self.archive_choice_made_this_turn = False
         self.all_cards: list = []  # the full 36-card pool this player owns, set at setup
+
+        # Psychic Bug, Imperial Traitor, A Fair Game: pids this player's
+        # hand is currently revealed to (in addition to themself, who can
+        # always see it). Cleared at the end of every turn.
+        self.hand_revealed_to: set = set()
 
     # --- get_* accessors: apply active DurationEffects on top of the base value ---
 
@@ -76,6 +87,46 @@ class Player:
     def get_house_selection(self, game):
         return self._apply(game, "HouseSelection", self.HouseSelection)
 
+    def get_reap_gain_becomes_steal(self, game) -> bool:
+        return self._apply(game, "ReapGainBecomesSteal", self.ReapGainBecomesSteal)
+
+    def get_can_fight(self, game) -> bool:
+        return self._apply(game, "CanFight", self.CanFight)
+
+    def get_cannot_use_cards(self, game) -> bool:
+        return self._apply(game, "CannotUseCards", self.CannotUseCards)
+
+    def get_can_play_cards(self, game) -> bool:
+        return self._apply(game, "CanPlayCards", self.CanPlayCards)
+
+    def get_first_creature_enters_ready(self, game) -> bool:
+        return self._apply(game, "FirstCreatureEntersReady", self.FirstCreatureEntersReady)
+
+    def get_artifact_use_toll(self, game):
+        """(amount, receiver_pid), or None -- Tentacus: pay to use an artifact."""
+        for e in game.active_effects.duration_effects_for("ArtifactUseToll", self.id):
+            if e.is_active(game):
+                return e.value
+        return None
+
+    def get_artifact_play_toll(self, game):
+        """(amount, receiver_pid), or None -- Customs Office: pay to play an artifact."""
+        for e in game.active_effects.duration_effects_for("ArtifactPlayToll", self.id):
+            if e.is_active(game):
+                return e.value
+        return None
+
+    def get_cannot_choose_houses(self, game) -> frozenset:
+        """Houses this player currently cannot choose as their active house
+        (Restringuntus). Unlike the scalar get_* accessors, several sources
+        can each ban a different house at once, so this unions every active
+        effect's value rather than folding them through one base value."""
+        banned = set()
+        for e in game.active_effects.duration_effects_for("CannotChooseHouse", self.id):
+            if e.is_active(game):
+                banned.add(e.value)
+        return frozenset(banned)
+
     def reset_turn_counters(self):
         self.CardsPlayed = {}
         self.used_this_turn = {}
@@ -85,6 +136,7 @@ class Player:
         self.selected_house = None
         self.HouseSelection = None
         self.archive_choice_made_this_turn = False
+        self.creatures_played_this_turn = 0
 
     def uses_of(self, card_name: str) -> int:
         return self.used_this_turn.get(card_name, 0)

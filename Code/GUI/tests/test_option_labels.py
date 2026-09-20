@@ -8,7 +8,8 @@ import tests.helpers  # noqa: F401
 from bots.random_bot import RandomBot
 from keyforge.actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
 from keyforge.config import GameConfig
-from keyforge.enums import House
+from keyforge.decision import Decision
+from keyforge.enums import DecisionKind, House
 from keyforge.game import Game
 
 from gui.option_labels import describe_log_event, describe_option
@@ -62,14 +63,41 @@ class TestOptionLabels(unittest.TestCase):
             self.assertIsInstance(label, str)
             self.assertTrue(label.strip(), f"empty label for {opt!r}")
 
+    def test_choose_number_options_are_not_misread_as_player_ids(self):
+        # Regression: describe_option's generic "int -> discard pile owner"
+        # branch (Creeping Oblivion's CHOOSE_CARDS pile choice, options 1/2)
+        # must not swallow CHOOSE_NUMBER's raw power values (Dance of Doom
+        # can offer any power in play, e.g. 7) -- with a real view passed
+        # (as the decision panel always does), that used to raise a KeyError
+        # doing view.players[7].
+        game = Game(GameConfig(decks=("fignor", "igor"), seed=1))
+        view = game.view_for(1)
+        decision = Decision(player=1, kind=DecisionKind.CHOOSE_NUMBER, prompt="Dance of Doom: choose a number", options=[2, 4, 7])
+        for opt in decision.options:
+            label = describe_option(opt, decision, view)
+            self.assertEqual(label, str(opt))
+
+    def test_choose_mode_options_render_their_own_text(self):
+        decision = Decision(
+            player=1, kind=DecisionKind.CHOOSE_MODE, prompt="Knowledge is Power: choose one",
+            options=["Archive a card", "Gain 1Æ per archived card"],
+        )
+        for opt in decision.options:
+            self.assertEqual(describe_option(opt, decision), opt)
+
     def test_every_log_event_kind_has_a_sentence_or_is_intentionally_silent(self):
         # Kinds describe_log_event deliberately returns None for (nothing
         # interesting to tell a player) — everything else must render.
         silent_ok = {"turn_start"}  # rendered by GameScene as a turn separator line, not a sentence
 
         seen_kinds = set()
+        # A spread of decks: the original Phase 1 pair, plus two of the
+        # Milestone D curated decks so Phase 2 cards' newer log kinds
+        # (take_control, stun, under_card, move_aember, ...) get exercised too.
+        deck_pairs = [("fignor", "igor"), ("wraith", "cinder"), ("riftwalker", "gambit")]
         for seed in range(10):
-            game = Game(GameConfig(decks=("fignor", "igor"), seed=seed, max_turns=30))
+            decks = deck_pairs[seed % len(deck_pairs)]
+            game = Game(GameConfig(decks=decks, seed=seed, max_turns=30))
             bots = {1: RandomBot(seed=seed), 2: RandomBot(seed=seed + 1000)}
             while not game.is_over:
                 d = game.pending_decision

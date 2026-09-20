@@ -53,6 +53,15 @@ def describe_option_short(opt: Any) -> str:
 
 
 def describe_option(opt: Any, decision=None, view=None) -> str:
+    kind_name = getattr(decision.kind, "name", "") if decision is not None else ""
+    if kind_name == "BID_CHAINS":
+        return "Pass" if opt == "pass" else f"Bid {opt} chain{'' if opt == 1 else 's'}"
+    if kind_name == "CHOOSE_FIRST_PLAYER":
+        return "Go first" if opt == "first" else "Go second"
+    if kind_name == "CHOOSE_NUMBER":
+        return str(opt)
+    if kind_name == "CHOOSE_MODE":
+        return str(opt)
     if isinstance(opt, EndTurn):
         return "End Turn"
     if isinstance(opt, PlayCard):
@@ -190,12 +199,17 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
         cost = f" for {d['cost']} Æmber" if d.get("cost") is not None else ""
         return f"{who(d['player'])} forge{s(d['player'])} a key{cost}! ({d['keys']}/3)"
     if k == "choose_house":
+        if not d.get("house"):
+            have = "has" if third_person(d["player"]) else "have"
+            return f"{who(d['player'])} {have} no legal active house this turn."
         return f"{who(d['player'])} choose{s(d['player'])} house {d['house']}."
     if k == "house_forced":
         src = f" ({d['source']})" if d.get("source") else ""
         return f"{who(d['player'])} must use house {d['house']} this turn{src}."
     if k == "forge_skipped":
         src = f" because of {d['source']}" if d.get("source") else ""
+        if d["aember"] < d["cost"]:
+            return f"{who(d['player'])} can't forge a key{src}: only {d['aember']} of {d['cost']} Æmber."
         return f"{who(d['player'])} can't forge a key{src}, despite having {d['aember']} Æmber."
     if k == "put_on_top":
         return f"A card is put on top of {whose(d['player'])} deck."
@@ -271,6 +285,46 @@ def describe_log_event(event, viewer: int, spectating: bool = False) -> Optional
         return "Help From Future Self finds a Timetraveler." if d.get("found") else "Help From Future Self finds nothing."
     if k == "timetraveler_shuffle":
         return "Timetraveler shuffles itself into the deck."
+    if k == "take_control":
+        if d.get("reverted"):
+            return f"{d['card']} reverts to {whose(d['to_player'])} control."
+        dur = "" if d.get("permanent") else " until its source leaves play"
+        return f"{who(d['to_player'])} take{s(d['to_player'])} control of {d['card']}{dur}."
+    if k == "unforge":
+        return f"{d['card']} unforges {whose(d['player'])} key. ({d['keys']}/3)"
+    if k == "stun":
+        return f"{d['card']} is stunned."
+    if k == "stun_consumed":
+        return f"{d['card']} is stunned: this use has no effect."
+    if k == "power_counter":
+        return f"{d['card']} gets a +{d['amount']} power counter (+{d['total']} total)."
+    if k == "put_into_play":
+        src = f" (from {d['source']})" if d.get("source") else ""
+        return f"{d['card']} enters play under {whose(d['player'])} control{src}."
+    if k == "reveal_hand":
+        return f"{whose(d['player'])} hand is revealed."
+    if k == "reveal_top":
+        return f"{whose(d['player'])} top card is revealed: {d['card']}."
+    if k == "swap":
+        if d.get("swap_kind") == "deck_discard":
+            return f"{who(d['player'])} swap{s(d['player'])} {whose(d['player'])} deck and discard pile."
+        return f"{d['card']} swaps places with another creature."
+    if k == "under_card":
+        return f"{d['under']} is placed facedown beneath {d['card']}."
+    if k == "lose":
+        return f"{who(d['player'])} lose{s(d['player'])} {d['amount']} Æmber."
+    if k == "move_aember":
+        if d.get("to") == "pool":
+            return f"{d['amount']} Æmber moves from {d['card']} to {whose(d['player'])} pool."
+        return f"{d['amount']} Æmber moves from {whose(d['player'])} pool to {d['card']}."
+    if k == "pay":
+        if d.get("to_player") is not None:
+            return f"{who(d['player'])} pay{s(d['player'])} {d['amount']} Æmber to {whom(d['to_player'])} to play {d['card']}."
+        return f"{who(d['player'])} pay{s(d['player'])} {d['amount']} Æmber to play {d['card']}."
+    if k == "spend_stored_aember":
+        return f"{d['amount']} Æmber stored on {d['card']} is spent toward the forge cost."
+    if k == "aember_stored_lost":
+        return f"{d['card']} leaves play: its {d['amount']} stored Æmber vanishes."
     return None
 
 

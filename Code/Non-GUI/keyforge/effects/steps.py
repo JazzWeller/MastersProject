@@ -36,6 +36,15 @@ def gain(game, player, amount: int) -> bool:
     return True
 
 
+def lose(game, player, amount: int) -> bool:
+    n = min(amount, player.aember)
+    if n <= 0:
+        return False
+    player.aember -= n
+    game.log.add("lose", player=player.id, amount=n)
+    return True
+
+
 def steal(game, from_player, to_player, amount: int, source=None) -> bool:
     n = min(amount, from_player.aember)
     if source is not None and 0 < n < amount:
@@ -125,7 +134,12 @@ def discard_random(game, player, source=None) -> bool:
 
 def purge(game, card) -> bool:
     owner = game.players[card.owner]
-    if owner.play_area.remove(card):
+    # A card in play sits in whichever play area actually contains it
+    # (looked up by membership, not by `card.controller` -- see
+    # `Game.find_play_area`); every other zone is always the owner's.
+    area = game.find_play_area(card)
+    if area is not None:
+        area.remove(card)
         game.leave_play(card)
     elif not (owner.hand.remove(card) or owner.discard.remove(card) or owner.archive.remove(card) or owner.deck.remove(card)):
         return False
@@ -146,19 +160,34 @@ def put_on_bottom(game, player, card) -> bool:
     return True
 
 
-def deal_damage(game, creature, amount: int) -> bool:
+def deal_damage(game, creature, amount: int):
+    """Deals `amount` damage to `creature`. Armor absorbs first, on
+    `creature` itself; only the leftover (if any) is subject to a redirect
+    effect (Shadow Self) -- "redirect after armor". Returns the creature
+    that actually took nonzero damage (the redirect target, if any damage
+    got past armor), or None if no damage was dealt at all -- callers that
+    need to apply "this fight's damage" logic (poison) to the right
+    creature should key off this return value, not the original target."""
     if amount <= 0:
-        return False
+        return None
     if not isinstance(creature.type_object, CreatureType):
-        return False
+        return None
     to = creature.type_object
     available_armor = max(0, game.get_armor(creature) - to.armor_used_this_turn)
     absorbed = min(available_armor, amount)
     to.armor_used_this_turn += absorbed
     remaining = amount - absorbed
-    to.damage += remaining
     game.log.add("damage", card=creature.name, iid=creature.instance_id, amount=amount, absorbed=absorbed)
-    return True
+    if remaining <= 0:
+        return None
+    target = game.resolve_damage_target(creature)
+    if target is not creature:
+        game.log.add(
+            "damage_redirected", card=creature.name, iid=creature.instance_id,
+            to=target.name, to_iid=target.instance_id, amount=remaining,
+        )
+    target.type_object.damage += remaining
+    return target
 
 
 def heal(game, creature, amount: int) -> int:
@@ -173,9 +202,8 @@ def heal(game, creature, amount: int) -> int:
 
 
 def sacrifice(game, card):
-    """Destroy a card you control (sacrifice uses the same Destroy pipeline)."""
-    player = game.players[card.controller]
-    if card not in player.play_area.creatures and card not in player.play_area.artifacts:
+    """Destroy a card in play (sacrifice uses the same Destroy pipeline)."""
+    if game.find_play_area(card) is None:
         return False
     destroyed = yield from game.destroy_cards([card])
     return card in destroyed
@@ -183,8 +211,8 @@ def sacrifice(game, card):
 
 def return_to_hand(game, card) -> bool:
     owner = game.players[card.owner]
-    controller = game.players[card.controller]
-    if not controller.play_area.remove(card):
+    area = game.find_play_area(card)
+    if area is None or not area.remove(card):
         return False
     game.leave_play(card)
     owner.hand.add(card)

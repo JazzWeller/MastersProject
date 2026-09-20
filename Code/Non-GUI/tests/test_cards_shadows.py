@@ -27,6 +27,18 @@ class TestShadows(unittest.TestCase):
         self.assertEqual(p1.aember, 2)
         self.assertEqual(p2.aember, 1)
 
+    def test_bait_and_switch_repeats_at_most_once_even_with_a_large_gap(self):
+        # MRB 18.3 errata: repeats the preceding effect AT MOST ONCE (two
+        # steals total), never loops until the gap closes.
+        game = new_game()
+        p1, p2 = game.players[1], game.players[2]
+        p2.aember = 10
+        p1.aember = 0
+        card = make_card("Bait and Switch", 1)
+        run_hook(game, named.bait_and_switch, card)
+        self.assertEqual(p1.aember, 2)
+        self.assertEqual(p2.aember, 8)
+
     def test_bait_and_switch_steals_nothing_when_not_behind(self):
         # Printed card: the "opponent has more" check comes before the first steal.
         game = new_game()
@@ -124,7 +136,7 @@ class TestShadows(unittest.TestCase):
         game = new_game()
         game.players[2].aember = 2
         noddy = put_creature(game, 1, "Noddy the Thief", exhausted=False)
-        self.assertTrue(noddy.Elusive)
+        self.assertIn("elusive", game.get_keywords(noddy))
         run_hook(game, noddy.card_def.on_action, noddy)
         self.assertEqual(game.players[1].aember, 1)
 
@@ -132,7 +144,7 @@ class TestShadows(unittest.TestCase):
         game = new_game()
         game.players[2].aember = 5
         bruno = put_creature(game, 1, "Old Bruno")
-        self.assertTrue(bruno.Elusive)
+        self.assertIn("elusive", game.get_keywords(bruno))
         run_hook(game, bruno.card_def.on_play, bruno)
         self.assertEqual(bruno.aember_captured, 3)
         self.assertEqual(game.players[2].aember, 2)
@@ -222,7 +234,7 @@ class TestShadows(unittest.TestCase):
         game = new_game()
         p1, p2 = game.players[1], game.players[2]
         p2.aember = 9
-        card = make_card("Too Much To Protect", 1)
+        card = make_card("Too Much to Protect", 1)
         run_hook(game, named.too_much_to_protect, card)
         self.assertEqual(p1.aember, 3)
         self.assertEqual(p2.aember, 6)
@@ -231,7 +243,7 @@ class TestShadows(unittest.TestCase):
         game = new_game()
         p1, p2 = game.players[1], game.players[2]
         p2.aember = 4
-        card = make_card("Too Much To Protect", 1)
+        card = make_card("Too Much to Protect", 1)
         run_hook(game, named.too_much_to_protect, card)
         self.assertEqual(p1.aember, 0)
         self.assertEqual(p2.aember, 4)
@@ -240,7 +252,7 @@ class TestShadows(unittest.TestCase):
         game = new_game()
         game.players[2].aember = 3
         urchin = put_creature(game, 1, "Urchin")
-        self.assertTrue(urchin.Elusive)
+        self.assertIn("elusive", game.get_keywords(urchin))
         run_hook(game, urchin.card_def.on_play, urchin)
         self.assertEqual(game.players[1].aember, 1)
 

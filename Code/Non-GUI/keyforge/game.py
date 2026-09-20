@@ -37,6 +37,13 @@ class Game:
         self.active_player_id = 1
         self.turn_number = 0
         self._first_player = 1
+        # Harland Mindlock-style "until this leaves play" control changes:
+        # source card instance_id -> [(controlled_card, original_pid), ...]
+        self._temp_control: dict = {}
+        # Zero-arg callables run once at the active player's next cleanup,
+        # for one-off "remainder of the turn" effects that don't fit the
+        # DurationEffect model (Spectral Tunneler).
+        self._end_of_turn_cleanups: list = []
         self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
@@ -97,16 +104,76 @@ class Game:
         choice = yield Decision(player, DecisionKind.ORDER_EFFECTS, prompt, items, len(items), len(items))
         return choice
 
+    def choose_number(self, player, prompt, numbers):
+        numbers = list(numbers)
+        if not numbers:
+            return None
+        if len(numbers) == 1:
+            return numbers[0]
+        choice = yield Decision(player, DecisionKind.CHOOSE_NUMBER, prompt, numbers, 1, 1)
+        return choice
+
+    def choose_mode(self, player, prompt, modes):
+        modes = list(modes)
+        if not modes:
+            return None
+        if len(modes) == 1:
+            return modes[0]
+        choice = yield Decision(player, DecisionKind.CHOOSE_MODE, prompt, modes, 1, 1)
+        return choice
+
     # ------------------------------------------------------- get funcs ----
 
     def get_power(self, card: Card) -> int:
-        return card.type_object.base_power
+        bonus = card.power_counters
+        if isinstance(card.type_object, CreatureType):
+            bonus += sum(upg.card_def.power_bonus for upg in card.type_object.upgrades)
+        return max(0, card.type_object.base_power + bonus)
 
     def get_armor(self, card: Card) -> int:
-        return card.type_object.base_armor
+        return max(0, card.type_object.base_armor)
+
+    def get_keywords(self, card: Card) -> frozenset:
+        """Printed keywords plus anything granted by attached upgrades
+        (Ring of Invisibility, Experimental Therapy): elusive, skirmish,
+        taunt, poison, versatile. Hazardous has a value, not just a
+        presence/absence, so it's computed separately by `get_hazardous`."""
+        kw = set(card.card_def.keywords)
+        if isinstance(card.type_object, CreatureType):
+            for upg in card.type_object.upgrades:
+                kw |= set(upg.card_def.grants_keywords)
+        return frozenset(kw)
+
+    def get_hazardous(self, card: Card) -> int:
+        # Hazardous is summed across every source on the creature (per the
+        # project's own Phase 1.1 plan), not capped at the single largest
+        # one -- deck-building allows duplicates, so a creature could carry
+        # more than one hazardous-granting upgrade (e.g. two Flame-Wreathed).
+        if not isinstance(card.type_object, CreatureType):
+            return 0
+        return sum(upg.card_def.hazardous for upg in card.type_object.upgrades)
+
+    def get_effective_house(self, card: Card) -> House:
+        """The house a card counts as for playability/CanBeUsed purposes
+        (Sneklifter's re-housing -- moot in this pool, since every deck
+        already has all three houses, but implemented for correctness)."""
+        return card.house_override or card.house
 
     def player_houses(self, pid: int) -> List[House]:
         return sorted({c.house for c in self.players[pid].all_cards}, key=lambda h: h.value)
+
+    def find_play_area(self, card: Card):
+        """Whichever player's `PlayArea` currently physically contains
+        `card`, or None if it isn't in play. Looked up by membership, not by
+        `card.controller` -- `use_artifact_ability` temporarily repoints
+        `controller` to the borrowing player for "as if it were yours"
+        effects (Poltergeist, Remote Access, Nexus), while the card itself
+        never actually moves out of its real controller's play area."""
+        for pid in (1, 2):
+            area = self.players[pid].play_area
+            if card in area.creatures or card in area.artifacts:
+                return area
+        return None
 
     def all_creatures(self, scope: str, source_card: Card) -> List[Card]:
         pid = source_card.controller
@@ -115,6 +182,24 @@ class Game:
         if scope == "enemy":
             return list(self.players[3 - pid].play_area.creatures)
         return list(self.players[1].play_area.creatures) + list(self.players[2].play_area.creatures)
+
+    def legal_fight_targets(self, attacker: Card) -> List[Card]:
+        """Enemy creatures `attacker` may fight: all of them, minus any
+        creature that is the *neighbor* of a Taunt creature (unless that
+        neighbor itself has Taunt) -- Taunt protects neighbors, not itself.
+        Empty if `attacker`'s controller can't fight at all (Foggify)."""
+        if not self.players[attacker.controller].get_can_fight(self):
+            return []
+        opponent = self.players[3 - attacker.controller]
+        creatures = list(opponent.play_area.creatures)
+        protected = set()
+        for c in creatures:
+            if "taunt" not in self.get_keywords(c):
+                continue
+            for neighbor in opponent.play_area.neighbors(c):
+                if "taunt" not in self.get_keywords(neighbor):
+                    protected.add(neighbor.instance_id)
+        return [c for c in creatures if c.instance_id not in protected]
 
     # ------------------------------------------------------------ setup ----
 
@@ -125,16 +210,32 @@ class Game:
             self.players[pid].all_cards = list(cards)
             self.players[pid].deck = Deck(cards)
             self.players[pid].deck.shuffle(self.rng)
+            if self.config.starting_chains:
+                self.players[pid].chains = self.config.starting_chains.get(pid, 0)
         if self.config.first_player in (1, 2):
             first = self.config.first_player
         else:
             first = self.rng.choice([1, 2])
         self._first_player = first
         second = 3 - first
-        steps.draw(self, self.players[first], 7)
-        steps.draw(self, self.players[second], 6)
+        self._draw_opening_hand(first, 7)
+        self._draw_opening_hand(second, 6)
         for pid in (first, second):
             yield from self._maybe_mulligan(pid)
+
+    def _draw_opening_hand(self, pid: int, base_size: int) -> None:
+        """Opening hand size, reduced by starting chains the same way a
+        normal draw step is (see `_draw_step`): 1 fewer card per 6 chains
+        (rounded up), then shed one chain. Used by the Reversal/Adaptive
+        match formats, where a bid-winner can start a game with chains."""
+        player = self.players[pid]
+        n = base_size
+        if player.chains > 0:
+            penalty = math.ceil(player.chains / 6)
+            n = max(0, n - penalty)
+            player.chains -= 1
+            self.log.add("shed_chain", player=pid, fewer=penalty, total=player.chains, source="opening hand")
+        steps.draw(self, player, n)
 
     def _maybe_mulligan(self, pid: int):
         player = self.players[pid]
@@ -167,32 +268,21 @@ class Game:
         self.active_player_id = pid
         self.log.add("turn_start", player=pid, turn=self.turn_number)
 
-        # Step 1: forge a key
+        # Step 1: forge a key. A routine "not enough Æmber yet" isn't logged
+        # (that's normal, expected state almost every early turn); only a
+        # notable block -- affordable but disabled (Miasma) -- is.
         cost = player.get_key_forge_cost(self)
         if player.aember >= cost:
             if player.get_can_key_forge(self):
-                player.aember -= cost
-                player.keys += 1
-                self.log.add("forge_key", player=pid, keys=player.keys, cost=cost, turn=self.turn_number)
-                if player.keys >= 3:
-                    self.result = {"winner": pid, "turns": self.turn_number, "reason": "3 keys"}
+                yield from self._pay_and_forge_key(pid, cost)
+                if self.result is not None:
                     return True
             else:
                 source = self._effect_source("CanKeyForge", pid)
                 self.log.add("forge_skipped", player=pid, aember=player.aember, cost=cost, source=source)
 
         # Step 2: choose a house
-        forced = player.get_house_selection(self)
-        if forced is not None:
-            house = forced
-            self.log.add("house_forced", player=pid, house=house.value, source=self._effect_source("HouseSelection", pid))
-        else:
-            options = self.player_houses(pid)
-            house = yield Decision(pid, DecisionKind.CHOOSE_HOUSE, "Choose your house", options, 1, 1)
-        player.selected_house = house
-        for c in player.play_area.all_cards():
-            c.CanBeUsed = c.house == house
-        self.log.add("choose_house", player=pid, house=house.value)
+        yield from self._choose_house_step(pid)
 
         # Step 3: optional archive pickup
         if len(player.archive) > 0:
@@ -211,15 +301,45 @@ class Game:
             if isinstance(choice, EndTurn):
                 break
             yield from self._resolve_action(pid, choice)
+            if self.result is not None:  # a card played/used mid-turn forged a winning key
+                return True
 
         # Step 5: cleanup
-        self._cleanup_turn(pid)
+        yield from self._cleanup_turn(pid)
         # Step 6: draw
         self._draw_step(pid)
         return False
 
+    def _choose_house_step(self, pid: int):
+        player = self.players[pid]
+        forced = player.get_house_selection(self)
+        cannot = player.get_cannot_choose_houses(self)
+        if forced is not None and forced not in cannot:
+            house = forced
+            self.log.add("house_forced", player=pid, house=house.value, source=self._effect_source("HouseSelection", pid))
+        else:
+            options = [h for h in self.player_houses(pid) if h not in cannot]
+            house = None
+            if options:
+                house = yield Decision(pid, DecisionKind.CHOOSE_HOUSE, "Choose your house", options, 1, 1)
+        player.selected_house = house
+        for c in player.play_area.all_cards():
+            c.CanBeUsed = house is not None and (self.get_effective_house(c) == house or "versatile" in self.get_keywords(c))
+        self.log.add("choose_house", player=pid, house=house.value if house else None)
+
+    def reveal_hand(self, target_pid: int, viewer_pid: int, source=None) -> None:
+        """Psychic Bug, Imperial Traitor, A Fair Game: lets `viewer_pid`
+        see `target_pid`'s hand through `view.build_view`, until the end
+        of the current turn."""
+        self.players[target_pid].hand_revealed_to.add(viewer_pid)
+        self.log.add(
+            "reveal_hand", player=target_pid, viewer=viewer_pid,
+            source=(source.name if source is not None else None),
+        )
+
     def _cleanup_turn(self, pid: int):
         player = self.players[pid]
+        yield from self._fire_event("end_of_turn", {"player": pid})
         for c in player.play_area.all_cards():
             c.Exhausted = False
             c.CanBeUsed = False
@@ -227,8 +347,12 @@ class Game:
         for p in self.players.values():
             for c in p.play_area.creatures:
                 c.type_object.armor_used_this_turn = 0
+            p.hand_revealed_to.clear()
         player.reset_turn_counters()
         self.active_effects.end_of_turn_tick()
+        cleanups, self._end_of_turn_cleanups = self._end_of_turn_cleanups, []
+        for fn in cleanups:
+            fn()
 
     def _draw_step(self, pid: int):
         player = self.players[pid]
@@ -241,8 +365,97 @@ class Game:
             penalty = math.ceil(player.chains / 6)
             n -= penalty
             player.chains -= 1
-            self.log.add("shed_chain", player=pid, fewer=penalty, total=player.chains)
+            self.log.add("shed_chain", player=pid, fewer=penalty, total=player.chains, source="draw step")
         steps.draw(self, player, max(0, n), source="Hand refill")
+
+    # ---------------------------------------------------------- forging ----
+
+    def _stored_key_sources(self, player: Player) -> List[Card]:
+        return [c for c in player.play_area.artifacts if c.card_def.spendable_for_keys and c.aember_stored > 0]
+
+    def _pay_forge_cost(self, pid: int, cost: int):
+        """Pays `cost` from pool Æmber, plus stored-on-artifact Æmber
+        (Pocket Universe, Safe Place) if the pool falls short. Returns False
+        without effect if `pid` can't afford it even with those sources."""
+        player = self.players[pid]
+        if player.aember >= cost:
+            player.aember -= cost
+        else:
+            shortfall_amt = cost - player.aember
+            sources = self._stored_key_sources(player)
+            if sum(c.aember_stored for c in sources) < shortfall_amt:
+                return False
+            order = sources
+            if len(sources) > 1:
+                order = yield from self.order_effects(
+                    pid, sources, "Choose which cards to spend stored Æmber from first, toward the shortfall"
+                )
+            player.aember = 0
+            remaining = shortfall_amt
+            for c in order:
+                take = min(remaining, c.aember_stored)
+                c.aember_stored -= take
+                remaining -= take
+                self.log.add("spend_stored_aember", player=pid, card=c.name, iid=c.instance_id, amount=take)
+                if remaining <= 0:
+                    break
+        self._credit_forge_payment(pid, cost)
+        return True
+
+    def _credit_forge_payment(self, pid: int, cost: int) -> None:
+        """The Sting: redirects Æmber `pid` spends forging a key to The
+        Sting's controller instead of letting it vanish into the supply."""
+        if cost <= 0:
+            return
+        redirects = [e for e in self.active_effects.duration_effects_for("RedirectsForgePayment", pid) if e.is_active(self)]
+        if not redirects:
+            return
+        receiver = self.players[redirects[0].value]
+        receiver.aember += cost
+        self.log.add("gain", player=receiver.id, amount=cost, source="forge payment")
+
+    def _pay_and_forge_key(self, pid: int, cost: int, source=None):
+        """Pays `cost` and forges a key, checking the 3-keys win condition.
+        Returns False (no effect) if `pid` can't afford it."""
+        ok = yield from self._pay_forge_cost(pid, cost)
+        if not ok:
+            return False
+        player = self.players[pid]
+        player.keys += 1
+        self.log.add(
+            "forge_key", player=pid, keys=player.keys, cost=cost, turn=self.turn_number,
+            source=(source.name if source is not None else None),
+        )
+        yield from self._fire_event("key_forged", {"player": pid})
+        if player.keys >= 3:
+            self.result = {"winner": pid, "turns": self.turn_number, "reason": "3 keys"}
+        return True
+
+    def forge_key(self, pid: int, cost_modifier: int = 0, source=None):
+        """Forges a key outside the normal turn step, at a modified current
+        cost (Key of Darkness). Does NOT check CanKeyForge: Miasma and The
+        Sting say "skip your forge a key step", not "you cannot forge a
+        key" -- that only disables Step 1 of the turn (`_take_turn`), and
+        must not block a card effect that forges one directly. Logs a
+        shortfall and returns False if forging is unaffordable."""
+        player = self.players[pid]
+        cost = max(0, player.get_key_forge_cost(self) + cost_modifier)
+        ok = yield from self._pay_and_forge_key(pid, cost, source=source)
+        if not ok and source is not None:
+            steps.shortfall(
+                self, source,
+                f"can't forge a key: {{pos:{pid}}} Æmber is {player.aember}, and it costs {cost}",
+                "Not enough Æmber",
+            )
+        return ok
+
+    def forged_key_on_turn(self, pid: int, turn_number: int) -> bool:
+        """Whether `pid` forged a key on their turn numbered `turn_number`
+        (Key Hammer, Tendrils of Pain: 'forged a key on their previous turn')."""
+        return any(
+            e.kind == "forge_key" and e.data.get("player") == pid and e.data.get("turn") == turn_number
+            for e in self.log.events
+        )
 
     # ----------------------------------------------------- legal actions ----
 
@@ -279,6 +492,9 @@ class Game:
             return "Not your turn"
         if self.first_turn_limited(pid):
             return "First turn: you may play or discard only one card"
+        if not player.get_can_play_cards(self):
+            source = self._effect_source("CanPlayCards", pid)
+            return "You cannot play cards this turn" + (f" ({source})" if source else "")
         house = player.selected_house
         allowance = player.get_non_logos_cards_playable(self)
         if not ((card.house == house) or (card.house != House.LOGOS and allowance > 0)):
@@ -297,11 +513,16 @@ class Game:
             return "No creature to attach it to"
         if not self._rule_of_six_ok(player, card.name):
             return "Rule of six: already played or used 6 times this turn"
+        if card.card_def.play_cost_aember > player.aember:
+            return f"Costs {card.card_def.play_cost_aember} Æmber to play (you have {player.aember})"
+        if card.type == CardType.ARTIFACT:
+            toll = player.get_artifact_play_toll(self)
+            if toll is not None and toll[0] > player.aember:
+                return f"Costs {toll[0]} Æmber to play (Customs Office) and you have {player.aember}"
         return None
 
     def _legal_actions(self, pid: int):
         player = self.players[pid]
-        opponent = self.players[3 - pid]
         house = player.selected_house
         actions = []
         limited_now = self.first_turn_limited(pid)
@@ -310,21 +531,24 @@ class Game:
             for card in player.hand.cards():
                 if self.why_not_playable(pid, card) is None:
                     actions.append(PlayCard(card))
-                if card.house == house:
+                if house is not None and card.house == house:
                     actions.append(DiscardCard(card))
 
+        cannot_use = player.get_cannot_use_cards(self)
         for card in player.play_area.creatures:
-            if card.CanBeUsed and not card.Exhausted and self._rule_of_six_ok(player, card.name):
+            if not cannot_use and card.CanBeUsed and not card.Exhausted and self._rule_of_six_ok(player, card.name):
                 actions.append(Reap(card))
-                if opponent.play_area.creatures:
+                if self.legal_fight_targets(card):
                     actions.append(Fight(card))
-                if card.card_def.on_action is not None:
+                if card.card_def.on_action is not None or card.granted_action is not None:
                     actions.append(UseAction(card))
-            if not card.Exhausted and card.card_def.on_omni is not None and self._rule_of_six_ok(player, card.name):
+            if not cannot_use and not card.Exhausted and card.card_def.on_omni is not None and self._rule_of_six_ok(player, card.name):
                 actions.append(UseOmni(card))
 
+        toll = player.get_artifact_use_toll(self)
+        can_afford_toll = toll is None or player.aember >= toll[0]
         for card in player.play_area.artifacts:
-            if not card.Exhausted:
+            if not cannot_use and not card.Exhausted and can_afford_toll:
                 if card.CanBeUsed and card.card_def.on_action is not None and self._rule_of_six_ok(player, card.name):
                     actions.append(UseAction(card))
                 if card.card_def.on_omni is not None and self._rule_of_six_ok(player, card.name):
@@ -377,6 +601,8 @@ class Game:
 
     def _play_card(self, pid: int, card: Card, from_deck_top: bool = False):
         player = self.players[pid]
+        if not player.get_can_play_cards(self):
+            return False
         if not self._rule_of_six_ok(player, card.name):
             return False
         if card.type == CardType.CREATURE and not player.get_can_play_creatures(self):
@@ -386,6 +612,12 @@ class Game:
         if card.type == CardType.UPGRADE:
             targets = list(self.players[1].play_area.creatures) + list(self.players[2].play_area.creatures)
             if not targets:
+                return False
+        if card.card_def.play_cost_aember > player.aember:
+            return False
+        if card.type == CardType.ARTIFACT:
+            toll = player.get_artifact_play_toll(self)
+            if toll is not None and toll[0] > player.aember:
                 return False
 
         house = player.selected_house
@@ -422,14 +654,29 @@ class Game:
             flank=flank,
             from_deck_top=from_deck_top,
         )
+        if cdef.play_cost_aember:
+            player.aember -= cdef.play_cost_aember
+            self.log.add("pay", player=pid, amount=cdef.play_cost_aember, card=card.name, iid=card.instance_id)
+        if card.type == CardType.ARTIFACT:
+            toll = player.get_artifact_play_toll(self)
+            if toll is not None:
+                amount, receiver_pid = toll
+                player.aember -= amount
+                self.players[receiver_pid].aember += amount
+                self.log.add("pay", player=pid, amount=amount, card=card.name, iid=card.instance_id, to_player=receiver_pid)
 
         if card.type == CardType.CREATURE:
             player.play_area.add_creature(card, flank)
-            card.Exhausted = True
+            # Speed Sigil: the first creature played each turn enters ready.
+            first_creature_this_turn = player.creatures_played_this_turn == 0
+            player.creatures_played_this_turn += 1
+            card.Exhausted = not (first_creature_this_turn and player.get_first_creature_enters_ready(self))
             # Step 2 of the turn only flags cards already in play; anything
             # entering play later must be flagged too, or a card readied on
             # entry (Silvertooth) could never be used that turn.
-            card.CanBeUsed = card.house == player.selected_house
+            card.CanBeUsed = player.selected_house is not None and (
+                self.get_effective_house(card) == player.selected_house or "versatile" in self.get_keywords(card)
+            )
             if cdef.register_passive:
                 cdef.register_passive(self, card)
             if card.aember_on_play:
@@ -438,7 +685,9 @@ class Game:
         elif card.type == CardType.ARTIFACT:
             player.play_area.add_artifact(card)
             card.Exhausted = True
-            card.CanBeUsed = card.house == player.selected_house
+            card.CanBeUsed = player.selected_house is not None and (
+                self.get_effective_house(card) == player.selected_house or "versatile" in self.get_keywords(card)
+            )
             if cdef.register_passive:
                 cdef.register_passive(self, card)
             if card.aember_on_play:
@@ -447,9 +696,17 @@ class Game:
         elif card.type == CardType.UPGRADE:
             card.type_object.host = host
             host.type_object.upgrades.append(card)
-            card.controller = host.controller
+            # `card.controller` stays `pid` (the player who attached it,
+            # set above) rather than snapping to the host's controller --
+            # an upgrade can attach to an enemy creature (Collar of
+            # Subordination), and its own register_passive needs to see
+            # that the two differ to know it should transfer control.
+            # Every other upgrade's granted ability reads `host.controller`
+            # directly, never the upgrade card's own, so this is safe.
             if cdef.register_passive:
                 cdef.register_passive(self, card)
+            if cdef.on_play is not None:
+                yield from cdef.on_play(self, card)
             if card.aember_on_play:
                 player.aember += card.aember_on_play
             yield from self._run_play_trigger_check(card)
@@ -514,6 +771,9 @@ class Game:
     def _effect_play_refusal(self, player: Player, card: Card) -> Optional[str]:
         """Why `_play_card` would refuse `card` when an effect plays it (the
         house and hand-size limits don't apply there), or None."""
+        if not player.get_can_play_cards(self):
+            src = self._effect_source("CanPlayCards", player.id)
+            return "cards can't be played this turn" + (f" ({src})" if src else "")
         if not self._rule_of_six_ok(player, card.name):
             return f"{card.name} has already been played or used 6 times this turn (rule of six)"
         if card.type == CardType.CREATURE and not player.get_can_play_creatures(self):
@@ -524,29 +784,78 @@ class Game:
             return "actions can't be played this turn" + (f" ({src})" if src else "")
         if card.type == CardType.UPGRADE and not (self.players[1].play_area.creatures or self.players[2].play_area.creatures):
             return "it is an upgrade and there is no creature to attach it to"
+        if card.card_def.play_cost_aember > player.aember:
+            return f"it costs {card.card_def.play_cost_aember} Æmber to play and {{pos:{player.id}}} Æmber is {player.aember}"
+        if card.type == CardType.ARTIFACT:
+            toll = player.get_artifact_play_toll(self)
+            if toll is not None and toll[0] > player.aember:
+                return f"Customs Office charges {toll[0]}Æ to play an artifact and {{pos:{player.id}}} Æmber is {player.aember}"
         return None
 
     # --------------------------------------------------- reap/fight/use ----
 
+    def _consume_stun_if_present(self, card: Card) -> bool:
+        """Experimental Therapy, Ozmo: the next use of a stunned creature
+        only exhausts it and clears the stun -- no effect resolves."""
+        if not card.stunned:
+            return False
+        card.stunned = False
+        card.Exhausted = True
+        self.log.add("stun_consumed", card=card.name, iid=card.instance_id)
+        return True
+
+    def _pay_artifact_use_toll(self, pid: int, card: Card) -> None:
+        """Tentacus: the opponent must pay its controller 1Æ to use an
+        artifact. Only `_legal_actions` offers this when it's affordable,
+        so this always succeeds when reached."""
+        if card.type != CardType.ARTIFACT:
+            return
+        toll = self.players[pid].get_artifact_use_toll(self)
+        if toll is None:
+            return
+        amount, receiver_pid = toll
+        self.players[pid].aember -= amount
+        self.players[receiver_pid].aember += amount
+        self.log.add("pay", player=pid, amount=amount, card=card.name, iid=card.instance_id, to_player=receiver_pid)
+
     def _use_action(self, pid: int, card: Card):
         player = self.players[pid]
+        if self._consume_stun_if_present(card):
+            player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
+            return
+        self._pay_artifact_use_toll(pid, card)
         card.Exhausted = True
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
         self.log.add("use_action", player=pid, card=card.name, iid=card.instance_id)
-        yield from card.card_def.on_action(self, card)
+        effect = card.card_def.on_action or card.granted_action
+        yield from effect(self, card)
+        if card.type == CardType.ARTIFACT:
+            yield from self._fire_event("artifact_used", {"player": pid, "card": card})
 
     def _use_omni(self, pid: int, card: Card):
         player = self.players[pid]
+        if self._consume_stun_if_present(card):
+            player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
+            return
+        self._pay_artifact_use_toll(pid, card)
         card.Exhausted = True
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
         self.log.add("use_omni", player=pid, card=card.name, iid=card.instance_id)
         yield from card.card_def.on_omni(self, card)
+        if card.type == CardType.ARTIFACT:
+            yield from self._fire_event("artifact_used", {"player": pid, "card": card})
 
     def _reap(self, pid: int, card: Card):
         player = self.players[pid]
+        if self._consume_stun_if_present(card):
+            player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
+            return
         card.Exhausted = True
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
-        player.aember += 1
+        if player.get_reap_gain_becomes_steal(self):
+            steps.steal(self, self.players[3 - pid], player, 1, source=card)
+        else:
+            player.aember += 1
         self.log.add("reap", player=pid, card=card.name, iid=card.instance_id)
         cdef = card.card_def
         if cdef.on_reap is not None:
@@ -556,10 +865,19 @@ class Game:
 
     def _fight(self, pid: int, attacker: Card):
         player = self.players[pid]
-        opponent = self.players[3 - pid]
+        if self._consume_stun_if_present(attacker):
+            player.used_this_turn[attacker.name] = player.used_this_turn.get(attacker.name, 0) + 1
+            return
         attacker.Exhausted = True
         player.used_this_turn[attacker.name] = player.used_this_turn.get(attacker.name, 0) + 1
-        targets = list(opponent.play_area.creatures)
+
+        # before_fight triggers (Evasion Sigil) may cancel the fight outright.
+        before = {"attacker": attacker, "cancelled": False}
+        yield from self._fire_event("before_fight", before)
+        if before["cancelled"]:
+            return
+
+        targets = self.legal_fight_targets(attacker)
         if not targets:
             return
         choice = yield from self.choose_cards(pid, f"Choose a target for {attacker.name} to fight", targets, 1, 1)
@@ -576,7 +894,18 @@ class Game:
         if attacker in destroyed or target in destroyed:
             return
 
-        skip_fight = target.Elusive and not target.fought_this_turn and not target.IgnoreElusive
+        # Hazardous: before the fight itself, the defender deals its
+        # hazardous damage to the attacker (Flame-Wreathed).
+        hazardous_n = self.get_hazardous(target)
+        if hazardous_n > 0:
+            steps.deal_damage(self, attacker, hazardous_n)
+            destroyed = yield from self.check_destroyed([attacker, target])
+            if attacker in destroyed:
+                return
+
+        target_keywords = self.get_keywords(target)
+        attacker_keywords = self.get_keywords(attacker)
+        skip_fight = "elusive" in target_keywords and not target.fought_this_turn and not target.IgnoreElusive
         target.fought_this_turn = True
         if skip_fight:
             steps.shortfall(
@@ -585,11 +914,49 @@ class Game:
                 "Elusive: no damage",
             )
         if not skip_fight:
-            if not attacker.Skirmish:
-                steps.deal_damage(self, attacker, self.get_power(target))
-            if not target.Skirmish:
-                steps.deal_damage(self, target, self.get_power(attacker))
-            destroyed = yield from self.check_destroyed([attacker, target])
+            # Skirmish ("when you use this creature to fight, it is dealt no
+            # damage in return") only protects a creature when IT is the one
+            # doing the fighting -- i.e. it gates whether the attacker takes
+            # the target's counter-damage, not whether the target takes the
+            # attacker's damage. A skirmish creature being attacked (as the
+            # target) has no special protection from that.
+            # Track whichever creature actually took each hit -- a redirect
+            # (Shadow Self) can mean that isn't `attacker`/`target` -- so
+            # the destroy check below covers it too, not just the two
+            # original fighters.
+            hits = []
+            if "skirmish" not in attacker_keywords:
+                hit = steps.deal_damage(self, attacker, self.get_power(target))
+                if hit is not None:
+                    hits.append(hit)
+                    # Poison kills whichever creature actually took the
+                    # damage, and only if any damage got through armor.
+                    if "poison" in target_keywords and hit in self.players[hit.controller].play_area.creatures:
+                        hit.type_object.damage = max(hit.type_object.damage, self.get_power(hit))
+            # Gabos Longarms: a before_fight choice can redirect the
+            # attacker's own damage output to a third creature. Shadow Self
+            # ("deals no damage when fighting") deals none at all.
+            if "no_fight_damage" not in attacker_keywords:
+                dmg_target = attacker.redirect_fight_damage_to or target
+                hit = steps.deal_damage(self, dmg_target, self.get_power(attacker))
+                if hit is not None:
+                    hits.append(hit)
+                    if "poison" in attacker_keywords and hit in self.players[hit.controller].play_area.creatures:
+                        hit.type_object.damage = max(hit.type_object.damage, self.get_power(hit))
+            attacker.redirect_fight_damage_to = None
+            destroyed = yield from self.check_destroyed([attacker, target] + hits)
+
+            # "destroyed fighting X" triggers (Overlord Greking, Stealer of
+            # Souls, Brain Eater): fire on whichever side survived, naming
+            # the side that died. Not fired if both die.
+            survivor, victim = None, None
+            if attacker in destroyed and target not in destroyed:
+                survivor, victim = target, attacker
+            elif target in destroyed and attacker not in destroyed:
+                survivor, victim = attacker, target
+            if survivor is not None and survivor.card_def.on_destroyed_fighting is not None:
+                yield from survivor.card_def.on_destroyed_fighting(self, survivor, victim)
+
             if attacker in destroyed:
                 return
 
@@ -604,13 +971,17 @@ class Game:
         possible (Dominator Bauble). Ignores house restrictions."""
         pid = card.controller
         player = self.players[pid]
-        opponent = self.players[3 - pid]
-        if card.Exhausted or not self._rule_of_six_ok(player, card.name):
+        if card.Exhausted or not self._rule_of_six_ok(player, card.name) or player.get_cannot_use_cards(self):
+            return
+        if card.stunned:
+            # A stunned creature has exactly one "use" -- itself, consumed
+            # for no effect -- so there's no menu of options to offer.
+            yield from self._reap(pid, card)
             return
         options = ["reap"]
-        if opponent.play_area.creatures:
+        if self.legal_fight_targets(card):
             options.append("fight")
-        if card.card_def.on_action is not None:
+        if card.card_def.on_action is not None or card.granted_action is not None:
             options.append("action")
         if len(options) > 1:
             choice = yield from self.choose_cards(pid, f"Use {card.name}", options, 1, 1)
@@ -641,7 +1012,13 @@ class Game:
     def destroy_cards(self, cards: List[Card]):
         batch = []
         for c in cards:
-            if c.destroyed:
+            # `.destroyed` only dedupes within one batch that's still being
+            # resolved -- it's reset by `reset_on_leave_play` as soon as a
+            # card actually leaves play, so a card destroyed earlier this
+            # turn (e.g. by its own sacrifice action, mid-resolution of an
+            # effect like Poltergeist that destroys it again afterward)
+            # needs this separate still-in-play check too.
+            if c.destroyed or self.find_play_area(c) is None:
                 continue
             c.destroyed = True
             batch.append(c)
@@ -663,22 +1040,60 @@ class Game:
                 yield from extra(self, c)
             else:
                 yield from item.card_def.on_destroyed(self, item)
+        # A "each time a creature is destroyed" source (Soul Snatcher, Tolas)
+        # that is itself destroyed in this same batch does not trigger at
+        # all for the batch -- it isn't around to see any of it happen,
+        # including its own death (confirmed ruling: Tolas + Gateway to Dis
+        # gains nothing).
+        also_destroyed = set(batch)
+        for c in batch:
+            if isinstance(c.type_object, CreatureType):
+                yield from self._fire_event("creature_destroyed", {"card": c}, exclude_sources=also_destroyed)
         for c in batch:
             self._move_destroyed_card(c)
         return batch
 
+    def _fire_event(self, event_name: str, event_data: dict, exclude_sources=None):
+        """Yields from every registered TriggerEffect for `event_name`
+        (Soul Snatcher/Tolas's 'each time a creature is destroyed', Veylan
+        Analyst's 'each time you use an artifact', Shaffles's end of turn,
+        ...), letting the active player order them if more than one fires."""
+        triggers = [t for t in self.active_effects.triggers_for(event_name)]
+        if exclude_sources:
+            triggers = [t for t in triggers if t.source_card not in exclude_sources]
+        if not triggers:
+            return
+        if len(triggers) > 1:
+            ordered = yield from self.order_effects(self.active_player_id, triggers, f"Choose the order these resolve")
+        else:
+            ordered = triggers
+        for trig in ordered:
+            yield from trig.handler(self, event_data)
+
     def _move_destroyed_card(self, card: Card):
-        controller = self.players[card.controller]
         owner = self.players[card.owner]
         destination = card.destined_zone or "discard"
+        if (
+            destination == "discard"
+            and isinstance(card.type_object, CreatureType)
+            and self.active_effects.insteads_for("discard_destination")
+        ):
+            # Annihilation Ritual: a creature (not an artifact) that would
+            # enter a discard pile from play is purged instead.
+            destination = "purged"
         # Logged first so what leaving play causes (captured Æmber going
         # back) reads after "X is destroyed", not before it.
         self.log.add("destroyed", card=card.name, iid=card.instance_id, destination=destination)
-        if card in controller.play_area.creatures or card in controller.play_area.artifacts:
-            controller.play_area.remove(card)
+        area = self.find_play_area(card)
+        if area is not None:
+            area.remove(card)
             self.leave_play(card)
         if destination == "hand":
             owner.hand.add(card)
+        elif destination == "purged":
+            owner.purged.add(card)
+        elif destination == "deck_top":
+            owner.deck.put_on_top(card)
         else:
             owner.discard.push(card)
 
@@ -697,4 +1112,141 @@ class Game:
             opponent.aember += card.aember_captured
             self.log.add("capture_released", card=card.name, iid=card.instance_id, amount=card.aember_captured, player=opponent.id)
             card.aember_captured = 0
+        if card.aember_stored > 0:
+            # Pocket Universe, Safe Place: stored Æmber vanishes into the
+            # supply on leaving play, unlike captured Æmber (which the
+            # opponent gets).
+            self.log.add("aember_stored_lost", card=card.name, iid=card.instance_id, amount=card.aember_stored)
+        if card.under_cards:
+            for under in card.under_cards:
+                self.players[under.owner].discard.push(under)
+                self.log.add("destroyed", card=under.name, iid=under.instance_id, destination="discard")
+            card.under_cards = []
+        self._revert_temp_control(card)
+        self._return_spangler_purged_cards(card)
         card.reset_on_leave_play()
+
+    def _revert_temp_control(self, source_card: Card) -> None:
+        """Harland Mindlock: creatures it took temporary control of revert
+        to their original controller when it leaves play. The reverted
+        creature always lands on the left flank -- a real flank choice
+        would need `leave_play` to become a generator, which none of its
+        many call sites support; a fixed flank is a deliberate scope trim."""
+        entries = self._temp_control.pop(source_card.instance_id, [])
+        for controlled_card, original_pid in entries:
+            current_pid = controlled_card.controller
+            if controlled_card.destroyed or controlled_card not in self.players[current_pid].play_area.creatures:
+                continue
+            self.players[current_pid].play_area.remove(controlled_card)
+            self.players[original_pid].play_area.add_creature(controlled_card, "left")
+            controlled_card.controller = original_pid
+            self.log.add(
+                "take_control", card=controlled_card.name, iid=controlled_card.instance_id,
+                from_player=current_pid, to_player=original_pid, permanent=True, reverted=True,
+            )
+
+    def _return_spangler_purged_cards(self, source_card: Card) -> None:
+        """Spangler Box: 'If Spangler Box leaves play, return to play all
+        cards purged by Spangler Box.' Also lands on a fixed left flank --
+        see `_revert_temp_control`."""
+        returning = [c for c in self.players[1].purged.cards() + self.players[2].purged.cards() if c.purged_by is source_card]
+        for c in returning:
+            self.players[c.owner].purged.remove(c)
+            c.purged_by = None
+            if c.type == CardType.CREATURE:
+                self.players[c.owner].play_area.add_creature(c, "left")
+            elif c.type == CardType.ARTIFACT:
+                self.players[c.owner].play_area.add_artifact(c)
+            else:
+                self.players[c.owner].discard.push(c)
+                continue
+            c.controller = c.owner
+            c.Exhausted = True
+            if c.card_def.register_passive:
+                c.card_def.register_passive(self, c)
+            self.log.add("put_into_play", card=c.name, iid=c.instance_id, player=c.owner, source=source_card.name)
+
+    def resolve_damage_target(self, creature: Card) -> Card:
+        """Applies any active damage-redirect effects (Shadow Self) to
+        `creature`, returning whichever creature should actually take the
+        damage. Called once, centrally, from `steps.deal_damage`."""
+        for e in self.active_effects.insteads_for("damage_target"):
+            redirect = e.handler(self, creature)
+            if redirect is not None:
+                return redirect
+        return creature
+
+    def take_control(self, card: Card, new_pid: int, until_source: Optional[Card] = None):
+        """Moves `card` to `new_pid`'s control (Smiling Ruth, Sneklifter,
+        Overlord Greking, Harland Mindlock). If `until_source` is given,
+        control reverts to the original controller when that source card
+        leaves play; otherwise the change is permanent. A creature's new
+        controller picks its flank; an artifact just moves over. The old
+        controller is found by physical location (`find_play_area`), not by
+        `card.controller` -- that field is temporarily repointed to the
+        borrower during a "use as if yours" effect (Poltergeist, Remote
+        Access, Nexus), while the card itself hasn't actually moved."""
+        old_area = self.find_play_area(card)
+        if old_area is None:
+            return
+        old_pid = 1 if old_area is self.players[1].play_area else 2
+        if old_pid == new_pid:
+            return
+        new_area = self.players[new_pid].play_area
+        if isinstance(card.type_object, CreatureType):
+            old_area.remove(card)
+            flank = yield from self._choose_flank(new_pid)
+            new_area.add_creature(card, flank)
+        elif card.type == CardType.ARTIFACT:
+            old_area.remove(card)
+            new_area.add_artifact(card)
+        else:
+            return
+        card.controller = new_pid
+        if until_source is not None:
+            self._temp_control.setdefault(until_source.instance_id, []).append((card, old_pid))
+        self.log.add(
+            "take_control", card=card.name, iid=card.instance_id,
+            from_player=old_pid, to_player=new_pid, permanent=until_source is None, reverted=False,
+        )
+
+    def use_artifact_ability(self, card: Card, as_pid: int):
+        """Uses `card`'s Action or Omni ability 'as if it were yours'
+        (Poltergeist, Remote Access, Nexus): the effect resolves as though
+        `as_pid` controlled it, then control reverts -- unlike
+        `take_control`, this is a one-time use, not a lasting change.
+
+        It's `as_pid` doing the using, so the same restrictions a normal
+        use would face apply to them: the rule of six, Skippy Timehog's
+        CannotUseCards, and Tentacus's Æmber toll (paid by `as_pid`, to
+        whoever Tentacus's effect names)."""
+        as_player = self.players[as_pid]
+        ability = card.card_def.on_action or card.card_def.on_omni
+        if (
+            card.Exhausted
+            or ability is None
+            or as_player.get_cannot_use_cards(self)
+            or not self._rule_of_six_ok(as_player, card.name)
+        ):
+            steps.shortfall(self, card, "can't be used: no Action or Omni, already exhausted, or restricted", "Can't use")
+            return
+        toll = as_player.get_artifact_use_toll(self)
+        if toll is not None and toll[0] > as_player.aember:
+            steps.shortfall(self, card, "can't be used: can't afford the Æmber toll to use an artifact", "Can't afford toll")
+            return
+        is_omni = card.card_def.on_action is None
+        original_controller = card.controller
+        card.controller = as_pid
+        self._pay_artifact_use_toll(as_pid, card)
+        card.Exhausted = True
+        as_player.used_this_turn[card.name] = as_player.used_this_turn.get(card.name, 0) + 1
+        self.log.add(
+            "use_omni" if is_omni else "use_action",
+            player=as_pid, card=card.name, iid=card.instance_id, as_if_yours=(as_pid != original_controller),
+        )
+        try:
+            yield from ability(self, card)
+        finally:
+            card.controller = original_controller
+        if card.type == CardType.ARTIFACT:
+            yield from self._fire_event("artifact_used", {"player": as_pid, "card": card})

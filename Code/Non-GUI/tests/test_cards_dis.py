@@ -12,7 +12,7 @@ class TestDis(unittest.TestCase):
         p1 = game.players[1]
         dust_imp = make_card("Dust Imp", 1)
         p1.discard.push(dust_imp)
-        card = make_card("Arise", 1)
+        card = make_card("Arise!", 1)
         run_hook(game, named.arise, card, answers=[House.DIS])
         self.assertIn(dust_imp, p1.hand.cards())
         self.assertNotIn(dust_imp, p1.discard.cards())

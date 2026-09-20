@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from .cards.decks import Deck, deck_from_dict, deck_to_dict, resolve_deck
 from .config import GameConfig
 from .enums import DecisionKind
 
@@ -46,21 +47,34 @@ def decode_choice(decision, encoded) -> Any:
     return decision.options[encoded]
 
 
+def _encode_deck(source) -> Dict[str, Any]:
+    """Embeds the full resolved decklist (not just a preset name), so a
+    replay stays reproducible even if that preset or user deck is edited or
+    deleted later."""
+    return deck_to_dict(resolve_deck(source))
+
+
 def config_to_dict(config: GameConfig) -> Dict[str, Any]:
     return {
-        "decks": list(config.decks),
+        "decks": [_encode_deck(d) for d in config.decks],
         "first_player": config.first_player,
         "seed": config.seed,
         "max_turns": config.max_turns,
+        "starting_chains": dict(config.starting_chains) if config.starting_chains else None,
     }
 
 
 def config_from_dict(data: Dict[str, Any]) -> GameConfig:
+    starting_chains = data.get("starting_chains")
+    raw_decks = data["decks"]
+    # Old records (Phase 1/pre-Milestone-D) stored bare preset-name strings.
+    decks = tuple(d if isinstance(d, str) else deck_from_dict(d) for d in raw_decks)
     return GameConfig(
-        decks=tuple(data["decks"]),
+        decks=decks,
         first_player=data.get("first_player"),
         seed=data.get("seed"),
         max_turns=data.get("max_turns"),
+        starting_chains={int(k): v for k, v in starting_chains.items()} if starting_chains else None,
     )
 
 

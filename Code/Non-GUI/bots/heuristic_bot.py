@@ -25,7 +25,7 @@ from .base import Controller
 
 # Cards whose effect is usually bad to fire blindly.
 _CAREFUL_PLAYS = {"Gateway to Dis", "Three Fates", "Pawn Sacrifice", "One Last Job"}
-_NEVER_USE = {"Timetraveler", "Lifeward"}  # shuffles itself away / sacrifices itself
+_NEVER_USE = {"Timetraveller", "Lifeward"}  # shuffles itself away / sacrifices itself
 
 
 def _power(card: Card) -> int:
@@ -37,9 +37,19 @@ def _remaining(card: Card) -> int:
     return getattr(to, "base_power", 0) - getattr(to, "damage", 0)
 
 
+def _keywords(card: Card) -> set:
+    """Printed keywords plus anything granted by attached upgrades --
+    mirrors `Game.get_keywords` without needing a `Game` reference."""
+    kw = set(card.keywords)
+    for upg in getattr(card.type_object, "upgrades", []):
+        kw |= set(upg.card_def.grants_keywords)
+    return kw
+
+
 class HeuristicBot(Controller):
-    def __init__(self, seed=None):
+    def __init__(self, seed=None, bid_ceiling=4):
         self.rng = random.Random(seed)
+        self.bid_ceiling = bid_ceiling  # chains this bot will offer at most, for a decisively-won deck
 
     # ------------------------------------------------------------ helpers ----
 
@@ -70,7 +80,7 @@ class HeuristicBot(Controller):
         if name == "One Last Job":
             shadows = [c for c in me.creatures if c.house == House.SHADOWS]
             return len(shadows) >= 2 and opp.aember >= len(shadows)
-        if name == "Too Much To Protect":
+        if name == "Too Much to Protect":
             return opp.aember > 6
         if name in ("The Terror",):
             return True
@@ -79,8 +89,8 @@ class HeuristicBot(Controller):
     def _fight_value(self, attacker: Card, target: Card) -> float:
         """Positive when the fight is worth it."""
         kills = _power(attacker) >= _remaining(target)
-        survives = attacker.Skirmish or _power(target) < _remaining(attacker)
-        elusive_blocks = target.Elusive and not target.fought_this_turn
+        survives = "skirmish" in _keywords(attacker) or _power(target) < _remaining(attacker)
+        elusive_blocks = "elusive" in _keywords(target) and not target.fought_this_turn
         if elusive_blocks:
             return -1.0
         if kills and survives:
@@ -94,6 +104,14 @@ class HeuristicBot(Controller):
     def decide(self, view, decision):
         kind = decision.kind
         opts = list(decision.options)
+
+        # Match-level decisions (Reversal/Adaptive) arrive between games,
+        # when `view` is a MatchView with no board to read.
+        if kind == DecisionKind.CHOOSE_FIRST_PLAYER:
+            return "first"  # initiative is generally worth taking
+        if kind == DecisionKind.BID_CHAINS:
+            return self._decide_bid(view, opts)
+
         me, opp = view.me(), view.opponent()
 
         if kind == DecisionKind.MULLIGAN:
@@ -129,7 +147,35 @@ class HeuristicBot(Controller):
         if kind == DecisionKind.CHOOSE_CARDS:
             return self._choose_cards(view, decision, opts)
 
+        if kind == DecisionKind.CHOOSE_NUMBER:
+            # Dance of Doom: prefer the power value that destroys the most
+            # enemy creatures for the fewest friendly ones.
+            def score(n):
+                enemy = sum(1 for c in opp.creatures if _power(c) == n)
+                friendly = sum(1 for c in me.creatures if _power(c) == n)
+                return enemy - friendly
+            return max(opts, key=score)
+
         return self.rng.choice(opts)
+
+    # -------------------------------------------------------- match play ----
+
+    def _bid_ceiling(self, view) -> int:
+        """Chains this bot is willing to offer for the deck that won both
+        games, scaled down the more decisively it won (a deck that closed
+        games out fast is worth less of a handicap to hand the opponent)."""
+        games = [g for g in (getattr(view, "games", None) or []) if g.winner is not None]
+        if not games:
+            return self.bid_ceiling
+        avg_turns = sum(g.turns for g in games) / len(games)
+        scale = max(0.3, min(1.0, 1.4 - avg_turns / 20))
+        return max(1, round(self.bid_ceiling * scale))
+
+    def _decide_bid(self, view, opts):
+        raises = sorted(o for o in opts if isinstance(o, int))
+        if not raises or raises[0] > self._bid_ceiling(view):
+            return "pass"
+        return raises[0]
 
     def _choose_action(self, view, opts):
         me, opp = view.me(), view.opponent()

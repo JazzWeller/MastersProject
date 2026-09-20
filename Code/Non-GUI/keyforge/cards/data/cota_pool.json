@@ -1,0 +1,2659 @@
+[
+  {
+    "number": 53,
+    "name": "A Fair Game",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Discard the top card of your opponent’s deck and reveal their hand. You gain 1Æ for each card of the discarded card’s house revealed this way. Your opponent repeats the preceding effect on you.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-040.png",
+    "phase1": false
+  },
+  {
+    "number": 54,
+    "name": "Arise!",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Choose a house. Return each creature of that house from your discard pile to your hand. Gain 1 chain.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-066.png",
+    "phase1": true
+  },
+  {
+    "number": 55,
+    "name": "Control the Weak",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Choose a house on your opponent’s identity card. Your opponent must choose that house as their active house on their next turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-069.png",
+    "phase1": true
+  },
+  {
+    "number": 56,
+    "name": "Creeping Oblivion",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Purge up to 2 cards from a discard pile.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-042.png",
+    "phase1": true
+  },
+  {
+    "number": 57,
+    "name": "Dance of Doom",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Choose a number. Destroy each creature with power equal to that number.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-057.png",
+    "phase1": false
+  },
+  {
+    "number": 58,
+    "name": "Fear",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Return an enemy creature to its owner’s hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-095.png",
+    "phase1": false
+  },
+  {
+    "number": 59,
+    "name": "Gateway to Dis",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Destroy each creature. Gain 3 chains.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/874-046.png",
+    "phase1": true
+  },
+  {
+    "number": 60,
+    "name": "Gongoozle",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Deal 3D to a creature. If it is not destroyed, its owner discards a random card from their hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-079.png",
+    "phase1": false
+  },
+  {
+    "number": 61,
+    "name": "Guilty Hearts",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Destroy each creature with any Æ on it.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-045.png",
+    "phase1": false
+  },
+  {
+    "number": 62,
+    "name": "Hand of Dis",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Destroy a creature that is not on a flank.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/341-062.png",
+    "phase1": false
+  },
+  {
+    "number": 63,
+    "name": "Hecatomb",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Destroy each Dis creature. Each player gains 1Æ for each creature they controlled that was destroyed this way.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-062.png",
+    "phase1": false
+  },
+  {
+    "number": 64,
+    "name": "Tendrils of Pain",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Deal 1D to each creature. Deal 4D to each creature instead if your opponent forged a key on their previous turn.",
+    "errata": "MRB 18.3 errata",
+    "image": "Phase 2/Cards/Dis/341-064.png",
+    "phase1": false
+  },
+  {
+    "number": 65,
+    "name": "Hysteria",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Return each creature to its owner’s hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-080.png",
+    "phase1": false
+  },
+  {
+    "number": 66,
+    "name": "Key Hammer",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: If your opponent forged a key on their previous turn, unforge it. Your opponent gains 6Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/341-066.png",
+    "phase1": false
+  },
+  {
+    "number": 67,
+    "name": "Mind Barb",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Your opponent discards a random card from their hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-071.png",
+    "phase1": false
+  },
+  {
+    "number": 68,
+    "name": "Pandemonium",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Each undamaged creature captures 1Æ from its opponent.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/874-034.png",
+    "phase1": false
+  },
+  {
+    "number": 69,
+    "name": "Poltergeist",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Use an artifact controlled by any player as if it were yours. Destroy that artifact.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-063.png",
+    "phase1": false
+  },
+  {
+    "number": 70,
+    "name": "Red-Hot Armor",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Each enemy creature with armor loses all of its armor until the end of the turn and is dealt 1D for each point of armor it lost this way.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/886-011.png",
+    "phase1": false
+  },
+  {
+    "number": 71,
+    "name": "Three Fates",
+    "house": "Dis",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Destroy the 3 most powerful creatures.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-066.png",
+    "phase1": true
+  },
+  {
+    "number": 72,
+    "name": "Annihilation Ritual",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Power"
+    ],
+    "keywords": [],
+    "text": "When a creature would enter a discard pile from play, it is purged instead.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-040.png",
+    "phase1": false
+  },
+  {
+    "number": 73,
+    "name": "Dominator Bauble",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Action: Use a friendly creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/874-044.png",
+    "phase1": true
+  },
+  {
+    "number": 74,
+    "name": "Key to Dis",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Omni: Sacrifice Key to Dis. Destroy each creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-063.png",
+    "phase1": false
+  },
+  {
+    "number": 75,
+    "name": "Lash of Broken Dreams",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Weapon"
+    ],
+    "keywords": [],
+    "text": "Action: Keys cost +3Æ during your opponent’s next turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-097.png",
+    "phase1": true
+  },
+  {
+    "number": 76,
+    "name": "Library of the Damned",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "Action: Archive a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-062.png",
+    "phase1": true
+  },
+  {
+    "number": 77,
+    "name": "Lifeward",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Power"
+    ],
+    "keywords": [],
+    "text": "Omni: Sacrifice Lifeward. Your opponent cannot play creatures on their next turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/886-022.png",
+    "phase1": true
+  },
+  {
+    "number": 78,
+    "name": "Sacrificial Altar",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "Action: Purge a friendly Human creature from play. If you do, play a creature from your discard pile.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/855-011.png",
+    "phase1": false
+  },
+  {
+    "number": 79,
+    "name": "Screaming Cave",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "Action: Shuffle your hand and discard pile into your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-052.png",
+    "phase1": false
+  },
+  {
+    "number": 80,
+    "name": "Soul Snatcher",
+    "house": "Dis",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Vehicle"
+    ],
+    "keywords": [],
+    "text": "Each time a creature is destroyed, its owner gains 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/855-013.png",
+    "phase1": false
+  },
+  {
+    "number": 81,
+    "name": "Charette",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "Play: Capture 3Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-091.png",
+    "phase1": false
+  },
+  {
+    "number": 82,
+    "name": "Drumble",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Imp"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nPlay: If your opponent has 7Æ or more, capture all of it.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-057.png",
+    "phase1": false
+  },
+  {
+    "number": 83,
+    "name": "Dust Imp",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Imp"
+    ],
+    "keywords": [],
+    "text": "Destroyed: Gain 2Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-068.png",
+    "phase1": true
+  },
+  {
+    "number": 84,
+    "name": "Eater of the Dead",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After Fight/After Reap: Purge a creature from a discard pile. If you do, put a +1 power counter on Eater of the Dead.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/964-044.png",
+    "phase1": false
+  },
+  {
+    "number": 85,
+    "name": "Ember Imp",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Imp"
+    ],
+    "keywords": [],
+    "text": "Your opponent cannot play more than 2 cards each turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/341-085.png",
+    "phase1": true
+  },
+  {
+    "number": 86,
+    "name": "Gabos Longarms",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "Before After Fight: Choose a creature. Gabos Longarms deals damage to that creature rather than the one it is fighting.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/874-007.png",
+    "phase1": false
+  },
+  {
+    "number": 87,
+    "name": "Overlord Greking",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 7,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After an enemy creature is destroyed fighting Overlord Greking, put that creature into play under your control.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/435-099.png",
+    "phase1": false
+  },
+  {
+    "number": 88,
+    "name": "Guardian Demon",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "Play/After Fight/After Reap: Heal up to 2 damage from a creature. Deal that amount of damage to another creature.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/341-088.png",
+    "phase1": true
+  },
+  {
+    "number": 89,
+    "name": "Master of 1",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After Reap: You may destroy a creature with 1 power.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/964-084.png",
+    "phase1": false
+  },
+  {
+    "number": 90,
+    "name": "Master of 2",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After Reap: You may destroy a creature with 2 power.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/964-085.png",
+    "phase1": false
+  },
+  {
+    "number": 91,
+    "name": "Master of 3",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After Reap: You may destroy a creature with 3 power.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/964-086.png",
+    "phase1": false
+  },
+  {
+    "number": 92,
+    "name": "Pit Demon",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "Action: Steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-100.png",
+    "phase1": true
+  },
+  {
+    "number": 93,
+    "name": "Pitlord",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 9,
+    "armor": 0,
+    "aember_on_play": 2,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [
+      "taunt"
+    ],
+    "text": "Taunt. (This creature’s neighbors cannot be attacked unless they have taunt.)\nWhile Pitlord is in play you must choose Dis as your active house.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/435-100.png",
+    "phase1": false
+  },
+  {
+    "number": 94,
+    "name": "Restringuntus",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "Play: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-049.png",
+    "phase1": false
+  },
+  {
+    "number": 95,
+    "name": "Shaffles",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Imp"
+    ],
+    "keywords": [],
+    "text": "At the end of your turn, your opponent loses 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-062.png",
+    "phase1": false
+  },
+  {
+    "number": 96,
+    "name": "Shooler",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "Play: If your opponent has 4Æ or more, steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/435-064.png",
+    "phase1": true
+  },
+  {
+    "number": 97,
+    "name": "Snudge",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After Fight/After Reap: Return an artifact or flank creature to its owner’s hand.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/964-064.png",
+    "phase1": true
+  },
+  {
+    "number": 98,
+    "name": "Stealer of Souls",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 6,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After an enemy creature is destroyed fighting Stealer of Souls, purge that creature and gain 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-064.png",
+    "phase1": false
+  },
+  {
+    "number": 99,
+    "name": "Succubus",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "During their “draw cards” step, your opponent refills their hand to 1 less card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/341-099.png",
+    "phase1": true
+  },
+  {
+    "number": 100,
+    "name": "Tentacus",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "Your opponent must pay you 1Æ in order to use an artifact.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-065.png",
+    "phase1": false
+  },
+  {
+    "number": 101,
+    "name": "The Terror",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon",
+      "Knight"
+    ],
+    "keywords": [],
+    "text": "Play: If your opponent has no Æ, gain 2Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/918-077.png",
+    "phase1": true
+  },
+  {
+    "number": 102,
+    "name": "Tocsin",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [],
+    "text": "After Reap: Your opponent discards a random card from their hand.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Dis/964-077.png",
+    "phase1": false
+  },
+  {
+    "number": 103,
+    "name": "Tolas",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Imp"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nEach time a creature is destroyed, its opponent gains 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-071.png",
+    "phase1": false
+  },
+  {
+    "number": 104,
+    "name": "Truebaru",
+    "house": "Dis",
+    "type": "Creature",
+    "power": 7,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Demon"
+    ],
+    "keywords": [
+      "taunt"
+    ],
+    "text": "You must lose 3Æ in order to play Truebaru.\nTaunt. (This creature’s neighbors cannot be attacked unless they have taunt.)\nDestroyed: Gain 5Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-072.png",
+    "phase1": false
+  },
+  {
+    "number": 105,
+    "name": "Collar of Subordination",
+    "house": "Dis",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "You control this creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/964-041.png",
+    "phase1": false
+  },
+  {
+    "number": 106,
+    "name": "Flame-Wreathed",
+    "house": "Dis",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "This creature gets +2 power and gains hazardous 2. (Before this creature is attacked, deal 2D to the attacking enemy.)",
+    "errata": null,
+    "image": "Phase 2/Cards/Dis/907-077.png",
+    "phase1": false
+  },
+  {
+    "number": 107,
+    "name": "Bouncing Deathquark",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Destroy an enemy creature and a friendly creature. You may repeat this effect as many times as you like, as long as it is possible to repeat the entire effect.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-099.png",
+    "phase1": false
+  },
+  {
+    "number": 108,
+    "name": "Dimension Door",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: For the remainder of the turn, any Æ you would gain from reaping is stolen from your opponent instead.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/874-096.png",
+    "phase1": false
+  },
+  {
+    "number": 109,
+    "name": "Effervescent Principle",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Each player loses half their Æ (rounding down the loss). Gain 1 chain.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-115.png",
+    "phase1": false
+  },
+  {
+    "number": 110,
+    "name": "Foggify",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Your opponent cannot use creatures to fight on their next turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/341-110.png",
+    "phase1": false
+  },
+  {
+    "number": 111,
+    "name": "Help from Future Self",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Search your deck and discard pile for a Timetraveller, reveal it, and put it into your hand. Shuffle your discard pile into your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-125.png",
+    "phase1": true
+  },
+  {
+    "number": 112,
+    "name": "Interdimensional Graft",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: If an opponent forges a key on their next turn, they must give you their remaining Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-104.png",
+    "phase1": false
+  },
+  {
+    "number": 113,
+    "name": "Knowledge is Power",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Choose one: Archive a card, or, for each archived card you have, gain 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-087.png",
+    "phase1": false
+  },
+  {
+    "number": 114,
+    "name": "Labwork",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Archive a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/435-114.png",
+    "phase1": true
+  },
+  {
+    "number": 115,
+    "name": "Library Access",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: For the remainder of the turn, each time you play another card, draw a card. Purge Library Access.",
+    "errata": "MRB 18.3 errata",
+    "image": "Phase 2/Cards/Logos/341-115.png",
+    "phase1": true
+  },
+  {
+    "number": 116,
+    "name": "Neuro Syphon",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: If your opponent has more Æ than you, steal 1Æ and draw a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-139.png",
+    "phase1": false
+  },
+  {
+    "number": 117,
+    "name": "Phase Shift",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: You may play one non-Logos card this turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-119.png",
+    "phase1": true
+  },
+  {
+    "number": 118,
+    "name": "Positron Bolt",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Deal 3D to a flank creature. Deal 2D to its neighbor. Deal 1D to the second creature’s other neighbor.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-141.png",
+    "phase1": false
+  },
+  {
+    "number": 119,
+    "name": "Random Access Archives",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Archive the top card of your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-122.png",
+    "phase1": false
+  },
+  {
+    "number": 120,
+    "name": "Remote Access",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Use an opponent's artifact as if it were yours.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-144.png",
+    "phase1": false
+  },
+  {
+    "number": 121,
+    "name": "Reverse Time",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Swap your deck and your discard pile. Then, shuffle your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-094.png",
+    "phase1": false
+  },
+  {
+    "number": 122,
+    "name": "Scrambler Storm",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Your opponent cannot play action cards on their next turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/341-122.png",
+    "phase1": true
+  },
+  {
+    "number": 123,
+    "name": "Sloppy Labwork",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Archive a card. Discard a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-147.png",
+    "phase1": true
+  },
+  {
+    "number": 124,
+    "name": "Twin Bolt Emission",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Deal 2D to a creature and deal 2D to a different creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-161.png",
+    "phase1": false
+  },
+  {
+    "number": 125,
+    "name": "Wild Wormhole",
+    "house": "Logos",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Play the top card of your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-121.png",
+    "phase1": true
+  },
+  {
+    "number": 126,
+    "name": "Anomaly Exploiter",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Action: Destroy a damaged creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-132.png",
+    "phase1": false
+  },
+  {
+    "number": 127,
+    "name": "Chaos Portal",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "Action: Choose a house. Reveal the top card of your deck. If it is of that house, play it.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-113.png",
+    "phase1": false
+  },
+  {
+    "number": 128,
+    "name": "Crazy Killing Machine",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Weapon"
+    ],
+    "keywords": [],
+    "text": "Action: Discard the top card of each player’s deck. For each of those cards, destroy a creature or artifact of that card’s house, if able. If 2 cards are not destroyed as a result of this, destroy Crazy Killing Machine.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-114.png",
+    "phase1": false
+  },
+  {
+    "number": 129,
+    "name": "Library of Babble",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "Action: Draw a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/435-115.png",
+    "phase1": true
+  },
+  {
+    "number": 130,
+    "name": "Mobius Scroll",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Action: Archive Mobius Scroll and up to 2 cards from your hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/874-083.png",
+    "phase1": false
+  },
+  {
+    "number": 131,
+    "name": "Pocket Universe",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "You may spend Æ on Pocket Universe when forging keys.\nAction: Move 1Æ from your pool to Pocket Universe.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/452-172.png",
+    "phase1": false
+  },
+  {
+    "number": 132,
+    "name": "Spangler Box",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Action: Purge a creature in play. If you do, your opponent gains control of Spangler Box. If Spangler Box leaves play, return to play all cards purged by Spangler Box.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/341-132.png",
+    "phase1": false
+  },
+  {
+    "number": 133,
+    "name": "Spectral Tunneler",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Action: Choose a creature. For the remainder of the turn, that creature is considered a flank creature and gains, “After Reap: Draw a card.”",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/341-133.png",
+    "phase1": false
+  },
+  {
+    "number": 134,
+    "name": "Strange Gizmo",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "After you forge a key, destroy each creature and artifact.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-095.png",
+    "phase1": false
+  },
+  {
+    "number": 135,
+    "name": "The Howling Pit",
+    "house": "Logos",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "During their “draw cards” step, each player refills their hand to 1 additional card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-127.png",
+    "phase1": true
+  },
+  {
+    "number": 136,
+    "name": "Batdrone",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Robot"
+    ],
+    "keywords": [
+      "skirmish"
+    ],
+    "text": "Skirmish. (When you use this creature to fight, it is dealt no damage in return.)\nFight: Steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-112.png",
+    "phase1": false
+  },
+  {
+    "number": 137,
+    "name": "Brain Eater",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 6,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Beast"
+    ],
+    "keywords": [],
+    "text": "After a creature is destroyed fighting Brain Eater, draw a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/496-036.png",
+    "phase1": false
+  },
+  {
+    "number": 138,
+    "name": "Dextre",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Human",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "Play: Capture 1Æ.\nDestroyed: Put Dextre on top of your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/341-138.png",
+    "phase1": false
+  },
+  {
+    "number": 139,
+    "name": "Doc Bookton",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Human",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "After Reap: Draw a card.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/341-139.png",
+    "phase1": true
+  },
+  {
+    "number": 140,
+    "name": "Dr. Escotera",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "Play: Gain 1Æ for each forged key your opponent has.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/341-140.png",
+    "phase1": false
+  },
+  {
+    "number": 141,
+    "name": "Dysania",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Mutant"
+    ],
+    "keywords": [],
+    "text": "Play: Your opponent discards each of their archived cards. You gain 1Æ for each card discarded this way.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-083.png",
+    "phase1": false
+  },
+  {
+    "number": 142,
+    "name": "Ganymede Archivist",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Human",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "After Reap: Archive a card.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/939-117.png",
+    "phase1": false
+  },
+  {
+    "number": 143,
+    "name": "Harland Mindlock",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "Play: Take control of an enemy flank creature until Harland Mindlock leaves play.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/800-178.png",
+    "phase1": false
+  },
+  {
+    "number": 144,
+    "name": "Quixo the “Adventurer”",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Human",
+      "Scientist"
+    ],
+    "keywords": [
+      "skirmish"
+    ],
+    "text": "Skirmish. (When you use this creature to fight, it is dealt no damage in return.)\nFight: Draw a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/874-121.png",
+    "phase1": true
+  },
+  {
+    "number": 145,
+    "name": "Mother",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Robot",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "During your “draw cards” step, refill your hand to 1 additional card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/341-145.png",
+    "phase1": true
+  },
+  {
+    "number": 146,
+    "name": "Neutron Shark",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Beast",
+      "Mutant"
+    ],
+    "keywords": [],
+    "text": "Play/After Fight/After Reap: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/855-099.png",
+    "phase1": false
+  },
+  {
+    "number": 147,
+    "name": "Novu Archaeologist",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "Action: Archive a card from your discard pile.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-140.png",
+    "phase1": false
+  },
+  {
+    "number": 148,
+    "name": "Ozmo, Martianologist",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Human",
+      "Scientist"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nFight/After Reap: Heal 3 damage from a Mars creature or stun a Mars creature.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/435-150.png",
+    "phase1": false
+  },
+  {
+    "number": 149,
+    "name": "Psychic Bug",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Cyborg",
+      "Insect"
+    ],
+    "keywords": [],
+    "text": "Play/After Reap: Look at your opponent’s hand.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/939-092.png",
+    "phase1": false
+  },
+  {
+    "number": 150,
+    "name": "Replicator",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Mutant"
+    ],
+    "keywords": [],
+    "text": "After Reap: Trigger the reap effect of another creature in play as if you controlled that creature. (That creature does not exhaust.)",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/939-093.png",
+    "phase1": false
+  },
+  {
+    "number": 151,
+    "name": "Research Smoko",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Mutant"
+    ],
+    "keywords": [],
+    "text": "Destroyed: Archive the top card of your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-145.png",
+    "phase1": false
+  },
+  {
+    "number": 152,
+    "name": "Skippy Timehog",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Mutant"
+    ],
+    "keywords": [],
+    "text": "Play: Your opponent cannot use any cards next turn. (Cards can still be played and discarded.)",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-125.png",
+    "phase1": false
+  },
+  {
+    "number": 153,
+    "name": "Timetraveller",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Human",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "Play: Draw 2 cards.\nAction: Shuffle Timetraveller into your deck.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/939-096.png",
+    "phase1": true
+  },
+  {
+    "number": 154,
+    "name": "Titan Mechanic",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 6,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "While Titan Mechanic is on a flank, each key costs –1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/435-121.png",
+    "phase1": true
+  },
+  {
+    "number": 155,
+    "name": "Vespilon Theorist",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Scientist"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nReap: Choose a house. Reveal the top card of your deck. If it is of that house, archive it and gain 1Æ. Otherwise, discard it.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/907-130.png",
+    "phase1": false
+  },
+  {
+    "number": 156,
+    "name": "Veylan Analyst",
+    "house": "Logos",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Scientist"
+    ],
+    "keywords": [],
+    "text": "Each time you use an artifact, gain 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/341-156.png",
+    "phase1": false
+  },
+  {
+    "number": 157,
+    "name": "Experimental Therapy",
+    "house": "Logos",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "This creature may be used as if it belonged to the active house. Play: Stun and exhaust this creature.",
+    "errata": "MRB 18.3 errata",
+    "image": "Phase 2/Cards/Logos/341-157.png",
+    "phase1": false
+  },
+  {
+    "number": 158,
+    "name": "Rocket Boots",
+    "house": "Logos",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "This creature gains, “After Fight/After Reap: If this is the first time this creature was used this turn, ready it.”",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Logos/939-108.png",
+    "phase1": false
+  },
+  {
+    "number": 159,
+    "name": "Transposition Sandals",
+    "house": "Logos",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "This creature gains, “Action: Swap this creature with another friendly creature in the battleline. You may use that other creature this turn.”",
+    "errata": null,
+    "image": "Phase 2/Cards/Logos/800-185.png",
+    "phase1": false
+  },
+  {
+    "number": 267,
+    "name": "Bait and Switch",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: If your opponent has more Æ than you, steal 1Æ. Repeat the preceding effect if your opponent still has more Æ than you.",
+    "errata": "MRB 18.3 errata",
+    "image": "Phase 2/Cards/Shadow/341-267.png",
+    "phase1": true
+  },
+  {
+    "number": 268,
+    "name": "Booby Trap",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Deal 4D to a creature that is not on a flank with 2D splash.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/874-280.png",
+    "phase1": true
+  },
+  {
+    "number": 269,
+    "name": "Finishing Blow",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Destroy a damaged creature. If you do, steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-134.png",
+    "phase1": false
+  },
+  {
+    "number": 270,
+    "name": "Ghostly Hand",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 2,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: If your opponent has exactly 1Æ, steal it.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-270.png",
+    "phase1": true
+  },
+  {
+    "number": 271,
+    "name": "Hidden Stash",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Archive a card.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-245.png",
+    "phase1": false
+  },
+  {
+    "number": 272,
+    "name": "Imperial Traitor",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Look at your opponent’s hand. You may choose and purge a Sanctum card in it.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/874-264.png",
+    "phase1": false
+  },
+  {
+    "number": 273,
+    "name": "Key of Darkness",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Forge a key at +6Æ current cost. If your opponent has no Æ, forge a key at +2Æ current cost instead.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/452-270.png",
+    "phase1": false
+  },
+  {
+    "number": 274,
+    "name": "Lights Out",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Return 2 enemy creatures to their owner’s hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-149.png",
+    "phase1": true
+  },
+  {
+    "number": 275,
+    "name": "Miasma",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Your opponent skips the “forge a key” step on their next turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-164.png",
+    "phase1": true
+  },
+  {
+    "number": 276,
+    "name": "Nerve Blast",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Steal 1Æ. If you do, deal 2D to a creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/939-244.png",
+    "phase1": true
+  },
+  {
+    "number": 277,
+    "name": "One Last Job",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Purge each friendly Shadows creature. Steal 1Æ for each creature purged this way.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/939-218.png",
+    "phase1": true
+  },
+  {
+    "number": 278,
+    "name": "Oubliette",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Purge a creature with power 3 or lower.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-153.png",
+    "phase1": true
+  },
+  {
+    "number": 279,
+    "name": "Pawn Sacrifice",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Sacrifice a friendly creature. If you do, deal 3D each to 2 creatures.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-279.png",
+    "phase1": true
+  },
+  {
+    "number": 280,
+    "name": "Poison Wave",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Deal 2D to each creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-280.png",
+    "phase1": false
+  },
+  {
+    "number": 281,
+    "name": "Relentless Whispers",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Deal 2D to a creature. If this damage destroys that creature, steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-281.png",
+    "phase1": true
+  },
+  {
+    "number": 282,
+    "name": "Routine Job",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Steal 1Æ. Then, steal 1Æ for each copy of Routine Job in your discard pile.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/928-171.png",
+    "phase1": false
+  },
+  {
+    "number": 283,
+    "name": "Too Much to Protect",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: Steal all but 6 of your opponent’s Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-156.png",
+    "phase1": true
+  },
+  {
+    "number": 284,
+    "name": "Treasure Map",
+    "house": "Shadows",
+    "type": "Action",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "Play: If you have not played any other cards this turn, gain 3Æ. For the remainder of the turn, you cannot play cards.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/855-200.png",
+    "phase1": false
+  },
+  {
+    "number": 285,
+    "name": "Customs Office",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "Your opponent must pay you 1Æ in order to play an artifact.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-225.png",
+    "phase1": false
+  },
+  {
+    "number": 286,
+    "name": "Evasion Sigil",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Power"
+    ],
+    "keywords": [],
+    "text": "Before a creature fights, discard the top card of its controller's deck. If the discarded card is of the active house, exhaust that creature with no effect.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-286.png",
+    "phase1": false
+  },
+  {
+    "number": 287,
+    "name": "Longfused Mines",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Weapon"
+    ],
+    "keywords": [],
+    "text": "Omni: Sacrifice Longfused Mines. Deal 3D to each enemy creature not on a flank.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-231.png",
+    "phase1": false
+  },
+  {
+    "number": 288,
+    "name": "Masterplan",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Play: Put a card from your hand facedown beneath Masterplan.\nOmni: Play the card beneath Masterplan. Sacrifice Masterplan.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-138.png",
+    "phase1": false
+  },
+  {
+    "number": 289,
+    "name": "Safe Place",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Location"
+    ],
+    "keywords": [],
+    "text": "You may spend Æ on Safe Place when forging keys.\nAction: Move 1Æ from your pool to Safe Place.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/874-273.png",
+    "phase1": false
+  },
+  {
+    "number": 290,
+    "name": "Seeker Needle",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Weapon"
+    ],
+    "keywords": [],
+    "text": "Action: Deal 1D to a creature. If this damage destroys that creature, gain 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-168.png",
+    "phase1": false
+  },
+  {
+    "number": 291,
+    "name": "Skeleton Key",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Action: A friendly creature captures 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-253.png",
+    "phase1": false
+  },
+  {
+    "number": 292,
+    "name": "Special Delivery",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Item"
+    ],
+    "keywords": [],
+    "text": "Omni: Sacrifice Special Delivery. Deal 3D to a flank creature. If this damage destroys that creature, purge it.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/452-260.png",
+    "phase1": false
+  },
+  {
+    "number": 293,
+    "name": "Speed Sigil",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Power"
+    ],
+    "keywords": [],
+    "text": "The first creature played each turn enters play ready.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-154.png",
+    "phase1": false
+  },
+  {
+    "number": 294,
+    "name": "Subtle Maul",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Weapon"
+    ],
+    "keywords": [],
+    "text": "Action: Your opponent discards a random card from their hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/452-263.png",
+    "phase1": true
+  },
+  {
+    "number": 295,
+    "name": "The Sting",
+    "house": "Shadows",
+    "type": "Artifact",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [
+      "Vehicle"
+    ],
+    "keywords": [],
+    "text": "Skip your “forge a key” step.\nYou get all Æ spent by your opponent when forging keys.\nAction: Sacrifice The Sting.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/874-278.png",
+    "phase1": false
+  },
+  {
+    "number": 296,
+    "name": "Bad Penny",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Human",
+      "Thief"
+    ],
+    "keywords": [],
+    "text": "Destroyed: Return Bad Penny to your hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/452-236.png",
+    "phase1": true
+  },
+  {
+    "number": 297,
+    "name": "Bulleteye",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nReap: Destroy a flank creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-131.png",
+    "phase1": false
+  },
+  {
+    "number": 298,
+    "name": "Carlo Phantom",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive",
+      "skirmish"
+    ],
+    "text": "Elusive. Skirmish.\nEach time you play an artifact, steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-298.png",
+    "phase1": false
+  },
+  {
+    "number": 299,
+    "name": "Deipno Spymaster",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nOmni: Choose a friendly creature. You may use that creature this turn.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-226.png",
+    "phase1": false
+  },
+  {
+    "number": 300,
+    "name": "Faygin",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Human",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nReap: Return an Urchin from play or from your discard pile to your hand.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/886-218.png",
+    "phase1": false
+  },
+  {
+    "number": 301,
+    "name": "Macis Asp",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Beast"
+    ],
+    "keywords": [
+      "skirmish",
+      "poison"
+    ],
+    "text": "Skirmish. (When you use this creature to fight, it is dealt no damage in return.)\nPoison. (Any damage dealt by this creature’s power during a fight destroys the damaged creature.)",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/939-228.png",
+    "phase1": false
+  },
+  {
+    "number": 302,
+    "name": "Mack the Knife",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive.\nYou may use Mack the Knife as if it belonged to the active house.\nAction: Deal 1D to a creature. If this damage destroys that creature, gain 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-137.png",
+    "phase1": false
+  },
+  {
+    "number": 303,
+    "name": "Magda the Rat",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 4,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. Play: Steal 2Æ. If Magda the Rat leaves play, your opponent steals 2Æ.",
+    "errata": "MRB 18.3 errata",
+    "image": "Phase 2/Cards/Shadow/964-150.png",
+    "phase1": false
+  },
+  {
+    "number": 304,
+    "name": "Mooncurser",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "skirmish",
+      "poison"
+    ],
+    "text": "Skirmish. Poison.\nFight: Steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-151.png",
+    "phase1": false
+  },
+  {
+    "number": 305,
+    "name": "Nexus",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Cyborg",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nReap: Use an opponent’s artifact as if it were yours.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/964-165.png",
+    "phase1": false
+  },
+  {
+    "number": 306,
+    "name": "Noddy the Thief",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nAction: Steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-306.png",
+    "phase1": true
+  },
+  {
+    "number": 307,
+    "name": "Old Bruno",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nPlay: Capture 3Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-249.png",
+    "phase1": true
+  },
+  {
+    "number": 308,
+    "name": "Dodger",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 5,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [],
+    "text": "After Fight: Steal 1Æ.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Shadow/907-259.png",
+    "phase1": false
+  },
+  {
+    "number": 309,
+    "name": "Selwyn the Fence",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 3,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [],
+    "text": "After Fight/After Reap: Move 1Æ from one of your cards to your pool.",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Shadow/928-172.png",
+    "phase1": false
+  },
+  {
+    "number": 310,
+    "name": "Shadow Self",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 9,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Specter"
+    ],
+    "keywords": [],
+    "text": "Shadow Self deals no damage when fighting.\nDamage dealt to non-Specter neighbors is dealt to Shadow Self instead.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/341-310.png",
+    "phase1": false
+  },
+  {
+    "number": 311,
+    "name": "Silvertooth",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [],
+    "text": "Silvertooth enters play ready.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-271.png",
+    "phase1": true
+  },
+  {
+    "number": 312,
+    "name": "Smiling Ruth",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nReap: If you forged a key this turn, take control of an enemy flank creature.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-240.png",
+    "phase1": false
+  },
+  {
+    "number": 313,
+    "name": "Sneklifter",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [],
+    "text": "Play: Take control of an enemy artifact. While under your control, if it does not belong to one of your three houses, it is considered to be of house Shadows.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/928-173.png",
+    "phase1": false
+  },
+  {
+    "number": 314,
+    "name": "Umbra",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 2,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "skirmish"
+    ],
+    "text": "Skirmish. (When you use this creature to fight, it is dealt no damage in return.)\nFight: Steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-273.png",
+    "phase1": false
+  },
+  {
+    "number": 315,
+    "name": "Urchin",
+    "house": "Shadows",
+    "type": "Creature",
+    "power": 1,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [
+      "Elf",
+      "Thief"
+    ],
+    "keywords": [
+      "elusive"
+    ],
+    "text": "Elusive. (The first time this creature is attacked each turn, no damage is dealt.)\nPlay: Steal 1Æ.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/886-252.png",
+    "phase1": true
+  },
+  {
+    "number": 316,
+    "name": "Duskrunner",
+    "house": "Shadows",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 0,
+    "traits": [],
+    "keywords": [],
+    "text": "This creature gains, “After Reap: Steal 1Æ.”",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Shadow/452-253.png",
+    "phase1": true
+  },
+  {
+    "number": 317,
+    "name": "Ring of Invisibility",
+    "house": "Shadows",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "This creature gains elusive and skirmish.",
+    "errata": null,
+    "image": "Phase 2/Cards/Shadow/907-236.png",
+    "phase1": false
+  },
+  {
+    "number": 318,
+    "name": "Silent Dagger",
+    "house": "Shadows",
+    "type": "Upgrade",
+    "power": null,
+    "armor": 0,
+    "aember_on_play": 1,
+    "traits": [],
+    "keywords": [],
+    "text": "This creature gains, “After Reap: Deal 4D to a flank creature.”",
+    "errata": "general Fight/Reap errata",
+    "image": "Phase 2/Cards/Shadow/341-318.png",
+    "phase1": false
+  }
+]

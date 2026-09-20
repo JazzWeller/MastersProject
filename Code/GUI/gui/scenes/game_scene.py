@@ -22,7 +22,8 @@ from ..sprites.overlays import Banner, Toast
 from ..sprites.piles import draw_pile
 from ..sprites.widgets import draw_panel
 
-from keyforge.enums import DecisionKind
+from keyforge.cards.card_data import get_card_def
+from keyforge.enums import CardType, DecisionKind
 
 _ZONE_DRAW_RANK = ZONE_DRAW_RANK  # kept for older imports
 
@@ -31,9 +32,11 @@ LEAVE_CONFIRM_MS = 3000  # a second Esc within this window leaves the game
 
 
 def _card_info_from_state(cs) -> SimpleNamespace:
+    cdef = get_card_def(cs.name)
     return SimpleNamespace(
         name=cs.name, house=cs.house, type=cs.type, image=cs.image,
         power=cs.power, armor=cs.armor, damage=cs.damage,
+        text=cdef.text, errata=cdef.errata,
     )
 
 
@@ -42,7 +45,22 @@ def _card_info_from_engine_card(card) -> SimpleNamespace:
     return SimpleNamespace(
         name=card.name, house=card.house.value, type=card.type.value, image=card.card_def.image,
         power=getattr(to, "base_power", 0), armor=getattr(to, "base_armor", 0), damage=getattr(to, "damage", 0),
+        text=card.card_def.text, errata=card.card_def.errata,
     )
+
+
+def _wrap_text(text: str, font, max_w: int) -> List[str]:
+    words, lines, cur = text.split(" "), [], ""
+    for w in words:
+        trial = f"{cur} {w}".strip()
+        if font.size(trial)[0] <= max_w or not cur:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return lines
 
 
 def _felt(surface: pygame.Surface) -> None:
@@ -319,14 +337,24 @@ class GameScene(Scene):
                 sprite.hint = f"Can't play: {reason}. You can still discard it."
             else:
                 sprite.unusable_reason = reason
+        toll = player.get_artifact_use_toll(game)
         for card in list(player.play_area.creatures) + list(player.play_area.artifacts):
-            if card.instance_id in options:
-                continue
             sprite = self.board.sprites.get(card.instance_id)
             if sprite is None:
                 continue
+            if card.instance_id in options:
+                # Still usable, but stun will consume it with no effect --
+                # worth a hover hint even though it isn't dimmed.
+                if card.stunned:
+                    sprite.hint = f"{card.name} is stunned: this use will have no effect."
+                continue
             if card.Exhausted:
                 reason = "Exhausted: already used or played this turn"
+            elif player.get_cannot_use_cards(game):
+                src = game._effect_source("CannotUseCards", pid)
+                reason = "Your cards can't be used this turn" + (f" ({src})" if src else "")
+            elif card.type == CardType.ARTIFACT and toll is not None and toll[0] > player.aember:
+                reason = f"Costs {toll[0]}Æ to use and you have {player.aember}Æ"
             elif not card.CanBeUsed and card.house != player.selected_house:
                 reason = f"Not of your active house ({player.selected_house.value})"
             elif not game._rule_of_six_ok(player, card.name):
@@ -597,12 +625,16 @@ class GameScene(Scene):
         self._dim_backdrop(surface, 190)
         card_h = min(S.INSPECT_MAX_H, S.CANVAS_H - 140)
         card_w = int(card_h * (S.CARD_ART_W / S.CARD_ART_H))
-        cx = S.PLAY_X + S.PLAY_W // 2
-        card_rect = pygame.Rect(0, 0, card_w, card_h)
-        card_rect.center = (cx, S.CANVAS_H // 2 - 30)
+        panel_w = 380
+        gap = 28
+        total_w = card_w + gap + panel_w
+        left = S.PLAY_X + (S.PLAY_W - total_w) // 2
+        card_rect = pygame.Rect(left, 0, card_w, card_h)
+        card_rect.centery = S.CANVAS_H // 2 - 30
         self._inspect_card_rect = card_rect
         surface.blit(self.app.assets.card_face(info.image, card_rect.size), card_rect)
         pygame.draw.rect(surface, S.AEMBER, card_rect.inflate(6, 6), width=2, border_radius=10)
+        cx = card_rect.centerx
         name = self.app.assets.font("cinzel", 22).render(info.name, True, S.TEXT)
         surface.blit(name, name.get_rect(midtop=(cx, card_rect.bottom + 12)))
         sub_txt = f"{info.house} · {info.type}"
@@ -612,6 +644,37 @@ class GameScene(Scene):
         surface.blit(sub, sub.get_rect(midtop=(cx, card_rect.bottom + 42)))
         hint = self.app.assets.font("inter", S.MIN_FONT).render("Click anywhere or press Esc to close", True, S.TEXT_FAINT)
         surface.blit(hint, hint.get_rect(midtop=(cx, card_rect.bottom + 66)))
+        self._draw_inspector_text_panel(surface, info, card_rect, gap, panel_w)
+
+    def _draw_inspector_text_panel(self, surface: pygame.Surface, info, card_rect: pygame.Rect, gap: int, panel_w: int) -> None:
+        """The canonical rules text beside the card art, plus a note
+        whenever it differs from what's printed on the card (errata cards,
+        Safe Place, and the general Fight/Reap wording change)."""
+        text_rect = pygame.Rect(card_rect.right + gap, card_rect.top, panel_w, card_rect.height)
+        draw_panel(surface, text_rect, alpha=235, border=S.AEMBER)
+        pad = 18
+        ty = text_rect.top + pad
+        header = self.app.assets.font("cinzel", 16).render("Official text", True, S.TEXT)
+        surface.blit(header, (text_rect.left + pad, ty))
+        ty += header.get_height() + 10
+
+        body_font = self.app.assets.font("inter", 15)
+        for line in _wrap_text(info.text or "(no ability text)", body_font, text_rect.width - pad * 2):
+            img = body_font.render(line, True, S.TEXT)
+            surface.blit(img, (text_rect.left + pad, ty))
+            ty += img.get_height() + 4
+
+        if info.errata:
+            ty += 14
+            badge_font = self.app.assets.font("inter", 13, bold=True)
+            badge = badge_font.render("Differs from the printed card art:", True, S.AEMBER)
+            surface.blit(badge, (text_rect.left + pad, ty))
+            ty += badge.get_height() + 4
+            note_font = self.app.assets.font("inter", 13)
+            for line in _wrap_text(info.errata, note_font, text_rect.width - pad * 2):
+                img = note_font.render(line, True, S.TEXT_DIM)
+                surface.blit(img, (text_rect.left + pad, ty))
+                ty += img.get_height() + 2
 
     def draw_crisp(self, window_surface: pygame.Surface) -> None:
         if self.inspect_info is None or self._inspect_card_rect is None:

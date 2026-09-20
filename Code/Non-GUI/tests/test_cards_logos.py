@@ -18,9 +18,9 @@ class TestLogos(unittest.TestCase):
     def test_help_from_future_self_finds_timetraveler_in_deck(self):
         game = new_game()
         p1 = game.players[1]
-        tt = make_card("Timetraveler", 1)
+        tt = make_card("Timetraveller", 1)
         p1.deck.put_on_top(tt)
-        card = make_card("Help From Future Self", 1)
+        card = make_card("Help from Future Self", 1)
         run_hook(game, named.help_from_future_self, card)
         self.assertIn(tt, p1.hand.cards())
         self.assertNotIn(tt, p1.deck.cards())
@@ -28,11 +28,11 @@ class TestLogos(unittest.TestCase):
     def test_help_from_future_self_finds_timetraveler_in_discard(self):
         game = new_game()
         p1 = game.players[1]
-        tt = make_card("Timetraveler", 1)
+        tt = make_card("Timetraveller", 1)
         p1.discard.push(tt)
         other = make_card("Urchin", 1)
         p1.discard.push(other)
-        card = make_card("Help From Future Self", 1)
+        card = make_card("Help from Future Self", 1)
         run_hook(game, named.help_from_future_self, card)
         self.assertIn(tt, p1.hand.cards())
         self.assertIn(other, p1.deck.cards())
@@ -91,13 +91,11 @@ class TestLogos(unittest.TestCase):
     def test_quixo_skirmish_and_after_fight_draw(self):
         game = new_game()
         p1 = game.players[1]
-        quixo = put_creature(game, 1, "Quixo the Adventurer")
-        self.assertTrue(quixo.Skirmish)
+        quixo = put_creature(game, 1, "Quixo the “Adventurer”")
+        self.assertIn("skirmish", game.get_keywords(quixo))
         before = len(p1.hand)
         run_hook(game, quixo.card_def.on_fight, quixo)
         self.assertEqual(len(p1.hand), before + 1)
-        quixo.card_def.unregister_passive(game, quixo)
-        self.assertFalse(quixo.Skirmish)
 
     def test_scrambler_storm_disables_enemy_actions(self):
         game = new_game()
@@ -128,7 +126,7 @@ class TestLogos(unittest.TestCase):
     def test_timetraveler_play_draws_two_and_action_shuffles_self(self):
         game = new_game()
         p1 = game.players[1]
-        tt = put_creature(game, 1, "Timetraveler", exhausted=False)
+        tt = put_creature(game, 1, "Timetraveller", exhausted=False)
         before = len(p1.hand)
         run_hook(game, tt.card_def.on_play, tt)
         self.assertEqual(len(p1.hand), before + 2)

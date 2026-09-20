@@ -152,6 +152,13 @@ class PurgedZone:
     def add(self, card: Card) -> None:
         self._cards.append(card)
 
+    def remove(self, card: Card) -> bool:
+        try:
+            self._cards.remove(card)
+            return True
+        except ValueError:
+            return False
+
     def cards(self) -> List[Card]:
         return list(self._cards)
 
@@ -194,6 +201,8 @@ class PlayArea:
         return result
 
     def is_flank(self, card: Card) -> bool:
+        if getattr(card, "forced_flank", False):
+            return True  # Spectral Tunneler: considered a flank creature for the rest of the turn
         if card not in self.creatures:
             return False
         if len(self.creatures) == 1:

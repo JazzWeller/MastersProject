@@ -53,3 +53,7 @@ class DecisionKind(Enum):
     CHOOSE_HOUSE_FOR_EFFECT = auto()
     ORDER_EFFECTS = auto()
     YES_NO = auto()
+    BID_CHAINS = auto()  # Adaptive match format: "pass" or an integer chain bid
+    CHOOSE_FIRST_PLAYER = auto()  # match formats: "first" or "second"
+    CHOOSE_NUMBER = auto()  # Dance of Doom: pick an integer from a list of choices
+    CHOOSE_MODE = auto()  # Knowledge is Power: pick one of several named modes

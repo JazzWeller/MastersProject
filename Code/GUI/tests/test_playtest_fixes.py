@@ -88,6 +88,63 @@ class TestFirstPlayerAndUnusableCards(unittest.TestCase):
         for c in on:
             self.assertIsNone(g.board.sprites[c.instance_id].unusable_reason)
 
+    def test_cannot_use_cards_gives_a_specific_reason(self):
+        # Skippy Timehog: "Your opponent cannot use any cards next turn."
+        app, g = _scene()
+        d = _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION and g.bridge.game.players[g.viewer].play_area.creatures)
+        game = g.bridge.game
+        me = game.players[g.viewer]
+        creature = me.play_area.creatures[0]
+        creature.Exhausted = False
+        g.panel.card_option_map.pop(creature.instance_id, None)  # not currently a legal option
+        me.CannotUseCards = True
+        try:
+            g._sync_unusable(d)
+            sprite = g.board.sprites[creature.instance_id]
+            self.assertIn("can't be used", sprite.unusable_reason)
+        finally:
+            me.CannotUseCards = False
+
+    def test_stunned_but_usable_creature_gets_a_hint_not_a_dim(self):
+        app, g = _scene()
+        d = _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION and g.bridge.game.players[g.viewer].play_area.creatures)
+        game = g.bridge.game
+        me = game.players[g.viewer]
+        creature = me.play_area.creatures[0]
+        creature.Exhausted = False
+        creature.stunned = True
+        g.panel.card_option_map[creature.instance_id] = [object()]  # still a legal (if pointless) option
+        try:
+            g._sync_unusable(d)
+            sprite = g.board.sprites[creature.instance_id]
+            self.assertIsNone(sprite.unusable_reason)
+            self.assertIn("stunned", sprite.hint)
+        finally:
+            creature.stunned = False
+
+    def test_artifact_use_toll_gives_a_specific_reason_when_unaffordable(self):
+        # Tentacus: "Your opponent must pay you 1Æ in order to use an artifact."
+        from keyforge.cards.card import Card
+        from keyforge.cards.card_data import get_card_def
+        from keyforge.effects.effect_object import DurationEffect, INFINITE
+        from gui.sprites.card_sprite import CardSprite
+
+        app, g = _scene()
+        d = _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION)
+        game = g.bridge.game
+        me = game.players[g.viewer]
+        artifact = Card(get_card_def("Pocket Universe"), g.viewer)
+        me.play_area.add_artifact(artifact)
+        artifact.Exhausted = False
+        me.aember = 0
+        g.board.sprites[artifact.instance_id] = CardSprite(artifact.instance_id, g.app.assets)
+        game.active_effects.add(
+            DurationEffect(artifact, 3 - g.viewer, INFINITE, g.viewer, "ArtifactUseToll", "=", (1, 3 - g.viewer))
+        )
+        g._sync_unusable(d)
+        sprite = g.board.sprites[artifact.instance_id]
+        self.assertIn("Costs", sprite.unusable_reason)
+
     def test_only_end_turn_left_says_so(self):  # U2
         app, g = _scene()
         _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION)
@@ -260,6 +317,28 @@ class TestBoardAndOverlays(unittest.TestCase):
         app.draw_scenes()
         g.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=g.board.layout.zoom_rect().center, button=1))
         self.assertEqual(g.inspect_info.name, cs.name)
+
+    def test_inspector_shows_official_text_and_an_errata_note(self):
+        from keyforge.cards.card import Card
+        from keyforge.cards.card_data import get_card_def
+        from gui.scenes.game_scene import _card_info_from_engine_card
+
+        app, g = _scene()
+        _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION)
+
+        errata_card = Card(get_card_def("Ozmo, Martianologist"), 1)
+        info = _card_info_from_engine_card(errata_card)
+        self.assertTrue(info.text)
+        self.assertTrue(info.errata)
+        g._open_inspector(info)
+        app.draw_scenes()  # must not crash while rendering the text panel
+
+        plain_card = Card(get_card_def("Charette"), 1)
+        info2 = _card_info_from_engine_card(plain_card)
+        self.assertTrue(info2.text)
+        self.assertIsNone(info2.errata)
+        g._open_inspector(info2)
+        app.draw_scenes()
 
     def test_click_during_an_animation_is_applied_afterwards(self):  # M6
         app, g = _scene()

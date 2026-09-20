@@ -1,0 +1,47 @@
+{
+  "name": "Riftwalker",
+  "pods": {
+    "Dis": [
+      "Pandemonium",
+      "Poltergeist",
+      "Stealer of Souls",
+      "Tentacus",
+      "Tocsin",
+      "Truebaru",
+      "Collar of Subordination",
+      "Flame-Wreathed",
+      "Restringuntus",
+      "Pitlord",
+      "Pit Demon",
+      "Snudge"
+    ],
+    "Logos": [
+      "Library Access",
+      "Phase Shift",
+      "Reverse Time",
+      "Scrambler Storm",
+      "Sloppy Labwork",
+      "Wild Wormhole",
+      "Strange Gizmo",
+      "The Howling Pit",
+      "Dr. Escotera",
+      "Dysania",
+      "Harland Mindlock",
+      "Quixo the “Adventurer”"
+    ],
+    "Shadows": [
+      "Selwyn the Fence",
+      "Shadow Self",
+      "Smiling Ruth",
+      "Sneklifter",
+      "Umbra",
+      "Ring of Invisibility",
+      "Silent Dagger",
+      "Magda the Rat",
+      "Mack the Knife",
+      "Dodger",
+      "Old Bruno",
+      "Silvertooth"
+    ]
+  }
+}

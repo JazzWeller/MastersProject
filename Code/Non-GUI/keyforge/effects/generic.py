@@ -87,6 +87,25 @@ def deal_damage_to_chosen(n: int, targets="any"):
     return effect
 
 
+def move_aember_to_card(n: int = 1):
+    """Pocket Universe, Safe Place: 'Action: Move N Æ from your pool to
+    this card' -- paired with `spendable_for_keys=True` on the CardDef."""
+
+    def effect(game, card):
+        player = controller_of(game, card)
+        amount = min(n, player.aember)
+        if amount <= 0:
+            steps.shortfall(game, card, f"moves nothing: {{pos:{player.id}}} Æmber pool is empty", "Pool is empty")
+            return
+        player.aember -= amount
+        card.aember_stored += amount
+        game.log.add("move_aember", player=player.id, card=card.name, iid=card.instance_id, amount=amount, to="card")
+        return
+        yield
+
+    return effect
+
+
 def duration_effect(variable: str, op: str, value, duration, scope: str):
     """scope: 'self', 'enemy', or 'both' (relative to the source card's controller)."""
 

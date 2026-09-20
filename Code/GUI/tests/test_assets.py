@@ -1,4 +1,4 @@
-"""Every card in both Phase 1 decklists must resolve to a real, loadable
+"""Every card in the full 159-card CotA pool must resolve to a real, loadable
 image file, at every size the app actually uses; the procedural card back
 and icons must render without crashing."""
 
@@ -25,7 +25,7 @@ class TestAssets(unittest.TestCase):
         self.assets = AssetCache()
 
     def test_every_decklist_card_has_real_art_at_every_used_size(self):
-        self.assertEqual(len(CARD_DEFS), 49)
+        self.assertEqual(len(CARD_DEFS), 159)
         for name, card_def in CARD_DEFS.items():
             self.assertIsNotNone(card_def.image, name)
             # the raw file must actually exist and decode

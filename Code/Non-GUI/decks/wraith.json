@@ -1,0 +1,47 @@
+{
+  "name": "Wraith",
+  "pods": {
+    "Dis": [
+      "A Fair Game",
+      "Creeping Oblivion",
+      "Dance of Doom",
+      "Gongoozle",
+      "Key to Dis",
+      "Charette",
+      "Drumble",
+      "Eater of the Dead",
+      "Gabos Longarms",
+      "Master of 1",
+      "Shaffles",
+      "Tolas"
+    ],
+    "Logos": [
+      "Interdimensional Graft",
+      "Knowledge is Power",
+      "Neuro Syphon",
+      "Positron Bolt",
+      "Anomaly Exploiter",
+      "Chaos Portal",
+      "Batdrone",
+      "Dextre",
+      "Ganymede Archivist",
+      "Novu Archaeologist",
+      "Research Smoko",
+      "Veylan Analyst"
+    ],
+    "Shadows": [
+      "Finishing Blow",
+      "Hidden Stash",
+      "Poison Wave",
+      "Routine Job",
+      "Seeker Needle",
+      "Skeleton Key",
+      "Bulleteye",
+      "Carlo Phantom",
+      "Deipno Spymaster",
+      "Faygin",
+      "Macis Asp",
+      "Nexus"
+    ]
+  }
+}

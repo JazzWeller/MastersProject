@@ -3,6 +3,7 @@ and start a game."""
 
 from __future__ import annotations
 
+import os
 import random
 
 import pygame
@@ -13,25 +14,58 @@ from ..app import Scene
 from ..engine_bridge import MatchSettings
 from ..sprites.widgets import Button, draw_panel
 
-DECKS = ["fignor", "igor"]
+from keyforge.cards.decks import DECKS as _BUNDLED_DECKS, deck_label, resolve_deck
+
+# Bundled presets (Fignor, Igor, plus the curated Milestone D decks), sorted
+# for a stable cycling order.
+_PRESET_DECKS = sorted(_BUNDLED_DECKS.keys())
 SEATS = ["human", "bot"]
 FIRST_CHOICES = [None, 1, 2]
 FIRST_LABELS = {None: "Random", 1: "Player 1", 2: "Player 2"}
+FORMATS = ["archon", "reversal", "adaptive"]
+FORMAT_LABELS = {"archon": "Archon", "reversal": "Reversal", "adaptive": "Adaptive"}
+
+
+def _user_deck_files() -> list:
+    try:
+        files = [f for f in os.listdir(S.USER_DECKS_DIR) if f.endswith(".json")]
+    except FileNotFoundError:
+        return []
+    return sorted(os.path.join(S.USER_DECKS_DIR, f) for f in files)
+
+
+def _deck_button_label(source) -> str:
+    try:
+        return deck_label(resolve_deck(source))
+    except Exception:
+        return str(source)
 
 
 class MenuScene(Scene):
     def __init__(self):
+        self.decks = list(_PRESET_DECKS)
         self.p1_deck_i = 0
         self.p2_deck_i = 1
         self.p1_seat_i = 0  # human
         self.p2_seat_i = 1  # bot
         self.first_i = 0
+        self.format_i = 0  # archon
         self.fixed_seed = False
         self.buttons = {}
         self.particles = ParticleSystem()
         self._spawn_timer = 0.0
 
     def on_enter(self) -> None:
+        self._refresh_decks()
+
+    def _refresh_decks(self) -> None:
+        """Re-reads the deck list (bundled presets + user decks). Called on
+        entry, and explicitly by DeckBuilderScene's Back button -- returning
+        to an already-on-the-stack MenuScene doesn't re-trigger on_enter,
+        but a deck may have just been saved or deleted there."""
+        self.decks = _PRESET_DECKS + _user_deck_files()
+        self.p1_deck_i = min(self.p1_deck_i, len(self.decks) - 1)
+        self.p2_deck_i = min(self.p2_deck_i, len(self.decks) - 1)
         self._layout_buttons()
 
     def _layout_buttons(self) -> None:
@@ -48,28 +82,32 @@ class MenuScene(Scene):
 
         self.buttons.clear()
         y = top
-        self.buttons["p1_deck"] = (Button(pygame.Rect(cx + 40, y, bw, bh), DECKS[self.p1_deck_i].capitalize()), self._cycle_p1_deck)
+        self.buttons["p1_deck"] = (Button(pygame.Rect(cx + 40, y, bw, bh), _deck_button_label(self.decks[self.p1_deck_i])), self._cycle_p1_deck)
         y += row_h
         self.buttons["p1_seat"] = (Button(pygame.Rect(cx + 40, y, bw, bh), SEATS[self.p1_seat_i].capitalize()), self._cycle_p1_seat)
         y += row_h + 20
-        self.buttons["p2_deck"] = (Button(pygame.Rect(cx + 40, y, bw, bh), DECKS[self.p2_deck_i].capitalize()), self._cycle_p2_deck)
+        self.buttons["p2_deck"] = (Button(pygame.Rect(cx + 40, y, bw, bh), _deck_button_label(self.decks[self.p2_deck_i])), self._cycle_p2_deck)
         y += row_h
         self.buttons["p2_seat"] = (Button(pygame.Rect(cx + 40, y, bw, bh), SEATS[self.p2_seat_i].capitalize()), self._cycle_p2_seat)
         y += row_h + 20
+        self.buttons["format"] = (Button(pygame.Rect(cx + 40, y, bw, bh), FORMAT_LABELS[FORMATS[self.format_i]]), self._cycle_format)
+        y += row_h
         self.buttons["first"] = (Button(pygame.Rect(cx + 40, y, bw, bh), FIRST_LABELS[FIRST_CHOICES[self.first_i]]), self._cycle_first)
         y += row_h
         self.buttons["seed"] = (Button(pygame.Rect(cx + 40, y, bw, bh), "Fixed (42)" if self.fixed_seed else "Random"), self._toggle_seed)
         y += row_h + 30
         self.buttons["start"] = (Button(pygame.Rect(cx - 110, y, 220, 54), "Start Game", primary=True), self._start)
-        self.buttons["history"] = (Button(pygame.Rect(cx - 350, y, 220, 54), "Past Games"), self._history)
         self.buttons["quit"] = (Button(pygame.Rect(cx + 130, y, 220, 54), "Quit"), self.app.quit)
+        self.buttons["deck_builder"] = (Button(pygame.Rect(cx - 690, y, 180, 54), "Deck Builder"), self._deck_builder)
+        self.buttons["alliance_builder"] = (Button(pygame.Rect(cx - 500, y, 180, 54), "Alliance"), self._alliance_builder)
+        self.buttons["history"] = (Button(pygame.Rect(cx - 310, y, 180, 54), "Past Games"), self._history)
 
     def _cycle_p1_deck(self):
-        self.p1_deck_i = (self.p1_deck_i + 1) % len(DECKS)
+        self.p1_deck_i = (self.p1_deck_i + 1) % len(self.decks)
         self._layout_buttons()
 
     def _cycle_p2_deck(self):
-        self.p2_deck_i = (self.p2_deck_i + 1) % len(DECKS)
+        self.p2_deck_i = (self.p2_deck_i + 1) % len(self.decks)
         self._layout_buttons()
 
     def _cycle_p1_seat(self):
@@ -78,6 +116,10 @@ class MenuScene(Scene):
 
     def _cycle_p2_seat(self):
         self.p2_seat_i = (self.p2_seat_i + 1) % len(SEATS)
+        self._layout_buttons()
+
+    def _cycle_format(self):
+        self.format_i = (self.format_i + 1) % len(FORMATS)
         self._layout_buttons()
 
     def _cycle_first(self):
@@ -93,19 +135,36 @@ class MenuScene(Scene):
 
         self.app.push(HistoryScene())
 
-    def _start(self):
-        from .game_scene import GameScene
+    def _deck_builder(self):
+        from .deck_builder_scene import DeckBuilderScene
 
+        self.app.push(DeckBuilderScene())
+
+    def _alliance_builder(self):
+        from .alliance_builder_scene import AllianceBuilderScene
+
+        self.app.push(AllianceBuilderScene())
+
+    def _start(self):
+        fmt = FORMATS[self.format_i]
         settings = MatchSettings(
-            p1_deck=DECKS[self.p1_deck_i],
-            p2_deck=DECKS[self.p2_deck_i],
+            p1_deck=self.decks[self.p1_deck_i],
+            p2_deck=self.decks[self.p2_deck_i],
             p1_seat=SEATS[self.p1_seat_i],
             p2_seat=SEATS[self.p2_seat_i],
+            format=fmt,
             first_player=FIRST_CHOICES[self.first_i],
             seed=42 if self.fixed_seed else None,
             max_turns=None,
         )
-        self.app.push(GameScene(settings))
+        if fmt == "archon":
+            from .game_scene import GameScene
+
+            self.app.push(GameScene(settings))
+        else:
+            from .match_scene import MatchScene
+
+            self.app.push(MatchScene(settings))
 
     # ------------------------------------------------------------- events ----
 
@@ -141,10 +200,10 @@ class MenuScene(Scene):
         title = title_font.render("KEYFORGE", True, S.TEXT)
         surface.blit(title, title.get_rect(center=(S.CANVAS_W // 2, 110)))
         sub_font = self.app.assets.font("cinzel", 22)
-        sub = sub_font.render("Phase 1.1 · Archon", True, S.AEMBER)
+        sub = sub_font.render("Archon · Reversal · Adaptive", True, S.AEMBER)
         surface.blit(sub, sub.get_rect(center=(S.CANVAS_W // 2, 160)))
 
-        panel_rect = pygame.Rect(S.CANVAS_W // 2 - 320, 260, 640, 520)
+        panel_rect = pygame.Rect(S.CANVAS_W // 2 - 320, 240, 640, 604)
         draw_panel(surface, panel_rect, alpha=200, border=S.TEXT_FAINT)
 
         label_font = self.app.assets.font("inter", 16)
@@ -152,7 +211,7 @@ class MenuScene(Scene):
         labels = [
             (300, "Player 1 deck"), (364, "Player 1 seat"),
             (448, "Player 2 deck"), (512, "Player 2 seat"),
-            (596, "First player"), (660, "Seed"),
+            (596, "Format"), (660, "First player"), (724, "Seed"),
         ]
         for y, text in labels:
             img = label_font.render(text, True, S.TEXT_DIM)
@@ -161,7 +220,7 @@ class MenuScene(Scene):
         house_hint = self.app.assets.font("inter", 13).render(
             "Fignor · Dis / Logos / Shadows      Igor · Dis / Logos / Shadows", True, S.TEXT_FAINT
         )
-        surface.blit(house_hint, (cx - 300, 726))
+        surface.blit(house_hint, (cx - 300, 790))
 
         for key, (button, _cb) in self.buttons.items():
             button.draw(surface, self.app.assets)

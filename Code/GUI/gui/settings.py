@@ -14,10 +14,11 @@ GUI_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CODE_DIR = os.path.dirname(GUI_DIR)
 PROJECT_DIR = os.path.dirname(CODE_DIR)
 NON_GUI_DIR = os.path.join(CODE_DIR, "Non-GUI")
-CARD_ART_DIR = os.path.join(PROJECT_DIR, "Phase 1", "Cards")
+CARD_ART_DIR = PROJECT_DIR  # CardDef.image paths are root-relative, e.g. "Phase 2/Cards/Dis/..."
 ASSETS_DIR = os.path.join(GUI_DIR, "assets")
 FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 SOUNDS_DIR = os.path.join(ASSETS_DIR, "sounds")
+USER_DECKS_DIR = os.environ.get("KEYFORGE_USER_DECKS_DIR") or os.path.join(GUI_DIR, "data", "decks")  # git-ignored, like data/history.sqlite3
 
 CINZEL_PATH = os.path.join(FONTS_DIR, "Cinzel-Bold.ttf")
 INTER_PATH = os.path.join(FONTS_DIR, "Inter-Regular.ttf")
@@ -106,6 +107,10 @@ DANGER = _hex("E5484D")
 HEAL = _hex("46C18F")
 PURGE = _hex("8B5CF6")
 NOTE = _hex("F0A35E")  # an effect that could not be carried out in full
+
+TAUNT = _hex("C97D2C")
+POISON = _hex("6FA83A")
+VERSATILE = _hex("3FA9C9")
 
 HOUSE_COLORS = {
     "Dis": _hex("D0246E"),

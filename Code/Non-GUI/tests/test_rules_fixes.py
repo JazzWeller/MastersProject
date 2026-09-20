@@ -225,7 +225,7 @@ class TestFirstTurnRule(unittest.TestCase):
         p1 = game.players[1]
         card = next(c for c in p1.hand.cards() if c.house == p1.selected_house)
         game.submit(DiscardCard(card))
-        other = hand_card(game, 1, "Arise")
+        other = hand_card(game, 1, "Arise!")
         p1.selected_house = House.DIS
         self.assertIn("First turn", game.why_not_playable(1, other))
 

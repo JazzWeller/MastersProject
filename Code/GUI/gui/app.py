@@ -71,7 +71,7 @@ def _default_window_size() -> tuple:
 
 
 class App:
-    def __init__(self, window_size=None, title="KeyForge · Phase 1.1 Archon"):
+    def __init__(self, window_size=None, title="KeyForge"):
         pygame.init()
         try:
             pygame.mixer.init()

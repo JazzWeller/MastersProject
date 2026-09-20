@@ -1,0 +1,47 @@
+{
+  "name": "Gambit",
+  "pods": {
+    "Dis": [
+      "Arise!",
+      "Control the Weak",
+      "Gateway to Dis",
+      "Dominator Bauble",
+      "Lash of Broken Dreams",
+      "Library of the Damned",
+      "Lifeward",
+      "Dust Imp",
+      "Ember Imp",
+      "Guardian Demon",
+      "Master of 2",
+      "Master of 3"
+    ],
+    "Logos": [
+      "Help from Future Self",
+      "Labwork",
+      "Library of Babble",
+      "Spectral Tunneler",
+      "Mother",
+      "Neutron Shark",
+      "Skippy Timehog",
+      "Timetraveller",
+      "Titan Mechanic",
+      "Vespilon Theorist",
+      "Experimental Therapy",
+      "Rocket Boots"
+    ],
+    "Shadows": [
+      "Bait and Switch",
+      "Booby Trap",
+      "Ghostly Hand",
+      "Lights Out",
+      "Miasma",
+      "Nerve Blast",
+      "One Last Job",
+      "Oubliette",
+      "Pawn Sacrifice",
+      "Relentless Whispers",
+      "Too Much to Protect",
+      "Bad Penny"
+    ]
+  }
+}

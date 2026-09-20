@@ -83,9 +83,9 @@ class TestElusiveAndSkirmish(unittest.TestCase):
         attacker.Exhausted = False
         attacker.CanBeUsed = True
 
-        target = Card(get_card_def("Urchin"), 2)  # power 1
+        target = Card(get_card_def("Urchin"), 2)  # power 1, printed keyword: elusive
         p2.play_area.add_creature(target)
-        get_card_def("Urchin").register_passive(game, target)  # grant Elusive directly
+        self.assertIn("elusive", game.get_keywords(target))
 
         list(game.destroy_cards([]))  # no-op, sanity that generator protocol works
 

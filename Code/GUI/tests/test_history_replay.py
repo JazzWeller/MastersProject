@@ -1,6 +1,7 @@
 """Game history database and step-by-step replay (Code/PLAYTEST_FIX_PLAN.md H1-H5)."""
 
 import os
+import sqlite3
 import tempfile
 import unittest
 import zlib
@@ -53,7 +54,15 @@ class TestHistoryDatabase(unittest.TestCase):
         self.assertLess(len(blob), len(raw))
         config2, choices = decode_record(blob)
         self.assertEqual(choices, list(game.choice_record))
-        self.assertEqual((config2.seed, tuple(config2.decks)), (config.seed, tuple(config.decks)))
+        self.assertEqual(config2.seed, config.seed)
+        # The record embeds each preset's full decklist (so it survives that
+        # preset being edited or deleted later), so `decks` comes back as
+        # resolved `Deck` objects rather than the original bare names.
+        from keyforge.cards.decks import resolve_deck
+
+        self.assertEqual([d.name for d in config2.decks], ["Fignor", "Igor"])
+        self.assertEqual(config2.decks[0].pods, resolve_deck("fignor").pods)
+        self.assertEqual(config2.decks[1].pods, resolve_deck("igor").pods)
 
     def test_store_list_load_replay_reproduces_the_game(self):
         for seed in range(5):
@@ -97,6 +106,112 @@ class TestHistoryDatabase(unittest.TestCase):
         gid = self.history.start(config, "bot", "bot", game)
         self.history.delete(gid)
         self.assertIsNone(self.history.get(gid))
+
+
+def _bot_match(fmt, seed):
+    from gui.engine_bridge import MatchBridge
+
+    settings = MatchSettings(p1_deck="fignor", p2_deck="igor", p1_seat="bot", p2_seat="bot", format=fmt, seed=seed)
+    bridge = MatchBridge(settings, history=None)
+    while not bridge.is_over:
+        d = bridge.pending_decision
+        choice = bridge.bot_choice(d.player)
+        bridge.submit(choice, viewer=d.player)
+    return bridge
+
+
+class TestMatchHistoryDatabase(unittest.TestCase):
+    def setUp(self):
+        self.path = os.path.join(tempfile.mkdtemp(), "h.sqlite3")
+        self.history = GameHistory(self.path)
+
+    def tearDown(self):
+        self.history.close()
+
+    def test_match_and_its_games_are_recorded_and_grouped(self):
+        from gui.engine_bridge import MatchBridge
+
+        settings = MatchSettings(p1_deck="fignor", p2_deck="igor", p1_seat="bot", p2_seat="bot", format="adaptive", seed=9)
+        bridge = MatchBridge(settings, history=self.history)
+        while not bridge.is_over:
+            d = bridge.pending_decision
+            choice = bridge.bot_choice(d.player)
+            bridge.submit(choice, viewer=d.player)
+        bridge.close(abandoned=False)
+
+        summary = self.history.get_match(bridge.last_history_id)
+        self.assertEqual(summary.status, "finished")
+        self.assertEqual(summary.format, "adaptive")
+        self.assertEqual(summary.winner, bridge.match.result["winner"])
+        self.assertEqual(summary.games_played, len(bridge.match.games))
+
+        games = self.history.list(match_id=bridge.last_history_id)
+        self.assertEqual(len(games), len(bridge.match.games))
+        self.assertEqual([g.match_game_index for g in games], list(range(len(bridge.match.games))))
+        for g, record in zip(games, bridge.match.games):
+            self.assertEqual(g.winner, record.winner)
+            self.assertEqual(g.status, "finished")
+
+    def test_stored_match_replays_exactly_via_match_replay(self):
+        from keyforge.match import match_replay
+
+        bridge = _bot_match("adaptive", seed=11)
+        match_id = self.history.start_match(bridge.config, "bot", "bot", bridge.match)
+        self.history.update_match(match_id, bridge.config, bridge.match)
+
+        config, record = self.history.load_match(match_id)
+        replayed = match_replay(config, record)
+        self.assertEqual(replayed.result["winner"], bridge.match.result["winner"])
+        self.assertEqual(replayed.result["games"], bridge.match.result["games"])
+
+    def test_a_finished_sub_game_replays_through_the_existing_single_game_machinery(self):
+        bridge = _bot_match("adaptive", seed=11)
+        match_id = self.history.start_match(bridge.config, "bot", "bot", bridge.match)
+        self.history.update_match(match_id, bridge.config, bridge.match)
+
+        games = self.history.list(match_id=match_id)
+        self.assertGreaterEqual(len(games), 1)
+        loaded_config, gr = self.history.load(games[0].id)
+        replay_bridge = ReplayBridge(loaded_config, gr)
+        replay_bridge.rebuild_to(len(gr))
+        self.assertTrue(replay_bridge.is_over)
+        self.assertEqual(replay_bridge.game.result["winner"], bridge.match.games[0].winner)
+
+    def test_delete_match_cascades_to_its_games(self):
+        bridge = _bot_match("reversal", seed=3)
+        match_id = self.history.start_match(bridge.config, "bot", "bot", bridge.match)
+        self.history.update_match(match_id, bridge.config, bridge.match)
+        self.assertGreaterEqual(len(self.history.list(match_id=match_id)), 1)
+
+        self.history.delete_match(match_id)
+        self.assertIsNone(self.history.get_match(match_id))
+        self.assertEqual(self.history.list(match_id=match_id), [])
+
+    def test_migration_adds_match_columns_to_a_pre_phase2_database(self):
+        # Simulate a database created before match support existed: a
+        # `games` table with no match_id/match_game_index columns.
+        path = os.path.join(tempfile.mkdtemp(), "old.sqlite3")
+        conn = sqlite3.connect(path)
+        conn.executescript(
+            """
+            CREATE TABLE games (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, started_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                status TEXT NOT NULL, p1_deck TEXT NOT NULL, p2_deck TEXT NOT NULL, p1_seat TEXT NOT NULL,
+                p2_seat TEXT NOT NULL, first_player INTEGER, seed INTEGER NOT NULL, max_turns INTEGER,
+                winner INTEGER, reason TEXT, turns INTEGER NOT NULL DEFAULT 0, decisions INTEGER NOT NULL DEFAULT 0,
+                p1_keys INTEGER NOT NULL DEFAULT 0, p2_keys INTEGER NOT NULL DEFAULT 0, record BLOB NOT NULL
+            );
+            """
+        )
+        conn.commit()
+        conn.close()
+        history = GameHistory(path)  # should not raise
+        try:
+            cols = {row[1] for row in history._conn.execute("PRAGMA table_info(games)")}
+            self.assertIn("match_id", cols)
+            self.assertIn("match_game_index", cols)
+        finally:
+            history.close()
 
 
 class TestRecordingAndReplayScenes(unittest.TestCase):
