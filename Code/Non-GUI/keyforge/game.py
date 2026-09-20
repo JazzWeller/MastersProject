@@ -172,9 +172,18 @@ class Game:
         # project's own Phase 1.1 plan), not capped at the single largest
         # one -- deck-building allows duplicates, so a creature could carry
         # more than one hazardous-granting upgrade (e.g. two Flame-Wreathed).
+        # Includes the creature's own printed hazardous (Briar Grubbling).
         if not isinstance(card.type_object, CreatureType):
             return 0
-        return sum(upg.card_def.hazardous for upg in card.type_object.upgrades)
+        return card.card_def.hazardous + sum(upg.card_def.hazardous for upg in card.type_object.upgrades)
+
+    def get_assault(self, card: Card) -> int:
+        """The before-fight mirror of hazardous: an attacker with assault X
+        deals X damage to the defender before the fight itself (Ancient
+        Bear; Way of the Bear grants it via an upgrade)."""
+        if not isinstance(card.type_object, CreatureType):
+            return 0
+        return card.card_def.assault + sum(upg.card_def.assault for upg in card.type_object.upgrades)
 
     def get_effective_house(self, card: Card) -> House:
         """The house a card counts as for playability/CanBeUsed purposes
@@ -218,13 +227,17 @@ class Game:
         opponent = self.players[3 - attacker.controller]
         creatures = list(opponent.play_area.creatures)
         protected = set()
-        for c in creatures:
-            if "taunt" not in self.get_keywords(c):
-                continue
-            for neighbor in opponent.play_area.neighbors(c):
-                if "taunt" not in self.get_keywords(neighbor):
-                    protected.add(neighbor.instance_id)
-        return [c for c in creatures if c.instance_id not in protected and c.instance_id not in exclude]
+        if not attacker.card_def.ignores_taunt:
+            for c in creatures:
+                if "taunt" not in self.get_keywords(c):
+                    continue
+                for neighbor in opponent.play_area.neighbors(c):
+                    if "taunt" not in self.get_keywords(neighbor):
+                        protected.add(neighbor.instance_id)
+        result = [c for c in creatures if c.instance_id not in protected and c.instance_id not in exclude]
+        if attacker.card_def.can_only_fight_stunned:
+            result = [c for c in result if c.stunned]
+        return result
 
     def _can_fight_off_house(self, card: Card) -> bool:
         """True if `card` may fight this turn despite not being of the
@@ -518,6 +531,15 @@ class Game:
             if e.kind == "destroyed_in_fight" and e.data.get("controller") == controller_pid and e.data.get("turn") == self.turn_number
         )
 
+    def creatures_played_on_turn(self, pid: int, turn_number: int) -> int:
+        """How many creatures `pid` played on their turn numbered
+        `turn_number` (Lifeweb: "if your opponent played 3 or more
+        creatures on their previous turn")."""
+        return sum(
+            1 for e in self.log.events
+            if e.kind == "play_card" and e.data.get("player") == pid and e.data.get("type") == "Creature" and e.data.get("turn") == turn_number
+        )
+
     # ----------------------------------------------------- legal actions ----
 
     def _rule_of_six_ok(self, player: Player, name: str) -> bool:
@@ -600,7 +622,12 @@ class Game:
         cannot_use = player.get_cannot_use_cards(self)
         only_fight = player.get_can_only_fight(self)
         for card in player.play_area.creatures:
-            usable = not cannot_use and not card.Exhausted and self._rule_of_six_ok(player, card.name)
+            usable = (
+                not cannot_use
+                and not card.Exhausted
+                and self._rule_of_six_ok(player, card.name)
+                and (card.card_def.use_restriction is None or card.card_def.use_restriction(self, card))
+            )
             can_use_house = card.CanBeUsed or self._can_use_off_house(card)
             if usable and can_use_house and not only_fight:
                 if not card.card_def.cannot_reap:
@@ -723,6 +750,7 @@ class Game:
             type=card.type.value,
             flank=flank,
             from_deck_top=from_deck_top,
+            turn=self.turn_number,
         )
         if cdef.play_cost_aember:
             player.aember -= cdef.play_cost_aember
@@ -793,6 +821,12 @@ class Game:
             yield from self._play_resolution(card)
             if not self._card_is_somewhere(card):
                 self.players[card.owner].discard.push(card)
+        # Unlike "card_played" (which only ever notifies the SAME player's
+        # own listeners, per `_run_play_trigger_check`'s controller filter),
+        # this fires for every registered listener regardless of whose turn
+        # it is -- for "each time your OPPONENT plays a creature" effects
+        # (Teliga), which the controller-scoped event can't express.
+        yield from self._fire_event("any_card_played", {"player": pid, "card": card})
         return True
 
     def _play_resolution(self, card: Card):
@@ -1003,6 +1037,15 @@ class Game:
             if attacker in destroyed or target in destroyed:
                 return target
 
+        # Assault: before the fight itself, the attacker deals its assault
+        # damage to the defender (Ancient Bear) -- hazardous's mirror image.
+        assault_n = self.get_assault(attacker)
+        if assault_n > 0:
+            steps.deal_damage(self, target, assault_n)
+            destroyed = yield from self.check_destroyed([attacker, target])
+            if attacker in destroyed or target in destroyed:
+                return target
+
         # Hazardous: before the fight itself, the defender deals its
         # hazardous damage to the attacker (Flame-Wreathed).
         hazardous_n = self.get_hazardous(target)
@@ -1014,7 +1057,12 @@ class Game:
 
         target_keywords = self.get_keywords(target)
         attacker_keywords = self.get_keywords(attacker)
-        skip_fight = "elusive" in target_keywords and not target.fought_this_turn and not target.IgnoreElusive
+        skip_fight = (
+            "elusive" in target_keywords
+            and not target.fought_this_turn
+            and not target.IgnoreElusive
+            and not attacker.card_def.ignores_elusive
+        )
         target.fought_this_turn = True
         if skip_fight:
             steps.shortfall(
@@ -1089,6 +1137,8 @@ class Game:
         pid = card.controller
         player = self.players[pid]
         if card.Exhausted or not self._rule_of_six_ok(player, card.name) or player.get_cannot_use_cards(self):
+            return
+        if card.card_def.use_restriction is not None and not card.card_def.use_restriction(self, card):
             return
         if card.stunned:
             # A stunned creature has exactly one "use" -- itself, consumed

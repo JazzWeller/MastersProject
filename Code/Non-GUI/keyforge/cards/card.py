@@ -63,11 +63,16 @@ class CardDef:
     power_bonus: int = 0
     armor_bonus: int = 0  # Protect the Weak; Shoulder Armor's flank-conditional bonus uses ModifierEffect instead
     grants_keywords: tuple = ()
-    hazardous: int = 0
+    hazardous: int = 0  # printed (Briar Grubbling) and/or upgrade-granted (Flame-Wreathed)
+    assault: int = 0  # printed (Ancient Bear) and/or upgrade-granted (Way of the Bear)
     spendable_for_keys: bool = False  # Pocket Universe, Safe Place: aember_stored may pay forge costs
     play_cost_aember: int = 0  # Truebaru: must lose this much Æmber in order to play
     min_aember_to_play: int = 0  # Kelifi Dragon: needs this much Æmber in the pool to play, but doesn't spend it
     cannot_reap: bool = False  # Tireless Crocag
+    can_only_fight_stunned: bool = False  # Bigtwig
+    ignores_taunt: bool = False  # Niffle Ape (while attacking)
+    ignores_elusive: bool = False  # Niffle Ape (while attacking)
+    use_restriction: Optional[Callable] = None  # Giant Sloth: (game, card) -> bool, gates reap/fight/action/omni entirely
     on_play: Optional[Callable] = None          # generator effect function(game, card) or None
     on_reap: Optional[Callable] = None
     on_before_fight: Optional[Callable] = None  # Firespitter: resolves as the attacker, before the fight itself

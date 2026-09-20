@@ -26,6 +26,15 @@ def gain_n(n: int):
     return effect
 
 
+def opponent_gain_n(n: int):
+    def effect(game, card):
+        steps.gain(game, opponent_of(game, card), n)
+        return
+        yield
+
+    return effect
+
+
 def lose_n(n: int):
     def effect(game, card):
         steps.lose(game, opponent_of(game, card), n)

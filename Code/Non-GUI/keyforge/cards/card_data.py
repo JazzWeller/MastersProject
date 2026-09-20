@@ -392,7 +392,57 @@ hook("Red Planet Ray Gun", register_passive=named_mars.red_planet_ray_gun_regist
 
 # ------------------------------------------------------------- Untamed --
 
-# See Code/PHASE_3_PLAN.md Milestone D.4.
+hook("Cooperative Hunting", on_play=named_untamed.cooperative_hunting)
+hook("Curiosity", on_play=named_untamed.curiosity)
+hook("Fertility Chant", on_play=named_untamed.fertility_chant)
+hook("Fogbank", on_play=generic.duration_effect("CanFight", "=", False, 2, "enemy"))
+hook("Full Moon", on_play=named_untamed.full_moon)
+hook("Grasping Vines", on_play=named_untamed.grasping_vines)
+hook("Key Charge", on_play=named_untamed.key_charge)
+hook("Lifeweb", on_play=named_untamed.lifeweb)
+hook("Lost in the Woods", on_play=named_untamed.lost_in_the_woods)
+hook("Mimicry", on_play=named_untamed.mimicry_play)
+hook("Nature’s Call", on_play=named_untamed.natures_call)
+hook("Nocturnal Maneuver", on_play=named_untamed.nocturnal_maneuver)
+hook("Perilous Wild", on_play=named_untamed.perilous_wild)
+hook("Regrowth", on_play=named_untamed.regrowth)
+hook("Save the Pack", on_play=named_untamed.save_the_pack)
+hook("Scout", on_play=named_untamed.scout)
+hook("Stampede", on_play=named_untamed.stampede)
+hook("The Common Cold", on_play=named_untamed.the_common_cold)
+hook("Troop Call", on_play=named_untamed.troop_call)
+hook("Vigor", on_play=named_untamed.vigor)
+hook("Word of Returning", on_play=named_untamed.word_of_returning)
+
+hook("Bear Flute", on_action=named_untamed.bear_flute)
+hook("Nepenthe Seed", on_omni=named_untamed.nepenthe_seed)
+hook("Ritual of Balance", on_action=named_untamed.ritual_of_balance)
+hook("Ritual of the Hunt", on_omni=named_untamed.ritual_of_the_hunt)
+hook("World Tree", on_action=named_untamed.world_tree)
+
+hook("Bigtwig", can_only_fight_stunned=True, on_reap=named_untamed.bigtwig_after_reap)
+hook("Witch of the Wilds", register_passive=named_untamed.witch_of_the_wilds_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Chota Hazri", on_play=named_untamed.chota_hazri)
+hook("Dew Faerie", on_reap=generic.gain_n(1))
+hook("Flaxia", on_play=named_untamed.flaxia)
+hook("Fuzzy Gruen", on_play=generic.opponent_gain_n(1))
+hook("Giant Sloth", use_restriction=named_untamed._giant_sloth_restriction, register_passive=named_untamed.giant_sloth_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card), on_action=named_untamed.giant_sloth_action)
+hook("Halacor", register_passive=named_untamed.halacor_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Inka the Spider", on_play=named_untamed.inka_the_spider_effect, on_reap=named_untamed.inka_the_spider_effect)
+hook("Kindrith Longshot", on_reap=named_untamed.kindrith_longshot_after_reap)
+hook("Lupo the Scarred", on_play=named_untamed.lupo_the_scarred_play)
+hook("Mighty Tiger", on_play=generic.deal_damage_to_chosen(4, targets="enemy"))
+hook("Murmook", register_passive=named_untamed.murmook_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Mushroom Man", register_passive=named_untamed.mushroom_man_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Niffle Ape", ignores_taunt=True, ignores_elusive=True)
+hook("Niffle Queen", register_passive=named_untamed.niffle_queen_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Piranha Monkeys", on_play=named_untamed.piranha_monkeys_effect, on_reap=named_untamed.piranha_monkeys_effect)
+hook("Teliga", register_passive=named_untamed.teliga_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Hunting Witch", register_passive=named_untamed.hunting_witch_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Witch of the Eye", on_reap=named_untamed.witch_of_the_eye_after_reap)
+
+hook("Way of the Bear", assault=2)
+hook("Way of the Wolf", grants_keywords=("skirmish",))
 
 
 # -------------------------------------------------------- build CARD_DEFS --
@@ -412,7 +462,25 @@ def _build_card_defs() -> Dict[str, CardDef]:
         # the active house" prose) -- `extra_keywords` lets a hook add to the
         # card's printed keywords without having to repeat the JSON ones.
         extra_keywords = kwargs.pop("extra_keywords", ())
-        keywords = tuple(entry["keywords"]) + tuple(extra_keywords)
+        # keyteki (and so our pool tables) encode a printed value keyword as
+        # "name:N" (Briar Grubbling: "hazardous:5", Ancient Bear:
+        # "assault:2") -- pull those into CardDef's numeric fields instead of
+        # leaving a "hazardous:5" string sitting in the plain keyword set,
+        # and add them to whatever an upgrade-granting hook already supplied
+        # (Flame-Wreathed's hazardous=2, Way of the Bear's assault=2).
+        printed_hazardous = 0
+        printed_assault = 0
+        plain_keywords = []
+        for kw in entry["keywords"]:
+            if kw.startswith("hazardous:"):
+                printed_hazardous = int(kw.split(":", 1)[1])
+            elif kw.startswith("assault:"):
+                printed_assault = int(kw.split(":", 1)[1])
+            else:
+                plain_keywords.append(kw)
+        keywords = tuple(plain_keywords) + tuple(extra_keywords)
+        hazardous_total = printed_hazardous + kwargs.pop("hazardous", 0)
+        assault_total = printed_assault + kwargs.pop("assault", 0)
         defs[name] = CardDef(
             id=entry["number"],
             name=name,
@@ -426,6 +494,8 @@ def _build_card_defs() -> Dict[str, CardDef]:
             image=entry["image"],
             power=entry["power"] or 0,
             armor=entry["armor"],
+            hazardous=hazardous_total,
+            assault=assault_total,
             **kwargs,
         )
     return defs

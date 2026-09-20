@@ -43,6 +43,7 @@ class Player:
         self.CannotBeStolenFrom = False  # The Vaultkeeper
         self.next_entry_ready = False  # Soft Landing: the next creature/artifact played this turn enters ready
         self.next_mars_creature_ready = False  # Blypyp: the next Mars creature played this turn enters ready
+        self.discarded_untamed_this_turn = False  # Giant Sloth
         self.creatures_played_this_turn = 0
 
         self.selected_house = None
@@ -176,6 +177,7 @@ class Player:
         self.creatures_played_this_turn = 0
         self.next_entry_ready = False
         self.next_mars_creature_ready = False
+        self.discarded_untamed_this_turn = False
 
     def uses_of(self, card_name: str) -> int:
         return self.used_this_turn.get(card_name, 0)
