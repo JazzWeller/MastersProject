@@ -111,15 +111,16 @@ def archive_card(game, player, card) -> bool:
     return True
 
 
-def discard_from_hand(game, player, card) -> bool:
+def discard_from_hand(game, player, card):
     if not player.hand.remove(card):
         return False
     player.discard.push(card)
     game.log.add("discard", player=player.id, card=card.name, iid=card.instance_id)
+    yield from game._fire_event("card_discarded_from_hand", {"player": player.id, "card": card})
     return True
 
 
-def discard_random(game, player, source=None) -> bool:
+def discard_random(game, player, source=None):
     cards = player.hand.cards()
     if not cards:
         if source is not None:
@@ -129,6 +130,7 @@ def discard_random(game, player, source=None) -> bool:
     player.hand.remove(card)
     player.discard.push(card)
     game.log.add("discard_random", player=player.id, card=card.name, iid=card.instance_id)
+    yield from game._fire_event("card_discarded_from_hand", {"player": player.id, "card": card})
     return True
 
 
@@ -190,6 +192,42 @@ def deal_damage(game, creature, amount: int):
     return target
 
 
+def stun(game, card) -> bool:
+    if not isinstance(card.type_object, CreatureType):
+        return False
+    card.stunned = True
+    game.log.add("stun", card=card.name, iid=card.instance_id)
+    return True
+
+
+def gain_chains(game, player, source, n: int) -> int:
+    """Adds `n` chains to `player`, capped at 24 (Gateway to Dis, Coward's
+    End). Returns how many were actually added."""
+    if n <= 0:
+        return 0
+    before = player.chains
+    player.chains = min(24, player.chains + n)
+    added = player.chains - before
+    game.log.add(
+        "gain_chains", player=player.id, n=added, total=player.chains,
+        card=getattr(source, "name", source), iid=getattr(source, "instance_id", None),
+    )
+    return added
+
+
+def place_aember(game, card, amount: int) -> bool:
+    """Places `amount` Æmber from the common supply directly onto `card`
+    (Blood Money) -- unlike `capture`, this doesn't come out of either
+    player's pool. It behaves exactly like captured Æmber from then on:
+    released to the *card's controller's opponent* if the card leaves
+    play (see `Game.leave_play`)."""
+    if amount <= 0:
+        return False
+    card.aember_captured += amount
+    game.log.add("place_aember", card=card.name, iid=card.instance_id, amount=amount)
+    return True
+
+
 def heal(game, creature, amount: int) -> int:
     if amount <= 0 or not isinstance(creature.type_object, CreatureType):
         return 0
@@ -199,6 +237,14 @@ def heal(game, creature, amount: int) -> int:
     if healed:
         game.log.add("heal", card=creature.name, iid=creature.instance_id, amount=healed)
     return healed
+
+
+def fully_heal(game, creature) -> int:
+    """Heals all of `creature`'s current damage (Duma the Martyr, Mugwump,
+    Yo Mama Mastery, Armageddon Cloak) -- Milestone C.4."""
+    if not isinstance(creature.type_object, CreatureType):
+        return 0
+    return heal(game, creature, creature.type_object.damage)
 
 
 def sacrifice(game, card):

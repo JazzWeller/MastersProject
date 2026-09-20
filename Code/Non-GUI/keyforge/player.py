@@ -116,6 +116,18 @@ class Player:
                 return e.value
         return None
 
+    def get_fight_permitted_extra(self, game) -> frozenset:
+        """Houses this player's creatures may additionally fight as this
+        turn, on top of the active house and versatile (Brothers in
+        Battle: a chosen house; Follow the Leader: the sentinel `True`,
+        meaning every house). Reap/Action/Omni are unaffected -- these
+        cards grant fighting permission only."""
+        extra = set()
+        for e in game.active_effects.duration_effects_for("FightPermittedHouse", self.id):
+            if e.is_active(game):
+                extra.add(e.value)
+        return frozenset(extra)
+
     def get_cannot_choose_houses(self, game) -> frozenset:
         """Houses this player currently cannot choose as their active house
         (Restringuntus). Unlike the scalar get_* accessors, several sources

@@ -194,9 +194,7 @@ def silvertooth_play(game, card):
 
 
 def subtle_maul(game, card):
-    steps.discard_random(game, opponent_of(game, card), source=card)
-    return
-    yield
+    yield from steps.discard_random(game, opponent_of(game, card), source=card)
 
 
 def too_much_to_protect(game, card):

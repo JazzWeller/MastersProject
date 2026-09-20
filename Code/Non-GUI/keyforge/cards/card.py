@@ -65,8 +65,11 @@ class CardDef:
     hazardous: int = 0
     spendable_for_keys: bool = False  # Pocket Universe, Safe Place: aember_stored may pay forge costs
     play_cost_aember: int = 0  # Truebaru: must lose this much Æmber in order to play
+    min_aember_to_play: int = 0  # Kelifi Dragon: needs this much Æmber in the pool to play, but doesn't spend it
+    cannot_reap: bool = False  # Tireless Crocag
     on_play: Optional[Callable] = None          # generator effect function(game, card) or None
     on_reap: Optional[Callable] = None
+    on_before_fight: Optional[Callable] = None  # Firespitter: resolves as the attacker, before the fight itself
     on_fight: Optional[Callable] = None
     on_action: Optional[Callable] = None
     on_omni: Optional[Callable] = None

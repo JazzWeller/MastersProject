@@ -12,7 +12,7 @@ from .cards.decks import build_deck
 from .config import GameConfig
 from .decision import Decision
 from .effects import steps
-from .effects.effect_object import ActiveEffectList
+from .effects.effect_object import ActiveEffectList, ModifierEffect
 from .enums import CardType, DecisionKind, House
 from .log import GameLog
 from .player import Player
@@ -128,21 +128,38 @@ class Game:
         bonus = card.power_counters
         if isinstance(card.type_object, CreatureType):
             bonus += sum(upg.card_def.power_bonus for upg in card.type_object.upgrades)
+            for m in self.active_effects.modifiers_for("power"):
+                bonus += m.handler(self, card)
         return max(0, card.type_object.base_power + bonus)
 
     def get_armor(self, card: Card) -> int:
-        return max(0, card.type_object.base_armor)
+        bonus = 0
+        if isinstance(card.type_object, CreatureType):
+            for m in self.active_effects.modifiers_for("armor"):
+                bonus += m.handler(self, card)
+        return max(0, card.type_object.base_armor + bonus)
 
     def get_keywords(self, card: Card) -> frozenset:
         """Printed keywords plus anything granted by attached upgrades
-        (Ring of Invisibility, Experimental Therapy): elusive, skirmish,
-        taunt, poison, versatile. Hazardous has a value, not just a
-        presence/absence, so it's computed separately by `get_hazardous`."""
+        (Ring of Invisibility, Experimental Therapy) or another card's
+        passive (Halacor): elusive, skirmish, taunt, poison, versatile.
+        Hazardous has a value, not just a presence/absence, so it's
+        computed separately by `get_hazardous`."""
         kw = set(card.card_def.keywords)
         if isinstance(card.type_object, CreatureType):
             for upg in card.type_object.upgrades:
                 kw |= set(upg.card_def.grants_keywords)
+            for m in self.active_effects.modifiers_for("keywords"):
+                kw |= m.handler(self, card)
         return frozenset(kw)
+
+    def get_fight_damage_bonus(self, attacker: Card, target: Card) -> int:
+        """Extra damage `attacker` deals in this fight specifically (Valdr:
+        +2 while attacking a flank creature) -- unlike `get_power`, this
+        never applies when the card is on the *defending* side of a fight,
+        so it's summed at the one call site in `_fight` rather than folded
+        into `get_power`."""
+        return sum(m.handler(self, attacker, target) for m in self.active_effects.modifiers_for("fight_damage"))
 
     def get_hazardous(self, card: Card) -> int:
         # Hazardous is summed across every source on the creature (per the
@@ -200,6 +217,16 @@ class Game:
                 if "taunt" not in self.get_keywords(neighbor):
                     protected.add(neighbor.instance_id)
         return [c for c in creatures if c.instance_id not in protected]
+
+    def _can_fight_off_house(self, card: Card) -> bool:
+        """True if `card` may fight this turn despite not being of the
+        active house (Brothers in Battle, Follow the Leader) -- checked as
+        an OR alongside the normal `card.CanBeUsed` gate, for Fight only;
+        Reap/Action/Omni are unaffected."""
+        extra = self.players[card.controller].get_fight_permitted_extra(self)
+        if not extra:
+            return False
+        return True in extra or self.get_effective_house(card) in extra
 
     # ------------------------------------------------------------ setup ----
 
@@ -457,6 +484,16 @@ class Game:
             for e in self.log.events
         )
 
+    def creatures_destroyed_in_fight_this_turn(self, controller_pid: int) -> int:
+        """How many of `controller_pid`'s creatures were destroyed
+        specifically by a fight's own damage exchange (not before-fight,
+        hazardous, assault, or any card effect) so far this turn (The
+        Warchest)."""
+        return sum(
+            1 for e in self.log.events
+            if e.kind == "destroyed_in_fight" and e.data.get("controller") == controller_pid and e.data.get("turn") == self.turn_number
+        )
+
     # ----------------------------------------------------- legal actions ----
 
     def _rule_of_six_ok(self, player: Player, name: str) -> bool:
@@ -515,6 +552,8 @@ class Game:
             return "Rule of six: already played or used 6 times this turn"
         if card.card_def.play_cost_aember > player.aember:
             return f"Costs {card.card_def.play_cost_aember} Æmber to play (you have {player.aember})"
+        if card.card_def.min_aember_to_play > player.aember:
+            return f"Needs {card.card_def.min_aember_to_play} Æmber in your pool to play (you have {player.aember})"
         if card.type == CardType.ARTIFACT:
             toll = player.get_artifact_play_toll(self)
             if toll is not None and toll[0] > player.aember:
@@ -536,12 +575,14 @@ class Game:
 
         cannot_use = player.get_cannot_use_cards(self)
         for card in player.play_area.creatures:
-            if not cannot_use and card.CanBeUsed and not card.Exhausted and self._rule_of_six_ok(player, card.name):
-                actions.append(Reap(card))
-                if self.legal_fight_targets(card):
-                    actions.append(Fight(card))
+            usable = not cannot_use and not card.Exhausted and self._rule_of_six_ok(player, card.name)
+            if usable and card.CanBeUsed:
+                if not card.card_def.cannot_reap:
+                    actions.append(Reap(card))
                 if card.card_def.on_action is not None or card.granted_action is not None:
                     actions.append(UseAction(card))
+            if usable and (card.CanBeUsed or self._can_fight_off_house(card)) and self.legal_fight_targets(card):
+                actions.append(Fight(card))
             if not cannot_use and not card.Exhausted and card.card_def.on_omni is not None and self._rule_of_six_ok(player, card.name):
                 actions.append(UseOmni(card))
 
@@ -561,7 +602,7 @@ class Game:
         if isinstance(action, PlayCard):
             yield from self._play_card(pid, action.card)
         elif isinstance(action, DiscardCard):
-            self._discard_card(pid, action.card)
+            yield from self._discard_card(pid, action.card)
         elif isinstance(action, UseAction):
             yield from self._use_action(pid, action.card)
         elif isinstance(action, UseOmni):
@@ -577,6 +618,7 @@ class Game:
         player.discard.push(card)
         player.cards_played_or_discarded_this_turn += 1
         self.log.add("discard_from_hand", player=pid, card=card.name, iid=card.instance_id)
+        yield from self._fire_event("card_discarded_from_hand", {"player": pid, "card": card})
 
     # ------------------------------------------------------- playing a card ----
 
@@ -614,6 +656,8 @@ class Game:
             if not targets:
                 return False
         if card.card_def.play_cost_aember > player.aember:
+            return False
+        if card.card_def.min_aember_to_play > player.aember:
             return False
         if card.type == CardType.ARTIFACT:
             toll = player.get_artifact_play_toll(self)
@@ -681,6 +725,7 @@ class Game:
                 cdef.register_passive(self, card)
             if card.aember_on_play:
                 player.aember += card.aember_on_play
+            yield from self._fire_event("creature_entered_play", {"card": card})
             yield from self._play_resolution(card)
         elif card.type == CardType.ARTIFACT:
             player.play_area.add_artifact(card)
@@ -786,6 +831,8 @@ class Game:
             return "it is an upgrade and there is no creature to attach it to"
         if card.card_def.play_cost_aember > player.aember:
             return f"it costs {card.card_def.play_cost_aember} Æmber to play and {{pos:{player.id}}} Æmber is {player.aember}"
+        if card.card_def.min_aember_to_play > player.aember:
+            return f"it needs {card.card_def.min_aember_to_play} Æmber in the pool to play and {{pos:{player.id}}} Æmber is {player.aember}"
         if card.type == CardType.ARTIFACT:
             toll = player.get_artifact_play_toll(self)
             if toll is not None and toll[0] > player.aember:
@@ -868,6 +915,15 @@ class Game:
         if self._consume_stun_if_present(attacker):
             player.used_this_turn[attacker.name] = player.used_this_turn.get(attacker.name, 0) + 1
             return
+
+        # A fight that has no legal target never happens at all -- it costs
+        # nothing, so the creature is not exhausted (MRB 18.3 FAQ: Anger
+        # used on Bumpsy with no enemy creatures in play leaves it ready).
+        # This matters for "ready and fight with a creature" effects
+        # (`ready_and_fight`); every other caller of `_fight` already only
+        # calls it when `legal_fight_targets` is non-empty.
+        if not self.legal_fight_targets(attacker):
+            return
         attacker.Exhausted = True
         player.used_this_turn[attacker.name] = player.used_this_turn.get(attacker.name, 0) + 1
 
@@ -889,10 +945,25 @@ class Game:
             target=target.name,
             target_iid=target.instance_id,
         )
+        # Fired once the fight is committed (a legal target was chosen),
+        # regardless of how it plays out -- Warsong: "each time a friendly
+        # creature fights, gain 1 Æmber for the remainder of the turn."
+        yield from self._fire_event("fight_resolved", {"attacker": attacker, "target": target})
 
         destroyed = yield from self.check_destroyed([attacker, target])
         if attacker in destroyed or target in destroyed:
             return
+
+        # A printed "Before Fight:" ability (Firespitter) resolves as the
+        # attacker, before hazardous and the fight itself. It can hit
+        # creatures well beyond this fight's two participants, so the
+        # destroyed-check after it covers everyone in play, not just
+        # attacker/target.
+        if attacker.card_def.on_before_fight is not None:
+            yield from attacker.card_def.on_before_fight(self, attacker)
+            destroyed = yield from self.check_destroyed(self.all_creatures("any", attacker))
+            if attacker in destroyed or target in destroyed:
+                return
 
         # Hazardous: before the fight itself, the defender deals its
         # hazardous damage to the attacker (Flame-Wreathed).
@@ -938,13 +1009,20 @@ class Game:
             # ("deals no damage when fighting") deals none at all.
             if "no_fight_damage" not in attacker_keywords:
                 dmg_target = attacker.redirect_fight_damage_to or target
-                hit = steps.deal_damage(self, dmg_target, self.get_power(attacker))
+                attack_power = self.get_power(attacker) + self.get_fight_damage_bonus(attacker, target)
+                hit = steps.deal_damage(self, dmg_target, attack_power)
                 if hit is not None:
                     hits.append(hit)
                     if "poison" in attacker_keywords and hit in self.players[hit.controller].play_area.creatures:
                         hit.type_object.damage = max(hit.type_object.damage, self.get_power(hit))
             attacker.redirect_fight_damage_to = None
             destroyed = yield from self.check_destroyed([attacker, target] + hits)
+            for c in destroyed:
+                # Distinct from the plain "destroyed" log entry: this marks
+                # specifically that the fight's own damage exchange (not
+                # before-fight/hazardous/assault or any other effect) is
+                # what did it (The Warchest).
+                self.log.add("destroyed_in_fight", card=c.name, iid=c.instance_id, controller=c.controller, turn=self.turn_number)
 
             # "destroyed fighting X" triggers (Overlord Greking, Stealer of
             # Souls, Brain Eater): fire on whichever side survived, naming
@@ -978,11 +1056,15 @@ class Game:
             # for no effect -- so there's no menu of options to offer.
             yield from self._reap(pid, card)
             return
-        options = ["reap"]
+        options = []
+        if not card.card_def.cannot_reap:
+            options.append("reap")
         if self.legal_fight_targets(card):
             options.append("fight")
         if card.card_def.on_action is not None or card.granted_action is not None:
             options.append("action")
+        if not options:
+            return
         if len(options) > 1:
             choice = yield from self.choose_cards(pid, f"Use {card.name}", options, 1, 1)
             kind = choice[0]
@@ -994,6 +1076,23 @@ class Game:
             yield from self._fight(pid, card)
         elif kind == "action":
             yield from self._use_action(pid, card)
+
+    def ready_and_fight(self, card: Card):
+        """Ready `card` and immediately attempt to fight with it, regardless
+        of its current Exhausted state (Anger, Ganger Chieftain, Gauntlet of
+        Command, Relentless Assault, ...). A stunned creature just has its
+        stun cleared instead (MRB 18.3 FAQ: "if a card allows you to use a
+        creature, and that creature is stunned, remove the stun instead of
+        doing anything else"). If it ends up with no legal fight target, it
+        simply stays ready -- `_fight` never exhausts a creature that had
+        nothing to fight (MRB 18.3 FAQ, Anger used on Bumpsy)."""
+        pid = card.controller
+        player = self.players[pid]
+        if self._consume_stun_if_present(card):
+            player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
+            return
+        steps.ready(self, card)
+        yield from self._fight(pid, card)
 
     # ------------------------------------------------------------ destroy ----
 

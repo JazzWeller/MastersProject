@@ -254,7 +254,7 @@ def gongoozle(game, card):
     steps.deal_damage(game, target, 3)
     destroyed = yield from game.check_destroyed([target])
     if target not in destroyed:
-        steps.discard_random(game, game.players[target.owner], source=card)
+        yield from steps.discard_random(game, game.players[target.owner], source=card)
 
 
 def guilty_hearts(game, card):
@@ -323,9 +323,7 @@ def key_hammer(game, card):
 
 
 def mind_barb(game, card):
-    steps.discard_random(game, opponent_of(game, card), source=card)
-    return
-    yield
+    yield from steps.discard_random(game, opponent_of(game, card), source=card)
 
 
 def pandemonium(game, card):
@@ -530,9 +528,7 @@ def _shaffles_handler(shaffles_card):
 
 
 def tocsin(game, card):
-    steps.discard_random(game, opponent_of(game, card), source=card)
-    return
-    yield
+    yield from steps.discard_random(game, opponent_of(game, card), source=card)
 
 
 def tolas_register(game, card):

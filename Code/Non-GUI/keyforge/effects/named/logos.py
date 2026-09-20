@@ -131,7 +131,7 @@ def sloppy_labwork(game, card):
     if player.hand.cards():
         options = player.hand.cards()
         choice = yield from game.choose_cards(player.id, "Sloppy Labwork: discard a card", options, 1, 1)
-        steps.discard_from_hand(game, player, choice[0])
+        yield from steps.discard_from_hand(game, player, choice[0])
     else:
         steps.shortfall(game, card, f"discards nothing: {{pos:{player.id}}} hand was empty after archiving", "Nothing left to discard")
 
