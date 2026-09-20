@@ -7,6 +7,7 @@ import math
 import random
 
 from bots.random_bot import RandomBot
+from keyforge.cards.card_data import CARD_DEFS
 from keyforge.cards.decks import random_deck
 from keyforge.config import GameConfig
 from keyforge.enums import DecisionKind
@@ -45,8 +46,53 @@ def check_invariants(game: Game):
         assert p.aember >= 0, f"player {pid} has negative aember"
         assert 0 <= p.chains <= 24, f"player {pid} chains out of range: {p.chains}"
 
+    # NOTE: armor_used_this_turn <= get_armor(card) is NOT a sound
+    # after-the-fact invariant -- conditional armor (Shoulder Armor's
+    # flank-only bonus, Red-Hot Armor's negation) can legitimately make
+    # get_armor() drop *below* armor already spent earlier in the same
+    # turn once the condition stops holding. The real guarantee (a hit
+    # never absorbs more than was available *at that moment*) is
+    # structural in steps.deal_damage and is covered directly by
+    # test_steps.TestDealDamage instead of a fuzz invariant here.
 
-def run_one(p1_deck, p2_deck, first, seed, max_turns, check_invariants_flag):
+    # Every Æmber currently sitting captured/placed on an in-play card must
+    # trace back to a "capture" or "place_aember" log entry -- it can be
+    # spent down by other means (Word of Returning), never manufactured.
+    total_captured_ever = sum(
+        e.data["amount"] for e in game.log.events if e.kind in ("capture", "place_aember")
+    )
+    currently_held = sum(
+        c.aember_captured
+        for p in game.players.values()
+        for c in list(p.play_area.creatures) + list(p.play_area.artifacts)
+    )
+    assert currently_held <= total_captured_ever, (
+        f"{currently_held} Æmber currently captured/placed on cards, but only "
+        f"{total_captured_ever} was ever captured or placed"
+    )
+
+
+_USAGE_LOG_KIND_TO_CARD_KEY = {
+    "play_card": "card",
+    "reap": "card",
+    "use_action": "card",
+    "use_omni": "card",
+    "fight": "attacker",
+}
+
+
+def collect_card_usage(game: Game, seen: set) -> None:
+    """Records every card name that was played, reaped, fought with, or had
+    its Action/Omni used at some point in `game`, for a coverage report
+    across a whole batch of games (Code/PHASE_3_PLAN.md Milestone F: every
+    one of the 370 cards should turn up at least once over a long run)."""
+    for e in game.log.events:
+        key = _USAGE_LOG_KIND_TO_CARD_KEY.get(e.kind)
+        if key is not None and key in e.data:
+            seen.add(e.data[key])
+
+
+def run_one(p1_deck, p2_deck, first, seed, max_turns, check_invariants_flag, usage_tracker=None):
     config = GameConfig(decks=(p1_deck, p2_deck), first_player=first, seed=seed, max_turns=max_turns)
     game = Game(config)
     controllers = {1: RandomBot(seed=seed), 2: RandomBot(seed=(seed or 0) + 1 if seed is not None else None)}
@@ -58,6 +104,8 @@ def run_one(p1_deck, p2_deck, first, seed, max_turns, check_invariants_flag):
         game.submit(choice)
         if check_invariants_flag and (game.is_over or game.pending_decision.kind in _BOUNDARY_KINDS):
             check_invariants(game)
+    if usage_tracker is not None:
+        collect_card_usage(game, usage_tracker)
     return game.result, game.turn_number
 
 
@@ -90,7 +138,13 @@ def main(argv=None):
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max-turns", type=int, default=200)
     parser.add_argument("--check-invariants", action="store_true")
+    parser.add_argument(
+        "--coverage", action="store_true",
+        help="report which of the full card pool was never played/reaped/fought/used across the run (implies --random-decks)",
+    )
     args = parser.parse_args(argv)
+    if args.coverage:
+        args.random_decks = True
 
     first_player = {"p1": 1, "p2": 2}.get(args.first)
     deck_rng = random.Random(args.seed)
@@ -101,10 +155,11 @@ def main(argv=None):
 
     wins = {1: 0, 2: 0, None: 0}
     total_turns = 0
+    usage_tracker = set() if args.coverage else None
     for i in range(args.games):
         seed = (args.seed + i) if args.seed is not None else None
         p1_deck, p2_deck = _pick_decks(args, deck_rng)
-        result, turns = run_one(p1_deck, p2_deck, first_player, seed, args.max_turns, args.check_invariants)
+        result, turns = run_one(p1_deck, p2_deck, first_player, seed, args.max_turns, args.check_invariants, usage_tracker)
         wins[result["winner"]] += 1
         total_turns += turns
 
@@ -113,6 +168,19 @@ def main(argv=None):
     print(f"P2 wins: {wins[2]} ({wins[2]/args.games:.1%})")
     print(f"Draws (turn limit): {wins[None]} ({wins[None]/args.games:.1%})")
     print(f"Average turns: {total_turns/args.games:.1f}")
+
+    if usage_tracker is not None:
+        _report_coverage(usage_tracker)
+
+
+def _report_coverage(seen: set) -> None:
+    all_names = set(CARD_DEFS)
+    missing = sorted(all_names - seen)
+    print(f"\nCard coverage: {len(all_names) - len(missing)}/{len(all_names)} played/reaped/fought/used at least once.")
+    if missing:
+        print(f"Never touched ({len(missing)}):")
+        for name in missing:
+            print(f"  {name}")
 
 
 def _pick_decks(args, rng):

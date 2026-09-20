@@ -537,6 +537,32 @@ class TestSanctumUpgrades(unittest.TestCase):
         self.assertEqual(game.get_power(host), 2)
         self.assertEqual(game.get_armor(host), 0)
 
+    def test_shoulder_armor_bonus_spent_can_legitimately_exceed_a_later_lower_armor(self):
+        # Regression/documentation: armor_used_this_turn can end up ABOVE
+        # get_armor() once a conditional bonus like this one goes away
+        # later in the same turn -- that's why sim.simulate.check_invariants
+        # doesn't assert armor_used_this_turn <= get_armor(card) as a fuzz
+        # invariant (Code/PHASE_3_PLAN.md Milestone F).
+        game = new_game()
+        host = put_creature(game, 1, "Drumble")  # alone: a flank -> +2 armor
+        upgrade = make_card("Shoulder Armor", 1)
+        upgrade.type_object.host = host
+        host.type_object.upgrades.append(upgrade)
+        named.shoulder_armor_register(game, upgrade)
+        self.assertEqual(game.get_armor(host), 2)
+
+        steps.deal_damage(game, host, 2)  # spends both points of the flank-only bonus
+        self.assertEqual(host.type_object.armor_used_this_turn, 2)
+        self.assertEqual(host.type_object.damage, 0)
+
+        put_creature(game, 1, "Charette", flank="left")
+        put_creature(game, 1, "Bumpsy")  # [Charette, host, Bumpsy]: host now in the center
+        self.assertEqual(game.get_armor(host), 0)  # the bonus is gone...
+        self.assertEqual(host.type_object.armor_used_this_turn, 2)  # ...but the earlier spend still stands
+
+        steps.deal_damage(game, host, 1)  # no armor left at all now -> goes straight through
+        self.assertEqual(host.type_object.damage, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
