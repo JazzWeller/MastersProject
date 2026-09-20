@@ -8,13 +8,16 @@ import unittest
 import tests.helpers  # noqa: F401
 
 from bots.random_bot import RandomBot
-from keyforge.actions import DiscardCard, EndTurn
+from keyforge.actions import DiscardCard, EndTurn, PlayCard
+from keyforge.cards.card import Card
+from keyforge.cards.card_data import get_card_def
 from keyforge.config import GameConfig
-from keyforge.enums import DecisionKind
+from keyforge.enums import DecisionKind, House
 from keyforge.game import Game
 
 from gui.board import Board
 from gui.decision.panel import DecisionPanel
+from gui.snapshot import build_snapshot
 
 
 class TestNoDuplicateThumbnails(unittest.TestCase):
@@ -132,6 +135,100 @@ class TestConfirmBeforeSubmit(unittest.TestCase):
         end_turn = panel.decision.options[0]
         panel._pick(end_turn)
         self.assertIsNotNone(panel.result)
+
+
+class TestReadyAndFightSubPrompts(unittest.TestCase):
+    """Phase 3 Milestone E: cards like Anger play out as two sequential,
+    generic CHOOSE_CARDS decisions (choose a friendly creature, then --
+    from inside Game.ready_and_fight -- choose its fight target). Confirms
+    the panel needs no special "sub-prompt" widget for this: both steps
+    are answerable the same way any other on-board card choice is,
+    by picking the option scoped to the relevant sprite."""
+
+    def _make(self, name, owner):
+        return Card(get_card_def(name), owner)
+
+    def _advance_to_choose_action(self, game) -> None:
+        while game.pending_decision.kind != DecisionKind.CHOOSE_ACTION:
+            d = game.pending_decision
+            if d.kind == DecisionKind.TAKE_ARCHIVE:
+                game.submit(False)
+            else:
+                game.submit(d.options[0])
+
+    def test_anger_two_step_decision_resolves_through_the_panel(self):
+        game = Game(GameConfig(decks=("fignor", "igor"), seed=1, max_turns=8))
+        game.submit(False)
+        game.submit(False)
+        self._advance_to_choose_action(game)  # player 1's first CHOOSE_ACTION, turn 1
+
+        # First-turn rule restricts only the FIRST player's very first turn
+        # to one play-or-discard -- sidestep it entirely (rather than fight
+        # it) by ending that turn unused and doing the actual setup on
+        # player 2's first CHOOSE_ACTION instead.
+        end_turn = next(o for o in game.pending_decision.options if isinstance(o, EndTurn))
+        game.submit(end_turn)
+        self._advance_to_choose_action(game)
+
+        stale = game.pending_decision  # options computed from the pre-mutation state
+        pid = stale.player
+        other = 3 - pid
+        player = game.players[pid]
+
+        # Mutate play areas/hand/house *before* forcing a fresh CHOOSE_ACTION
+        # (a Decision's `.options` are a frozen snapshot -- mutating state
+        # after one is issued never changes it, so a throwaway Discard from
+        # the stale decision is used purely to make the main loop recompute
+        # `_legal_actions` against the new state below).
+        player.selected_house = House.BROBNAR
+        # Two friendly creatures and two enemy creatures so neither of
+        # Anger's two decisions auto-skips as a single-legal-option choice.
+        attacker1 = self._make("Charette", pid)
+        attacker2 = self._make("Snudge", pid)
+        player.play_area.add_creature(attacker1)
+        player.play_area.add_creature(attacker2)
+        target1 = self._make("Snudge", other)
+        target2 = self._make("Mother", other)  # not Truebaru: it has taunt, which would protect target1
+        game.players[other].play_area.add_creature(target1)
+        game.players[other].play_area.add_creature(target2)
+        anger = self._make("Anger", pid)
+        player.hand.add(anger)
+
+        throwaway = next(o for o in stale.options if isinstance(o, DiscardCard))
+        game.submit(throwaway)  # resolves under the old house; refreshes CHOOSE_ACTION under the new one
+
+        board = Board(_FakeAssets(), viewer=pid)
+        board.snapshot = build_snapshot(game, pid)
+        for cs in board.snapshot.cards.values():
+            board.sprite_for(cs.iid)
+        panel = DecisionPanel()
+
+        fresh = game.pending_decision
+        self.assertEqual(fresh.kind, DecisionKind.CHOOSE_ACTION)
+        game.submit(next(o for o in fresh.options if isinstance(o, PlayCard) and o.card is anger))
+
+        d1 = game.pending_decision
+        self.assertEqual(d1.kind, DecisionKind.CHOOSE_CARDS)
+        self.assertCountEqual(d1.options, [attacker1, attacker2])
+        board.snapshot = build_snapshot(game, pid)
+        panel.on_enter(d1, game.view_for(pid), board)
+        self.assertIn(attacker1.instance_id, panel.card_option_map)
+        panel._pick(panel.card_option_map[attacker1.instance_id][0])
+        self.assertIsNotNone(panel.result)
+        game.submit(panel.result)
+
+        d2 = game.pending_decision
+        self.assertEqual(d2.kind, DecisionKind.CHOOSE_CARDS)
+        self.assertCountEqual(d2.options, [target1, target2])
+        board.snapshot = build_snapshot(game, pid)
+        panel.on_enter(d2, game.view_for(pid), board)
+        self.assertIn(target1.instance_id, panel.card_option_map)
+        panel._pick(panel.card_option_map[target1.instance_id][0])
+        self.assertIsNotNone(panel.result)
+        game.submit(panel.result)
+
+        self.assertTrue(attacker1.Exhausted)  # readied, then fought -> exhausted again
+        self.assertEqual(game.pending_decision.kind, DecisionKind.CHOOSE_ACTION)
 
 
 class _FakeAssets:
