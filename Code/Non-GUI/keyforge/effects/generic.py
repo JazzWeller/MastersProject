@@ -124,6 +124,21 @@ def move_aember_to_card(n: int = 1):
     return effect
 
 
+def reveal_from_hand(game, player, predicate, prompt):
+    """Reveals a chosen subset (0 or more) of `player`'s hand matching
+    `predicate` -- the "reveal any number of X cards from your hand" cost
+    used by several Mars cards (Battle Fleet, Orbital Bombardment,
+    Commpod, ...), where the count revealed drives the rest of the effect.
+    Logs a `reveal` event and returns the chosen cards."""
+    options = [c for c in player.hand.cards() if predicate(c)]
+    if not options:
+        return []
+    choice = yield from game.choose_cards(player.id, prompt, options, 0, len(options))
+    if choice:
+        game.log.add("reveal", player=player.id, cards=[c.name for c in choice], iids=[c.instance_id for c in choice])
+    return choice
+
+
 def choose_most_powerful(game, pid, creatures, prompt):
     """Yields the single most powerful creature among `creatures`, letting
     `pid` break a tie for the max. Returns None if `creatures` is empty."""

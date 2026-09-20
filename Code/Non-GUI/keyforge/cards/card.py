@@ -135,6 +135,10 @@ class Card:
         self.redirect_fight_damage_to: Optional["Card"] = None  # Gabos Longarms: this fight's damage goes here instead
         self.armor_negated = False  # Red-Hot Armor: loses all of its armor until the end of the turn
         self.damage_prevented = False  # Protectrix: cannot be dealt damage until the end of the turn
+        # Sample Collection, Mass Abduction: this card sits in someone
+        # else's archive; when it leaves that archive, it goes to its own
+        # owner's hand instead of wherever it would otherwise go.
+        self.archive_return_to_owner = False
 
     def __repr__(self):
         return f"<Card {self.name} #{self.instance_id}>"

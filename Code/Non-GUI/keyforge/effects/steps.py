@@ -31,6 +31,9 @@ def shortfall(game, source, reason: str, short: str = "") -> None:
 def gain(game, player, amount: int) -> bool:
     if amount <= 0:
         return False
+    for e in game.active_effects.insteads_for("aember_gain"):
+        if e.handler(game, player, amount):
+            return True
     player.aember += amount
     game.log.add("gain", player=player.id, amount=amount)
     return True
@@ -74,6 +77,26 @@ def capture(game, card, amount: int) -> bool:
     if n < amount:
         shortfall(game, card, f"captures only {n} of {amount} Æmber: that was all of {{pos:{opponent.id}}} Æmber", f"Only {n} Æmber to capture")
     opponent.aember -= n
+    card.aember_captured += n
+    game.log.add("capture", card=card.name, iid=card.instance_id, amount=n)
+    return True
+
+
+def capture_from_own_side(game, card, amount: int) -> bool:
+    """Like `capture`, but `card` captures Æmber from its OWN controller's
+    pool, not the opponent's (Mindwarper: an enemy creature "captures 1
+    from its own side"). The captured Æmber still releases to `card`'s
+    controller's opponent when it leaves play, same as any other capture."""
+    if amount <= 0:
+        return False
+    own_player = game.players[card.controller]
+    n = min(amount, own_player.aember)
+    if n <= 0:
+        shortfall(game, card, f"captures nothing: {{pos:{own_player.id}}} Æmber pool is empty", "Nothing to capture")
+        return False
+    if n < amount:
+        shortfall(game, card, f"captures only {n} of {amount} Æmber: that was all of {{pos:{own_player.id}}} Æmber", f"Only {n} Æmber to capture")
+    own_player.aember -= n
     card.aember_captured += n
     game.log.add("capture", card=card.name, iid=card.instance_id, amount=n)
     return True
@@ -166,18 +189,19 @@ def put_on_bottom(game, player, card) -> bool:
     return True
 
 
-def deal_damage(game, creature, amount: int):
+def deal_damage(game, creature, amount: int, ignore_armor: bool = False):
     """Deals `amount` damage to `creature`. A "cannot be dealt damage"
     prevention (Shield of Justice, Potion of Invulnerability, Protectrix)
     is checked first, ahead of armor -- it's a full replacement, not a
     reduction, but the attempt still counts as having happened for other
-    triggers (MRB 18.3 FAQ, Shoulder Id). Armor absorbs next, on `creature`
-    itself; only the leftover (if any) is subject to a redirect effect
-    (Shadow Self) -- "redirect after armor". Returns the creature that
-    actually took nonzero damage (the redirect target, if any damage got
-    past prevention and armor), or None otherwise -- callers that need to
-    apply "this fight's damage" logic (poison) to the right creature should
-    key off this return value, not the original target."""
+    triggers (MRB 18.3 FAQ, Shoulder Id). Armor absorbs next (unless
+    `ignore_armor`, Qyxxlyx Plague Master: "cannot be prevented by armor"),
+    on `creature` itself; only the leftover (if any) is subject to a
+    redirect effect (Shadow Self) -- "redirect after armor". Returns the
+    creature that actually took nonzero damage (the redirect target, if any
+    damage got past prevention and armor), or None otherwise -- callers
+    that need to apply "this fight's damage" logic (poison) to the right
+    creature should key off this return value, not the original target."""
     if amount <= 0:
         return None
     if not isinstance(creature.type_object, CreatureType):
@@ -186,7 +210,7 @@ def deal_damage(game, creature, amount: int):
         game.log.add("damage_prevented", card=creature.name, iid=creature.instance_id, amount=amount)
         return None
     to = creature.type_object
-    available_armor = max(0, game.get_armor(creature) - to.armor_used_this_turn)
+    available_armor = 0 if ignore_armor else max(0, game.get_armor(creature) - to.armor_used_this_turn)
     absorbed = min(available_armor, amount)
     to.armor_used_this_turn += absorbed
     remaining = amount - absorbed

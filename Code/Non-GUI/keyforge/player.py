@@ -41,6 +41,8 @@ class Player:
         self.CannotBeDealtDamage = False  # Shield of Justice, Potion of Invulnerability: all your creatures, this turn
         self.CanOnlyFight = False  # Horseman of War: this turn, friendly creatures can only be used to fight
         self.CannotBeStolenFrom = False  # The Vaultkeeper
+        self.next_entry_ready = False  # Soft Landing: the next creature/artifact played this turn enters ready
+        self.next_mars_creature_ready = False  # Blypyp: the next Mars creature played this turn enters ready
         self.creatures_played_this_turn = 0
 
         self.selected_house = None
@@ -172,6 +174,8 @@ class Player:
         self.HouseSelection = None
         self.archive_choice_made_this_turn = False
         self.creatures_played_this_turn = 0
+        self.next_entry_ready = False
+        self.next_mars_creature_ready = False
 
     def uses_of(self, card_name: str) -> int:
         return self.used_this_turn.get(card_name, 0)

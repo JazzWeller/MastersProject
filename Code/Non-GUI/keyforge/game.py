@@ -44,6 +44,7 @@ class Game:
         # for one-off "remainder of the turn" effects that don't fit the
         # DurationEffect model (Spectral Tunneler).
         self._end_of_turn_cleanups: list = []
+        self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
         self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
@@ -154,6 +155,8 @@ class Game:
                 kw |= set(upg.card_def.grants_keywords)
             for m in self.active_effects.modifiers_for("keywords"):
                 kw |= m.handler(self, card)
+        if self._elusive_suppressed:
+            kw.discard("elusive")
         return frozenset(kw)
 
     def get_fight_damage_bonus(self, attacker: Card, target: Card) -> int:
@@ -333,7 +336,11 @@ class Game:
             )
             if take:
                 for c in player.archive.take_all():
-                    player.hand.add(c)
+                    if c.archive_return_to_owner:
+                        c.archive_return_to_owner = False
+                        self.players[c.owner].hand.add(c)
+                    else:
+                        player.hand.add(c)
                 self.log.add("take_archive", player=pid)
 
         # Step 4: main action loop
@@ -733,7 +740,12 @@ class Game:
             # Speed Sigil: the first creature played each turn enters ready.
             first_creature_this_turn = player.creatures_played_this_turn == 0
             player.creatures_played_this_turn += 1
-            card.Exhausted = not (first_creature_this_turn and player.get_first_creature_enters_ready(self))
+            enters_ready = (first_creature_this_turn and player.get_first_creature_enters_ready(self)) or player.next_entry_ready
+            if player.next_mars_creature_ready and card.house == House.MARS:
+                enters_ready = True
+            card.Exhausted = not enters_ready
+            player.next_entry_ready = False
+            player.next_mars_creature_ready = False
             # Step 2 of the turn only flags cards already in play; anything
             # entering play later must be flagged too, or a card readied on
             # entry (Silvertooth) could never be used that turn.
@@ -748,7 +760,8 @@ class Game:
             yield from self._play_resolution(card)
         elif card.type == CardType.ARTIFACT:
             player.play_area.add_artifact(card)
-            card.Exhausted = True
+            card.Exhausted = not player.next_entry_ready
+            player.next_entry_ready = False
             card.CanBeUsed = player.selected_house is not None and (
                 self.get_effective_house(card) == player.selected_house or "versatile" in self.get_keywords(card)
             )
@@ -923,6 +936,7 @@ class Game:
         else:
             player.aember += 1
         self.log.add("reap", player=pid, card=card.name, iid=card.instance_id)
+        yield from self._fire_event("reap_resolved", {"card": card})
         cdef = card.card_def
         if cdef.on_reap is not None:
             yield from cdef.on_reap(self, card)
@@ -1149,6 +1163,44 @@ class Game:
         destroyed = yield from self.destroy_cards(still_to_destroy)
         return destroyed
 
+    def put_creature_into_play_from_hand(self, player_id: int, card: Card, flank: Optional[str] = None, ready: bool = False) -> bool:
+        """Puts `card` directly into play from `player_id`'s hand, bypassing
+        normal play restrictions (house, Æmber cost, rule of six, ...) --
+        Swap Widget: "put a Mars creature ... from your hand into play".
+        Unlike `_play_card`, this never resolves the card's own Play
+        ability (real KeyForge distinguishes "play" from "put into play")."""
+        player = self.players[player_id]
+        if not player.hand.remove(card):
+            return False
+        card.controller = player_id
+        player.play_area.add_creature(card, flank)
+        card.Exhausted = not ready
+        card.CanBeUsed = player.selected_house is not None and (
+            self.get_effective_house(card) == player.selected_house or "versatile" in self.get_keywords(card)
+        )
+        if card.card_def.register_passive:
+            card.card_def.register_passive(self, card)
+        self.log.add("put_into_play", card=card.name, iid=card.instance_id, player=player_id, source=None)
+        return True
+
+    def archive_from_play(self, card: Card, archiving_player_id: int, return_to_owner_after: bool = False) -> bool:
+        """Puts `card` (a creature or artifact currently in play, possibly
+        the opponent's) into `archiving_player_id`'s archive -- Sample
+        Collection, Mass Abduction: 'put into YOUR archives' names the
+        archiving player's zone, not the card's owner's. If
+        `return_to_owner_after`, the card is flagged so that when it later
+        leaves that archive it goes to its own owner's hand instead of the
+        archiving player's, per those cards' own text."""
+        area = self.find_play_area(card)
+        if area is None:
+            return False
+        area.remove(card)
+        self.leave_play(card)
+        card.archive_return_to_owner = return_to_owner_after
+        self.players[archiving_player_id].archive.add(card)
+        self.log.add("archive", player=archiving_player_id, card=card.name, iid=card.instance_id)
+        return True
+
     def destroy_upgrade(self, upgrade_card: Card) -> bool:
         """Removes `upgrade_card` from its host and sends it to its owner's
         discard pile, without destroying (or otherwise affecting) the host
@@ -1248,6 +1300,8 @@ class Game:
             owner.purged.add(card)
         elif destination == "deck_top":
             owner.deck.put_on_top(card)
+        elif destination == "archive":
+            owner.archive.add(card)
         else:
             owner.discard.push(card)
 
