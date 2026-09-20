@@ -1,9 +1,11 @@
-# KeyForge Phase 1.1 (Archon) — GUI
+# KeyForge — GUI
 
-A graphical, animated, fully playable client for Phase 1.1 of the project
-(Archon format, Fignor vs. Igor), built on top of the engine in
-[`Code/Non-GUI`](../Non-GUI). See
-[`PHASE_1_1_GUI_PLAN.md`](PHASE_1_1_GUI_PLAN.md) for the design.
+A graphical, animated, fully playable client covering the full 370-card
+*Call of the Archons* set across all 7 houses (Dis, Logos, Shadows,
+Brobnar, Mars, Sanctum, Untamed), built on top of the engine in
+[`Code/Non-GUI`](../Non-GUI). See [`PHASE_1_1_GUI_PLAN.md`](PHASE_1_1_GUI_PLAN.md)
+for the original design and [`../PHASE_3_PLAN.md`](../PHASE_3_PLAN.md)'s
+Milestone E for the house-of-7 upgrade.
 
 ![Screenshot](docs/screenshot.png)
 
@@ -17,9 +19,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
-That opens the menu: pick each seat's deck (Fignor/Igor) and type
-(Human/Bot), who goes first, and Start. Or skip the menu and jump straight
-into a match:
+That opens the menu: pick or build each seat's deck and type (Human/Bot),
+who goes first, and Start. **Deck Builder** picks any 3 of the 7 houses,
+browses all 370 cards (with a name-search box) to fill each house's
+12-card pod, and saves/loads decks as JSON. Or skip the menu and jump
+straight into a match with a bundled preset or a saved deck by name:
 
 ```bash
 python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
@@ -36,8 +40,11 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
   are still legal, need a second click on the same button; any other click
   cancels that.
 - **Dimmed cards** can't be used right now — hover one to see why (wrong
-  house, first-turn limit, Ember Imp's play limit, Lifeward, Scrambler
-  Storm, already exhausted, ...).
+  house, first-turn limit, a card play/use limit, "cannot play/use cards"
+  effects, cannot reap, "can only fight" this turn, no legal fight target,
+  a toll you can't afford, already exhausted, ...). `Game.why_not_playable`/
+  `why_not_usable` compute the exact same reason `_legal_actions` uses, so
+  the two can never disagree.
 - **Right-click** any card — board, hand, pile browser, decklist, a
   decision screen — to read it full size. Clicking the zoom panel on the
   right does the same, and middle-click still works. Hovering any card
@@ -49,10 +56,12 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
   end of your creature row; choosing a house shows what each house would
   let you do; effect ordering numbers your picks and has Undo.
 - **Board**: creatures (left) and artifacts (right) share one row per
-  player; every card shows its remaining power, damage, armor, captured
-  Æmber, Elusive/Skirmish and "Exhausted". Your hand is sorted with your
-  active house first. Hover a key icon to see the turn it was forged, or a
-  status chip to see which card caused it.
+  player; every card shows its remaining power, damage, armor (with how
+  much of it is spent this turn), captured Æmber, and keyword chips —
+  Elusive, Skirmish, Taunt, Poison, Hazardous N, Assault N, Versatile,
+  Shielded (cannot be dealt damage) — plus Stunned/Exhausted. Your hand is
+  sorted with your active house first. Hover a key icon to see the turn it
+  was forged, or a status chip to see which card caused it.
 - **Piles** (left column) are clickable at any time, including during the
   opponent's turn (archive: owner only; decks: never).
 - **The first player** is announced after mulligans and tagged in the HUD;
@@ -65,9 +74,10 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
 - **Spectating** (bot vs. bot): players are addressed as "Player 1/2", and
   **R** reveals both hands.
 - **Bots** use a simple rules-aware strategy (`bots/heuristic_bot.py`):
-  they pick the house that lets them do the most, play what they can,
-  fight only favorable fights, and end the turn when nothing useful is
-  left.
+  they pick the house that lets them do the most, play what they can, fight
+  only favorable fights (accounting for armor, assault, and hazardous, and
+  never a target that can't be dealt damage), and end the turn when nothing
+  useful is left.
 
 ## Game history and replays
 
@@ -144,8 +154,10 @@ specifically animate.
 python -m unittest discover -s tests
 ```
 
-- `test_assets.py` — every one of the 49 Phase 1 cards resolves to real
-  art at every size the app uses.
+- `test_assets.py` — every one of the 370 cards (all 7 houses) resolves to
+  real art at every size the app uses; the raw-art LRU cache evicts
+  least-recently-used entries past its cap instead of holding all 370
+  forever.
 - `test_option_labels.py` — every option type and log-event kind produces
   a readable sentence.
 - `test_snapshot_layout.py` — no two board bands overlap, and every card
@@ -166,7 +178,13 @@ python -m unittest discover -s tests
   of `UX_FIX_PLAN.md`'s findings).
 - `test_decision_ui.py` — the action chooser and Options grid never show
   the same card's art twice; MULLIGAN always opens the dedicated review
-  screen; Discard and a premature End Turn always require a second click.
+  screen; Discard and a premature End Turn always require a second click;
+  a ready-and-fight effect's two sequential decisions (choose a creature,
+  then its target) both resolve through the generic panel with no special
+  "sub-prompt" widget needed.
+- `test_deck_builder_scene.py` / `test_alliance_builder_scene.py` — the
+  7-house picker, the type filter and name-search box, saving/loading/
+  deleting user decks, and random-filling a legal deck.
 - `test_click_accuracy.py` — renders every card into an ID map and checks
   that hover/click pick the card actually drawn on top (≥99% of pixels),
   plus chooser click-through and upgrade-to-host click routing.
