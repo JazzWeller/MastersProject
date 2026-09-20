@@ -271,7 +271,64 @@ hook("Yo Mama Mastery", grants_keywords=("taunt",), on_play=named_brobnar.yo_mam
 
 # -------------------------------------------------------------- Sanctum --
 
-# See Code/PHASE_3_PLAN.md Milestone D.2.
+hook("Begone!", on_play=named_sanctum.begone)
+hook("Blinding Light", on_play=named_sanctum.blinding_light)
+hook("Charge!", on_play=named_sanctum.charge)
+hook("Cleansing Wave", on_play=named_sanctum.cleansing_wave)
+hook("Clear Mind", on_play=named_sanctum.clear_mind)
+hook("Doorstep to Heaven", on_play=named_sanctum.doorstep_to_heaven)
+hook("Glorious Few", on_play=named_sanctum.glorious_few)
+hook("Honorable Claim", on_play=named_sanctum.honorable_claim)
+hook("Inspiration", on_play=named_sanctum.inspiration)
+hook("Mighty Lance", on_play=named_sanctum.mighty_lance)
+hook("Oath of Poverty", on_play=named_sanctum.oath_of_poverty)
+hook("One Stood Against Many", on_play=named_sanctum.one_stood_against_many)
+hook("Radiant Truth", on_play=named_sanctum.radiant_truth)
+hook("Shield of Justice", on_play=generic.duration_effect("CannotBeDealtDamage", "=", True, 1, "self"))
+hook("Take Hostages", on_play=named_sanctum.take_hostages)
+hook("Terms of Redress", on_play=named_sanctum.terms_of_redress)
+hook("The Harder They Come", on_play=named_sanctum.the_harder_they_come)
+hook("The Spirit’s Way", on_play=named_sanctum.the_spirits_way)
+# Virtuous Works is vanilla (aember_on_play only, from the pool data) -- no hook.
+
+hook("Epic Quest", on_play=named_sanctum.epic_quest_play, on_omni=named_sanctum.epic_quest_omni)
+hook("Gorm of Omm", on_omni=named_sanctum.gorm_of_omm)
+hook("Hallowed Blaster", on_action=named_sanctum.hallowed_blaster)
+hook("Potion of Invulnerability", on_omni=named_sanctum.potion_of_invulnerability)
+hook("Round Table", register_passive=named_sanctum.round_table_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Sigil of Brotherhood", on_omni=named_sanctum.sigil_of_brotherhood)
+hook("Whispering Reliquary", on_action=named_sanctum.whispering_reliquary)
+
+hook("Bulwark", register_passive=named_sanctum.bulwark_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+# Champion Anaphiel is taunt-only (from the pool's Keywords column) -- no hook.
+hook("Champion Tabris", on_fight=generic.capture_n(1))
+hook("Commander Remiel", on_reap=named_sanctum.commander_remiel)
+hook("Duma the Martyr", on_destroyed=named_sanctum.duma_the_martyr_destroyed)
+hook("Francus", on_destroyed_fighting=named_sanctum.francus_on_destroyed_fighting)
+hook("Grey Monk", register_passive=named_sanctum.grey_monk_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card), on_reap=named_sanctum.grey_monk_after_reap)
+hook("Hayyel the Merchant", register_passive=named_sanctum.hayyel_the_merchant_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Horseman of Death", on_play=named_sanctum.horseman_of_death)
+hook("Horseman of Famine", on_play=named_sanctum.horseman_of_famine, on_fight=named_sanctum.horseman_of_famine, on_reap=named_sanctum.horseman_of_famine)
+hook("Horseman of Pestilence", on_play=named_sanctum.horseman_of_pestilence, on_fight=named_sanctum.horseman_of_pestilence, on_reap=named_sanctum.horseman_of_pestilence)
+hook("Horseman of War", on_play=named_sanctum.horseman_of_war)
+hook("Jehu the Bureaucrat", register_passive=named_sanctum.jehu_the_bureaucrat_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Lady Maxena", on_play=named_sanctum.lady_maxena_play, on_action=named_sanctum.lady_maxena_action)
+hook("Lord Golgotha", on_before_fight=named_sanctum.lord_golgotha_before_fight)
+hook("Numquid the Fair", on_play=named_sanctum.numquid_the_fair)
+hook("Protectrix", on_reap=named_sanctum.protectrix_after_reap)
+hook("Raiding Knight", on_play=generic.capture_n(1))
+hook("Sanctum Guardian", on_fight=named_sanctum.sanctum_guardian_after, on_reap=named_sanctum.sanctum_guardian_after)
+hook("Sequis", on_reap=generic.capture_n(1))
+hook("Sergeant Zakiel", on_play=named_sanctum.sergeant_zakiel_play)
+hook("Staunch Knight", register_passive=named_sanctum.staunch_knight_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Gatekeeper", on_play=named_sanctum.gatekeeper)
+hook("The Vaultkeeper", register_passive=named_sanctum.the_vaultkeeper_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Veemos Lightbringer", on_play=named_sanctum.veemos_lightbringer)
+
+hook("Armageddon Cloak", hazardous=2, register_passive=named_sanctum.armageddon_cloak_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
+hook("Mantle of the Zealot", grants_keywords=("versatile",))
+hook("Protect the Weak", armor_bonus=1, grants_keywords=("taunt",))
+hook("Shoulder Armor", register_passive=named_sanctum.shoulder_armor_register, unregister_passive=lambda game, card: game.active_effects.remove_from_source(card))
 
 
 # ----------------------------------------------------------------- Mars --

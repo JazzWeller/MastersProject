@@ -200,6 +200,19 @@ class PlayArea:
             result.append(self.creatures[i + 1])
         return result
 
+    def swap(self, a: Card, b: Card) -> bool:
+        """Swaps the battleline positions of `a` and `b` (Sanctum Guardian).
+        Both must already be in this play area; a creature "swapped" with
+        itself is a legal no-op (an effect may allow a creature to move
+        "anywhere in the battleline, including where it already is")."""
+        if a is b:
+            return a in self.creatures
+        if a not in self.creatures or b not in self.creatures:
+            return False
+        i, j = self.creatures.index(a), self.creatures.index(b)
+        self.creatures[i], self.creatures[j] = self.creatures[j], self.creatures[i]
+        return True
+
     def is_flank(self, card: Card) -> bool:
         if getattr(card, "forced_flank", False):
             return True  # Spectral Tunneler: considered a flank creature for the rest of the turn

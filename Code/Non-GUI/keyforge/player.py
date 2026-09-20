@@ -38,6 +38,9 @@ class Player:
         self.CannotUseCards = False  # Skippy Timehog: cannot reap/fight/action/omni (playing/discarding still allowed)
         self.CanPlayCards = True  # Treasure Map: cannot play any card for the rest of the turn
         self.FirstCreatureEntersReady = False  # Speed Sigil
+        self.CannotBeDealtDamage = False  # Shield of Justice, Potion of Invulnerability: all your creatures, this turn
+        self.CanOnlyFight = False  # Horseman of War: this turn, friendly creatures can only be used to fight
+        self.CannotBeStolenFrom = False  # The Vaultkeeper
         self.creatures_played_this_turn = 0
 
         self.selected_house = None
@@ -101,6 +104,26 @@ class Player:
 
     def get_first_creature_enters_ready(self, game) -> bool:
         return self._apply(game, "FirstCreatureEntersReady", self.FirstCreatureEntersReady)
+
+    def get_cannot_be_dealt_damage(self, game) -> bool:
+        return self._apply(game, "CannotBeDealtDamage", self.CannotBeDealtDamage)
+
+    def get_can_only_fight(self, game) -> bool:
+        return self._apply(game, "CanOnlyFight", self.CanOnlyFight)
+
+    def get_cannot_be_stolen_from(self, game) -> bool:
+        return self._apply(game, "CannotBeStolenFrom", self.CannotBeStolenFrom)
+
+    def get_use_permitted_extra(self, game) -> frozenset:
+        """Houses (or the wildcard `True`, meaning every house) this
+        player's creatures may be fully used as this turn -- reap, action
+        and fight, not just fight (Sigil of Brotherhood). See also
+        `get_fight_permitted_extra`, which only ever grants fighting."""
+        extra = set()
+        for e in game.active_effects.duration_effects_for("UsePermittedHouse", self.id):
+            if e.is_active(game):
+                extra.add(e.value)
+        return frozenset(extra)
 
     def get_artifact_use_toll(self, game):
         """(amount, receiver_pid), or None -- Tentacus: pay to use an artifact."""

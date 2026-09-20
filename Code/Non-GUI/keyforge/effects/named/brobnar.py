@@ -369,7 +369,7 @@ def earthshaker(game, card):
     yield from game.destroy_cards(targets)
 
 
-def firespitter_before_fight(game, card):
+def firespitter_before_fight(game, card, target):
     targets = game.all_creatures("enemy", card)
     for t in targets:
         steps.deal_damage(game, t, 1)

@@ -46,6 +46,10 @@ def lose(game, player, amount: int) -> bool:
 
 
 def steal(game, from_player, to_player, amount: int, source=None) -> bool:
+    if amount > 0 and from_player.get_cannot_be_stolen_from(game):
+        if source is not None:
+            shortfall(game, source, f"steals nothing: {{pos:{from_player.id}}} Æmber cannot be stolen", "Cannot be stolen")
+        return False
     n = min(amount, from_player.aember)
     if source is not None and 0 < n < amount:
         shortfall(game, source, f"steals only {n} of {amount} Æmber: that was all of {{pos:{from_player.id}}} Æmber", f"Only {n} Æmber to steal")
@@ -163,16 +167,23 @@ def put_on_bottom(game, player, card) -> bool:
 
 
 def deal_damage(game, creature, amount: int):
-    """Deals `amount` damage to `creature`. Armor absorbs first, on
-    `creature` itself; only the leftover (if any) is subject to a redirect
-    effect (Shadow Self) -- "redirect after armor". Returns the creature
-    that actually took nonzero damage (the redirect target, if any damage
-    got past armor), or None if no damage was dealt at all -- callers that
-    need to apply "this fight's damage" logic (poison) to the right
-    creature should key off this return value, not the original target."""
+    """Deals `amount` damage to `creature`. A "cannot be dealt damage"
+    prevention (Shield of Justice, Potion of Invulnerability, Protectrix)
+    is checked first, ahead of armor -- it's a full replacement, not a
+    reduction, but the attempt still counts as having happened for other
+    triggers (MRB 18.3 FAQ, Shoulder Id). Armor absorbs next, on `creature`
+    itself; only the leftover (if any) is subject to a redirect effect
+    (Shadow Self) -- "redirect after armor". Returns the creature that
+    actually took nonzero damage (the redirect target, if any damage got
+    past prevention and armor), or None otherwise -- callers that need to
+    apply "this fight's damage" logic (poison) to the right creature should
+    key off this return value, not the original target."""
     if amount <= 0:
         return None
     if not isinstance(creature.type_object, CreatureType):
+        return None
+    if creature.damage_prevented or game.players[creature.controller].get_cannot_be_dealt_damage(game):
+        game.log.add("damage_prevented", card=creature.name, iid=creature.instance_id, amount=amount)
         return None
     to = creature.type_object
     available_armor = max(0, game.get_armor(creature) - to.armor_used_this_turn)

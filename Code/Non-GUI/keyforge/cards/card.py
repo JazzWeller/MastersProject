@@ -61,6 +61,7 @@ class CardDef:
     armor: int = 0
     # upgrade-only: what this upgrade grants its host while attached (Flame-Wreathed, Ring of Invisibility)
     power_bonus: int = 0
+    armor_bonus: int = 0  # Protect the Weak; Shoulder Armor's flank-conditional bonus uses ModifierEffect instead
     grants_keywords: tuple = ()
     hazardous: int = 0
     spendable_for_keys: bool = False  # Pocket Universe, Safe Place: aember_stored may pay forge costs
@@ -132,6 +133,8 @@ class Card:
         self.under_cards: List["Card"] = []  # Masterplan: cards placed facedown beneath this one
         self.purged_by: Optional["Card"] = None  # Spangler Box: tracks what purged this, to return it later
         self.redirect_fight_damage_to: Optional["Card"] = None  # Gabos Longarms: this fight's damage goes here instead
+        self.armor_negated = False  # Red-Hot Armor: loses all of its armor until the end of the turn
+        self.damage_prevented = False  # Protectrix: cannot be dealt damage until the end of the turn
 
     def __repr__(self):
         return f"<Card {self.name} #{self.instance_id}>"
@@ -153,3 +156,5 @@ class Card:
         self.aember_stored = 0
         self.forced_flank = False
         self.granted_action = None
+        self.armor_negated = False
+        self.damage_prevented = False

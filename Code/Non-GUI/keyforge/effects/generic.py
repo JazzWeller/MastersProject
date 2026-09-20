@@ -137,6 +137,19 @@ def choose_most_powerful(game, pid, creatures, prompt):
     return choice[0]
 
 
+def choose_least_powerful(game, pid, creatures, prompt):
+    """Yields the single least powerful creature among `creatures`, letting
+    `pid` break a tie for the min. Returns None if `creatures` is empty."""
+    if not creatures:
+        return None
+    min_power = min(game.get_power(c) for c in creatures)
+    tied = [c for c in creatures if game.get_power(c) == min_power]
+    if len(tied) == 1:
+        return tied[0]
+    choice = yield from game.choose_cards(pid, prompt, tied, 1, 1)
+    return choice[0]
+
+
 def deal_damage_to_chosen_with_splash(main: int, splash: int, targets="any"):
     """'Deal `main` damage to a creature with `splash` damage splash': the
     chosen creature's neighbors (at the moment of the hit, before anything

@@ -351,6 +351,10 @@ def poltergeist(game, card):
     yield from game.destroy_cards([target])
 
 
+def _revert_armor_negated(card):
+    card.armor_negated = False
+
+
 def red_hot_armor(game, card):
     opponent = opponent_of(game, card)
     targets = [c for c in opponent.play_area.creatures if game.get_armor(c) > 0]
@@ -359,7 +363,8 @@ def red_hot_armor(game, card):
         return
     for c in targets:
         lost = game.get_armor(c)
-        c.type_object.base_armor = 0
+        c.armor_negated = True
+        game._end_of_turn_cleanups.append(lambda c=c: _revert_armor_negated(c))
         steps.deal_damage(game, c, lost)
     yield from game.check_destroyed(targets)
 
