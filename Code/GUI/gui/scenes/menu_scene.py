@@ -55,6 +55,15 @@ class MenuScene(Scene):
         self.particles = ParticleSystem()
         self._spawn_timer = 0.0
 
+        # Layout metadata computed by _layout_buttons() and consumed by
+        # draw() -- kept as instance state so the two never disagree about
+        # where anything actually is.
+        self.panel_rect = pygame.Rect(0, 0, 0, 0)
+        self.field_labels = []      # [(text, x, y)]
+        self.section_headers = []   # [(text, center_x, y)]
+        self.dividers = []          # [(x0, x1, y)]
+        self.hint_pos = (0, 0)
+
     def on_enter(self) -> None:
         self._refresh_decks()
 
@@ -69,38 +78,95 @@ class MenuScene(Scene):
         self._layout_buttons()
 
     def _layout_buttons(self) -> None:
+        """Lays out the whole setup panel as a top-to-bottom stack of
+        sections (player columns, format/first/seed, start/quit, secondary
+        nav), each full-width within the panel's padded content area. Every
+        section's height is computed from its own contents, so later
+        sections can never collide with earlier ones or overflow the panel
+        -- unlike the old fixed row_h stride, which let the Start/Quit/nav
+        buttons run past both the panel's right and bottom edges."""
         cx = S.CANVAS_W // 2
-        top = 300
-        row_h = 64
-        bw, bh = 170, 42
-
-        def row(y, key_prefix, label_left, cycle_cb, value_label):
-            self.buttons[f"{key_prefix}_cycle"] = (
-                Button(pygame.Rect(cx + 40, y, bw, bh), value_label),
-                cycle_cb,
-            )
-
         self.buttons.clear()
-        y = top
-        self.buttons["p1_deck"] = (Button(pygame.Rect(cx + 40, y, bw, bh), _deck_button_label(self.decks[self.p1_deck_i])), self._cycle_p1_deck)
-        y += row_h
-        self.buttons["p1_seat"] = (Button(pygame.Rect(cx + 40, y, bw, bh), SEATS[self.p1_seat_i].capitalize()), self._cycle_p1_seat)
-        y += row_h + 20
-        self.buttons["p2_deck"] = (Button(pygame.Rect(cx + 40, y, bw, bh), _deck_button_label(self.decks[self.p2_deck_i])), self._cycle_p2_deck)
-        y += row_h
-        self.buttons["p2_seat"] = (Button(pygame.Rect(cx + 40, y, bw, bh), SEATS[self.p2_seat_i].capitalize()), self._cycle_p2_seat)
-        y += row_h + 20
-        self.buttons["format"] = (Button(pygame.Rect(cx + 40, y, bw, bh), FORMAT_LABELS[FORMATS[self.format_i]]), self._cycle_format)
-        y += row_h
-        self.buttons["first"] = (Button(pygame.Rect(cx + 40, y, bw, bh), FIRST_LABELS[FIRST_CHOICES[self.first_i]]), self._cycle_first)
-        y += row_h
-        self.buttons["seed"] = (Button(pygame.Rect(cx + 40, y, bw, bh), "Fixed (42)" if self.fixed_seed else "Random"), self._toggle_seed)
-        y += row_h + 30
-        self.buttons["start"] = (Button(pygame.Rect(cx - 110, y, 220, 54), "Start Game", primary=True), self._start)
-        self.buttons["quit"] = (Button(pygame.Rect(cx + 130, y, 220, 54), "Quit"), self.app.quit)
-        self.buttons["deck_builder"] = (Button(pygame.Rect(cx - 690, y, 180, 54), "Deck Builder"), self._deck_builder)
-        self.buttons["alliance_builder"] = (Button(pygame.Rect(cx - 500, y, 180, 54), "Alliance"), self._alliance_builder)
-        self.buttons["history"] = (Button(pygame.Rect(cx - 310, y, 180, 54), "Past Games"), self._history)
+        self.field_labels = []
+        self.section_headers = []
+        self.dividers = []
+
+        PAD = 36
+        LABEL_H = 18
+        LABEL_GAP = 6
+        FIELD_H = 42
+
+        panel_w, panel_h = 880, 600
+        panel_x, panel_y = cx - panel_w // 2, 195
+        self.panel_rect = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+
+        content_x0 = panel_x + PAD
+        content_x1 = panel_x + panel_w - PAD
+        content_w = content_x1 - content_x0
+
+        def field(x, w, y, label_text, key, button_label, cb):
+            self.field_labels.append((label_text, x, y))
+            by = y + LABEL_H + LABEL_GAP
+            self.buttons[key] = (Button(pygame.Rect(x, by, w, FIELD_H), button_label), cb)
+            return by + FIELD_H
+
+        # -- Section 1: Player 1 / Player 2 columns (deck, then seat) ------
+        col_gap = 40
+        col_w = (content_w - col_gap) // 2
+        col1_x, col2_x = content_x0, content_x0 + col_w + col_gap
+
+        y = panel_y + PAD
+        header_y = y
+        self.section_headers.append(("Player 1", col1_x + col_w // 2, header_y))
+        self.section_headers.append(("Player 2", col2_x + col_w // 2, header_y))
+        y = header_y + 24 + 14
+
+        deck_bottom = field(col1_x, col_w, y, "Deck", "p1_deck", _deck_button_label(self.decks[self.p1_deck_i]), self._cycle_p1_deck)
+        field(col2_x, col_w, y, "Deck", "p2_deck", _deck_button_label(self.decks[self.p2_deck_i]), self._cycle_p2_deck)
+        y = deck_bottom + 20
+
+        seat_bottom = field(col1_x, col_w, y, "Seat", "p1_seat", SEATS[self.p1_seat_i].capitalize(), self._cycle_p1_seat)
+        field(col2_x, col_w, y, "Seat", "p2_seat", SEATS[self.p2_seat_i].capitalize(), self._cycle_p2_seat)
+        y = seat_bottom + 34
+
+        self.dividers.append((content_x0, content_x1, y))
+        y += 22
+
+        # -- Section 2: Format / First player / Seed, three sub-columns ----
+        sub_gap = 30
+        sub_w = (content_w - 2 * sub_gap) // 3
+        sub_xs = [content_x0, content_x0 + sub_w + sub_gap, content_x0 + 2 * (sub_w + sub_gap)]
+
+        format_bottom = field(sub_xs[0], sub_w, y, "Format", "format", FORMAT_LABELS[FORMATS[self.format_i]], self._cycle_format)
+        field(sub_xs[1], sub_w, y, "First player", "first", FIRST_LABELS[FIRST_CHOICES[self.first_i]], self._cycle_first)
+        field(sub_xs[2], sub_w, y, "Seed", "seed", "Fixed (42)" if self.fixed_seed else "Random", self._toggle_seed)
+        y = format_bottom + 22
+
+        self.dividers.append((content_x0, content_x1, y))
+        y += 22
+
+        # -- Deck/house hint line, then Start/Quit ---------------------------
+        self.hint_pos = (cx, y)
+        y += 18 + 16
+
+        start_w, quit_w, gap = 220, 220, 40
+        total = start_w + quit_w + gap
+        sx = content_x0 + (content_w - total) // 2
+        self.buttons["start"] = (Button(pygame.Rect(sx, y, start_w, 54), "Start Game", primary=True), self._start)
+        self.buttons["quit"] = (Button(pygame.Rect(sx + start_w + gap, y, quit_w, 54), "Quit"), self.app.quit)
+        y += 54
+
+        # -- Secondary nav row, pinned to the panel's bottom edge -----------
+        nav_h = 48
+        nav_y = panel_y + panel_h - PAD - nav_h
+        self.dividers.append((content_x0, content_x1, (y + nav_y) // 2))
+
+        nav_gap = 24
+        nav_w = (content_w - 2 * nav_gap) // 3
+        nav_xs = [content_x0, content_x0 + nav_w + nav_gap, content_x0 + 2 * (nav_w + nav_gap)]
+        self.buttons["deck_builder"] = (Button(pygame.Rect(nav_xs[0], nav_y, nav_w, nav_h), "Deck Builder"), self._deck_builder)
+        self.buttons["alliance_builder"] = (Button(pygame.Rect(nav_xs[1], nav_y, nav_w, nav_h), "Alliance"), self._alliance_builder)
+        self.buttons["history"] = (Button(pygame.Rect(nav_xs[2], nav_y, nav_w, nav_h), "Past Games"), self._history)
 
     def _cycle_p1_deck(self):
         self.p1_deck_i = (self.p1_deck_i + 1) % len(self.decks)
@@ -203,19 +269,20 @@ class MenuScene(Scene):
         sub = sub_font.render("Archon · Reversal · Adaptive", True, S.AEMBER)
         surface.blit(sub, sub.get_rect(center=(S.CANVAS_W // 2, 160)))
 
-        panel_rect = pygame.Rect(S.CANVAS_W // 2 - 320, 240, 640, 604)
-        draw_panel(surface, panel_rect, alpha=200, border=S.TEXT_FAINT)
+        draw_panel(surface, self.panel_rect, alpha=200, border=S.TEXT_FAINT)
 
-        label_font = self.app.assets.font("inter", 16)
-        cx = S.CANVAS_W // 2
-        labels = [
-            (300, "Player 1 deck"), (364, "Player 1 seat"),
-            (448, "Player 2 deck"), (512, "Player 2 seat"),
-            (596, "Format"), (660, "First player"), (724, "Seed"),
-        ]
-        for y, text in labels:
+        header_font = self.app.assets.font("cinzel", 19)
+        for text, center_x, y in self.section_headers:
+            img = header_font.render(text, True, S.AEMBER)
+            surface.blit(img, img.get_rect(midtop=(center_x, y)))
+
+        label_font = self.app.assets.font("inter", 15)
+        for text, x, y in self.field_labels:
             img = label_font.render(text, True, S.TEXT_DIM)
-            surface.blit(img, (cx - 300, y + 10))
+            surface.blit(img, (x, y))
+
+        for x0, x1, y in self.dividers:
+            pygame.draw.line(surface, (*S.TEXT_FAINT, 90), (x0, y), (x1, y), 1)
 
         p1_deck = resolve_deck(self.decks[self.p1_deck_i])
         p2_deck = resolve_deck(self.decks[self.p2_deck_i])
@@ -223,7 +290,8 @@ class MenuScene(Scene):
         p2_houses = " / ".join(h.value for h in p2_deck.houses())
         hint_text = f"{deck_label(p1_deck)} · {p1_houses}      {deck_label(p2_deck)} · {p2_houses}"
         house_hint = self.app.assets.font("inter", 13).render(hint_text, True, S.TEXT_FAINT)
-        surface.blit(house_hint, (cx - 300, 790))
+        hx, hy = self.hint_pos
+        surface.blit(house_hint, house_hint.get_rect(midtop=(hx, hy)))
 
         for key, (button, _cb) in self.buttons.items():
             button.draw(surface, self.app.assets)
