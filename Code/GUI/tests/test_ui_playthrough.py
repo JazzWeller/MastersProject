@@ -118,9 +118,10 @@ class TestUiPlaythrough(unittest.TestCase):
         app.push(MenuScene())
         menu = app.scenes[-1]
         menu.update(16)
+        before = menu.p1_deck_i
         b, _cb = menu.buttons["p1_deck"]
         _click(menu, b.rect.center)
-        self.assertEqual(menu.p1_deck_i, 1)
+        self.assertEqual(menu.p1_deck_i, (before + 1) % len(menu.decks))
         b, _cb = menu.buttons["start"]
         _click(menu, b.rect.center)
         self.assertEqual([type(s).__name__ for s in app.scenes], ["MenuScene", "GameScene"])

@@ -44,8 +44,10 @@ def _deck_button_label(source) -> str:
 class MenuScene(Scene):
     def __init__(self):
         self.decks = list(_PRESET_DECKS)
-        self.p1_deck_i = 0
-        self.p2_deck_i = 1
+        # Match main.py's own CLI defaults (--p1-deck fignor --p2-deck igor)
+        # rather than whatever "cinder"/"fignor" happen to sort to first.
+        self.p1_deck_i = self.decks.index("fignor") if "fignor" in self.decks else 0
+        self.p2_deck_i = self.decks.index("igor") if "igor" in self.decks else min(1, len(self.decks) - 1)
         self.p1_seat_i = 0  # human
         self.p2_seat_i = 1  # bot
         self.first_i = 0
