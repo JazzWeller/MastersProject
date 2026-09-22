@@ -6,7 +6,7 @@ import argparse
 import math
 import random
 
-from bots.random_bot import RandomBot
+from bots.registry import available_agents, make_agent
 from keyforge.cards.card_data import CARD_DEFS
 from keyforge.cards.decks import random_deck
 from keyforge.config import GameConfig
@@ -92,10 +92,13 @@ def collect_card_usage(game: Game, seen: set) -> None:
             seen.add(e.data[key])
 
 
-def run_one(p1_deck, p2_deck, first, seed, max_turns, check_invariants_flag, usage_tracker=None):
+def run_one(p1_deck, p2_deck, first, seed, max_turns, check_invariants_flag, usage_tracker=None, p1_agent="random", p2_agent="random"):
     config = GameConfig(decks=(p1_deck, p2_deck), first_player=first, seed=seed, max_turns=max_turns)
     game = Game(config)
-    controllers = {1: RandomBot(seed=seed), 2: RandomBot(seed=(seed or 0) + 1 if seed is not None else None)}
+    controllers = {
+        1: make_agent(p1_agent, seed=seed),
+        2: make_agent(p2_agent, seed=(seed or 0) + 1 if seed is not None else None),
+    }
     choices = []
     while not game.is_over:
         d = game.pending_decision
@@ -109,10 +112,13 @@ def run_one(p1_deck, p2_deck, first, seed, max_turns, check_invariants_flag, usa
     return game.result, game.turn_number
 
 
-def run_one_match(p1_deck, p2_deck, fmt, first, seed, max_turns, check_invariants_flag):
+def run_one_match(p1_deck, p2_deck, fmt, first, seed, max_turns, check_invariants_flag, p1_agent="random", p2_agent="random"):
     config = MatchConfig(format=fmt, decks=(p1_deck, p2_deck), first_player=first, seed=seed, max_turns=max_turns)
     match = Match(config)
-    controllers = {1: RandomBot(seed=seed), 2: RandomBot(seed=(seed or 0) + 1 if seed is not None else None)}
+    controllers = {
+        1: make_agent(p1_agent, seed=seed),
+        2: make_agent(p2_agent, seed=(seed or 0) + 1 if seed is not None else None),
+    }
     while not match.is_over:
         d = match.pending_decision
         choice = controllers[d.player].decide(match.view_for(d.player), d)
@@ -129,8 +135,8 @@ def main(argv=None):
     parser.add_argument("--games", type=int, default=100)
     parser.add_argument("--matches", type=int, default=None, help="run N matches (--format) instead of N single games")
     parser.add_argument("--format", choices=["archon", "reversal", "adaptive"], default="archon")
-    parser.add_argument("--p1", choices=["random"], default="random")
-    parser.add_argument("--p2", choices=["random"], default="random")
+    parser.add_argument("--p1", default="random", help=f"agent name from bots.registry (available: {sorted(available_agents())})")
+    parser.add_argument("--p2", default="random", help=f"agent name from bots.registry (available: {sorted(available_agents())})")
     parser.add_argument("--p1-deck", default="fignor")
     parser.add_argument("--p2-deck", default="igor")
     parser.add_argument("--random-decks", action="store_true", help="give each game (or match) a fresh random legal deck per player, instead of --p1-deck/--p2-deck")
@@ -159,7 +165,10 @@ def main(argv=None):
     for i in range(args.games):
         seed = (args.seed + i) if args.seed is not None else None
         p1_deck, p2_deck = _pick_decks(args, deck_rng)
-        result, turns = run_one(p1_deck, p2_deck, first_player, seed, args.max_turns, args.check_invariants, usage_tracker)
+        result, turns = run_one(
+            p1_deck, p2_deck, first_player, seed, args.max_turns, args.check_invariants, usage_tracker,
+            p1_agent=args.p1, p2_agent=args.p2,
+        )
         wins[result["winner"]] += 1
         total_turns += turns
 
@@ -196,7 +205,10 @@ def _run_matches(args, first_player, deck_rng):
     for i in range(args.matches):
         seed = (args.seed + i) if args.seed is not None else None
         p1_deck, p2_deck = _pick_decks(args, deck_rng)
-        match = run_one_match(p1_deck, p2_deck, args.format, first_player, seed, args.max_turns, args.check_invariants)
+        match = run_one_match(
+            p1_deck, p2_deck, args.format, first_player, seed, args.max_turns, args.check_invariants,
+            p1_agent=args.p1, p2_agent=args.p2,
+        )
         wins[match.result["winner"]] += 1
         if len(match.games) >= 3:
             reached_game3 += 1
