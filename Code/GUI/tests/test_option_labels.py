@@ -94,6 +94,9 @@ class TestOptionLabels(unittest.TestCase):
             "turn_start",  # rendered by GameScene as a turn separator line, not a sentence
             "destroyed_in_fight",  # internal marker for Warchest-style queries; the same
             # destruction already gets its own "destroyed" log entry with a real sentence
+            "mulligan_decision",  # Agent Interface Plan Milestone C: fires on both branches so
+            "archive_decision",  # the observation layer sees a decline too; "mulligan"/"take_archive"
+            # already narrate the case where something actually happened.
         }
 
         seen_kinds = set()
