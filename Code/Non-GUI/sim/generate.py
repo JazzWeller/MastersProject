@@ -89,8 +89,12 @@ def play_and_record(
     decisions: List[DecisionRecord] = []
     while not game.is_over:
         d = game.pending_decision
-        view = game.view_for(d.player)
-        choice = agents[d.player].decide(view, d)
+        agent = agents[d.player]
+        # A view is also needed if `policy_of`/`value_of` is recording for
+        # this seat, even when the deciding agent itself doesn't need one.
+        wants_view = agent.needs_view or (policy_of and d.player in policy_of) or (value_of and d.player in value_of)
+        view = game.view_for(d.player) if wants_view else None
+        choice = agent.decide(view, d)
         keys = [option_key(d, o) for o in d.options]
         chosen_items = choice if isinstance(choice, list) else [choice]
         chosen_indices = [keys.index(option_key(d, o)) for o in chosen_items]

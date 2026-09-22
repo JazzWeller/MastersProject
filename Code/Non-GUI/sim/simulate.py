@@ -102,7 +102,9 @@ def run_one(p1_deck, p2_deck, first, seed, max_turns, check_invariants_flag, usa
     choices = []
     while not game.is_over:
         d = game.pending_decision
-        choice = controllers[d.player].decide(game.view_for(d.player), d)
+        agent = controllers[d.player]
+        view = game.view_for(d.player) if agent.needs_view else None
+        choice = agent.decide(view, d)
         choices.append(choice)
         game.submit(choice)
         if check_invariants_flag and (game.is_over or game.pending_decision.kind in _BOUNDARY_KINDS):
@@ -121,7 +123,9 @@ def run_one_match(p1_deck, p2_deck, fmt, first, seed, max_turns, check_invariant
     }
     while not match.is_over:
         d = match.pending_decision
-        choice = controllers[d.player].decide(match.view_for(d.player), d)
+        agent = controllers[d.player]
+        view = match.view_for(d.player) if agent.needs_view else None
+        choice = agent.decide(view, d)
         match.submit(choice)
         if check_invariants_flag and match.current_game is not None:
             g = match.current_game

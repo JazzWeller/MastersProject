@@ -242,8 +242,10 @@ def run_games(
             # PlayerView/MatchView -- the existing Controller contract
             # ("PlayerView stays as it is for the GUI and existing bots").
             # An agent that wants the richer Observation gets one on demand
-            # via `capability.observation()` instead.
-            view = obj.view_for(d.player)
+            # via `capability.observation()` instead. Building one is ~26%
+            # of engine wall time (Milestone L), so skip it entirely for an
+            # agent that has declared it never looks at `view`.
+            view = obj.view_for(d.player) if agent.needs_view else None
             cap = _capability_for(obj, d.player, slot.privilege[d.player])
             by_agent.setdefault(id(agent), []).append((idx, view, d, budget, cap))
             agent_by_id[id(agent)] = agent

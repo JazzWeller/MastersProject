@@ -60,6 +60,11 @@ def play_games(n_games: int, seed: Optional[int], decks, bot_name: str, build_vi
     one representative finished game (config + choice_record) for the fork
     and copy benchmarks below."""
     bot_cls = BOTS[bot_name]
+    # Milestone L "lazy observations": a harness shouldn't pay build_view()'s
+    # cost for an agent that never looks at its `view` argument (RandomBot).
+    # `build_views=False` (--compare-views' second run) still forces it off
+    # regardless, to isolate build_view()'s cost in isolation.
+    bot_wants_view = build_views and getattr(bot_cls, "needs_view", True)
     kind_counts: Dict[DecisionKind, int] = {}
     space_by_kind: Dict[DecisionKind, List[int]] = {}
     total_decisions = 0
@@ -77,7 +82,7 @@ def play_games(n_games: int, seed: Optional[int], decks, bot_name: str, build_vi
         }
         while not game.is_over:
             d = game.pending_decision
-            view = game.view_for(d.player) if build_views else None
+            view = game.view_for(d.player) if bot_wants_view else None
             choice = controllers[d.player].decide(view, d)
             n_options = len(d.options)
             kind_counts[d.kind] = kind_counts.get(d.kind, 0) + 1

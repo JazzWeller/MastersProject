@@ -6,7 +6,7 @@ import dataclasses
 import itertools
 import math
 import random
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
 from .cards.card import Card, CreatureType, UpgradeType
@@ -58,6 +58,9 @@ class Game:
         # DurationEffect model (Spectral Tunneler).
         self._end_of_turn_cleanups: list = []
         self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
+        # Populated once in _setup: the decklist never changes mid-game, so
+        # player_houses() doesn't need to recompute it on every call.
+        self._player_houses_cache: Dict[int, List[House]] = {}
         self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
@@ -391,7 +394,12 @@ class Game:
         return card.house_override or card.house
 
     def player_houses(self, pid: int) -> List[House]:
-        return sorted({c.house for c in self.players[pid].all_cards}, key=lambda h: h.value)
+        # The decklist never changes mid-game, so this is computed once in
+        # _setup rather than re-building the set/sort (and re-hashing every
+        # House enum member) on each of the ~7.7k calls/game the profiler
+        # measured (Milestone L). A copy, not the cached list itself, so a
+        # caller can never mutate the cache.
+        return list(self._player_houses_cache[pid])
 
     def find_play_area(self, card: Card):
         """Whichever player's `PlayArea` currently physically contains
@@ -467,6 +475,7 @@ class Game:
             for card in cards:
                 card.instance_id = self.new_instance_id()
             self.players[pid].all_cards = list(cards)
+            self._player_houses_cache[pid] = sorted({c.house for c in cards}, key=lambda h: h.value)
             self.players[pid].deck = Deck(cards)
             self.players[pid].deck.shuffle(self.event_rng("deck_shuffle", pid))
             if self.config.starting_chains:
@@ -795,8 +804,8 @@ class Game:
         """Whether `pid` forged a key on their turn numbered `turn_number`
         (Key Hammer, Tendrils of Pain: 'forged a key on their previous turn')."""
         return any(
-            e.kind == "forge_key" and e.data.get("player") == pid and e.data.get("turn") == turn_number
-            for e in self.log.events
+            e.data.get("player") == pid and e.data.get("turn") == turn_number
+            for e in self.log.by_kind.get("forge_key", ())
         )
 
     def creatures_destroyed_in_fight_this_turn(self, controller_pid: int) -> int:
@@ -805,8 +814,8 @@ class Game:
         hazardous, assault, or any card effect) so far this turn (The
         Warchest)."""
         return sum(
-            1 for e in self.log.events
-            if e.kind == "destroyed_in_fight" and e.data.get("controller") == controller_pid and e.data.get("turn") == self.turn_number
+            1 for e in self.log.by_kind.get("destroyed_in_fight", ())
+            if e.data.get("controller") == controller_pid and e.data.get("turn") == self.turn_number
         )
 
     def creatures_played_on_turn(self, pid: int, turn_number: int) -> int:
@@ -814,8 +823,8 @@ class Game:
         `turn_number` (Lifeweb: "if your opponent played 3 or more
         creatures on their previous turn")."""
         return sum(
-            1 for e in self.log.events
-            if e.kind == "play_card" and e.data.get("player") == pid and e.data.get("type") == "Creature" and e.data.get("turn") == turn_number
+            1 for e in self.log.by_kind.get("play_card", ())
+            if e.data.get("player") == pid and e.data.get("type") == "Creature" and e.data.get("turn") == turn_number
         )
 
     # ----------------------------------------------------- legal actions ----

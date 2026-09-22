@@ -215,6 +215,38 @@ class TestViewIsAPlayerView(unittest.TestCase):
         self.assertTrue(any(r.winner == 1 for r in results))
 
 
+class _ViewRecordingBot(Controller):
+    """Records whether `view` was `None` on every `decide()` call, and
+    otherwise plays randomly."""
+
+    def __init__(self, seed=None, needs_view=True):
+        self._inner = RandomBot(seed=seed)
+        self.needs_view = needs_view
+        self.saw_views = []
+
+    def decide(self, view, decision, budget=None, capability=None):
+        self.saw_views.append(view is not None)
+        return self._inner.decide(view, decision, budget, capability)
+
+
+class TestLazyViews(unittest.TestCase):
+    def test_driver_skips_building_a_view_for_an_agent_that_declares_needs_view_false(self):
+        agent1 = _ViewRecordingBot(seed=1, needs_view=False)
+        agent2 = _ViewRecordingBot(seed=2, needs_view=True)
+        run_games(
+            3,
+            lambda i: GameConfig(decks=("fignor", "igor"), seed=i, max_turns=60),
+            lambda i: {1: agent1, 2: agent2},
+        )
+        self.assertGreater(len(agent1.saw_views), 0)
+        self.assertTrue(all(seen is False for seen in agent1.saw_views))
+        self.assertGreater(len(agent2.saw_views), 0)
+        self.assertTrue(all(seen is True for seen in agent2.saw_views))
+
+    def test_random_bot_declares_it_does_not_need_a_view(self):
+        self.assertFalse(RandomBot.needs_view)
+
+
 class TestConcurrencyAndMatches(unittest.TestCase):
     def test_multiple_games_run_concurrently_and_all_complete(self):
         results = run_games(

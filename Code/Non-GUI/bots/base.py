@@ -22,6 +22,13 @@ class Budget:
 
 
 class Controller(ABC):
+    #: Whether a harness must build a `PlayerView`/`Observation` before
+    #: calling `decide()` (Milestone L: "lazy observations" -- building one
+    #: for every decision is ~26% of engine wall time, and is wasted work
+    #: for an agent that never looks at it, e.g. `RandomBot`). Default True
+    #: so every existing agent keeps getting a view unless it opts out.
+    needs_view: bool = True
+
     @abstractmethod
     def decide(self, view, decision, budget: Optional[Budget] = None, capability: Optional[Any] = None):
         """Return a legal choice for `decision` given the (redacted) `view`.
@@ -72,6 +79,7 @@ class SyncBatchAdapter(BatchController):
 
     def __init__(self, inner: Controller):
         self.inner = inner
+        self.needs_view = inner.needs_view
 
     def decide(self, view, decision, budget: Optional[Budget] = None, capability: Optional[Any] = None):
         return self.inner.decide(view, decision, budget, capability)

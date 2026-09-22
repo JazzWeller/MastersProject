@@ -40,7 +40,9 @@ def _play(agent_p1: str, agent_p2: str, deck_p1, deck_p2, seed: int, max_turns: 
     }
     while not game.is_over:
         d = game.pending_decision
-        game.submit(controllers[d.player].decide(game.view_for(d.player), d))
+        agent = controllers[d.player]
+        view = game.view_for(d.player) if agent.needs_view else None
+        game.submit(agent.decide(view, d))
     return game
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, FrozenSet, List, Optional
 
@@ -29,10 +30,20 @@ class LogEvent:
 class GameLog:
     def __init__(self):
         self.events: List[LogEvent] = []
+        # Same events, grouped by kind -- a few rules queries (Key Hammer,
+        # The Warchest, Lifeweb: game.py's forged_key_on_turn and friends)
+        # only ever care about one kind, and scanning just that kind instead
+        # of the whole log matters as games lengthen (Milestone L). Derived
+        # entirely from `events`/`add()`, so it's correct for every caller,
+        # including a test that pokes `log.add(...)` directly rather than
+        # going through the engine's own call sites.
+        self.by_kind: Dict[str, List[LogEvent]] = defaultdict(list)
 
     def add(self, kind: str, visible_to: Optional[Any] = None, **data) -> None:
         entitled = _BOTH_PLAYERS if visible_to is None else frozenset(visible_to)
-        self.events.append(LogEvent(kind, data, visible_to=entitled))
+        event = LogEvent(kind, data, visible_to=entitled)
+        self.events.append(event)
+        self.by_kind[kind].append(event)
 
     def tail(self, n: int) -> List[LogEvent]:
         return self.events[-n:]
