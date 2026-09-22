@@ -4,7 +4,7 @@ for the FAQ rulings behind each implementation."""
 
 from __future__ import annotations
 
-from ...enums import CardType, House
+from ...enums import Affects, CardType, DecisionIntent, House
 from ..effect_object import DurationEffect, INFINITE, InsteadEffect, ModifierEffect, TriggerEffect
 from .. import steps
 from ..generic import controller_of, opponent_of, reveal_from_hand
@@ -22,7 +22,8 @@ def ammonia_clouds(game, card):
 def battle_fleet(game, card):
     player = controller_of(game, card)
     revealed = yield from reveal_from_hand(
-        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand"
+        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand",
+        source_card=card,
     )
     steps.draw(game, player, len(revealed), source=card)
 
@@ -66,7 +67,8 @@ def hypnotic_command(game, card):
         if not options:
             break
         choice = yield from game.choose_cards(
-            player.id, f"{card.name}: choose an enemy creature to capture 1Æ from its own side ({i + 1}/{n})", options, 1, 1
+            player.id, f"{card.name}: choose an enemy creature to capture 1Æ from its own side ({i + 1}/{n})", options, 1, 1,
+            source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY,
         )
         steps.capture_from_own_side(game, choice[0], 1)
 
@@ -87,7 +89,10 @@ def key_abduction(game, card):
     targets = [c for c in game.all_creatures("any", card) if c.house == House.MARS]
     for t in targets:
         steps.return_to_hand(game, t)
-    do_it = yield from game.yes_no(player.id, f"{card.name}: forge a key at +9Æ current cost, reduced by 1Æ per card in hand?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: forge a key at +9Æ current cost, reduced by 1Æ per card in hand?",
+        source_card=card, intent=DecisionIntent.OPTIONAL_COST,
+    )
     if not do_it:
         return
     modifier = max(0, 9 - len(player.hand))
@@ -99,7 +104,10 @@ def martian_hounds(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.ANY,
+    )
     target = choice[0]
     damaged = sum(1 for c in game.all_creatures("any", card) if c.type_object.damage > 0)
     target.power_counters += 2 * damaged
@@ -127,7 +135,8 @@ def mass_abduction(game, card):
         steps.shortfall(game, card, "archives nothing: there is no damaged enemy creature in play", "No damaged enemy creature")
         return
     choice = yield from game.choose_cards(
-        player.id, f"{card.name}: choose up to 3 damaged enemy creatures to archive", options, 0, min(3, len(options))
+        player.id, f"{card.name}: choose up to 3 damaged enemy creatures to archive", options, 0, min(3, len(options)),
+        source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY, optional=True,
     )
     for c in choice:
         game.archive_from_play(c, player.id, return_to_owner_after=True)
@@ -162,7 +171,10 @@ def mothership_support(game, card):
         options = game.all_creatures("any", card)
         if not options:
             break
-        choice = yield from game.choose_cards(player.id, f"{card.name}: deal 2 damage to a creature ({i + 1}/{n})", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: deal 2 damage to a creature ({i + 1}/{n})", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+        )
         steps.deal_damage(game, choice[0], 2)
         yield from game.check_destroyed(choice)
 
@@ -170,13 +182,17 @@ def mothership_support(game, card):
 def orbital_bombardment(game, card):
     player = controller_of(game, card)
     revealed = yield from reveal_from_hand(
-        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand"
+        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand",
+        source_card=card,
     )
     for i in range(len(revealed)):
         options = game.all_creatures("any", card)
         if not options:
             break
-        choice = yield from game.choose_cards(player.id, f"{card.name}: deal 2 damage to a creature ({i + 1}/{len(revealed)})", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: deal 2 damage to a creature ({i + 1}/{len(revealed)})", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+        )
         steps.deal_damage(game, choice[0], 2)
         yield from game.check_destroyed(choice)
 
@@ -210,7 +226,10 @@ def sample_collection(game, card):
         options = list(opponent.play_area.creatures)
         if not options:
             break
-        choice = yield from game.choose_cards(player.id, f"{card.name}: choose an enemy creature to archive ({i + 1}/{n})", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: choose an enemy creature to archive ({i + 1}/{n})", options, 1, 1,
+            source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY,
+        )
         game.archive_from_play(choice[0], player.id, return_to_owner_after=True)
 
 
@@ -245,12 +264,18 @@ def squawker(game, card):
     if not modes:
         steps.shortfall(game, card, "does nothing: no exhausted friendly Mars creature and no non-Mars creature", "Nothing to do")
         return
-    mode = yield from game.choose_mode(player.id, f"{card.name}: choose one", modes)
+    mode = yield from game.choose_mode(player.id, f"{card.name}: choose one", modes, source_card=card)
     if mode == "Ready a Mars creature":
-        choice = yield from game.choose_cards(player.id, f"{card.name}: choose a Mars creature to ready", mars_ready_targets, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: choose a Mars creature to ready", mars_ready_targets, 1, 1,
+            source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
+        )
         steps.ready(game, choice[0])
     else:
-        choice = yield from game.choose_cards(player.id, f"{card.name}: choose a non-Mars creature to stun", non_mars_targets, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: choose a non-Mars creature to stun", non_mars_targets, 1, 1,
+            source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY,
+        )
         steps.stun(game, choice[0])
 
 
@@ -284,16 +309,22 @@ def combat_pheromones(game, card):
 def commpod(game, card):
     player = controller_of(game, card)
     revealed = yield from reveal_from_hand(
-        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand"
+        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand",
+        source_card=card,
     )
     for _ in range(len(revealed)):
         options = [c for c in player.play_area.creatures if c.house == House.MARS and c.Exhausted]
         if not options:
             break
-        do_it = yield from game.yes_no(player.id, f"{card.name}: ready a Mars creature?")
+        do_it = yield from game.yes_no(
+            player.id, f"{card.name}: ready a Mars creature?", source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+        )
         if not do_it:
             continue
-        choice = yield from game.choose_cards(player.id, f"{card.name}: choose a Mars creature to ready", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: choose a Mars creature to ready", options, 1, 1,
+            source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
+        )
         steps.ready(game, choice[0])
 
 
@@ -318,10 +349,15 @@ def custom_virus(game, card):
     creature_options = [c for c in player.hand.cards() if c.type == CardType.CREATURE]
     if not creature_options:
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: purge a creature from your hand?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: purge a creature from your hand?", source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a creature to purge from your hand", creature_options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a creature to purge from your hand", creature_options, 1, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.FRIENDLY,
+    )
     purged_card = choice[0]
     steps.purge(game, purged_card)
     targets = [c for c in game.all_creatures("any", card) if set(c.tags) & set(purged_card.tags)]
@@ -334,7 +370,10 @@ def feeding_pit(game, card):
     if not options:
         steps.shortfall(game, card, "discards nothing: your hand has no creature", "No creature in hand")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a creature to discard", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a creature to discard", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DISCARD, affects=Affects.FRIENDLY,
+    )
     if (yield from steps.discard_from_hand(game, player, choice[0])):
         steps.gain(game, player, 1)
 
@@ -368,10 +407,16 @@ def incubation_chamber(game, card):
     options = [c for c in player.hand.cards() if c.house == House.MARS and c.type == CardType.CREATURE]
     if not options:
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: reveal a Mars creature from your hand?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: reveal a Mars creature from your hand?",
+        source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a Mars creature to reveal and archive", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a Mars creature to reveal and archive", options, 1, 1,
+        source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     game.log.add("reveal", player=player.id, cards=[target.name], iids=[target.instance_id])
     steps.archive_card(game, player, target)
@@ -380,13 +425,17 @@ def incubation_chamber(game, card):
 def mothergun(game, card):
     player = controller_of(game, card)
     revealed = yield from reveal_from_hand(
-        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand"
+        game, player, lambda c: c.house == House.MARS, f"{card.name}: reveal any number of Mars cards from your hand",
+        source_card=card,
     )
     options = game.all_creatures("any", card)
     if not options:
         steps.shortfall(game, card, "deals no damage: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     steps.deal_damage(game, choice[0], len(revealed))
     yield from game.check_destroyed(choice)
 
@@ -404,13 +453,19 @@ def swap_widget(game, card):
     if not ready_mars:
         steps.shortfall(game, card, "does nothing: there is no ready friendly Mars creature", "No ready Mars creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a ready friendly Mars creature to return", ready_mars, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a ready friendly Mars creature to return", ready_mars, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY,
+    )
     returning = choice[0]
     hand_options = [c for c in player.hand.cards() if c.house == House.MARS and c.type == CardType.CREATURE and c.name != returning.name]
     if not hand_options:
         return
     steps.return_to_hand(game, returning)
-    choice2 = yield from game.choose_cards(player.id, f"{card.name}: choose a differently-named Mars creature to put into play", hand_options, 1, 1)
+    choice2 = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a differently-named Mars creature to put into play", hand_options, 1, 1,
+        source_card=card, intent=DecisionIntent.PLAY, affects=Affects.FRIENDLY,
+    )
     game.put_creature_into_play_from_hand(player.id, choice2[0], ready=True)
 
 
@@ -432,10 +487,16 @@ def chuff_ape_after(game, card):
     options = [c for c in player.play_area.creatures if c is not card]
     if not options:
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: sacrifice another friendly creature to fully heal {card.name}?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: sacrifice another friendly creature to fully heal {card.name}?",
+        source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a friendly creature to sacrifice", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a friendly creature to sacrifice", options, 1, 1,
+        source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY,
+    )
     sacrificed = yield from steps.sacrifice(game, choice[0])
     if sacrificed:
         steps.fully_heal(game, card)
@@ -479,7 +540,10 @@ def john_smyth_after(game, card):
     if not options:
         steps.shortfall(game, card, "readies nothing: there is no non-Agent friendly Mars creature", "No non-Agent Mars creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a non-Agent Mars creature to ready", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a non-Agent Mars creature to ready", options, 1, 1,
+        source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
+    )
     steps.ready(game, choice[0])
 
 
@@ -489,7 +553,10 @@ def mindwarper_action(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no enemy creature in play", "No enemy creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose an enemy creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose an enemy creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY,
+    )
     steps.capture_from_own_side(game, choice[0], 1)
 
 
@@ -529,7 +596,10 @@ def ulyq_megamouth_after(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no friendly non-Mars creature in play", "No non-Mars creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a friendly non-Mars creature to use", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a friendly non-Mars creature to use", options, 1, 1,
+        source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY,
+    )
     yield from game.use_creature_ability(choice[0])
 
 
@@ -540,7 +610,10 @@ def uxlyx_the_zookeeper_after(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no enemy creature in play", "No enemy creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose an enemy creature to archive", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose an enemy creature to archive", options, 1, 1,
+        source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY,
+    )
     game.archive_from_play(choice[0], player.id, return_to_owner_after=True)
 
 
@@ -550,10 +623,16 @@ def vezyma_thinkdrone_after(game, card):
     options = [c for c in options if c is not card]
     if not options:
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: archive a friendly creature or artifact from play?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: archive a friendly creature or artifact from play?",
+        source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a friendly card to archive", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a friendly card to archive", options, 1, 1,
+        source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     area = game.find_play_area(target)
     if area is not None:
@@ -586,7 +665,10 @@ def yxilo_bolter_after(game, card):
     if not options:
         steps.shortfall(game, card, "deals no damage: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.deal_damage(game, target, 2)
     if target.type_object.damage >= game.get_power(target):
@@ -617,10 +699,15 @@ def zyzzix_the_many_after(game, card):
     options = player.hand.cards()
     if not options:
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: reveal a creature from your hand?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: reveal a creature from your hand?", source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a card to reveal", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a card to reveal", options, 1, 1,
+        source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     game.log.add("reveal", player=player.id, cards=[target.name], iids=[target.instance_id])
     steps.archive_card(game, player, target)
@@ -675,7 +762,10 @@ def _red_planet_ray_gun_effect(game, host_card):
     if not options:
         steps.shortfall(game, host_card, "deals no damage: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(host_card.controller, f"{host_card.name}: choose a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        host_card.controller, f"{host_card.name}: choose a creature", options, 1, 1,
+        source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     n = sum(1 for c in game.all_creatures("any", host_card) if c.house == House.MARS)
     steps.deal_damage(game, target, n)

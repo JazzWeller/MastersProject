@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...enums import House
+from ...enums import Affects, DecisionIntent, House
 from ...zones import Deck
 from ..effect_object import DurationEffect, TriggerEffect, INFINITE
 from .. import steps
@@ -123,14 +123,20 @@ def sloppy_labwork(game, card):
     player = controller_of(game, card)
     if player.hand.cards():
         options = player.hand.cards()
-        choice = yield from game.choose_cards(player.id, "Sloppy Labwork: archive a card", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, "Sloppy Labwork: archive a card", options, 1, 1,
+            source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY,
+        )
         steps.archive_card(game, player, choice[0])
     else:
         steps.shortfall(game, card, f"archives and discards nothing: {{pos:{player.id}}} hand is empty", "Hand is empty")
         return
     if player.hand.cards():
         options = player.hand.cards()
-        choice = yield from game.choose_cards(player.id, "Sloppy Labwork: discard a card", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, "Sloppy Labwork: discard a card", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DISCARD, affects=Affects.FRIENDLY,
+        )
         yield from steps.discard_from_hand(game, player, choice[0])
     else:
         steps.shortfall(game, card, f"discards nothing: {{pos:{player.id}}} hand was empty after archiving", "Nothing left to discard")
@@ -149,12 +155,20 @@ def bouncing_deathquark(game, card):
             else:
                 steps.shortfall(game, card, "stops: it needs both an enemy and a friendly creature to destroy", "Nothing left to destroy")
             return
-        choice_e = yield from game.choose_cards(player.id, "Bouncing Deathquark: destroy an enemy creature", enemy_targets, 1, 1)
-        choice_f = yield from game.choose_cards(player.id, "Bouncing Deathquark: destroy a friendly creature", friendly_targets, 1, 1)
+        choice_e = yield from game.choose_cards(
+            player.id, "Bouncing Deathquark: destroy an enemy creature", enemy_targets, 1, 1,
+            source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ENEMY,
+        )
+        choice_f = yield from game.choose_cards(
+            player.id, "Bouncing Deathquark: destroy a friendly creature", friendly_targets, 1, 1,
+            source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.FRIENDLY,
+        )
         yield from game.destroy_cards(choice_e + choice_f)
         if not game.all_creatures("enemy", card) or not game.all_creatures("friendly", card):
             return
-        again = yield from game.yes_no(player.id, "Bouncing Deathquark: repeat the effect?")
+        again = yield from game.yes_no(
+            player.id, "Bouncing Deathquark: repeat the effect?", source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+        )
         if not again:
             return
 
@@ -207,12 +221,17 @@ def _interdimensional_graft_handler(source_card):
 
 def knowledge_is_power(game, card):
     player = controller_of(game, card)
-    mode = yield from game.choose_mode(player.id, "Knowledge is Power: choose one", ["Archive a card", "Gain 1Æ per archived card"])
+    mode = yield from game.choose_mode(
+        player.id, "Knowledge is Power: choose one", ["Archive a card", "Gain 1Æ per archived card"], source_card=card,
+    )
     if mode == "Archive a card":
         if not player.hand.cards():
             steps.shortfall(game, card, f"archives nothing: {{pos:{player.id}}} hand is empty", "Hand is empty")
             return
-        choice = yield from game.choose_cards(player.id, "Knowledge is Power: archive a card", player.hand.cards(), 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, "Knowledge is Power: archive a card", player.hand.cards(), 1, 1,
+            source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY,
+        )
         steps.archive_card(game, player, choice[0])
     else:
         steps.gain(game, player, len(player.archive))
@@ -241,7 +260,10 @@ def positron_bolt(game, card):
     if not flank_creatures:
         steps.shortfall(game, card, "deals no damage: there are no flank creatures in play", "No flank creature")
         return
-    choice = yield from game.choose_cards(card.controller, "Positron Bolt: deal 3 damage to a flank creature", flank_creatures, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Positron Bolt: deal 3 damage to a flank creature", flank_creatures, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     first = choice[0]
     steps.deal_damage(game, first, 3)
     area = game.players[first.controller].play_area
@@ -280,7 +302,10 @@ def remote_access(game, card):
     if not targets:
         steps.shortfall(game, card, "uses nothing: the opponent has no usable artifact in play", "No usable enemy artifact")
         return
-    choice = yield from game.choose_cards(card.controller, "Remote Access: use an opponent's artifact as if it were yours", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Remote Access: use an opponent's artifact as if it were yours", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.ENEMY,
+    )
     yield from game.use_artifact_ability(choice[0], card.controller)
 
 
@@ -302,7 +327,10 @@ def twin_bolt_emission(game, card):
     if not targets:
         steps.shortfall(game, card, "deals no damage: there are no creatures in play", "No creatures")
         return
-    choice1 = yield from game.choose_cards(card.controller, "Twin Bolt Emission: deal 2 damage to a creature", targets, 1, 1)
+    choice1 = yield from game.choose_cards(
+        card.controller, "Twin Bolt Emission: deal 2 damage to a creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     first = choice1[0]
     remaining = [c for c in targets if c is not first]
     if not remaining:
@@ -310,7 +338,10 @@ def twin_bolt_emission(game, card):
         yield from game.check_destroyed([first])
         steps.shortfall(game, card, "deals damage to only 1 creature: it was the only one in play", "Only 1 creature in play")
         return
-    choice2 = yield from game.choose_cards(card.controller, "Twin Bolt Emission: deal 2 damage to a different creature", remaining, 1, 1)
+    choice2 = yield from game.choose_cards(
+        card.controller, "Twin Bolt Emission: deal 2 damage to a different creature", remaining, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     second = choice2[0]
     steps.deal_damage(game, first, 2)
     steps.deal_damage(game, second, 2)
@@ -322,7 +353,10 @@ def anomaly_exploiter(game, card):
     if not targets:
         steps.shortfall(game, card, "destroys nothing: no creature in play is damaged", "No damaged creature")
         return
-    choice = yield from game.choose_cards(card.controller, "Anomaly Exploiter: destroy a damaged creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Anomaly Exploiter: destroy a damaged creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+    )
     yield from game.destroy_cards(choice)
 
 
@@ -361,7 +395,10 @@ def crazy_killing_machine(game, card):
         if not targets:
             not_destroyed_count += 1
             continue
-        choice = yield from game.choose_cards(card.controller, f"Crazy Killing Machine: destroy a {top.house.value} creature or artifact", targets, 1, 1)
+        choice = yield from game.choose_cards(
+            card.controller, f"Crazy Killing Machine: destroy a {top.house.value} creature or artifact", targets, 1, 1,
+            source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+        )
         yield from game.destroy_cards(choice)
     if not_destroyed_count >= 2:
         yield from game.destroy_cards([card])
@@ -383,7 +420,10 @@ def mobius_scroll(game, card):
     options = player.hand.cards()
     n_max = min(2, len(options))
     if n_max > 0:
-        choice = yield from game.choose_cards(player.id, "Mobius Scroll: archive up to 2 cards from your hand", options, 0, n_max)
+        choice = yield from game.choose_cards(
+            player.id, "Mobius Scroll: archive up to 2 cards from your hand", options, 0, n_max,
+            source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY, optional=True,
+        )
         for c in choice:
             steps.archive_card(game, player, c)
     return
@@ -395,7 +435,10 @@ def spangler_box(game, card):
     if not targets:
         steps.shortfall(game, card, "purges nothing: there are no creatures in play", "No creature to purge")
         return
-    choice = yield from game.choose_cards(card.controller, "Spangler Box: purge a creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Spangler Box: purge a creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.purge(game, target)
     target.purged_by = card
@@ -407,7 +450,10 @@ def spectral_tunneler(game, card):
     if not targets:
         steps.shortfall(game, card, "chooses nothing: there are no creatures in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, "Spectral Tunneler: choose a creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Spectral Tunneler: choose a creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.ANY,
+    )
     target = choice[0]
     target.forced_flank = True
     target.extra_triggers["after_reap"].append(_spectral_tunneler_draw)
@@ -495,7 +541,10 @@ def harland_mindlock(game, card):
     if not targets:
         steps.shortfall(game, card, "takes control of nothing: the opponent has no flank creature", "No enemy flank creature")
         return
-    choice = yield from game.choose_cards(card.controller, "Harland Mindlock: take control of an enemy flank creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Harland Mindlock: take control of an enemy flank creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY,
+    )
     yield from game.take_control(choice[0], card.controller, until_source=card)
 
 
@@ -508,8 +557,14 @@ def neutron_shark(game, card):
         if not enemy_targets or not friendly_targets:
             steps.shortfall(game, card, "destroys nothing more: it needs both an enemy and a friendly creature/artifact in play", "Nothing left to destroy")
             return
-        choice_e = yield from game.choose_cards(player.id, "Neutron Shark: destroy an enemy creature or artifact", enemy_targets, 1, 1)
-        choice_f = yield from game.choose_cards(player.id, "Neutron Shark: destroy a friendly creature or artifact", friendly_targets, 1, 1)
+        choice_e = yield from game.choose_cards(
+            player.id, "Neutron Shark: destroy an enemy creature or artifact", enemy_targets, 1, 1,
+            source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ENEMY,
+        )
+        choice_f = yield from game.choose_cards(
+            player.id, "Neutron Shark: destroy a friendly creature or artifact", friendly_targets, 1, 1,
+            source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.FRIENDLY,
+        )
         yield from game.destroy_cards(choice_e + choice_f)
         if card not in player.play_area.creatures:
             return  # Neutron Shark stops once it leaves play
@@ -528,7 +583,10 @@ def novu_archaeologist(game, card):
     if not options:
         steps.shortfall(game, card, f"archives nothing: {{pos:{player.id}}} discard pile is empty", "Discard pile is empty")
         return
-    choice = yield from game.choose_cards(player.id, "Novu Archaeologist: archive a card from your discard pile", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Novu Archaeologist: archive a card from your discard pile", options, 1, 1,
+        source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY,
+    )
     c = choice[0]
     player.discard.remove(c)
     player.archive.add(c)
@@ -540,8 +598,18 @@ def ozmo(game, card):
     if not targets:
         steps.shortfall(game, card, "does nothing: there are no Mars creatures in play", "No Mars creature")
         return
-    mode = yield from game.choose_mode(card.controller, "Ozmo: heal or stun a Mars creature", ["Heal 3", "Stun"])
-    choice = yield from game.choose_cards(card.controller, "Ozmo: choose a Mars creature", targets, 1, 1)
+    mode = yield from game.choose_mode(
+        card.controller, "Ozmo: heal or stun a Mars creature", ["Heal 3", "Stun"], source_card=card,
+    )
+    # The mode is already decided here, so the target decision can carry its
+    # real intent directly -- unlike `HeuristicBot`'s old `_last_mode` hack,
+    # nothing downstream needs to remember what an identically-worded prior
+    # decision resolved to (Milestone B's motivating example).
+    target_intent = DecisionIntent.HEAL if mode == "Heal 3" else DecisionIntent.STUN
+    choice = yield from game.choose_cards(
+        card.controller, "Ozmo: choose a Mars creature", targets, 1, 1,
+        source_card=card, intent=target_intent, affects=Affects.ANY,
+    )
     target = choice[0]
     if mode == "Heal 3":
         steps.heal(game, target, 3)
@@ -571,7 +639,10 @@ def replicator(game, card):
     if not candidates:
         steps.shortfall(game, card, "copies nothing: no other creature in play has a reap effect", "No reap effect to copy")
         return
-    choice = yield from game.choose_cards(player.id, "Replicator: choose a creature's reap effect to trigger", candidates, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Replicator: choose a creature's reap effect to trigger", candidates, 1, 1,
+        source_card=card, intent=DecisionIntent.COPY, affects=Affects.ANY,
+    )
     target = choice[0]
     original_controller = target.controller
     target.controller = player.id
@@ -687,14 +758,20 @@ def _transposition_sandals_action(game, host_card):
     if not others:
         steps.shortfall(game, host_card, "swaps with nothing: there is no other friendly creature", "No other friendly creature")
         return
-    choice = yield from game.choose_cards(player.id, "Transposition Sandals: swap with another friendly creature", others, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Transposition Sandals: swap with another friendly creature", others, 1, 1,
+        source_card=host_card, intent=DecisionIntent.SWAP, affects=Affects.FRIENDLY,
+    )
     other = choice[0]
     area = player.play_area
     i, j = area.creatures.index(host_card), area.creatures.index(other)
     area.creatures[i], area.creatures[j] = area.creatures[j], area.creatures[i]
     game.log.add("swap", player=player.id, card=host_card.name, iid=host_card.instance_id)
     if not other.Exhausted:
-        may_use = yield from game.yes_no(player.id, f"Transposition Sandals: use {other.name} this turn?")
+        may_use = yield from game.yes_no(
+            player.id, f"Transposition Sandals: use {other.name} this turn?",
+            source_card=host_card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+        )
         if may_use:
             yield from game.use_creature_ability(other)
     else:

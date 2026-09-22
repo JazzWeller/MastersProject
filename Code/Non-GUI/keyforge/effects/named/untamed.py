@@ -4,7 +4,7 @@ for the FAQ rulings behind each implementation."""
 
 from __future__ import annotations
 
-from ...enums import CardType, House
+from ...enums import Affects, CardType, DecisionIntent, House
 from ..effect_object import DurationEffect, INFINITE, ModifierEffect, TriggerEffect
 from .. import steps
 from ..generic import controller_of, opponent_of
@@ -23,7 +23,10 @@ def cooperative_hunting(game, card):
         options = game.all_creatures("any", card)
         if not options:
             break
-        choice = yield from game.choose_cards(player.id, f"{card.name}: deal 1 damage to a creature ({i + 1}/{n})", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: deal 1 damage to a creature ({i + 1}/{n})", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+        )
         steps.deal_damage(game, choice[0], 1)
         hit.append(choice[0])
     yield from game.check_destroyed(hit)
@@ -61,7 +64,10 @@ def grasping_vines(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: there is no artifact in play", "No artifacts")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose up to 3 artifacts to return to their owners' hands", options, 0, min(3, len(options)))
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose up to 3 artifacts to return to their owners' hands", options, 0, min(3, len(options)),
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True,
+    )
     for a in choice:
         steps.return_to_hand(game, a)
 
@@ -70,7 +76,9 @@ def _lose_one_then_maybe_forge(game, card):
     player = controller_of(game, card)
     if not steps.lose(game, player, 1):
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: forge a key at current cost?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: forge a key at current cost?", source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
     yield from game.forge_key(player.id, source=card)
@@ -99,13 +107,15 @@ def lost_in_the_woods(game, card):
     friendly_choice = []
     if friendly_options:
         friendly_choice = yield from game.choose_cards(
-            player.id, f"{card.name}: choose up to 2 friendly creatures", friendly_options, 0, min(2, len(friendly_options))
+            player.id, f"{card.name}: choose up to 2 friendly creatures", friendly_options, 0, min(2, len(friendly_options)),
+            source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY, optional=True,
         )
     enemy_options = list(opponent.play_area.creatures)
     enemy_choice = []
     if enemy_options:
         enemy_choice = yield from game.choose_cards(
-            player.id, f"{card.name}: choose up to 2 enemy creatures", enemy_options, 0, min(2, len(enemy_options))
+            player.id, f"{card.name}: choose up to 2 enemy creatures", enemy_options, 0, min(2, len(enemy_options)),
+            source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY, optional=True,
         )
     for c in friendly_choice + enemy_choice:
         owner = game.players[c.owner]
@@ -128,7 +138,10 @@ def mimicry_play(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no action card in your opponent's discard pile", "No action card")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose an action card in your opponent's discard pile to copy", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose an action card in your opponent's discard pile to copy", options, 1, 1,
+        source_card=card, intent=DecisionIntent.COPY, affects=Affects.ENEMY,
+    )
     copied = choice[0]
     game.log.add("mimicry_copy", card=card.name, iid=card.instance_id, copied=copied.name)
     # "Treat it as a copy" for this one resolution: take on the copied
@@ -146,7 +159,10 @@ def natures_call(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose up to 3 creatures to return to their owners' hands", options, 0, min(3, len(options)))
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose up to 3 creatures to return to their owners' hands", options, 0, min(3, len(options)),
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True,
+    )
     for c in choice:
         steps.return_to_hand(game, c)
 
@@ -156,7 +172,10 @@ def nocturnal_maneuver(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no ready creature in play", "No ready creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose up to 3 creatures to exhaust", options, 0, min(3, len(options)))
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose up to 3 creatures to exhaust", options, 0, min(3, len(options)),
+        source_card=card, intent=DecisionIntent.EXHAUST, affects=Affects.ANY, optional=True,
+    )
     for c in choice:
         steps.exhaust(game, c)
 
@@ -175,7 +194,10 @@ def regrowth(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: your discard pile has no creature", "No creature in discard")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a creature to return to your hand", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a creature to return to your hand", options, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     player.discard.remove(target)
     player.hand.add(target)
@@ -197,7 +219,10 @@ def scout(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no friendly creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose up to 2 friendly creatures to gain skirmish", options, 0, min(2, len(options)))
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose up to 2 friendly creatures to gain skirmish", options, 0, min(2, len(options)),
+        source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY, optional=True,
+    )
     if not choice:
         return
     chosen_ids = frozenset(c.instance_id for c in choice)
@@ -234,7 +259,9 @@ def the_common_cold(game, card):
     remaining_mars = [c for c in game.all_creatures("any", card) if c.house == House.MARS and c not in destroyed]
     if not remaining_mars:
         return
-    do_it = yield from game.yes_no(card.controller, f"{card.name}: destroy all Mars creatures?")
+    do_it = yield from game.yes_no(
+        card.controller, f"{card.name}: destroy all Mars creatures?", source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if do_it:
         yield from game.destroy_cards(remaining_mars)
 
@@ -261,7 +288,10 @@ def vigor(game, card):
     if not options:
         steps.shortfall(game, card, "heals nothing: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to heal up to 3 damage from", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to heal up to 3 damage from", options, 1, 1,
+        source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY,
+    )
     healed = steps.heal(game, choice[0], 3)
     if healed == 3:
         steps.gain(game, controller_of(game, card), 1)
@@ -292,7 +322,10 @@ def bear_flute(game, card):
     if bears_in_play:
         target = bears_in_play[0]
         if len(bears_in_play) > 1:
-            choice = yield from game.choose_cards(player.id, f"{card.name}: choose an Ancient Bear to fully heal", bears_in_play, 1, 1)
+            choice = yield from game.choose_cards(
+                player.id, f"{card.name}: choose an Ancient Bear to fully heal", bears_in_play, 1, 1,
+                source_card=card, intent=DecisionIntent.HEAL, affects=Affects.FRIENDLY,
+            )
             target = choice[0]
         steps.fully_heal(game, target)
         return
@@ -315,7 +348,10 @@ def nepenthe_seed(game, card):
     options = player.discard.cards()
     if not options:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a card to return to your hand", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a card to return to your hand", options, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     player.discard.remove(target)
     player.hand.add(target)
@@ -347,7 +383,10 @@ def world_tree(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: your discard pile has no creature", "No creature in discard")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a creature to return to the top of your deck", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a creature to return to the top of your deck", options, 1, 1,
+        source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     player.discard.remove(target)
     player.deck.put_on_top(target)
@@ -361,7 +400,10 @@ def bigtwig_after_reap(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to stun and exhaust", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to stun and exhaust", options, 1, 1,
+        source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.stun(game, target)
     steps.exhaust(game, target)
@@ -430,7 +472,10 @@ def inka_the_spider_effect(game, card):
     if not options:
         steps.shortfall(game, card, "stuns nothing: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to stun", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to stun", options, 1, 1,
+        source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY,
+    )
     steps.stun(game, choice[0])
 
 
@@ -439,7 +484,10 @@ def kindrith_longshot_after_reap(game, card):
     if not options:
         steps.shortfall(game, card, "deals no damage: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: deal 2 damage to a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: deal 2 damage to a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     steps.deal_damage(game, choice[0], 2)
     yield from game.check_destroyed(choice)
 
@@ -449,7 +497,10 @@ def lupo_the_scarred_play(game, card):
     if not options:
         steps.shortfall(game, card, "deals no damage: there is no enemy creature in play", "No enemy creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose an enemy creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose an enemy creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY,
+    )
     steps.deal_damage(game, choice[0], 2)
     yield from game.check_destroyed(choice)
 
@@ -518,7 +569,10 @@ def witch_of_the_eye_after_reap(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: your discard pile is empty", "Discard pile is empty")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a card to return to your hand", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a card to return to your hand", options, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     player.discard.remove(target)
     player.hand.add(target)

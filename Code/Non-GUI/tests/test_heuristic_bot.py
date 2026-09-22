@@ -9,11 +9,11 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tests.helpers import new_game, put_creature
+from tests.helpers import make_card, new_game, put_creature
 
 from bots.heuristic_bot import HeuristicBot
 from keyforge.decision import Decision
-from keyforge.enums import DecisionKind, House
+from keyforge.enums import Affects, DecisionIntent, DecisionKind, House
 
 
 class TestHeuristicBotChooseNumber(unittest.TestCase):
@@ -98,9 +98,10 @@ class TestHeuristicBotChooseMode(unittest.TestCase):
         game = new_game()
         bot = HeuristicBot(seed=1)
         put_creature(game, 2, "Charette")  # Dis
+        begone = make_card("Begone!", 1)
         decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_MODE, prompt="Begone!: choose one",
-            options=["Destroy each Dis creature", "Gain 1Æ"],
+            options=["Destroy each Dis creature", "Gain 1Æ"], source_card=begone,
         )
         self.assertEqual(bot.decide(game.view_for(1), decision), "Destroy each Dis creature")
 
@@ -108,9 +109,10 @@ class TestHeuristicBotChooseMode(unittest.TestCase):
         game = new_game()
         bot = HeuristicBot(seed=1)
         put_creature(game, 2, "Krump")  # Brobnar, not Dis
+        begone = make_card("Begone!", 1)
         decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_MODE, prompt="Begone!: choose one",
-            options=["Destroy each Dis creature", "Gain 1Æ"],
+            options=["Destroy each Dis creature", "Gain 1Æ"], source_card=begone,
         )
         self.assertEqual(bot.decide(game.view_for(1), decision), "Gain 1Æ")
 
@@ -120,14 +122,18 @@ class TestHeuristicBotChooseMode(unittest.TestCase):
         hurt = put_creature(game, 1, "Blypyp")  # a Mars creature
         hurt.type_object.damage = 1
         enemy_mars = put_creature(game, 2, "Blypyp")
+        ozmo = make_card("Ozmo, Martianologist", 1)
         mode_decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_MODE, prompt="Ozmo: heal or stun a Mars creature",
-            options=["Heal 3", "Stun"],
+            options=["Heal 3", "Stun"], source_card=ozmo,
         )
-        self.assertEqual(bot.decide(game.view_for(1), mode_decision), "Heal 3")
+        mode = bot.decide(game.view_for(1), mode_decision)
+        self.assertEqual(mode, "Heal 3")
         target_decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_CARDS, prompt="Ozmo: choose a Mars creature",
             options=[hurt, enemy_mars], min_n=1, max_n=1,
+            source_card=ozmo, intent=DecisionIntent.HEAL if mode == "Heal 3" else DecisionIntent.STUN,
+            affects=Affects.ANY,
         )
         self.assertEqual(bot.decide(game.view_for(1), target_decision), [hurt])
 
@@ -136,14 +142,18 @@ class TestHeuristicBotChooseMode(unittest.TestCase):
         bot = HeuristicBot(seed=1)
         healthy = put_creature(game, 1, "Blypyp")
         enemy_mars = put_creature(game, 2, "Blypyp")
+        ozmo = make_card("Ozmo, Martianologist", 1)
         mode_decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_MODE, prompt="Ozmo: heal or stun a Mars creature",
-            options=["Heal 3", "Stun"],
+            options=["Heal 3", "Stun"], source_card=ozmo,
         )
-        self.assertEqual(bot.decide(game.view_for(1), mode_decision), "Stun")
+        mode = bot.decide(game.view_for(1), mode_decision)
+        self.assertEqual(mode, "Stun")
         target_decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_CARDS, prompt="Ozmo: choose a Mars creature",
             options=[healthy, enemy_mars], min_n=1, max_n=1,
+            source_card=ozmo, intent=DecisionIntent.HEAL if mode == "Heal 3" else DecisionIntent.STUN,
+            affects=Affects.ANY,
         )
         self.assertEqual(bot.decide(game.view_for(1), target_decision), [enemy_mars])
 
@@ -155,10 +165,12 @@ class TestHeuristicBotChooseCards(unittest.TestCase):
         weak = put_creature(game, 1, "Blypyp")  # power 2, loses this fight
         strong = put_creature(game, 1, "Krump")  # power 6, safely kills the target below
         target = put_creature(game, 2, "Snudge")  # power 4
+        anger = make_card("Anger", 1)
         decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_CARDS,
             prompt="Anger: choose a friendly creature to ready and fight with",
             options=[weak, strong], min_n=1, max_n=1,
+            source_card=anger, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
         )
         self.assertEqual(bot.decide(game.view_for(1), decision), [strong])
 
@@ -168,9 +180,11 @@ class TestHeuristicBotChooseCards(unittest.TestCase):
         stunned_enemy = put_creature(game, 2, "Charette")
         stunned_enemy.stunned = True
         other_enemy = put_creature(game, 2, "Snudge")
+        smaaash = make_card("Smaaash", 1)
         decision = Decision(
             player=1, kind=DecisionKind.CHOOSE_CARDS, prompt="Smaaash: choose a creature to stun",
             options=[stunned_enemy, other_enemy], min_n=1, max_n=1,
+            source_card=smaaash, intent=DecisionIntent.STUN, affects=Affects.ANY,
         )
         self.assertEqual(bot.decide(game.view_for(1), decision), [other_enemy])
 

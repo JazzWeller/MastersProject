@@ -5,8 +5,11 @@ signature `(game, card) -> generator` suitable for use as a CardDef hook
 
 from __future__ import annotations
 
+from ..enums import Affects, DecisionIntent
 from ..effects.effect_object import DurationEffect, INFINITE, TriggerEffect
 from . import steps
+
+_AFFECTS_BY_SCOPE = {"friendly": Affects.FRIENDLY, "enemy": Affects.ENEMY, "any": Affects.ANY}
 
 
 def opponent_of(game, card):
@@ -63,7 +66,8 @@ def archive_n(n: int):
                 break
             options = player.hand.cards()
             choice = yield from game.choose_cards(
-                player.id, f"Archive a card ({card.name})", options, 1, 1
+                player.id, f"Archive a card ({card.name})", options, 1, 1,
+                source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY,
             )
             steps.archive_card(game, player, choice[0])
 
@@ -106,7 +110,8 @@ def deal_damage_to_chosen(n: int, targets="any"):
             steps.shortfall(game, card, f"deals no damage: there are no {kind} in play", "No creature to damage")
             return
         choice = yield from game.choose_cards(
-            player.id, f"Deal {n} damage ({card.name})", options, 1, 1
+            player.id, f"Deal {n} damage ({card.name})", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(targets, Affects.ANY),
         )
         steps.deal_damage(game, choice[0], n)
         yield from game.check_destroyed(choice)
@@ -133,7 +138,7 @@ def move_aember_to_card(n: int = 1):
     return effect
 
 
-def reveal_from_hand(game, player, predicate, prompt):
+def reveal_from_hand(game, player, predicate, prompt, source_card=None):
     """Reveals a chosen subset (0 or more) of `player`'s hand matching
     `predicate` -- the "reveal any number of X cards from your hand" cost
     used by several Mars cards (Battle Fleet, Orbital Bombardment,
@@ -142,26 +147,34 @@ def reveal_from_hand(game, player, predicate, prompt):
     options = [c for c in player.hand.cards() if predicate(c)]
     if not options:
         return []
-    choice = yield from game.choose_cards(player.id, prompt, options, 0, len(options))
+    choice = yield from game.choose_cards(
+        player.id, prompt, options, 0, len(options),
+        source_card=source_card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY, optional=True,
+    )
     if choice:
         game.log.add("reveal", player=player.id, cards=[c.name for c in choice], iids=[c.instance_id for c in choice])
     return choice
 
 
-def choose_most_powerful(game, pid, creatures, prompt):
+def choose_most_powerful(game, pid, creatures, prompt, source_card=None):
     """Yields the single most powerful creature among `creatures`, letting
-    `pid` break a tie for the max. Returns None if `creatures` is empty."""
+    `pid` break a tie for the max. Returns None if `creatures` is empty.
+    Its one caller (Champion's Challenge) uses this to pick which creature
+    is spared from an otherwise-destroy-everyone effect, not to pick a
+    destroy target -- tagged `SPARE` accordingly."""
     if not creatures:
         return None
     max_power = max(game.get_power(c) for c in creatures)
     tied = [c for c in creatures if game.get_power(c) == max_power]
     if len(tied) == 1:
         return tied[0]
-    choice = yield from game.choose_cards(pid, prompt, tied, 1, 1)
+    choice = yield from game.choose_cards(
+        pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.SPARE, affects=Affects.ANY,
+    )
     return choice[0]
 
 
-def choose_least_powerful(game, pid, creatures, prompt):
+def choose_least_powerful(game, pid, creatures, prompt, source_card=None):
     """Yields the single least powerful creature among `creatures`, letting
     `pid` break a tie for the min. Returns None if `creatures` is empty."""
     if not creatures:
@@ -170,7 +183,9 @@ def choose_least_powerful(game, pid, creatures, prompt):
     tied = [c for c in creatures if game.get_power(c) == min_power]
     if len(tied) == 1:
         return tied[0]
-    choice = yield from game.choose_cards(pid, prompt, tied, 1, 1)
+    choice = yield from game.choose_cards(
+        pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+    )
     return choice[0]
 
 
@@ -187,7 +202,8 @@ def deal_damage_to_chosen_with_splash(main: int, splash: int, targets="any"):
             steps.shortfall(game, card, f"deals no damage: there are no {kind} in play", "No creature to damage")
             return
         choice = yield from game.choose_cards(
-            player.id, f"Deal {main} damage with {splash} splash ({card.name})", options, 1, 1
+            player.id, f"Deal {main} damage with {splash} splash ({card.name})", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(targets, Affects.ANY),
         )
         target = choice[0]
         area = game.find_play_area(target)

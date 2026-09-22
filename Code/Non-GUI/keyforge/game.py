@@ -13,7 +13,7 @@ from .config import GameConfig
 from .decision import Decision
 from .effects import steps
 from .effects.effect_object import ActiveEffectList, ModifierEffect, TriggerEffect
-from .enums import CardType, DecisionKind, House
+from .enums import Affects, CardType, DecisionIntent, DecisionKind, House
 from .keyed_random import derive_rng, portable_choice
 from .log import GameLog
 from .player import Player
@@ -126,13 +126,18 @@ class Game:
 
     # -------------------------------------------------- choice helpers ----
 
-    def choose_cards(self, player, prompt, options, min_n=0, max_n=1):
+    def choose_cards(
+        self, player, prompt, options, min_n=0, max_n=1, *, source_card=None, intent=None, affects=None, optional=False
+    ):
         options = list(options)
         if not options:
             return []
         if min_n == max_n and len(options) == min_n:
             return options
-        choice = yield Decision(player, DecisionKind.CHOOSE_CARDS, prompt, options, min_n, max_n)
+        choice = yield Decision(
+            player, DecisionKind.CHOOSE_CARDS, prompt, options, min_n, max_n,
+            source_card=source_card, intent=intent, affects=affects, optional=optional,
+        )
         return choice
 
     def choose_house(self, player, prompt, houses):
@@ -144,33 +149,45 @@ class Game:
         choice = yield Decision(player, DecisionKind.CHOOSE_HOUSE_FOR_EFFECT, prompt, houses, 1, 1)
         return choice
 
-    def yes_no(self, player, prompt):
-        choice = yield Decision(player, DecisionKind.YES_NO, prompt, [True, False], 1, 1)
+    def yes_no(self, player, prompt, *, source_card=None, intent=None, optional=True):
+        choice = yield Decision(
+            player, DecisionKind.YES_NO, prompt, [True, False], 1, 1,
+            source_card=source_card, intent=intent, affects=Affects.NONE, optional=optional,
+        )
         return choice
 
-    def order_effects(self, player, items, prompt="Choose the order these resolve"):
+    def order_effects(self, player, items, prompt="Choose the order these resolve", *, source_card=None):
         items = list(items)
         if len(items) <= 1:
             return items
-        choice = yield Decision(player, DecisionKind.ORDER_EFFECTS, prompt, items, len(items), len(items))
+        choice = yield Decision(
+            player, DecisionKind.ORDER_EFFECTS, prompt, items, len(items), len(items),
+            source_card=source_card, intent=DecisionIntent.ORDER, affects=Affects.NONE,
+        )
         return choice
 
-    def choose_number(self, player, prompt, numbers):
+    def choose_number(self, player, prompt, numbers, *, source_card=None):
         numbers = list(numbers)
         if not numbers:
             return None
         if len(numbers) == 1:
             return numbers[0]
-        choice = yield Decision(player, DecisionKind.CHOOSE_NUMBER, prompt, numbers, 1, 1)
+        choice = yield Decision(
+            player, DecisionKind.CHOOSE_NUMBER, prompt, numbers, 1, 1,
+            source_card=source_card, intent=DecisionIntent.NUMBER, affects=Affects.NONE,
+        )
         return choice
 
-    def choose_mode(self, player, prompt, modes):
+    def choose_mode(self, player, prompt, modes, *, source_card=None):
         modes = list(modes)
         if not modes:
             return None
         if len(modes) == 1:
             return modes[0]
-        choice = yield Decision(player, DecisionKind.CHOOSE_MODE, prompt, modes, 1, 1)
+        choice = yield Decision(
+            player, DecisionKind.CHOOSE_MODE, prompt, modes, 1, 1,
+            source_card=source_card, intent=DecisionIntent.MODE, affects=Affects.NONE,
+        )
         return choice
 
     # ------------------------------------------------------- get funcs ----
@@ -846,7 +863,10 @@ class Game:
             flank = yield from self._choose_flank(pid)
         elif card.type == CardType.UPGRADE:
             targets = list(self.players[1].play_area.creatures) + list(self.players[2].play_area.creatures)
-            choice = yield from self.choose_cards(pid, f"Attach {card.name} to a creature", targets, 1, 1)
+            choice = yield from self.choose_cards(
+                pid, f"Attach {card.name} to a creature", targets, 1, 1,
+                source_card=card, intent=DecisionIntent.ATTACH, affects=Affects.ANY,
+            )
             host = choice[0]
 
         if not from_deck_top:
@@ -952,7 +972,7 @@ class Game:
         ]
         if pre_existing:
             order = yield from self.order_effects(
-                card.controller, ["effect", "check"], f"{card.name}: choose what resolves first"
+                card.controller, ["effect", "check"], f"{card.name}: choose what resolves first", source_card=card,
             )
         else:
             order = ["effect", "check"]
@@ -974,7 +994,7 @@ class Game:
             return
         if len(triggers) > 1:
             ordered = yield from self.order_effects(
-                event_player, triggers, f"Playing {card.name} triggered these: choose their order"
+                event_player, triggers, f"Playing {card.name} triggered these: choose their order", source_card=card,
             )
         else:
             ordered = triggers
@@ -1123,7 +1143,10 @@ class Game:
         targets = self.legal_fight_targets(attacker, exclude)
         if not targets:
             return None
-        choice = yield from self.choose_cards(pid, f"Choose a target for {attacker.name} to fight", targets, 1, 1)
+        choice = yield from self.choose_cards(
+            pid, f"Choose a target for {attacker.name} to fight", targets, 1, 1,
+            source_card=attacker, intent=DecisionIntent.FIGHT_TARGET, affects=Affects.ENEMY,
+        )
         target = choice[0]
         self.log.add(
             "fight",
@@ -1271,7 +1294,10 @@ class Game:
         if not options:
             return
         if len(options) > 1:
-            choice = yield from self.choose_cards(pid, f"Use {card.name}", options, 1, 1)
+            choice = yield from self.choose_cards(
+                pid, f"Use {card.name}", options, 1, 1,
+                source_card=card, intent=DecisionIntent.MODE, affects=Affects.NONE,
+            )
             kind = choice[0]
         else:
             kind = options[0]

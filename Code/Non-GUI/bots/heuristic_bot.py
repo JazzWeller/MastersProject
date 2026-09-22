@@ -19,7 +19,7 @@ import random
 
 from keyforge.actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
 from keyforge.cards.card import Card
-from keyforge.enums import CardType, DecisionKind, House
+from keyforge.enums import Affects, CardType, DecisionIntent, DecisionKind, House
 
 from .base import Controller
 
@@ -81,7 +81,6 @@ class HeuristicBot(Controller):
     def __init__(self, seed=None, bid_ceiling=4):
         self.rng = random.Random(seed)
         self.bid_ceiling = bid_ceiling  # chains this bot will offer at most, for a decisively-won deck
-        self._last_mode = None  # the most recent CHOOSE_MODE answer (Ozmo's target step needs it)
 
     # ------------------------------------------------------------ helpers ----
 
@@ -295,83 +294,194 @@ class HeuristicBot(Controller):
         return next(o for o in opts if isinstance(o, EndTurn))
 
     def _choose_cards(self, view, decision, opts):
-        me, opp = view.me(), view.opponent()
-        prompt = decision.prompt.lower()
-        n = decision.max_n if decision.max_n >= decision.min_n else decision.min_n
-
-        def pick(sorted_opts, count):
-            return list(sorted_opts[:count])
-
+        """Dispatches purely on `decision.intent`/`decision.source_card`/
+        `decision.affects` (Agent Interface Plan, Milestone B) -- never on
+        `decision.prompt`. The same `DecisionKind`+option-type pair means
+        different things depending only on which card asked (Ozmo's target
+        step is byte-identical whether the mode was "Heal 3" or "Stun"), and
+        conditioning on prompt text is exactly the thing a learned agent
+        can't do, so the oracle bot doesn't get to either."""
         cards = [o for o in opts if isinstance(o, Card)]
         if len(cards) != len(opts):
-            # Non-card options: discard pile ids, "reap"/"fight"/"action", etc.
-            if all(isinstance(o, int) and not isinstance(o, bool) for o in opts):
-                return [opp.id] if opp.id in opts else [opts[0]]
-            for preferred in ("fight", "reap", "action"):
-                if preferred in opts:
-                    if preferred == "fight" and not opp.creatures:
-                        continue
-                    return [preferred]
-            return opts[: max(decision.min_n, 1)]
+            return self._choose_non_card_options(view.opponent(), decision, opts)
 
+        me = view.me()
         mine = set(id(c) for c in me.creatures + me.artifacts + (me.hand or []) + me.discard + (me.archive or []))
+        intent = decision.intent
+        if intent is None:
+            raise ValueError(f"HeuristicBot: CHOOSE_CARDS decision has no intent tag ({decision.prompt!r})")
+        handler_name = self._CARD_TARGET_HANDLERS.get(intent)
+        if handler_name is None:
+            raise ValueError(f"HeuristicBot: no CHOOSE_CARDS handler for intent {intent.name} ({decision.prompt!r})")
+        return getattr(self, handler_name)(view, decision, cards, mine)
 
-        if "sacrifice" in prompt:
-            return pick(sorted(cards, key=_power), decision.min_n or 1)
-        if "ready and" in prompt:
-            # Anger, Ganger Chieftain, Gauntlet of Command, Sanctum's ready-
-            # and-use/ready-and-fight-3-times: pick whichever friendly
-            # creature makes the best fight against the current board, not
-            # just the weakest one (its previous heuristic).
-            if opp.creatures:
-                return [max(cards, key=lambda c: max((self._fight_value(c, t) for t in opp.creatures), default=-1.0))]
-            return [max(cards, key=_power)]
-        if "to fight" in prompt:
-            attacker = next((c for c in me.creatures if f"for {c.name.lower()} to fight" in prompt), None)
-            if attacker is not None:
-                return [max(cards, key=lambda t: self._fight_value(attacker, t))]
-            return [min(cards, key=_remaining)]
-        if "to ready" in prompt:
-            # Squawker: options are already friendly-only.
-            return [max(cards, key=_power)]
-        if prompt.startswith("ozmo:"):
-            # Its own mode ("Heal 3" vs "Stun") was chosen a decision ago and
-            # doesn't appear in this prompt at all -- only `self._last_mode`
-            # (set by `_choose_mode`, just below) says which one it was.
-            # `.startswith("ozmo:")` (the card's own name) rather than a
-            # generic "mars creature" substring keeps this from misfiring
-            # on Squawker's unrelated "choose a Mars creature to ready".
-            if self._last_mode == "Heal 3":
-                pool = [c for c in cards if id(c) in mine] or cards
-                return [min(pool, key=_remaining)]
-            theirs = [c for c in cards if id(c) not in mine and not c.stunned]
-            pool = theirs or [c for c in cards if not c.stunned] or cards
-            return [max(pool, key=_power)]
-        if "to stun" in prompt:
-            theirs = [c for c in cards if id(c) not in mine and not c.stunned]
-            pool = theirs or [c for c in cards if not c.stunned] or cards
-            return [max(pool, key=_power)]
-        if "archive" in prompt or "discard a card" in prompt:
-            house = me.selected_house
-            ranked = sorted(cards, key=lambda c: (c.house == house, c.aember_on_play))
-            return pick(ranked, max(decision.min_n, 1))
-        if "heal" in prompt or "attach" in prompt:
-            friendly = [c for c in cards if id(c) in mine]
-            return [min(friendly, key=_remaining) if friendly else cards[0]]
-        # Default: hurt the opponent -- prefer their cards, strongest first.
-        ranked = sorted(cards, key=lambda c: (id(c) in mine, -_power(c)))
-        count = max(decision.min_n, min(n, len([c for c in ranked if id(c) not in mine]) or decision.min_n))
-        return pick(ranked, count)
+    def _choose_non_card_options(self, opp, decision, opts):
+        """CHOOSE_CARDS decisions whose options aren't `Card`s at all: which
+        discard pile to purge from (a player id), or which of a creature's
+        abilities to use (mode strings, Dominator Bauble-style). Dispatched
+        on option *shape*, which never needed prompt parsing."""
+        if all(isinstance(o, int) and not isinstance(o, bool) for o in opts):
+            return [opp.id] if opp.id in opts else [opts[0]]
+        for preferred in ("fight", "reap", "action"):
+            if preferred in opts:
+                if preferred == "fight" and not opp.creatures:
+                    continue
+                return [preferred]
+        return list(opts[: max(decision.min_n, 1)])
+
+    def _take_n(self, decision, ranked):
+        """Takes `decision.max_n` off an already-best-first-ranked list,
+        clamped to what's available and to `min_n`."""
+        n = max(decision.min_n, min(decision.max_n, len(ranked)))
+        return list(ranked[:n])
+
+    def _target_destroy(self, view, decision, cards, mine):
+        # A forced self-destroy (bouncing_deathquark's friendly half, e.g.)
+        # gives up the least; anything else takes the most dangerous target.
+        reverse = decision.affects != Affects.FRIENDLY
+        return self._take_n(decision, sorted(cards, key=_power, reverse=reverse))
+
+    def _target_stun(self, view, decision, cards, mine):
+        theirs = [c for c in cards if id(c) not in mine and not c.stunned]
+        pool = theirs or [c for c in cards if not c.stunned] or cards
+        return self._take_n(decision, sorted(pool, key=_power, reverse=True))
+
+    def _target_sacrifice(self, view, decision, cards, mine):
+        return self._take_n(decision, sorted(cards, key=_power))
+
+    def _target_spare(self, view, decision, cards, mine):
+        return [cards[0]]  # `choose_most_powerful` already narrowed this to an equal-power tie
+
+    def _target_heal(self, view, decision, cards, mine):
+        friendly = [c for c in cards if id(c) in mine]
+        pool = friendly or cards
+        return self._take_n(decision, sorted(pool, key=_remaining))
+
+    def _target_ready(self, view, decision, cards, mine):
+        # Anger, Ganger Chieftain, Gauntlet of Command, Sergeant Zakiel, One
+        # Stood Against Many, Sanctum's ready-and-use: pick whichever
+        # friendly creature makes the best fight against the current board.
+        # Squawker/John Smyth/Commpod's plain readies (no attached fight)
+        # fall back to the same ranking -- a creature worth a good fight is
+        # also just a good creature to have ready.
+        opp = view.opponent()
+        if opp.creatures:
+            ranked = sorted(
+                cards, key=lambda c: max((self._fight_value(c, t) for t in opp.creatures), default=-1.0), reverse=True
+            )
+        else:
+            ranked = sorted(cards, key=_power, reverse=True)
+        return self._take_n(decision, ranked)
+
+    def _target_capture(self, view, decision, cards, mine):
+        # Captured Aember releases to the OPPONENT of whoever controls the
+        # card when it leaves play (Game.leave_play) -- so capturing onto an
+        # enemy creature pays off when it dies, and capturing onto your own
+        # is a slow-motion gift to your opponent. Prefer the frailest enemy
+        # (dies soonest, hands it back fastest) or the toughest friendly
+        # (holds it captive longest) accordingly.
+        if decision.affects == Affects.FRIENDLY:
+            ranked = sorted(cards, key=_remaining, reverse=True)
+        else:
+            ranked = sorted(cards, key=_remaining)
+        return self._take_n(decision, ranked)
+
+    def _target_drain(self, view, decision, cards, mine):
+        # Selwyn the Fence: drain the smaller stash, keep the bigger one
+        # captured for later.
+        ranked = sorted(cards, key=lambda c: c.aember_captured + c.aember_stored)
+        return self._take_n(decision, ranked)
+
+    def _target_discard(self, view, decision, cards, mine):
+        house = view.me().selected_house
+        ranked = sorted(cards, key=lambda c: (c.house == house, c.aember_on_play))
+        return self._take_n(decision, ranked)
+
+    def _target_archive(self, view, decision, cards, mine):
+        if decision.affects == Affects.ENEMY:
+            return self._take_n(decision, sorted(cards, key=_power, reverse=True))
+        return self._target_discard(view, decision, cards, mine)
+
+    def _target_return_to_hand(self, view, decision, cards, mine):
+        if decision.affects == Affects.FRIENDLY:
+            return self._take_n(decision, sorted(cards, key=_remaining))  # save the one closest to dying
+        return self._take_n(decision, sorted(cards, key=_power, reverse=True))  # bounce their best
+
+    def _target_shuffle_in(self, view, decision, cards, mine):
+        me, opp = view.me(), view.opponent()
+        live_ids = set(id(c) for c in me.creatures + opp.creatures)
+        if all(id(c) in live_ids for c in cards):
+            reverse = decision.affects != Affects.FRIENDLY  # pulling live creatures: keep mine, remove theirs
+        else:
+            reverse = True  # from a discard pile (World Tree): worth redrawing means worth keeping strong
+        return self._take_n(decision, sorted(cards, key=_power, reverse=reverse))
+
+    def _best_friendly_or_any(self, view, decision, cards, mine):
+        friendly = [c for c in cards if id(c) in mine]
+        pool = friendly or cards
+        return [max(pool, key=_power)]
+
+    _target_attach = _best_friendly_or_any
+    _target_use_target = _best_friendly_or_any
+    _target_modify = _best_friendly_or_any
+
+    def _target_play(self, view, decision, cards, mine):
+        return [max(cards, key=_power)]
+
+    _target_copy = _target_play
+    _target_swap = _target_play
+
+    def _target_fight_target(self, view, decision, cards, mine):
+        attacker = decision.source_card
+        return [max(cards, key=lambda t: self._fight_value(attacker, t))]
+
+    def _target_take_control(self, view, decision, cards, mine):
+        return self._take_n(decision, sorted(cards, key=_power, reverse=True))
+
+    def _target_reveal(self, view, decision, cards, mine):
+        if decision.max_n > 1:
+            return list(cards[: min(decision.max_n, len(cards))])
+        # A single mandatory reveal that also archives the card (Incubation
+        # Chamber, Zyzzix the Many): treat it like a discard.
+        return self._target_discard(view, decision, cards, mine)[:1]
+
+    _CARD_TARGET_HANDLERS = {
+        DecisionIntent.DESTROY: "_target_destroy",
+        DecisionIntent.DAMAGE: "_target_destroy",
+        DecisionIntent.PURGE: "_target_destroy",
+        DecisionIntent.REDIRECT: "_target_destroy",
+        DecisionIntent.STUN: "_target_stun",
+        DecisionIntent.EXHAUST: "_target_stun",
+        DecisionIntent.SACRIFICE: "_target_sacrifice",
+        DecisionIntent.SPARE: "_target_spare",
+        DecisionIntent.HEAL: "_target_heal",
+        DecisionIntent.READY: "_target_ready",
+        DecisionIntent.CAPTURE: "_target_capture",
+        DecisionIntent.DRAIN: "_target_drain",
+        DecisionIntent.DISCARD: "_target_discard",
+        DecisionIntent.ARCHIVE: "_target_archive",
+        DecisionIntent.RETURN_TO_HAND: "_target_return_to_hand",
+        DecisionIntent.SHUFFLE_IN: "_target_shuffle_in",
+        DecisionIntent.ATTACH: "_target_attach",
+        DecisionIntent.PLAY: "_target_play",
+        DecisionIntent.FIGHT_TARGET: "_target_fight_target",
+        DecisionIntent.TAKE_CONTROL: "_target_take_control",
+        DecisionIntent.USE_TARGET: "_target_use_target",
+        DecisionIntent.REVEAL: "_target_reveal",
+        DecisionIntent.COPY: "_target_copy",
+        DecisionIntent.SWAP: "_target_swap",
+        DecisionIntent.MODIFY: "_target_modify",
+    }
 
     def _choose_mode(self, view, decision, opts):
         me, opp = view.me(), view.opponent()
-        prompt = decision.prompt
-        if prompt.startswith("Begone!"):
+        name = decision.source_card.name if decision.source_card is not None else None
+        if name == "Begone!":
             mode = "Destroy each Dis creature" if any(c.house == House.DIS for c in opp.creatures) else "Gain 1Æ"
-        elif prompt.startswith("Knowledge is Power"):
+        elif name == "Knowledge is Power":
             archived = len(me.archive or [])
             mode = "Gain 1Æ per archived card" if (not (me.hand or []) or archived >= 2) else "Archive a card"
-        elif prompt.startswith("Ozmo"):
+        elif name == "Ozmo, Martianologist":
             mars_hurt = [c for c in me.creatures if c.house == House.MARS and _remaining(c) < _power(c)]
             mars_enemy = [c for c in opp.creatures if c.house == House.MARS]
             if mars_hurt:
@@ -380,11 +490,8 @@ class HeuristicBot(Controller):
                 mode = "Stun"
             else:
                 mode = "Heal 3"  # neither is useful; healing a full-health ally is at least harmless
+        elif name == "Squawker":
+            mode = "Ready a Mars creature" if "Ready a Mars creature" in opts else opts[0]
         else:
             mode = opts[0]  # deterministic default beats an RNG coin flip here
-        # Remembered for the target-choice CHOOSE_CARDS decision that
-        # immediately follows (e.g. Ozmo's "heal or stun a Mars creature"
-        # names the mode first, then asks which creature -- the same
-        # prompt either way, so the target step alone can't disambiguate).
-        self._last_mode = mode
         return mode
