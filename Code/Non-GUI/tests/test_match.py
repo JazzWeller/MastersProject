@@ -185,6 +185,23 @@ class TestFullAdaptiveMatchAndReplay(unittest.TestCase):
                 self.assertTrue(match.is_over)
                 self.assertIsNotNone(match.result)
 
+    def test_next_game_seed_is_deterministic_and_index_sensitive(self):
+        """Regression (Milestone L bug sweep): `_next_game_seed` used to be
+        `random.Random(seed).randrange(2**31)` -- built on `randrange`,
+        which keyforge/keyed_random.py's own docstring says is NOT a stable
+        cross-Python-version contract (only `.random()` is), unlike every
+        other RNG draw in the engine. A Match's own seed sequence must be
+        exactly as portable as a Game's."""
+        config = MatchConfig(format="adaptive", decks=("fignor", "igor"), seed=123)
+        m1, m2 = Match(config), Match(config)
+        self.assertEqual(m1._next_game_seed(), m2._next_game_seed())
+        first = m1._next_game_seed()
+        # Recording one more game (without changing the seed) must change
+        # the next draw -- otherwise every game in a match would reuse the
+        # exact same seed.
+        m1.games.append(object())
+        self.assertNotEqual(m1._next_game_seed(), first)
+
     def test_match_config_roundtrips_through_dict(self):
         config = MatchConfig(format="adaptive", decks=("fignor", "igor"), first_player=1, seed=9, max_turns=100)
         data = match_config_to_dict(config)

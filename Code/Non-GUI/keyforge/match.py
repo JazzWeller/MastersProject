@@ -28,13 +28,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-import random
-
 from .cards.decks import deck_from_dict, deck_label, deck_to_dict, resolve_deck
 from .config import GameConfig
 from .decision import Decision
 from .enums import DecisionKind
 from .game import Game
+from .keyed_random import derive_rng
 from .replay import encode_choice
 from .version import check_version_stamp, version_stamp
 
@@ -93,7 +92,6 @@ class Match:
         self.config = config
         self.format = config.format
         self.decks = config.decks
-        self.rng = random.Random(config.seed)
         self.games: List[GameRecord] = []
         # The actual finished Game objects, parallel to `self.games` -- kept
         # around (not just their GameRecord summaries) so a finished game's
@@ -152,7 +150,11 @@ class Match:
         return match_replay(self.config, self.choice_record)
 
     def _next_game_seed(self) -> int:
-        return self.rng.randrange(2**31)
+        """Keyed on this match's own seed plus how many games have already
+        been recorded -- deterministic and, unlike `random.Random.
+        randrange` (see keyforge/keyed_random.py), portable across Python
+        versions/implementations, matching `Game._branch_seed`'s pattern."""
+        return derive_rng(self.config.seed, None, "next_game_seed", len(self.games)).getrandbits(31)
 
     def _score_game(self, record: GameRecord) -> None:
         if record.winner is not None:
