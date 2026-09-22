@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 from .cards.decks import Deck, deck_from_dict, deck_to_dict, resolve_deck
 from .config import GameConfig
 from .enums import DecisionKind
+from .version import check_version_stamp, version_stamp
 
 _LIST_KINDS = (DecisionKind.CHOOSE_CARDS, DecisionKind.ORDER_EFFECTS)
 
@@ -55,16 +56,23 @@ def _encode_deck(source) -> Dict[str, Any]:
 
 
 def config_to_dict(config: GameConfig) -> Dict[str, Any]:
-    return {
+    data = {
         "decks": [_encode_deck(d) for d in config.decks],
         "first_player": config.first_player,
         "seed": config.seed,
         "max_turns": config.max_turns,
         "starting_chains": dict(config.starting_chains) if config.starting_chains else None,
     }
+    data.update(version_stamp())
+    return data
 
 
 def config_from_dict(data: Dict[str, Any]) -> GameConfig:
+    """Raises `keyforge.version.EngineVersionMismatch` if `data` was stamped
+    by a different engine version or rules hash than this one -- see
+    keyforge/version.py for why that refuses outright rather than replaying
+    a record that merely happens to still fit the current decision shapes."""
+    check_version_stamp(data, what="game replay record")
     starting_chains = data.get("starting_chains")
     raw_decks = data["decks"]
     # Old records (Phase 1/pre-Milestone-D) stored bare preset-name strings.

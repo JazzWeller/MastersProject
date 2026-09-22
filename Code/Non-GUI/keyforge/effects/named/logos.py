@@ -32,7 +32,7 @@ def help_from_future_self(game, card):
         steps.shortfall(game, card, f"finds no Timetraveller in {{pos:{player.id}}} deck or discard pile (the discard is still shuffled in)", "No Timetraveller")
     discard_cards = player.discard.take_all()
     if discard_cards:
-        player.deck.shuffle_in(discard_cards, game.rng)
+        player.deck.shuffle_in(discard_cards, game.event_rng("reshuffle", player.id))
     return
     yield
 
@@ -87,7 +87,7 @@ def timetraveler_action(game, card):
     player = controller_of(game, card)
     if player.play_area.remove(card):
         game.leave_play(card)
-        player.deck.shuffle_in([card], game.rng)
+        player.deck.shuffle_in([card], game.event_rng("reshuffle", player.id))
         game.log.add("timetraveler_shuffle", player=player.id, iid=card.instance_id)
     return
     yield
@@ -291,7 +291,7 @@ def reverse_time(game, card):
     player.deck = Deck(old_discard_cards)
     for c in old_deck_cards:
         player.discard.push(c)
-    player.deck.shuffle(game.rng)
+    player.deck.shuffle(game.event_rng("deck_shuffle", player.id))
     game.log.add("swap", player=player.id, card=card.name, iid=card.instance_id, swap_kind="deck_discard")
     return
     yield

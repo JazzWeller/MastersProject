@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
+import itertools
 import math
-import random
 from typing import List, Optional
 
 from .actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
-from .cards.card import Card, CreatureType
+from .cards.card import Card, CreatureType, UpgradeType
 from .cards.decks import build_deck
 from .config import GameConfig
 from .decision import Decision
 from .effects import steps
-from .effects.effect_object import ActiveEffectList, ModifierEffect
+from .effects.effect_object import ActiveEffectList, ModifierEffect, TriggerEffect
 from .enums import CardType, DecisionKind, House
+from .keyed_random import derive_rng, portable_choice
 from .log import GameLog
 from .player import Player
 from .replay import encode_choice
+from .state_hash import compute_state_hash
 from .view import build_view
 from .zones import Deck
 
@@ -24,7 +26,16 @@ from .zones import Deck
 class Game:
     def __init__(self, config: GameConfig):
         self.config = config
-        self.rng = random.Random(config.seed)
+        # Per-game, assigned in deck-build order (see `_setup`): same seed
+        # -> same instance ids, in any process, in any fork (Milestone A).
+        # Replaces the old module-level counter in cards/card.py, whose
+        # value depended on how many games (and ad hoc test cards) had
+        # already run in this process.
+        self._instance_counter = itertools.count(1)
+        # Per-`(player, event kind)` draw counters backing `event_rng` --
+        # see keyforge/keyed_random.py. This dict *is* "the RNG state" for
+        # `state_hash`: every draw is a pure function of it plus the seed.
+        self._rng_counters: dict = {}
         self.players = {1: Player(1), 2: Player(2)}
         self.active_effects = ActiveEffectList()
         self.log = GameLog()
@@ -73,6 +84,45 @@ class Game:
 
     def view_for(self, pid: int):
         return build_view(self, pid)
+
+    def new_instance_id(self) -> int:
+        """The next id in this game's own sequence -- every `Card` built for
+        this game (deck-build in `_setup`; a future `GameConfig.setup_script`,
+        Milestone D) should get its `instance_id` from here, never from
+        `cards/card.py`'s process-wide fallback counter, so that the same
+        seed produces the same ids in any process or fork."""
+        return next(self._instance_counter)
+
+    def event_rng(self, kind: str, player: Optional[int] = None):
+        """A fresh, independent `random.Random` for one instance of
+        `(player, kind)` -- see keyforge/keyed_random.py for why randomness
+        is keyed per event instead of drawn from one shared stream."""
+        key = (player, kind)
+        counter = self._rng_counters.get(key, 0)
+        self._rng_counters[key] = counter + 1
+        return derive_rng(self.config.seed, player, kind, counter)
+
+    def state_hash(self) -> str:
+        """A canonical hash over everything that affects future play --
+        zones and their order, per-card state, players, active effects,
+        pending decision, log, and keyed-RNG counters. Two independently
+        replayed games that reached this point via the same choices hash
+        equal; see keyforge/state_hash.py for exactly what's covered and
+        two known, accepted approximations around closures."""
+        return compute_state_hash(self)
+
+    def outcome_for(self, pid: int) -> int:
+        """+1 / 0 / -1 from `pid`'s perspective. 0 covers both an explicit
+        draw (the `max_turns` limit) and any other winner-less result --
+        callers that need to tell those apart should read `self.result`
+        directly; this is the terminal training/eval signal, which doesn't
+        care which kind of non-win it was."""
+        if self.result is None:
+            raise RuntimeError("Game.outcome_for() called before the game is over")
+        winner = self.result.get("winner")
+        if winner is None:
+            return 0
+        return 1 if winner == pid else -1
 
     # -------------------------------------------------- choice helpers ----
 
@@ -265,15 +315,17 @@ class Game:
         p1_deck_name, p2_deck_name = self.config.decks
         for pid, deck_name in ((1, p1_deck_name), (2, p2_deck_name)):
             cards = build_deck(deck_name, pid)
+            for card in cards:
+                card.instance_id = self.new_instance_id()
             self.players[pid].all_cards = list(cards)
             self.players[pid].deck = Deck(cards)
-            self.players[pid].deck.shuffle(self.rng)
+            self.players[pid].deck.shuffle(self.event_rng("deck_shuffle", pid))
             if self.config.starting_chains:
                 self.players[pid].chains = self.config.starting_chains.get(pid, 0)
         if self.config.first_player in (1, 2):
             first = self.config.first_player
         else:
-            first = self.rng.choice([1, 2])
+            first = portable_choice(self.event_rng("first_player"), [1, 2])
         self._first_player = first
         second = 3 - first
         self._draw_opening_hand(first, 7)
@@ -301,7 +353,7 @@ class Game:
         if choice:
             n = len(player.hand)
             cards = player.hand.take_all()
-            player.deck.shuffle_in(cards, self.rng)
+            player.deck.shuffle_in(cards, self.event_rng("reshuffle", pid))
             steps.draw(self, player, max(0, n - 1))
             self.log.add("mulligan", player=pid)
 

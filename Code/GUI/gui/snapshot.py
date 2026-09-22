@@ -202,8 +202,13 @@ def build_snapshot(game, viewer: int) -> BoardSnapshot:
             if zone == ZONE_CREATURE:
                 for i, creature in enumerate(zone_cards):
                     for u_idx, upg in enumerate(creature.type_object.upgrades):
+                        # An upgrade's owner is whoever's decklist it came
+                        # from, not whichever side its host creature is on --
+                        # an upgrade can attach to an enemy creature (Collar
+                        # of Subordination), and `pid` here is the host's
+                        # side.
                         cards[upg.instance_id] = _card_state(
-                            game, upg, pid, "upgrade", u_idx, len(creature.type_object.upgrades), viewer
+                            game, upg, upg.owner, "upgrade", u_idx, len(creature.type_object.upgrades), viewer
                         )
 
         players[pid] = PlayerSnapshot(

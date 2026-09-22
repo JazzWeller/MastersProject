@@ -142,7 +142,7 @@ def mating_season(game, card):
         if area is not None:
             area.remove(t)
             game.leave_play(t)
-            owner.deck.shuffle_in([t], game.rng)
+            owner.deck.shuffle_in([t], game.event_rng("reshuffle", owner.id))
             game.log.add("shuffle_into_deck", card=t.name, iid=t.instance_id, owner=owner.id)
             per_player[t.owner] += 1
     for pid, n in per_player.items():

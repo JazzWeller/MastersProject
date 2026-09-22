@@ -341,7 +341,10 @@ class TestBoardAndOverlays(unittest.TestCase):
         app.draw_scenes()
 
     def test_click_during_an_animation_is_applied_afterwards(self):  # M6
-        app, g = _scene()
+        # seed=5 (the module default) never reaches the target scenario
+        # under Milestone A's keyed/portable RNG within `_run_until`'s frame
+        # budget -- picked instead for how quickly it does.
+        app, g = _scene(seed=6)
         d = _run_until(app, g, lambda g, d: d.kind == DecisionKind.CHOOSE_ACTION and any(len(o) == 1 and isinstance(o[0], PlayCard) for o in g.panel.card_option_map.values()))
         iid = next(i for i, o in g.panel.card_option_map.items() if len(o) == 1 and isinstance(o[0], PlayCard) and g.board.card_at((g.board.sprites[i].x, g.board.sprites[i].y)) == i)
         sp = g.board.sprites[iid]

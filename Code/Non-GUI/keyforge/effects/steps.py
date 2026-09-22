@@ -10,6 +10,7 @@ functions delegating to methods on `game`; the rest are plain functions.
 from __future__ import annotations
 
 from ..cards.card import CreatureType
+from ..keyed_random import portable_choice
 
 
 def shortfall(game, source, reason: str, short: str = "") -> None:
@@ -111,7 +112,7 @@ def draw(game, player, n: int, source=None) -> bool:
             if player.discard.is_empty():
                 break
             cards = player.discard.take_all()
-            player.deck.shuffle_in(cards, game.rng)
+            player.deck.shuffle_in(cards, game.event_rng("reshuffle", player.id))
             game.log.add("reshuffle", player=player.id)
         card = player.deck.draw_top()
         if card is None:
@@ -153,7 +154,7 @@ def discard_random(game, player, source=None):
         if source is not None:
             shortfall(game, source, f"discards nothing: {{pos:{player.id}}} hand is empty", "Hand is empty")
         return False
-    card = game.rng.choice(cards)
+    card = portable_choice(game.event_rng("random_discard", player.id), cards)
     player.hand.remove(card)
     player.discard.push(card)
     game.log.add("discard_random", player=player.id, card=card.name, iid=card.instance_id)
@@ -310,7 +311,7 @@ def shuffle_into_deck(game, card) -> bool:
     )
     if not found:
         return False
-    owner.deck.shuffle_in([card], game.rng)
+    owner.deck.shuffle_in([card], game.event_rng("reshuffle", owner.id))
     game.log.add("shuffle_into_deck", card=card.name, iid=card.instance_id, owner=owner.id)
     return True
 

@@ -36,6 +36,7 @@ from .decision import Decision
 from .enums import DecisionKind
 from .game import Game
 from .replay import encode_choice
+from .version import check_version_stamp, version_stamp
 
 MAX_BID = 24
 FORMATS = ("archon", "reversal", "adaptive")
@@ -278,7 +279,7 @@ class Match:
 
 
 def match_config_to_dict(config: MatchConfig) -> Dict[str, Any]:
-    return {
+    data = {
         "format": config.format,
         # Full decklists, not bare names, so a replay survives later deck edits.
         "decks": [deck_to_dict(resolve_deck(d)) for d in config.decks],
@@ -286,9 +287,14 @@ def match_config_to_dict(config: MatchConfig) -> Dict[str, Any]:
         "seed": config.seed,
         "max_turns": config.max_turns,
     }
+    data.update(version_stamp())
+    return data
 
 
 def match_config_from_dict(data: Dict[str, Any]) -> MatchConfig:
+    """Raises `keyforge.version.EngineVersionMismatch` on a stale stamp --
+    see `keyforge.replay.config_from_dict`, which guards the same way."""
+    check_version_stamp(data, what="match replay record")
     raw_decks = data["decks"]
     # Old records (before this embedding) stored bare preset-name strings.
     decks = tuple(d if isinstance(d, str) else deck_from_dict(d) for d in raw_decks)

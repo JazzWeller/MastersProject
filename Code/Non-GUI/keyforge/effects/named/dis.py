@@ -408,7 +408,7 @@ def screaming_cave(game, card):
     if not cards:
         steps.shortfall(game, card, "shuffles nothing: your hand and discard pile are both empty", "Nothing to shuffle")
         return
-    player.deck.shuffle_in(cards, game.rng)
+    player.deck.shuffle_in(cards, game.event_rng("reshuffle", player.id))
     game.log.add("reshuffle", player=player.id)
     return
     yield

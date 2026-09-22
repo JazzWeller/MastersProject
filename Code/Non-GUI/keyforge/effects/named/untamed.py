@@ -113,7 +113,7 @@ def lost_in_the_woods(game, card):
         if area is not None:
             area.remove(c)
             game.leave_play(c)
-            owner.deck.shuffle_in([c], game.rng)
+            owner.deck.shuffle_in([c], game.event_rng("reshuffle", owner.id))
             game.log.add("shuffle_into_deck", card=c.name, iid=c.instance_id, owner=owner.id)
     if not friendly_choice and not enemy_choice:
         steps.shortfall(game, card, "does nothing: there is no creature in play", "No creature")
@@ -306,7 +306,7 @@ def bear_flute(game, card):
         player.hand.add(c)
         game.log.add("return_to_hand", card=c.name, iid=c.instance_id, owner=player.id)
     remaining_discard = player.discard.take_all()
-    player.deck.shuffle_in(remaining_discard, game.rng)
+    player.deck.shuffle_in(remaining_discard, game.event_rng("reshuffle", player.id))
 
 
 def nepenthe_seed(game, card):
