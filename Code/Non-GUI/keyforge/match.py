@@ -142,6 +142,15 @@ class Match:
             return self.current_game.view_for(pid)
         return MatchView(viewer=pid, format=self.format, games=list(self.games), score=dict(self.score))
 
+    def fork(self) -> "Match":
+        """An independent `Match` at this exact point -- match-level choices
+        replay through `match_replay` exactly like a single `Game` forks
+        through `keyforge.replay.replay` (Agent Interface Plan, Milestone
+        D). PRIVILEGED, for the same reason `Game.fork()` is: it carries
+        the true hidden state and RNG future of whichever game is
+        currently in progress, if any."""
+        return match_replay(self.config, self.choice_record)
+
     def _next_game_seed(self) -> int:
         return self.rng.randrange(2**31)
 

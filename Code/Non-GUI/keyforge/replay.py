@@ -62,6 +62,7 @@ def config_to_dict(config: GameConfig) -> Dict[str, Any]:
         "seed": config.seed,
         "max_turns": config.max_turns,
         "starting_chains": dict(config.starting_chains) if config.starting_chains else None,
+        "setup_script": [list(op) for op in config.setup_script] if config.setup_script else None,
     }
     data.update(version_stamp())
     return data
@@ -77,12 +78,14 @@ def config_from_dict(data: Dict[str, Any]) -> GameConfig:
     raw_decks = data["decks"]
     # Old records (Phase 1/pre-Milestone-D) stored bare preset-name strings.
     decks = tuple(d if isinstance(d, str) else deck_from_dict(d) for d in raw_decks)
+    setup_script = data.get("setup_script")
     return GameConfig(
         decks=decks,
         first_player=data.get("first_player"),
         seed=data.get("seed"),
         max_turns=data.get("max_turns"),
         starting_chains={int(k): v for k, v in starting_chains.items()} if starting_chains else None,
+        setup_script=[tuple(op) for op in setup_script] if setup_script else None,
     )
 
 

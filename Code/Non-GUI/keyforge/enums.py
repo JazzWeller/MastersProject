@@ -124,6 +124,17 @@ class DecisionIntent(Enum):
     OPTIONAL_COST = auto()  # pay an optional cost for a bigger effect
 
 
+class Resample(Enum):
+    """What `Game.fork_determinized`/`fork_many` resample, relative to a
+    viewer -- Agent Interface Plan, Milestone D. Named so the
+    hidden-information diagnostic (Milestone J) can separate "the cost of
+    not knowing my own draws" from "the cost of not knowing their hand"."""
+
+    OWN_DECK = "own_deck"  # only the viewer's own remaining deck order (chance only)
+    OPPONENT_PRIVATE = "opponent_private"  # the opponent's hand + archive + deck, redistributed among themselves
+    ALL = "all"  # both of the above
+
+
 class DecisionKind(Enum):
     MULLIGAN = auto()
     CHOOSE_HOUSE = auto()
