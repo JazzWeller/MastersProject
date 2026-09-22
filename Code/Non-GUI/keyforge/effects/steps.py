@@ -135,7 +135,8 @@ def archive_card(game, player, card) -> bool:
         if not player.deck.remove(card):
             return False
     player.archive.add(card)
-    game.log.add("archive", player=player.id, card=card.name, iid=card.instance_id)
+    # Always from hand or deck (both hidden) -- see keyforge/log.py.
+    game.log.add("archive", player=player.id, card=card.name, iid=card.instance_id, visible_to={player.id})
     return True
 
 
@@ -312,7 +313,10 @@ def shuffle_into_deck(game, card) -> bool:
     if not found:
         return False
     owner.deck.shuffle_in([card], game.event_rng("reshuffle", owner.id))
-    game.log.add("shuffle_into_deck", card=card.name, iid=card.instance_id, owner=owner.id)
+    # From hand, discard, or the owner's own archive -- discard is public,
+    # but hand and archive aren't, and there's no cheap way here to tell
+    # which one matched, so this errs toward not leaking.
+    game.log.add("shuffle_into_deck", card=card.name, iid=card.instance_id, owner=owner.id, visible_to={owner.id})
     return True
 
 

@@ -334,10 +334,13 @@ def bear_flute(game, card):
         steps.shortfall(game, card, "finds no Ancient Bear in your deck, discard pile, or play", "No Ancient Bear")
         return
     for c in found:
+        # `found` mixes deck (hidden) and discard (public) cards, and by
+        # here it's already removed from whichever one it was in -- err
+        # toward not leaking rather than tracking which zone matched.
         if not player.deck.remove(c):
             player.discard.remove(c)
         player.hand.add(c)
-        game.log.add("return_to_hand", card=c.name, iid=c.instance_id, owner=player.id)
+        game.log.add("return_to_hand", card=c.name, iid=c.instance_id, owner=player.id, visible_to={player.id})
     remaining_discard = player.discard.take_all()
     player.deck.shuffle_in(remaining_discard, game.event_rng("reshuffle", player.id))
 

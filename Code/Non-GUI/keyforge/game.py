@@ -367,6 +367,12 @@ class Game:
     def _maybe_mulligan(self, pid: int):
         player = self.players[pid]
         choice = yield Decision(pid, DecisionKind.MULLIGAN, "Mulligan your hand?", [True, False], 1, 1)
+        # A mulligan decision is public either way -- unlike "mulligan"
+        # below (fired only when it happens, and long-relied on by the GUI's
+        # animation/text), this always fires so the observation layer
+        # (Milestone C) can reconstruct the full public history, including
+        # a decline that otherwise leaves no trace.
+        self.log.add("mulligan_decision", player=pid, took=choice)
         if choice:
             n = len(player.hand)
             cards = player.hand.take_all()
@@ -416,6 +422,9 @@ class Game:
             take = yield Decision(
                 pid, DecisionKind.TAKE_ARCHIVE, "Take your archive into your hand?", [True, False], 1, 1
             )
+            # See _maybe_mulligan: public either way, always recorded so the
+            # observation layer can see a decline too.
+            self.log.add("archive_decision", player=pid, took=take)
             if take:
                 for c in player.archive.take_all():
                     if c.archive_return_to_owner:

@@ -288,7 +288,9 @@ def random_access_archives(game, card):
         steps.shortfall(game, card, f"archives nothing: {{pos:{player.id}}} deck is empty", "Deck is empty")
         return
     player.archive.add(top)
-    game.log.add("archive", player=player.id, card=top.name, iid=top.instance_id)
+    # From the deck (hidden) -- the opponent never legitimately saw this
+    # card, so the log entry isn't visible to them either.
+    game.log.add("archive", player=player.id, card=top.name, iid=top.instance_id, visible_to={player.id})
     return
     yield
 
@@ -662,7 +664,9 @@ def research_smoko_destroyed(game, card):
         steps.shortfall(game, card, f"archives nothing: {{pos:{player.id}}} deck is empty", "Deck is empty")
         return
     player.archive.add(top)
-    game.log.add("archive", player=player.id, card=top.name, iid=top.instance_id)
+    # From the deck (hidden) -- the opponent never legitimately saw this
+    # card, so the log entry isn't visible to them either.
+    game.log.add("archive", player=player.id, card=top.name, iid=top.instance_id, visible_to={player.id})
     return
     yield
 
