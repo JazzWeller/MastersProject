@@ -4,7 +4,7 @@ for the FAQ rulings behind each implementation."""
 
 from __future__ import annotations
 
-from ...enums import CardType, House
+from ...enums import Affects, CardType, DecisionIntent, House
 from ..effect_object import DurationEffect, INFINITE, ModifierEffect, TriggerEffect
 from .. import steps
 from ..generic import choose_most_powerful, controller_of, opponent_of
@@ -19,7 +19,8 @@ def anger(game, card):
         steps.shortfall(game, card, "does nothing: there is no friendly creature in play", "No creature")
         return
     choice = yield from game.choose_cards(
-        player.id, f"{card.name}: choose a friendly creature to ready and fight with", creatures, 1, 1
+        player.id, f"{card.name}: choose a friendly creature to ready and fight with", creatures, 1, 1,
+        source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
     )
     yield from game.ready_and_fight(choice[0])
 
@@ -32,7 +33,8 @@ def barehanded(game, card):
     order = artifacts
     if len(artifacts) > 1:
         order = yield from game.order_effects(
-            card.controller, artifacts, f"{card.name}: choose the order these go to their decks' tops"
+            card.controller, artifacts, f"{card.name}: choose the order these go to their decks' tops",
+            source_card=card,
         )
     for a in order:
         owner = game.players[a.owner]
@@ -50,7 +52,10 @@ def blood_money(game, card):
     if not options:
         steps.shortfall(game, card, "places nothing: there is no enemy creature in play", "No enemy creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose an enemy creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose an enemy creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY,
+    )
     steps.place_aember(game, choice[0], 2)
 
 
@@ -80,13 +85,15 @@ def champions_challenge(game, card):
 
     enemy_creatures = list(opponent.play_area.creatures)
     survivor_enemy = yield from choose_most_powerful(
-        game, player.id, enemy_creatures, f"{card.name}: choose the enemy creature to survive (most powerful)"
+        game, player.id, enemy_creatures, f"{card.name}: choose the enemy creature to survive (most powerful)",
+        source_card=card,
     )
     yield from game.destroy_cards([c for c in enemy_creatures if c is not survivor_enemy])
 
     friendly_creatures = list(player.play_area.creatures)
     survivor_friendly = yield from choose_most_powerful(
-        game, player.id, friendly_creatures, f"{card.name}: choose the friendly creature to survive (most powerful)"
+        game, player.id, friendly_creatures, f"{card.name}: choose the friendly creature to survive (most powerful)",
+        source_card=card,
     )
     yield from game.destroy_cards([c for c in friendly_creatures if c is not survivor_friendly])
 
@@ -156,11 +163,15 @@ def relentless_assault(game, card):
         if not available:
             break
         if i > 0:
-            cont = yield from game.yes_no(player.id, f"{card.name}: ready and fight with another creature?")
+            cont = yield from game.yes_no(
+                player.id, f"{card.name}: ready and fight with another creature?",
+                source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+            )
             if not cont:
                 break
         choice = yield from game.choose_cards(
-            player.id, f"{card.name}: choose a friendly creature to ready and fight with", available, 1, 1
+            player.id, f"{card.name}: choose a friendly creature to ready and fight with", available, 1, 1,
+            source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
         )
         target = choice[0]
         used.append(target)
@@ -208,7 +219,8 @@ def tremor(game, card):
         steps.shortfall(game, card, "stuns nothing: there are no creatures in play", "No creature")
         return
     choice = yield from game.choose_cards(
-        card.controller, f"{card.name}: choose a creature to stun (with its neighbors)", options, 1, 1
+        card.controller, f"{card.name}: choose a creature to stun (with its neighbors)", options, 1, 1,
+        source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY,
     )
     target = choice[0]
     area = game.find_play_area(target)
@@ -231,7 +243,8 @@ def unguarded_camp(game, card):
         if not available:
             break
         choice = yield from game.choose_cards(
-            player.id, f"{card.name}: choose a friendly creature to capture 1Æ ({i + 1}/{excess})", available, 1, 1
+            player.id, f"{card.name}: choose a friendly creature to capture 1Æ ({i + 1}/{excess})", available, 1, 1,
+            source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY,
         )
         target = choice[0]
         used.append(target)
@@ -275,7 +288,8 @@ def gauntlet_of_command(game, card):
         steps.shortfall(game, card, "has no friendly creature to ready and fight with", "No creature")
         return
     choice = yield from game.choose_cards(
-        player.id, f"{card.name}: choose a friendly creature to ready and fight with", creatures, 1, 1
+        player.id, f"{card.name}: choose a friendly creature to ready and fight with", creatures, 1, 1,
+        source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
     )
     yield from game.ready_and_fight(choice[0])
 
@@ -298,7 +312,10 @@ def mighty_javelin(game, card):
     if not options:
         steps.shortfall(game, card, "deals no damage: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: deal 4 damage to a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: deal 4 damage to a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     steps.deal_damage(game, choice[0], 4)
     yield from game.check_destroyed(choice)
 
@@ -314,7 +331,8 @@ def pile_of_skulls_register(game, card):
         if not friendly:
             return
         choice = yield from g.choose_cards(
-            card.controller, f"{card.name}: choose a friendly creature to capture 1Æ", friendly, 1, 1
+            card.controller, f"{card.name}: choose a friendly creature to capture 1Æ", friendly, 1, 1,
+            source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY,
         )
         steps.capture(g, choice[0], 1)
 
@@ -383,10 +401,16 @@ def ganger_chieftain_play(game, card):
     neighbors = area.neighbors(card)
     if not neighbors:
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: ready and fight with a neighboring creature?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: ready and fight with a neighboring creature?",
+        source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a neighboring creature", neighbors, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a neighboring creature", neighbors, 1, 1,
+        source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
+    )
     yield from game.ready_and_fight(choice[0])
 
 
@@ -406,7 +430,10 @@ def kelifi_dragon_after(game, card):
     if not options:
         steps.shortfall(game, card, "deals no damage: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: deal 5 damage to a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: deal 5 damage to a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     steps.deal_damage(game, choice[0], 5)
     yield from game.check_destroyed(choice)
 
@@ -463,10 +490,16 @@ def rock_hurling_giant_register(game, card):
         options = g.all_creatures("any", card)
         if not options:
             return
-        do_it = yield from g.yes_no(card.controller, f"{card.name}: deal 4 damage to a creature?")
+        do_it = yield from g.yes_no(
+            card.controller, f"{card.name}: deal 4 damage to a creature?",
+            source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+        )
         if not do_it:
             return
-        choice = yield from g.choose_cards(card.controller, f"{card.name}: choose a creature", options, 1, 1)
+        choice = yield from g.choose_cards(
+            card.controller, f"{card.name}: choose a creature", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+        )
         steps.deal_damage(g, choice[0], 4)
         yield from g.check_destroyed(choice)
 
@@ -491,7 +524,10 @@ def smaaash(game, card):
     if not options:
         steps.shortfall(game, card, "stuns nothing: there are no creatures in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to stun", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to stun", options, 1, 1,
+        source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY,
+    )
     steps.stun(game, choice[0])
 
 

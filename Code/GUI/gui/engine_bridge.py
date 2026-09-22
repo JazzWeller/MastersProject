@@ -12,7 +12,7 @@ import random
 from dataclasses import dataclass, replace
 from typing import Dict, List, Optional, Tuple
 
-from bots.heuristic_bot import HeuristicBot
+from bots.registry import make_agent
 from keyforge.cards.decks import deck_label
 from keyforge.config import GameConfig
 from keyforge.enums import DecisionKind
@@ -39,6 +39,11 @@ class MatchSettings:
     first_player: Optional[int] = None
     seed: Optional[int] = None
     max_turns: Optional[int] = None
+    # A name from bots.registry -- Agent Interface Plan, Milestone I:
+    # "the single source of agents for sim/simulate.py, main.py and the
+    # GUI's opponent choice". Defaults to today's fixed HeuristicBot
+    # opponent, so nothing about existing menu flows changes on its own.
+    bot_agent: str = "heuristic"
 
     def with_concrete_seed(self) -> "MatchSettings":
         """A copy whose seed is always set: games must be reproducible to be
@@ -72,7 +77,7 @@ class EngineBridge:
         self.game = Game(self.config)
         self.seats: Dict[int, str] = {1: self.settings.p1_seat, 2: self.settings.p2_seat}
         self.bots = {
-            pid: HeuristicBot(seed=(self.settings.seed or 0) + pid)
+            pid: make_agent(self.settings.bot_agent, seed=(self.settings.seed or 0) + pid)
             for pid, seat in self.seats.items()
             if seat == SEAT_BOT
         }
@@ -211,7 +216,7 @@ class MatchBridge:
         self.match = Match(self.config)
         self.seats: Dict[int, str] = {1: self.settings.p1_seat, 2: self.settings.p2_seat}
         self.bots = {
-            pid: HeuristicBot(seed=(self.settings.seed or 0) + pid)
+            pid: make_agent(self.settings.bot_agent, seed=(self.settings.seed or 0) + pid)
             for pid, seat in self.seats.items()
             if seat == SEAT_BOT
         }

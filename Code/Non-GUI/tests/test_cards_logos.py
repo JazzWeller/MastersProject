@@ -28,6 +28,15 @@ class TestLogos(unittest.TestCase):
     def test_help_from_future_self_finds_timetraveler_in_discard(self):
         game = new_game()
         p1 = game.players[1]
+        # Igor's own pod already includes a Timetraveller; whether it was
+        # drawn into the opening hand (leaving the deck without one) or is
+        # still sitting in the deck is down to the shuffle, not this test --
+        # strip it either way so the scenario always exercises the discard
+        # fallback, not whichever the deal happened to leave behind.
+        for zone in (p1.deck, p1.hand):
+            for c in list(zone.cards()):
+                if c.name == "Timetraveller":
+                    zone.remove(c)
         tt = make_card("Timetraveller", 1)
         p1.discard.push(tt)
         other = make_card("Urchin", 1)

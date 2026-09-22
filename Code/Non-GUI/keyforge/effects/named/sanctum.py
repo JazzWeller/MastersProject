@@ -4,7 +4,7 @@ for the FAQ rulings behind each implementation."""
 
 from __future__ import annotations
 
-from ...enums import CardType, House
+from ...enums import Affects, CardType, DecisionIntent, House
 from ..effect_object import DurationEffect, INFINITE, InsteadEffect, ModifierEffect, TriggerEffect
 from .. import steps
 from ..generic import choose_least_powerful, choose_most_powerful, controller_of, opponent_of
@@ -14,7 +14,9 @@ from ..generic import choose_least_powerful, choose_most_powerful, controller_of
 
 def begone(game, card):
     player = controller_of(game, card)
-    mode = yield from game.choose_mode(player.id, f"{card.name}: choose one", ["Destroy each Dis creature", "Gain 1Æ"])
+    mode = yield from game.choose_mode(
+        player.id, f"{card.name}: choose one", ["Destroy each Dis creature", "Gain 1Æ"], source_card=card,
+    )
     if mode == "Gain 1Æ":
         steps.gain(game, player, 1)
         return
@@ -45,7 +47,10 @@ def charge(game, card):
         options = g.all_creatures("enemy", card)
         if not options:
             return
-        choice = yield from g.choose_cards(player.id, f"{card.name}: deal 2 damage to an enemy creature", options, 1, 1)
+        choice = yield from g.choose_cards(
+            player.id, f"{card.name}: deal 2 damage to an enemy creature", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY,
+        )
         steps.deal_damage(g, choice[0], 2)
         yield from g.check_destroyed(choice)
 
@@ -117,7 +122,10 @@ def inspiration(game, card):
     if not creatures:
         steps.shortfall(game, card, "has no friendly creature to ready and use", "No creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a friendly creature to ready and use", creatures, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a friendly creature to ready and use", creatures, 1, 1,
+        source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     steps.ready(game, target)
     yield from game.use_creature_ability(target)
@@ -128,7 +136,10 @@ def mighty_lance(game, card):
     if not options:
         steps.shortfall(game, card, "deals no damage: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.deal_damage(game, target, 3)
     area = game.find_play_area(target)
@@ -138,7 +149,8 @@ def mighty_lance(game, card):
         hit_neighbor = neighbors[0]
     elif len(neighbors) > 1:
         nchoice = yield from game.choose_cards(
-            card.controller, f"{card.name}: choose a neighbor to also deal 3 damage to", neighbors, 1, 1
+            card.controller, f"{card.name}: choose a neighbor to also deal 3 damage to", neighbors, 1, 1,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
         )
         hit_neighbor = nchoice[0]
     if hit_neighbor is not None:
@@ -173,7 +185,8 @@ def one_stood_against_many(game, card):
         steps.shortfall(game, card, "has no friendly creature to ready and fight with", "No creature")
         return
     choice = yield from game.choose_cards(
-        player.id, f"{card.name}: choose a friendly creature to ready and fight 3 times", creatures, 1, 1
+        player.id, f"{card.name}: choose a friendly creature to ready and fight 3 times", creatures, 1, 1,
+        source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
     )
     fighter = choice[0]
     fought_ids = set()
@@ -216,7 +229,10 @@ def terms_of_redress(game, card):
     if not creatures:
         steps.shortfall(game, card, "captures nothing: there is no friendly creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a friendly creature to capture 2Æ", creatures, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a friendly creature to capture 2Æ", creatures, 1, 1,
+        source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY,
+    )
     steps.capture(game, choice[0], 2)
 
 
@@ -225,7 +241,10 @@ def the_harder_they_come(game, card):
     if not options:
         steps.shortfall(game, card, "purges nothing: no creature has power 5 or higher", "No high-power creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to purge", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to purge", options, 1, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY,
+    )
     steps.purge(game, choice[0])
 
 
@@ -275,7 +294,10 @@ def gorm_of_omm(game, card):
     if not options:
         steps.shortfall(game, card, "destroys nothing: there is no artifact in play", "No artifact")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose an artifact to destroy", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose an artifact to destroy", options, 1, 1,
+        source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+    )
     target = choice[0]
     owner = game.players[target.owner]
     area = game.find_play_area(target)
@@ -291,7 +313,10 @@ def hallowed_blaster(game, card):
     if not options:
         steps.shortfall(game, card, "heals nothing: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to heal 3 damage from", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to heal 3 damage from", options, 1, 1,
+        source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY,
+    )
     steps.heal(game, choice[0], 3)
 
 
@@ -328,7 +353,10 @@ def whispering_reliquary(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: there is no artifact in play", "No artifact")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose an artifact to return to its owner's hand", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose an artifact to return to its owner's hand", options, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY,
+    )
     steps.return_to_hand(game, choice[0])
 
 
@@ -350,7 +378,10 @@ def commander_remiel(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no friendly non-Sanctum creature in play", "No non-Sanctum creature")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a friendly non-Sanctum creature to use", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a friendly non-Sanctum creature to use", options, 1, 1,
+        source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY,
+    )
     yield from game.use_creature_ability(choice[0])
 
 
@@ -382,7 +413,10 @@ def grey_monk_after_reap(game, card):
     if not options:
         steps.shortfall(game, card, "heals nothing: there is no creature in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to heal 2 damage from", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to heal 2 damage from", options, 1, 1,
+        source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY,
+    )
     steps.heal(game, choice[0], 2)
 
 
@@ -412,7 +446,9 @@ def horseman_of_death(game, card):
 
 def horseman_of_famine(game, card):
     targets = game.all_creatures("any", card)
-    least = yield from choose_least_powerful(game, card.controller, targets, f"{card.name}: choose the least powerful creature")
+    least = yield from choose_least_powerful(
+        game, card.controller, targets, f"{card.name}: choose the least powerful creature", source_card=card,
+    )
     if least is None:
         steps.shortfall(game, card, "destroys nothing: there is no creature in play", "No creature")
         return
@@ -454,7 +490,10 @@ def lady_maxena_play(game, card):
     if not options:
         steps.shortfall(game, card, "stuns nothing: there are no creatures in play", "No creature")
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to stun", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to stun", options, 1, 1,
+        source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY,
+    )
     steps.stun(game, choice[0])
 
 
@@ -481,7 +520,10 @@ def numquid_the_fair(game, card):
         if not options:
             steps.shortfall(game, card, "destroys nothing: there is no enemy creature in play", "No enemy creature")
             return
-        choice = yield from game.choose_cards(player.id, f"{card.name}: choose an enemy creature to destroy", options, 1, 1)
+        choice = yield from game.choose_cards(
+            player.id, f"{card.name}: choose an enemy creature to destroy", options, 1, 1,
+            source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ENEMY,
+        )
         yield from game.destroy_cards(choice)
         if len(opponent.play_area.creatures) <= len(player.play_area.creatures):
             return
@@ -495,10 +537,15 @@ def protectrix_after_reap(game, card):
     options = game.all_creatures("any", card)
     if not options:
         return
-    do_it = yield from game.yes_no(card.controller, f"{card.name}: fully heal a creature?")
+    do_it = yield from game.yes_no(
+        card.controller, f"{card.name}: fully heal a creature?", source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature to fully heal", options, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, f"{card.name}: choose a creature to fully heal", options, 1, 1,
+        source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.fully_heal(game, target)
     target.damage_prevented = True
@@ -511,7 +558,8 @@ def sanctum_guardian_after(game, card):
     if not others:
         return
     choice = yield from game.choose_cards(
-        player.id, f"{card.name}: choose a friendly creature to swap battleline positions with", others, 1, 1
+        player.id, f"{card.name}: choose a friendly creature to swap battleline positions with", others, 1, 1,
+        source_card=card, intent=DecisionIntent.SWAP, affects=Affects.FRIENDLY,
     )
     player.play_area.swap(card, choice[0])
     game.log.add("swap", card=card.name, iid=card.instance_id, other=choice[0].name, other_iid=choice[0].instance_id)
@@ -523,10 +571,16 @@ def sergeant_zakiel_play(game, card):
     neighbors = area.neighbors(card)
     if not neighbors:
         return
-    do_it = yield from game.yes_no(player.id, f"{card.name}: ready and fight with a neighboring creature?")
+    do_it = yield from game.yes_no(
+        player.id, f"{card.name}: ready and fight with a neighboring creature?",
+        source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if not do_it:
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: choose a neighboring creature", neighbors, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: choose a neighboring creature", neighbors, 1, 1,
+        source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY,
+    )
     yield from game.ready_and_fight(choice[0])
 
 

@@ -10,10 +10,14 @@ from .base import Controller
 
 
 class RandomBot(Controller):
+    # Picks uniformly from decision.options/min_n/max_n alone -- never reads
+    # `view` -- so a harness can skip building one for it (Milestone L).
+    needs_view = False
+
     def __init__(self, seed=None):
         self.rng = random.Random(seed)
 
-    def decide(self, view, decision):
+    def decide(self, view, decision, budget=None, capability=None):
         if decision.kind in (DecisionKind.CHOOSE_CARDS, DecisionKind.ORDER_EFFECTS):
             options = list(decision.options)
             self.rng.shuffle(options)

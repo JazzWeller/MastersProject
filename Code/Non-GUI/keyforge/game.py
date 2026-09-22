@@ -2,21 +2,25 @@
 
 from __future__ import annotations
 
+import dataclasses
+import itertools
 import math
 import random
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from .actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
-from .cards.card import Card, CreatureType
+from .cards.card import Card, CreatureType, UpgradeType
 from .cards.decks import build_deck
 from .config import GameConfig
 from .decision import Decision
 from .effects import steps
-from .effects.effect_object import ActiveEffectList, ModifierEffect
-from .enums import CardType, DecisionKind, House
+from .effects.effect_object import ActiveEffectList, ModifierEffect, TriggerEffect
+from .enums import Affects, CardType, DecisionIntent, DecisionKind, House, Resample
+from .keyed_random import derive_rng, portable_choice, portable_shuffle
 from .log import GameLog
 from .player import Player
-from .replay import encode_choice
+from .replay import decode_choice, encode_choice, replay
+from .state_hash import compute_state_hash
 from .view import build_view
 from .zones import Deck
 
@@ -24,7 +28,16 @@ from .zones import Deck
 class Game:
     def __init__(self, config: GameConfig):
         self.config = config
-        self.rng = random.Random(config.seed)
+        # Per-game, assigned in deck-build order (see `_setup`): same seed
+        # -> same instance ids, in any process, in any fork (Milestone A).
+        # Replaces the old module-level counter in cards/card.py, whose
+        # value depended on how many games (and ad hoc test cards) had
+        # already run in this process.
+        self._instance_counter = itertools.count(1)
+        # Per-`(player, event kind)` draw counters backing `event_rng` --
+        # see keyforge/keyed_random.py. This dict *is* "the RNG state" for
+        # `state_hash`: every draw is a pure function of it plus the seed.
+        self._rng_counters: dict = {}
         self.players = {1: Player(1), 2: Player(2)}
         self.active_effects = ActiveEffectList()
         self.log = GameLog()
@@ -45,6 +58,9 @@ class Game:
         # DurationEffect model (Spectral Tunneler).
         self._end_of_turn_cleanups: list = []
         self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
+        # Populated once in _setup: the decklist never changes mid-game, so
+        # player_houses() doesn't need to recompute it on every call.
+        self._player_houses_cache: Dict[int, List[House]] = {}
         self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
@@ -74,15 +90,189 @@ class Game:
     def view_for(self, pid: int):
         return build_view(self, pid)
 
+    def new_instance_id(self) -> int:
+        """The next id in this game's own sequence -- every `Card` built for
+        this game (deck-build in `_setup`; a future `GameConfig.setup_script`,
+        Milestone D) should get its `instance_id` from here, never from
+        `cards/card.py`'s process-wide fallback counter, so that the same
+        seed produces the same ids in any process or fork."""
+        return next(self._instance_counter)
+
+    def event_rng(self, kind: str, player: Optional[int] = None):
+        """A fresh, independent `random.Random` for one instance of
+        `(player, kind)` -- see keyforge/keyed_random.py for why randomness
+        is keyed per event instead of drawn from one shared stream."""
+        key = (player, kind)
+        counter = self._rng_counters.get(key, 0)
+        self._rng_counters[key] = counter + 1
+        return derive_rng(self.config.seed, player, kind, counter)
+
+    def state_hash(self) -> str:
+        """A canonical hash over everything that affects future play --
+        zones and their order, per-card state, players, active effects,
+        pending decision, log, and keyed-RNG counters. Two independently
+        replayed games that reached this point via the same choices hash
+        equal; see keyforge/state_hash.py for exactly what's covered and
+        two known, accepted approximations around closures."""
+        return compute_state_hash(self)
+
+    def outcome_for(self, pid: int) -> int:
+        """+1 / 0 / -1 from `pid`'s perspective. 0 covers both an explicit
+        draw (the `max_turns` limit) and any other winner-less result --
+        callers that need to tell those apart should read `self.result`
+        directly; this is the terminal training/eval signal, which doesn't
+        care which kind of non-win it was."""
+        if self.result is None:
+            raise RuntimeError("Game.outcome_for() called before the game is over")
+        winner = self.result.get("winner")
+        if winner is None:
+            return 0
+        return 1 if winner == pid else -1
+
+    # ---------------------------------------------------------- forking ----
+    # Agent Interface Plan, Milestone D. `fork`/`fork_determinized` are
+    # "branch-and-hold": they return a `Game` in the caller's own process,
+    # which only this (replay) backend and Milestone E's snapshot-copy
+    # backend can provide. Search code that should also run under
+    # Milestone E's process-fork backend should be written against
+    # `keyforge.branching.run_branches` ("branch-and-run") instead.
+    #
+    # Tree-node guidance: a search tree should store the PATH of choice
+    # indices from the root (a list of encoded choices, `Game.choice_
+    # record`'s own shape), never a live `Game`. A node is regenerated on
+    # demand by `root.fork()` (or `fork_determinized()`) followed by
+    # `Game.apply(path)`. That bounds memory to the tree's own shape, and
+    # keeps the tree itself serializable.
+
+    def fork(self) -> "Game":
+        """An independent `Game` at this exact point, carrying the TRUE
+        hidden state and RNG future: replaying the same config and
+        `choice_record` reproduces a game byte-for-byte (Milestone A), so
+        this is just that. PRIVILEGED -- a normal agent handed this could
+        search its own future draws and the opponent's true hand."""
+        return replay(self.config, self.choice_record)
+
+    def fork_determinized(self, viewer: int, rng: random.Random, resample: Resample = Resample.ALL) -> "Game":
+        """`fork()`, then resamples what `viewer` doesn't know, then
+        reseeds the fork's own future randomness from `rng`. Without the
+        reseed, every future `event_rng` draw in the fork would exactly
+        match the true game's -- Milestone A's keyed randomness is a pure
+        function of `(seed, player, kind, counter)`, and a fork inherits
+        both the seed and the counters -- which is exactly the "future
+        leakage" this class's acceptance test checks for.
+
+        `resample` (keyforge/enums.py):
+        - `OWN_DECK`: only `viewer`'s own remaining deck order.
+        - `OPPONENT_PRIVATE`: the opponent's hand + archive + deck,
+          redistributed among themselves. Any card currently revealed to
+          `viewer` (`Player.hand_revealed_to`) is left exactly where it
+          is -- today's coarse version of "card location knowledge": a
+          card's hidden position is known to `viewer` only while an active
+          reveal covers it, matching `keyforge/view.py`'s own visibility
+          rule for the non-privileged `PlayerView`.
+        - `ALL`: both.
+        """
+        fork = self.fork()
+        opponent = 3 - viewer
+        if resample in (Resample.OWN_DECK, Resample.ALL):
+            fork._resample_own_deck(viewer, rng)
+        if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
+            fork._resample_hidden_pool(opponent, viewer, rng)
+        # A fresh, independent seed drawn from the caller's own `rng` --
+        # portability doesn't matter here (this value is never itself
+        # replayed as an engine-internal draw), only that it decorrelates
+        # the fork's future from the true game's. `replay()` hands the
+        # fork the SAME `GameConfig` object `self` uses (it doesn't copy
+        # it), so this must replace it rather than mutate it in place --
+        # otherwise `self.config.seed` changes too.
+        fork.config = dataclasses.replace(fork.config, seed=rng.getrandbits(63))
+        return fork
+
+    def _resample_own_deck(self, pid: int, rng: random.Random) -> None:
+        player = self.players[pid]
+        cards = player.deck.cards()
+        if len(cards) > 1:
+            portable_shuffle(rng, cards)
+        player.deck = Deck(cards)
+
+    def _resample_hidden_pool(self, pid: int, viewer: int, rng: random.Random) -> None:
+        """Redistributes `pid`'s hand + archive + deck among themselves,
+        preserving each zone's count, except any hand card `viewer`
+        currently has revealed to them (`hand_revealed_to`)."""
+        player = self.players[pid]
+        hand_cards = player.hand.cards()
+        revealed = viewer in player.hand_revealed_to
+        fixed = hand_cards if revealed else []
+        pool = ([] if revealed else list(hand_cards)) + player.archive.cards() + player.deck.cards()
+        portable_shuffle(rng, pool)
+        n_hand = len(hand_cards) - len(fixed)
+        n_archive = len(player.archive)
+        new_hand, new_archive, new_deck = fixed + pool[:n_hand], pool[n_hand : n_hand + n_archive], pool[n_hand + n_archive :]
+        for c in list(player.hand.cards()):
+            player.hand.remove(c)
+        for c in new_hand:
+            player.hand.add(c)
+        for c in list(player.archive.cards()):
+            player.archive.remove(c)
+        for c in new_archive:
+            player.archive.add(c)
+        player.deck = Deck(new_deck)
+
+    def _branch_seed(self, index: int) -> int:
+        """A deterministic per-branch seed derived from this game's own
+        seed, so `fork_many` is reproducible without the caller having to
+        invent a seed list."""
+        return derive_rng(self.config.seed, None, "branch_seed", index).getrandbits(63)
+
+    def fork_many(
+        self, n: int, *, viewer: Optional[int] = None, resample: Resample = Resample.ALL, seeds: Optional[List[int]] = None
+    ) -> List["Game"]:
+        """n branches from this state, each with its own determinization
+        and RNG seed -- the batch primitive search agents should be
+        written against, so a faster backend (Milestone E) can serve it at
+        a fraction of the cost with no agent-side change. Omitting
+        `viewer` gives `n` exact (privileged) forks instead."""
+        if seeds is None:
+            seeds = [self._branch_seed(i) for i in range(n)]
+        if viewer is None:
+            return [self.fork() for _ in seeds]
+        return [self.fork_determinized(viewer, random.Random(s), resample=resample) for s in seeds]
+
+    def apply(self, choice_indices) -> "Game":
+        """Advances this game along a recorded path of *encoded* choices
+        (`Game.choice_record`'s own shape) -- typically called on a fresh
+        fork. Returns `self`, for chaining onto `fork()`/`fork_determinized`."""
+        for encoded in choice_indices:
+            if self.is_over or self.pending_decision is None:
+                raise ValueError("Game.apply: more choices than the game has pending decisions for")
+            self.submit(decode_choice(self.pending_decision, encoded))
+        return self
+
+    def run_until(self, predicate, policy) -> "Game":
+        """Plays this game forward with `policy(game, decision) -> choice`
+        (a plain decoded choice, as `submit` expects) until `predicate
+        (game)` holds or the game ends. Returns `self`. See
+        `until_end_of_turn`/`until_player_decides`/`until_boundary` below
+        for the conditions the plan names; `run_until(until_end_of_turn
+        (game), policy)` is the turn-bounded search leaf."""
+        while not self.is_over and not predicate(self):
+            self.submit(policy(self, self.pending_decision))
+        return self
+
     # -------------------------------------------------- choice helpers ----
 
-    def choose_cards(self, player, prompt, options, min_n=0, max_n=1):
+    def choose_cards(
+        self, player, prompt, options, min_n=0, max_n=1, *, source_card=None, intent=None, affects=None, optional=False
+    ):
         options = list(options)
         if not options:
             return []
         if min_n == max_n and len(options) == min_n:
             return options
-        choice = yield Decision(player, DecisionKind.CHOOSE_CARDS, prompt, options, min_n, max_n)
+        choice = yield Decision(
+            player, DecisionKind.CHOOSE_CARDS, prompt, options, min_n, max_n,
+            source_card=source_card, intent=intent, affects=affects, optional=optional,
+        )
         return choice
 
     def choose_house(self, player, prompt, houses):
@@ -94,33 +284,45 @@ class Game:
         choice = yield Decision(player, DecisionKind.CHOOSE_HOUSE_FOR_EFFECT, prompt, houses, 1, 1)
         return choice
 
-    def yes_no(self, player, prompt):
-        choice = yield Decision(player, DecisionKind.YES_NO, prompt, [True, False], 1, 1)
+    def yes_no(self, player, prompt, *, source_card=None, intent=None, optional=True):
+        choice = yield Decision(
+            player, DecisionKind.YES_NO, prompt, [True, False], 1, 1,
+            source_card=source_card, intent=intent, affects=Affects.NONE, optional=optional,
+        )
         return choice
 
-    def order_effects(self, player, items, prompt="Choose the order these resolve"):
+    def order_effects(self, player, items, prompt="Choose the order these resolve", *, source_card=None):
         items = list(items)
         if len(items) <= 1:
             return items
-        choice = yield Decision(player, DecisionKind.ORDER_EFFECTS, prompt, items, len(items), len(items))
+        choice = yield Decision(
+            player, DecisionKind.ORDER_EFFECTS, prompt, items, len(items), len(items),
+            source_card=source_card, intent=DecisionIntent.ORDER, affects=Affects.NONE,
+        )
         return choice
 
-    def choose_number(self, player, prompt, numbers):
+    def choose_number(self, player, prompt, numbers, *, source_card=None):
         numbers = list(numbers)
         if not numbers:
             return None
         if len(numbers) == 1:
             return numbers[0]
-        choice = yield Decision(player, DecisionKind.CHOOSE_NUMBER, prompt, numbers, 1, 1)
+        choice = yield Decision(
+            player, DecisionKind.CHOOSE_NUMBER, prompt, numbers, 1, 1,
+            source_card=source_card, intent=DecisionIntent.NUMBER, affects=Affects.NONE,
+        )
         return choice
 
-    def choose_mode(self, player, prompt, modes):
+    def choose_mode(self, player, prompt, modes, *, source_card=None):
         modes = list(modes)
         if not modes:
             return None
         if len(modes) == 1:
             return modes[0]
-        choice = yield Decision(player, DecisionKind.CHOOSE_MODE, prompt, modes, 1, 1)
+        choice = yield Decision(
+            player, DecisionKind.CHOOSE_MODE, prompt, modes, 1, 1,
+            source_card=source_card, intent=DecisionIntent.MODE, affects=Affects.NONE,
+        )
         return choice
 
     # ------------------------------------------------------- get funcs ----
@@ -192,7 +394,12 @@ class Game:
         return card.house_override or card.house
 
     def player_houses(self, pid: int) -> List[House]:
-        return sorted({c.house for c in self.players[pid].all_cards}, key=lambda h: h.value)
+        # The decklist never changes mid-game, so this is computed once in
+        # _setup rather than re-building the set/sort (and re-hashing every
+        # House enum member) on each of the ~7.7k calls/game the profiler
+        # measured (Milestone L). A copy, not the cached list itself, so a
+        # caller can never mutate the cache.
+        return list(self._player_houses_cache[pid])
 
     def find_play_area(self, card: Card):
         """Whichever player's `PlayArea` currently physically contains
@@ -265,15 +472,18 @@ class Game:
         p1_deck_name, p2_deck_name = self.config.decks
         for pid, deck_name in ((1, p1_deck_name), (2, p2_deck_name)):
             cards = build_deck(deck_name, pid)
+            for card in cards:
+                card.instance_id = self.new_instance_id()
             self.players[pid].all_cards = list(cards)
+            self._player_houses_cache[pid] = sorted({c.house for c in cards}, key=lambda h: h.value)
             self.players[pid].deck = Deck(cards)
-            self.players[pid].deck.shuffle(self.rng)
+            self.players[pid].deck.shuffle(self.event_rng("deck_shuffle", pid))
             if self.config.starting_chains:
                 self.players[pid].chains = self.config.starting_chains.get(pid, 0)
         if self.config.first_player in (1, 2):
             first = self.config.first_player
         else:
-            first = self.rng.choice([1, 2])
+            first = portable_choice(self.event_rng("first_player"), [1, 2])
         self._first_player = first
         second = 3 - first
         self._draw_opening_hand(first, 7)
@@ -298,17 +508,91 @@ class Game:
     def _maybe_mulligan(self, pid: int):
         player = self.players[pid]
         choice = yield Decision(pid, DecisionKind.MULLIGAN, "Mulligan your hand?", [True, False], 1, 1)
+        # A mulligan decision is public either way -- unlike "mulligan"
+        # below (fired only when it happens, and long-relied on by the GUI's
+        # animation/text), this always fires so the observation layer
+        # (Milestone C) can reconstruct the full public history, including
+        # a decline that otherwise leaves no trace.
+        self.log.add("mulligan_decision", player=pid, took=choice)
         if choice:
             n = len(player.hand)
             cards = player.hand.take_all()
-            player.deck.shuffle_in(cards, self.rng)
+            player.deck.shuffle_in(cards, self.event_rng("reshuffle", pid))
             steps.draw(self, player, max(0, n - 1))
             self.log.add("mulligan", player=pid)
+
+    # --------------------------------------------- constructed positions ----
+
+    def _take_named_card(self, pid: int, name: str) -> Card:
+        """Removes and returns a card named `name` from wherever it
+        currently sits among player `pid`'s own dealt cards (hand, deck,
+        discard, archive, or purged, checked in that order) -- never a
+        freshly conjured card, so `setup_script` can't violate the 36-card
+        pool invariant `sim.simulate.check_invariants` checks for."""
+        player = self.players[pid]
+        for zone in (player.hand, player.deck, player.discard, player.archive, player.purged):
+            for c in zone.cards():
+                if c.name == name:
+                    zone.remove(c)
+                    return c
+        raise ValueError(f"setup_script: no {name!r} among player {pid}'s own cards (already placed elsewhere?)")
+
+    def _apply_setup_script(self) -> None:
+        """Applies `self.config.setup_script` (Agent Interface Plan,
+        Milestone D: "positions as replayable data") after normal setup and
+        before the first decision. Each op is `(op, ...)`; unknown ops are a
+        hard error rather than a silent no-op, since a typo here should
+        never quietly produce a different position than intended."""
+        for op in self.config.setup_script or []:
+            kind = op[0]
+            if kind == "put_creature":
+                _, pid, name, flank = op
+                card = self._take_named_card(pid, name)
+                card.controller = pid
+                self.players[pid].play_area.add_creature(card, flank)
+                card.Exhausted = False
+                if card.card_def.register_passive:
+                    card.card_def.register_passive(self, card)
+            elif kind == "put_artifact":
+                _, pid, name = op
+                card = self._take_named_card(pid, name)
+                card.controller = pid
+                self.players[pid].play_area.add_artifact(card)
+                card.Exhausted = False
+                if card.card_def.register_passive:
+                    card.card_def.register_passive(self, card)
+            elif kind == "hand_card":
+                _, pid, name = op
+                self.players[pid].hand.add(self._take_named_card(pid, name))
+            elif kind == "discard_card":
+                _, pid, name = op
+                self.players[pid].discard.push(self._take_named_card(pid, name))
+            elif kind == "archive_card":
+                _, pid, name = op
+                self.players[pid].archive.add(self._take_named_card(pid, name))
+            elif kind == "set_aember":
+                _, pid, amount = op
+                self.players[pid].aember = amount
+            elif kind == "set_keys":
+                _, pid, amount = op
+                self.players[pid].keys = amount
+            elif kind == "set_chains":
+                _, pid, amount = op
+                self.players[pid].chains = amount
+            elif kind == "damage":
+                _, pid, name, amount = op
+                card = next((c for c in self.players[pid].play_area.creatures if c.name == name), None)
+                if card is None:
+                    raise ValueError(f"setup_script: no {name!r} in player {pid}'s play area to damage")
+                card.type_object.damage = amount
+            else:
+                raise ValueError(f"setup_script: unknown op {kind!r}")
 
     # -------------------------------------------------------- main loop ----
 
     def _run(self):
         yield from self._setup()
+        self._apply_setup_script()
         self.active_player_id = self._first_player
         self.turn_number = 0
         while True:
@@ -347,6 +631,9 @@ class Game:
             take = yield Decision(
                 pid, DecisionKind.TAKE_ARCHIVE, "Take your archive into your hand?", [True, False], 1, 1
             )
+            # See _maybe_mulligan: public either way, always recorded so the
+            # observation layer can see a decline too.
+            self.log.add("archive_decision", player=pid, took=take)
             if take:
                 for c in player.archive.take_all():
                     if c.archive_return_to_owner:
@@ -517,8 +804,8 @@ class Game:
         """Whether `pid` forged a key on their turn numbered `turn_number`
         (Key Hammer, Tendrils of Pain: 'forged a key on their previous turn')."""
         return any(
-            e.kind == "forge_key" and e.data.get("player") == pid and e.data.get("turn") == turn_number
-            for e in self.log.events
+            e.data.get("player") == pid and e.data.get("turn") == turn_number
+            for e in self.log.by_kind.get("forge_key", ())
         )
 
     def creatures_destroyed_in_fight_this_turn(self, controller_pid: int) -> int:
@@ -527,8 +814,8 @@ class Game:
         hazardous, assault, or any card effect) so far this turn (The
         Warchest)."""
         return sum(
-            1 for e in self.log.events
-            if e.kind == "destroyed_in_fight" and e.data.get("controller") == controller_pid and e.data.get("turn") == self.turn_number
+            1 for e in self.log.by_kind.get("destroyed_in_fight", ())
+            if e.data.get("controller") == controller_pid and e.data.get("turn") == self.turn_number
         )
 
     def creatures_played_on_turn(self, pid: int, turn_number: int) -> int:
@@ -536,8 +823,8 @@ class Game:
         `turn_number` (Lifeweb: "if your opponent played 3 or more
         creatures on their previous turn")."""
         return sum(
-            1 for e in self.log.events
-            if e.kind == "play_card" and e.data.get("player") == pid and e.data.get("type") == "Creature" and e.data.get("turn") == turn_number
+            1 for e in self.log.by_kind.get("play_card", ())
+            if e.data.get("player") == pid and e.data.get("type") == "Creature" and e.data.get("turn") == turn_number
         )
 
     # ----------------------------------------------------- legal actions ----
@@ -794,7 +1081,10 @@ class Game:
             flank = yield from self._choose_flank(pid)
         elif card.type == CardType.UPGRADE:
             targets = list(self.players[1].play_area.creatures) + list(self.players[2].play_area.creatures)
-            choice = yield from self.choose_cards(pid, f"Attach {card.name} to a creature", targets, 1, 1)
+            choice = yield from self.choose_cards(
+                pid, f"Attach {card.name} to a creature", targets, 1, 1,
+                source_card=card, intent=DecisionIntent.ATTACH, affects=Affects.ANY,
+            )
             host = choice[0]
 
         if not from_deck_top:
@@ -900,7 +1190,7 @@ class Game:
         ]
         if pre_existing:
             order = yield from self.order_effects(
-                card.controller, ["effect", "check"], f"{card.name}: choose what resolves first"
+                card.controller, ["effect", "check"], f"{card.name}: choose what resolves first", source_card=card,
             )
         else:
             order = ["effect", "check"]
@@ -922,7 +1212,7 @@ class Game:
             return
         if len(triggers) > 1:
             ordered = yield from self.order_effects(
-                event_player, triggers, f"Playing {card.name} triggered these: choose their order"
+                event_player, triggers, f"Playing {card.name} triggered these: choose their order", source_card=card,
             )
         else:
             ordered = triggers
@@ -1071,7 +1361,10 @@ class Game:
         targets = self.legal_fight_targets(attacker, exclude)
         if not targets:
             return None
-        choice = yield from self.choose_cards(pid, f"Choose a target for {attacker.name} to fight", targets, 1, 1)
+        choice = yield from self.choose_cards(
+            pid, f"Choose a target for {attacker.name} to fight", targets, 1, 1,
+            source_card=attacker, intent=DecisionIntent.FIGHT_TARGET, affects=Affects.ENEMY,
+        )
         target = choice[0]
         self.log.add(
             "fight",
@@ -1219,7 +1512,10 @@ class Game:
         if not options:
             return
         if len(options) > 1:
-            choice = yield from self.choose_cards(pid, f"Use {card.name}", options, 1, 1)
+            choice = yield from self.choose_cards(
+                pid, f"Use {card.name}", options, 1, 1,
+                source_card=card, intent=DecisionIntent.MODE, affects=Affects.NONE,
+            )
             kind = choice[0]
         else:
             kind = options[0]
@@ -1571,3 +1867,45 @@ class Game:
             card.controller = original_controller
         if card.type == CardType.ARTIFACT:
             yield from self._fire_event("artifact_used", {"player": as_pid, "card": card})
+
+
+# --------------------------------------------------- run_until predicates ----
+# Ready-made conditions for `Game.run_until` (Milestone D). Each factory
+# takes whatever context it needs at creation time and returns a plain
+# `predicate(game) -> bool`.
+
+_BOUNDARY_KINDS = (DecisionKind.CHOOSE_ACTION, DecisionKind.CHOOSE_HOUSE, DecisionKind.TAKE_ARCHIVE)
+
+
+def until_game_over(game: "Game") -> bool:
+    return game.is_over
+
+
+def until_player_decides(pid: int):
+    def predicate(game: "Game") -> bool:
+        return game.is_over or (game.pending_decision is not None and game.pending_decision.player == pid)
+
+    return predicate
+
+
+def until_boundary():
+    """The next `CHOOSE_ACTION`/`CHOOSE_HOUSE`/`TAKE_ARCHIVE` decision --
+    `sim/simulate.py`'s own `_BOUNDARY_KINDS`, where no card effect is
+    mid-resolution (88.9% of all decisions, per the plan's own baseline)."""
+
+    def predicate(game: "Game") -> bool:
+        return game.is_over or (game.pending_decision is not None and game.pending_decision.kind in _BOUNDARY_KINDS)
+
+    return predicate
+
+
+def until_end_of_turn(game: "Game"):
+    """True once `game`'s turn number has advanced past its value when this
+    predicate was created -- the turn-bounded search leaf: `game.run_until
+    (until_end_of_turn(game), policy)`."""
+    start_turn = game.turn_number
+
+    def predicate(g: "Game") -> bool:
+        return g.is_over or g.turn_number > start_turn
+
+    return predicate

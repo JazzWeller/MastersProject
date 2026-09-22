@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import random
 
-from bots.random_bot import RandomBot
+from bots.registry import available_agents, make_agent
 from keyforge.cards.decks import random_deck
 from keyforge.match import Match, MatchConfig
 
@@ -16,7 +16,7 @@ from .render import render_board
 def build_controller(kind, seat, match):
     if kind == "human":
         return HumanController(match)
-    return RandomBot(seed=None)
+    return make_agent(kind, seed=None)
 
 
 def _resolve_deck_arg(value: str, rng: random.Random, label: str):
@@ -29,8 +29,9 @@ def _resolve_deck_arg(value: str, rng: random.Random, label: str):
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--p1", choices=["human", "random"], default="human")
-    parser.add_argument("--p2", choices=["human", "random"], default="random")
+    agent_names = sorted(available_agents())
+    parser.add_argument("--p1", choices=["human", *agent_names], default="human")
+    parser.add_argument("--p2", choices=["human", *agent_names], default="random")
     parser.add_argument("--p1-deck", default="fignor", help="preset name, path to a deck JSON file, or 'random'")
     parser.add_argument("--p2-deck", default="igor", help="preset name, path to a deck JSON file, or 'random'")
     parser.add_argument("--format", choices=["archon", "reversal", "adaptive"], default="archon")

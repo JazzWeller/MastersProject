@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...enums import CardType, House
+from ...enums import Affects, CardType, DecisionIntent, House
 from ..effect_object import DurationEffect, InsteadEffect, TriggerEffect, INFINITE
 from .. import steps
 from ..generic import controller_of, opponent_of
@@ -41,7 +41,10 @@ def booby_trap(game, card):
     if not non_flank:
         steps.shortfall(game, card, "deals no damage: every creature in play is on a flank", "No non-flank creature")
         return
-    choice = yield from game.choose_cards(card.controller, "Booby Trap: choose a non-flank creature", non_flank, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Booby Trap: choose a non-flank creature", non_flank, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.deal_damage(game, target, 4)
     owner_area = game.players[target.controller].play_area
@@ -89,7 +92,10 @@ def lights_out(game, card):
     n = min(2, len(options))
     if n < 2:
         steps.shortfall(game, card, "returns only 1 creature: it was the only enemy creature in play", "Only 1 enemy creature")
-    choice = yield from game.choose_cards(card.controller, f"Lights Out: return {n} enemy creature{'s' if n != 1 else ''}", options, n, n)
+    choice = yield from game.choose_cards(
+        card.controller, f"Lights Out: return {n} enemy creature{'s' if n != 1 else ''}", options, n, n,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY,
+    )
     for c in choice:
         steps.return_to_hand(game, c)
 
@@ -105,7 +111,10 @@ def nerve_blast(game, card):
     if not targets:
         steps.shortfall(game, card, "steals 1 but deals no damage: there are no creatures in play", "No creature to damage")
         return
-    choice = yield from game.choose_cards(player.id, "Nerve Blast: deal 2 damage", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Nerve Blast: deal 2 damage", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     steps.deal_damage(game, choice[0], 2)
     yield from game.check_destroyed(choice)
 
@@ -142,7 +151,10 @@ def oubliette(game, card):
     if not targets:
         steps.shortfall(game, card, "purges nothing: no creature in play has power 3 or less", "No creature with power 3 or less")
         return
-    choice = yield from game.choose_cards(card.controller, "Oubliette: purge a creature (power <= 3)", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Oubliette: purge a creature (power <= 3)", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY,
+    )
     steps.purge(game, choice[0])
 
 
@@ -152,7 +164,10 @@ def pawn_sacrifice(game, card):
     if not options:
         steps.shortfall(game, card, "does nothing: there is no friendly creature to sacrifice", "Nothing to sacrifice")
         return
-    choice = yield from game.choose_cards(player.id, "Pawn Sacrifice: sacrifice a friendly creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Pawn Sacrifice: sacrifice a friendly creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY,
+    )
     victim = choice[0]
     ok = yield from steps.sacrifice(game, victim)
     if not ok:
@@ -166,7 +181,8 @@ def pawn_sacrifice(game, card):
         targets = remaining_targets
     else:
         targets = yield from game.choose_cards(
-            player.id, "Pawn Sacrifice: choose 2 different creatures", remaining_targets, 2, 2
+            player.id, "Pawn Sacrifice: choose 2 different creatures", remaining_targets, 2, 2,
+            source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
         )
     for t in targets:
         steps.deal_damage(game, t, 3)
@@ -179,7 +195,10 @@ def relentless_whispers(game, card):
     if not targets:
         steps.shortfall(game, card, "deals no damage: there are no creatures in play", "No creature to damage")
         return
-    choice = yield from game.choose_cards(player.id, "Relentless Whispers: deal 2 damage", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Relentless Whispers: deal 2 damage", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.deal_damage(game, target, 2)
     destroyed = yield from game.check_destroyed([target])
@@ -227,7 +246,10 @@ def finishing_blow(game, card):
     if not targets:
         steps.shortfall(game, card, "destroys nothing: no creature in play is damaged", "No damaged creature")
         return
-    choice = yield from game.choose_cards(player.id, "Finishing Blow: destroy a damaged creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Finishing Blow: destroy a damaged creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+    )
     destroyed = yield from game.destroy_cards(choice)
     if choice[0] in destroyed:
         steps.steal(game, opponent_of(game, card), player, 1, source=card)
@@ -245,7 +267,10 @@ def imperial_traitor(game, card):
     if not targets:
         steps.shortfall(game, card, f"purges nothing: {{pos:{opponent.id}}} hand has no Sanctum card", "No Sanctum card in hand")
         return
-    choice = yield from game.choose_cards(player.id, "Imperial Traitor: you may purge a Sanctum card from the opponent's hand", targets, 0, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Imperial Traitor: you may purge a Sanctum card from the opponent's hand", targets, 0, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ENEMY, optional=True,
+    )
     if choice:
         steps.purge(game, choice[0])
 
@@ -331,7 +356,10 @@ def masterplan_play(game, card):
     if not options:
         steps.shortfall(game, card, f"has no card to place beneath it: {{pos:{player.id}}} hand is empty", "Hand is empty")
         return
-    choice = yield from game.choose_cards(player.id, "Masterplan: put a card from your hand facedown beneath it", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Masterplan: put a card from your hand facedown beneath it", options, 1, 1,
+        source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY,
+    )
     c = choice[0]
     player.hand.remove(c)
     card.under_cards.append(c)
@@ -357,7 +385,10 @@ def seeker_needle(game, card):
     if not targets:
         steps.shortfall(game, card, "deals no damage: there are no creatures in play", "No creature to damage")
         return
-    choice = yield from game.choose_cards(player.id, f"{card.name}: deal 1 damage", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, f"{card.name}: deal 1 damage", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.deal_damage(game, target, 1)
     destroyed = yield from game.check_destroyed([target])
@@ -374,7 +405,10 @@ def skeleton_key(game, card):
     if not targets:
         steps.shortfall(game, card, "captures nothing: there is no friendly creature in play", "No friendly creature")
         return
-    choice = yield from game.choose_cards(player.id, "Skeleton Key: choose a friendly creature to capture 1Æ", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Skeleton Key: choose a friendly creature to capture 1Æ", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY,
+    )
     steps.capture(game, choice[0], 1)
 
 
@@ -385,7 +419,10 @@ def special_delivery(game, card):
     if not targets:
         steps.shortfall(game, card, "deals no damage: there are no flank creatures in play", "No flank creature")
         return
-    choice = yield from game.choose_cards(player.id, "Special Delivery: deal 3 damage to a flank creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Special Delivery: deal 3 damage to a flank creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.deal_damage(game, target, 3)
     destroyed = yield from game.check_destroyed([target])
@@ -412,7 +449,10 @@ def bulleteye(game, card):
     if not targets:
         steps.shortfall(game, card, "destroys nothing: there are no flank creatures in play", "No flank creature")
         return
-    choice = yield from game.choose_cards(player.id, "Bulleteye: destroy a flank creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Bulleteye: destroy a flank creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+    )
     yield from game.destroy_cards(choice)
 
 
@@ -435,12 +475,18 @@ def deipno_spymaster(game, card):
     if not options:
         steps.shortfall(game, card, "chooses nothing: there are no friendly creatures in play", "No friendly creature")
         return
-    choice = yield from game.choose_cards(player.id, "Deipno Spymaster: choose a friendly creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Deipno Spymaster: choose a friendly creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY,
+    )
     target = choice[0]
     if target.Exhausted:
         steps.shortfall(game, card, f"can't use {target.name}: it is already exhausted", f"{target.name} is exhausted")
         return
-    may_use = yield from game.yes_no(player.id, f"Deipno Spymaster: use {target.name} this turn?")
+    may_use = yield from game.yes_no(
+        player.id, f"Deipno Spymaster: use {target.name} this turn?",
+        source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+    )
     if may_use:
         yield from steps.use_creature(game, target)
 
@@ -457,7 +503,10 @@ def faygin(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: there is no Urchin in play or in your discard pile", "No Urchin")
         return
-    choice = yield from game.choose_cards(player.id, "Faygin: return an Urchin to its owner's hand", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Faygin: return an Urchin to its owner's hand", options, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY,
+    )
     target = choice[0]
     if target in in_play:
         steps.return_to_hand(game, target)
@@ -487,7 +536,10 @@ def nexus(game, card):
     if not targets:
         steps.shortfall(game, card, "uses nothing: the opponent has no usable artifact in play", "No usable enemy artifact")
         return
-    choice = yield from game.choose_cards(player.id, "Nexus: use an opponent's artifact as if it were yours", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Nexus: use an opponent's artifact as if it were yours", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.ENEMY,
+    )
     yield from game.use_artifact_ability(choice[0], player.id)
 
 
@@ -497,7 +549,10 @@ def selwyn_the_fence(game, card):
     if not sources:
         steps.shortfall(game, card, "moves nothing: none of your cards have Æmber on them", "No Æmber on your cards")
         return
-    choice = yield from game.choose_cards(player.id, "Selwyn the Fence: move 1Æ from one of your cards to your pool", sources, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Selwyn the Fence: move 1Æ from one of your cards to your pool", sources, 1, 1,
+        source_card=card, intent=DecisionIntent.DRAIN, affects=Affects.FRIENDLY,
+    )
     source_card = choice[0]
     if source_card.aember_captured > 0:
         source_card.aember_captured -= 1
@@ -534,7 +589,10 @@ def smiling_ruth(game, card):
     if not targets:
         steps.shortfall(game, card, "takes control of nothing: the opponent has no flank creature", "No enemy flank creature")
         return
-    choice = yield from game.choose_cards(player.id, "Smiling Ruth: take control of an enemy flank creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Smiling Ruth: take control of an enemy flank creature", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY,
+    )
     yield from game.take_control(choice[0], player.id)
 
 
@@ -545,7 +603,10 @@ def sneklifter(game, card):
     if not targets:
         steps.shortfall(game, card, "takes control of nothing: the opponent has no artifact in play", "No enemy artifact")
         return
-    choice = yield from game.choose_cards(player.id, "Sneklifter: take control of an enemy artifact", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Sneklifter: take control of an enemy artifact", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY,
+    )
     target = choice[0]
     yield from game.take_control(target, player.id)
     if target.house not in game.player_houses(player.id):
@@ -569,6 +630,9 @@ def _silent_dagger_effect(game, host_card):
     if not targets:
         steps.shortfall(game, host_card, "deals no damage: there are no flank creatures in play", "No flank creature")
         return
-    choice = yield from game.choose_cards(host_card.controller, "Silent Dagger: deal 4 damage to a flank creature", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        host_card.controller, "Silent Dagger: deal 4 damage to a flank creature", targets, 1, 1,
+        source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     steps.deal_damage(game, choice[0], 4)
     yield from game.check_destroyed(choice)

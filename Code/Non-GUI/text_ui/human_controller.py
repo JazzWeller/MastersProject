@@ -14,7 +14,7 @@ class HumanController(Controller):
     def __init__(self, match):
         self.match = match  # a Match or, in older callers, a plain Game
 
-    def decide(self, view, decision):
+    def decide(self, view, decision, budget=None, capability=None):
         while True:
             print(f"\n-- Player {decision.player}: {decision.prompt} --")
             for i, opt in enumerate(decision.options):

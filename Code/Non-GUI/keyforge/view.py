@@ -93,6 +93,6 @@ def build_view(game, viewer: int) -> PlayerView:
         active_player=game.active_player_id,
         turn_number=game.turn_number,
         players=states,
-        log_tail=game.log.tail(20),
+        log_tail=game.log.visible_to(viewer)[-20:],
         active_effects=effects,
     )

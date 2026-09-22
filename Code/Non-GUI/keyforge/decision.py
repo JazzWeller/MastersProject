@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
-from .enums import DecisionKind
+from .enums import Affects, DecisionIntent, DecisionKind
 
 
 @dataclass
@@ -16,6 +16,16 @@ class Decision:
     options: List[Any] = field(default_factory=list)
     min_n: int = 1
     max_n: int = 1
+    # Provenance (Agent Interface Plan, Milestone B): which card asked, what
+    # the decision is for, whose cards it draws from, and whether declining
+    # is legal in spirit (not just via min_n=0 -- a YES_NO "may" decision is
+    # optional even though both its options are always present). All default
+    # to None/False so every existing call site (and the GUI's rendering)
+    # is unaffected by the fields' addition.
+    source_card: Optional[Any] = None
+    intent: Optional[DecisionIntent] = None
+    affects: Optional[Affects] = None
+    optional: bool = False
 
     def validate(self, choice) -> bool:
         if self.kind in (DecisionKind.CHOOSE_CARDS, DecisionKind.ORDER_EFFECTS):

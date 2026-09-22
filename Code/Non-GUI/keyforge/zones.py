@@ -6,6 +6,7 @@ from collections import deque
 from typing import List, Optional
 
 from .cards.card import Card
+from .keyed_random import portable_shuffle
 
 
 class Deck:
@@ -37,12 +38,12 @@ class Deck:
     def shuffle_in(self, cards: List[Card], rng) -> None:
         self._cards.extend(cards)
         as_list = list(self._cards)
-        rng.shuffle(as_list)
+        portable_shuffle(rng, as_list)
         self._cards = deque(as_list)
 
     def shuffle(self, rng) -> None:
         as_list = list(self._cards)
-        rng.shuffle(as_list)
+        portable_shuffle(rng, as_list)
         self._cards = deque(as_list)
 
     def remove(self, card: Card) -> bool:

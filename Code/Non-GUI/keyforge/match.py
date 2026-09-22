@@ -28,14 +28,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-import random
-
 from .cards.decks import deck_from_dict, deck_label, deck_to_dict, resolve_deck
 from .config import GameConfig
 from .decision import Decision
 from .enums import DecisionKind
 from .game import Game
+from .keyed_random import derive_rng
 from .replay import encode_choice
+from .version import check_version_stamp, version_stamp
 
 MAX_BID = 24
 FORMATS = ("archon", "reversal", "adaptive")
@@ -92,7 +92,6 @@ class Match:
         self.config = config
         self.format = config.format
         self.decks = config.decks
-        self.rng = random.Random(config.seed)
         self.games: List[GameRecord] = []
         # The actual finished Game objects, parallel to `self.games` -- kept
         # around (not just their GameRecord summaries) so a finished game's
@@ -141,8 +140,21 @@ class Match:
             return self.current_game.view_for(pid)
         return MatchView(viewer=pid, format=self.format, games=list(self.games), score=dict(self.score))
 
+    def fork(self) -> "Match":
+        """An independent `Match` at this exact point -- match-level choices
+        replay through `match_replay` exactly like a single `Game` forks
+        through `keyforge.replay.replay` (Agent Interface Plan, Milestone
+        D). PRIVILEGED, for the same reason `Game.fork()` is: it carries
+        the true hidden state and RNG future of whichever game is
+        currently in progress, if any."""
+        return match_replay(self.config, self.choice_record)
+
     def _next_game_seed(self) -> int:
-        return self.rng.randrange(2**31)
+        """Keyed on this match's own seed plus how many games have already
+        been recorded -- deterministic and, unlike `random.Random.
+        randrange` (see keyforge/keyed_random.py), portable across Python
+        versions/implementations, matching `Game._branch_seed`'s pattern."""
+        return derive_rng(self.config.seed, None, "next_game_seed", len(self.games)).getrandbits(31)
 
     def _score_game(self, record: GameRecord) -> None:
         if record.winner is not None:
@@ -278,7 +290,7 @@ class Match:
 
 
 def match_config_to_dict(config: MatchConfig) -> Dict[str, Any]:
-    return {
+    data = {
         "format": config.format,
         # Full decklists, not bare names, so a replay survives later deck edits.
         "decks": [deck_to_dict(resolve_deck(d)) for d in config.decks],
@@ -286,9 +298,14 @@ def match_config_to_dict(config: MatchConfig) -> Dict[str, Any]:
         "seed": config.seed,
         "max_turns": config.max_turns,
     }
+    data.update(version_stamp())
+    return data
 
 
 def match_config_from_dict(data: Dict[str, Any]) -> MatchConfig:
+    """Raises `keyforge.version.EngineVersionMismatch` on a stale stamp --
+    see `keyforge.replay.config_from_dict`, which guards the same way."""
+    check_version_stamp(data, what="match replay record")
     raw_decks = data["decks"]
     # Old records (before this embedding) stored bare preset-name strings.
     decks = tuple(d if isinstance(d, str) else deck_from_dict(d) for d in raw_decks)

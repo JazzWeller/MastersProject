@@ -5,6 +5,7 @@ import unittest
 
 from keyforge.config import GameConfig
 from keyforge.game import Game
+from keyforge.log import GameLog
 
 from bots.random_bot import RandomBot
 
@@ -41,6 +42,26 @@ class TestLogIids(unittest.TestCase):
                     self.assertIn("iid", data, f"{event} missing iid")
                 if "iids" in data:
                     self.assertIsInstance(data["iids"], list)
+
+
+class TestGameLogByKind(unittest.TestCase):
+    """`GameLog.by_kind` (Milestone L: game.py's forged_key_on_turn and
+    friends scan one kind instead of the whole log) must stay in exact sync
+    with `events`, for every caller -- including a test that pokes
+    `log.add(...)` directly rather than going through an engine call site,
+    same as tests/test_rules_phase2.py's TestUnforgeQuery already does."""
+
+    def test_by_kind_mirrors_events_added_through_add(self):
+        log = GameLog()
+        log.add("forge_key", player=1, turn=1)
+        log.add("gain", player=1, amount=1)
+        log.add("forge_key", player=2, turn=2)
+        self.assertEqual(log.by_kind["forge_key"], [log.events[0], log.events[2]])
+        self.assertEqual(log.by_kind["gain"], [log.events[1]])
+
+    def test_an_unseen_kind_is_empty_not_a_keyerror(self):
+        log = GameLog()
+        self.assertEqual(log.by_kind["never_added"], [])
 
 
 if __name__ == "__main__":

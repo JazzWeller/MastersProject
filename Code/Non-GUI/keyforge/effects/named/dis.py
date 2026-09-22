@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...enums import CardType, House
+from ...enums import Affects, CardType, DecisionIntent, House
 from ..effect_object import DurationEffect, InsteadEffect, TriggerEffect, INFINITE
 from .. import steps
 from ..generic import controller_of, opponent_of
@@ -43,12 +43,16 @@ def creeping_oblivion(game, card):
     if not piles:
         steps.shortfall(game, card, "purges nothing: both discard piles are empty", "Nothing to purge")
         return
-    pile_choice = yield from game.choose_cards(player_id, "Choose a discard pile", piles, 1, 1)
+    pile_choice = yield from game.choose_cards(
+        player_id, "Choose a discard pile", piles, 1, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.NONE,
+    )
     target_player = game.players[pile_choice[0]]
     options = target_player.discard.cards()
     n_max = min(2, len(options))
     choice = yield from game.choose_cards(
-        player_id, "Purge 0-2 cards from that discard pile", options, 0, n_max
+        player_id, "Purge 0-2 cards from that discard pile", options, 0, n_max,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY, optional=True,
     )
     for c in choice:
         steps.purge(game, c)
@@ -68,7 +72,10 @@ def dominator_bauble(game, card):
         else:
             steps.shortfall(game, card, "does nothing: there are no friendly creatures in play", "No creature to use")
         return
-    choice = yield from game.choose_cards(player.id, "Choose a friendly creature to use", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Choose a friendly creature to use", options, 1, 1,
+        source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY,
+    )
     yield from steps.use_creature(game, choice[0])
 
 
@@ -113,7 +120,10 @@ def guardian_demon(game, card):
     if not options:
         steps.shortfall(game, card, "heals nothing and deals no damage: no creature is damaged", "No damage to heal")
         return
-    heal_choice = yield from game.choose_cards(player.id, "Guardian Demon: heal up to 2 from a creature", options, 1, 1)
+    heal_choice = yield from game.choose_cards(
+        player.id, "Guardian Demon: heal up to 2 from a creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY,
+    )
     healed = steps.heal(game, heal_choice[0], 2)
     if healed <= 0:
         return
@@ -122,7 +132,10 @@ def guardian_demon(game, card):
     if not damage_targets:
         steps.shortfall(game, card, f"heals {healed} but deals no damage: there is no other creature in play", "No creature to damage")
         return
-    dmg_choice = yield from game.choose_cards(player.id, f"Deal {healed} damage to another creature", damage_targets, 1, 1)
+    dmg_choice = yield from game.choose_cards(
+        player.id, f"Deal {healed} damage to another creature", damage_targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     steps.deal_damage(game, dmg_choice[0], healed)
     yield from game.check_destroyed(dmg_choice)
 
@@ -157,7 +170,10 @@ def snudge(game, card):
     if not options:
         steps.shortfall(game, card, "returns nothing: there are no artifacts or flank creatures in play", "Nothing to return")
         return
-    choice = yield from game.choose_cards(player.id, "Snudge: return an artifact or a flank creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Snudge: return an artifact or a flank creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY,
+    )
     steps.return_to_hand(game, choice[0])
 
 
@@ -193,7 +209,8 @@ def three_fates(game, card):
             # Only a tie that crosses the cut needs a choice; a tie that all
             # fits is destroyed whole.
             picked = yield from game.choose_cards(
-                card.controller, f"Three Fates: choose {slots} of the tied creatures to destroy", tied, slots, slots
+                card.controller, f"Three Fates: choose {slots} of the tied creatures to destroy", tied, slots, slots,
+                source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
             )
         else:
             picked = tied
@@ -230,7 +247,7 @@ def dance_of_doom(game, card):
         steps.shortfall(game, card, "destroys nothing: there are no creatures in play", "No creatures")
         return
     powers = sorted({game.get_power(c) for c in creatures})
-    chosen = yield from game.choose_number(card.controller, "Dance of Doom: choose a number", powers)
+    chosen = yield from game.choose_number(card.controller, "Dance of Doom: choose a number", powers, source_card=card)
     targets = [c for c in creatures if game.get_power(c) == chosen]
     yield from game.destroy_cards(targets)
 
@@ -240,7 +257,10 @@ def fear(game, card):
     if not targets:
         steps.shortfall(game, card, "returns nothing: there are no enemy creatures in play", "No enemy creatures")
         return
-    choice = yield from game.choose_cards(card.controller, "Fear: return an enemy creature to hand", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Fear: return an enemy creature to hand", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY,
+    )
     steps.return_to_hand(game, choice[0])
 
 
@@ -249,7 +269,10 @@ def gongoozle(game, card):
     if not targets:
         steps.shortfall(game, card, "deals no damage: there are no creatures in play", "No creature to damage")
         return
-    choice = yield from game.choose_cards(card.controller, "Gongoozle: deal 3 damage", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Gongoozle: deal 3 damage", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+    )
     target = choice[0]
     steps.deal_damage(game, target, 3)
     destroyed = yield from game.check_destroyed([target])
@@ -270,7 +293,10 @@ def hand_of_dis(game, card):
     if not targets:
         steps.shortfall(game, card, "destroys nothing: every creature in play is on a flank", "No non-flank creature")
         return
-    choice = yield from game.choose_cards(card.controller, "Hand of Dis: destroy a creature not on a flank", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Hand of Dis: destroy a creature not on a flank", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+    )
     yield from game.destroy_cards(choice)
 
 
@@ -345,7 +371,10 @@ def poltergeist(game, card):
     if not targets:
         steps.shortfall(game, card, "uses nothing: there is no usable artifact in play", "No usable artifact")
         return
-    choice = yield from game.choose_cards(card.controller, "Poltergeist: use an artifact as if it were yours", targets, 1, 1)
+    choice = yield from game.choose_cards(
+        card.controller, "Poltergeist: use an artifact as if it were yours", targets, 1, 1,
+        source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.ANY,
+    )
     target = choice[0]
     yield from game.use_artifact_ability(target, card.controller)
     yield from game.destroy_cards([target])
@@ -385,7 +414,10 @@ def sacrificial_altar(game, card):
     if not options:
         steps.shortfall(game, card, "purges nothing: there is no friendly Human creature in play", "No Human creature")
         return
-    choice = yield from game.choose_cards(player.id, "Sacrificial Altar: purge a friendly Human creature", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Sacrificial Altar: purge a friendly Human creature", options, 1, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.FRIENDLY,
+    )
     victim = choice[0]
     if not steps.purge(game, victim):
         return
@@ -393,7 +425,10 @@ def sacrificial_altar(game, card):
     if not discard_creatures:
         steps.shortfall(game, card, f"purges {victim.name} but plays nothing: your discard pile has no creature", "No creature in discard")
         return
-    choice2 = yield from game.choose_cards(player.id, "Sacrificial Altar: play a creature from your discard pile", discard_creatures, 1, 1)
+    choice2 = yield from game.choose_cards(
+        player.id, "Sacrificial Altar: play a creature from your discard pile", discard_creatures, 1, 1,
+        source_card=card, intent=DecisionIntent.PLAY, affects=Affects.FRIENDLY,
+    )
     to_play = choice2[0]
     player.discard.remove(to_play)
     ok = yield from game._play_card(player.id, to_play, from_deck_top=True)
@@ -408,7 +443,7 @@ def screaming_cave(game, card):
     if not cards:
         steps.shortfall(game, card, "shuffles nothing: your hand and discard pile are both empty", "Nothing to shuffle")
         return
-    player.deck.shuffle_in(cards, game.rng)
+    player.deck.shuffle_in(cards, game.event_rng("reshuffle", player.id))
     game.log.add("reshuffle", player=player.id)
     return
     yield
@@ -441,7 +476,10 @@ def eater_of_the_dead(game, card):
     if not options:
         steps.shortfall(game, card, "purges nothing: neither discard pile has a creature", "No creature in either discard pile")
         return
-    choice = yield from game.choose_cards(player.id, "Eater of the Dead: purge a creature from a discard pile", options, 1, 1)
+    choice = yield from game.choose_cards(
+        player.id, "Eater of the Dead: purge a creature from a discard pile", options, 1, 1,
+        source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY,
+    )
     if steps.purge(game, choice[0]):
         card.power_counters += 1
         game.log.add("power_counter", card=card.name, iid=card.instance_id, amount=1, total=card.power_counters)
@@ -463,7 +501,8 @@ def _gabos_before_fight(gabos_card):
         if not targets:
             return
         choice = yield from game.choose_cards(
-            gabos_card.controller, "Gabos Longarms: choose a creature to deal its fight damage to instead", targets, 1, 1
+            gabos_card.controller, "Gabos Longarms: choose a creature to deal its fight damage to instead", targets, 1, 1,
+            source_card=gabos_card, intent=DecisionIntent.REDIRECT, affects=Affects.ANY,
         )
         gabos_card.redirect_fight_damage_to = choice[0]
     return handler
@@ -499,10 +538,16 @@ def master_of_n(n):
         if not targets:
             steps.shortfall(game, card, f"destroys nothing: no creature in play has {n} power", f"No {n}-power creature")
             return
-        do_it = yield from game.yes_no(card.controller, f"{card.name}: destroy a creature with {n} power?")
+        do_it = yield from game.yes_no(
+            card.controller, f"{card.name}: destroy a creature with {n} power?",
+            source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER,
+        )
         if not do_it:
             return
-        choice = yield from game.choose_cards(card.controller, f"{card.name}: choose a creature with {n} power to destroy", targets, 1, 1)
+        choice = yield from game.choose_cards(
+            card.controller, f"{card.name}: choose a creature with {n} power to destroy", targets, 1, 1,
+            source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY,
+        )
         yield from game.destroy_cards(choice)
 
     return effect
