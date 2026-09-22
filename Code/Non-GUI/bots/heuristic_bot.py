@@ -180,7 +180,7 @@ class HeuristicBot(Controller):
 
     # ------------------------------------------------------------ decide ----
 
-    def decide(self, view, decision):
+    def decide(self, view, decision, budget=None, capability=None):
         kind = decision.kind
         opts = list(decision.options)
 

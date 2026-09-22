@@ -13,7 +13,7 @@ class RandomBot(Controller):
     def __init__(self, seed=None):
         self.rng = random.Random(seed)
 
-    def decide(self, view, decision):
+    def decide(self, view, decision, budget=None, capability=None):
         if decision.kind in (DecisionKind.CHOOSE_CARDS, DecisionKind.ORDER_EFFECTS):
             options = list(decision.options)
             self.rng.shuffle(options)

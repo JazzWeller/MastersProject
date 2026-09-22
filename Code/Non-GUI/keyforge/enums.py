@@ -124,6 +124,18 @@ class DecisionIntent(Enum):
     OPTIONAL_COST = auto()  # pay an optional cost for a bigger effect
 
 
+class PrivilegeLevel(Enum):
+    """What capability object an agent is handed by the driver (Agent
+    Interface Plan, Milestone G) -- enforced by construction: an agent
+    given `OBSERVATION`'s capability object has no `fork`/`fork_
+    determinized` method to call at all, not merely a policy asking it not
+    to."""
+
+    OBSERVATION = "observation"  # default: observations only
+    SEARCH = "search"  # adds fork_determinized, fork_many, run_branches, apply, run_until
+    PRIVILEGED = "privileged"  # adds fork, full_state_observation
+
+
 class Resample(Enum):
     """What `Game.fork_determinized`/`fork_many` resample, relative to a
     viewer -- Agent Interface Plan, Milestone D. Named so the
