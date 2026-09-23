@@ -14,19 +14,23 @@ _instance_counter = itertools.count(1)
 class TypeObject:
     """Base for the per-type behaviour object attached to a Card."""
 
+    __slots__ = ("card",)
+
     def __init__(self):
         self.card: Optional["Card"] = None
 
 
 class ActionType(TypeObject):
-    pass
+    __slots__ = ()
 
 
 class ArtifactType(TypeObject):
-    pass
+    __slots__ = ()
 
 
 class CreatureType(TypeObject):
+    __slots__ = ("base_power", "base_armor", "damage", "armor_used_this_turn", "upgrades")
+
     def __init__(self, power: int, armor: int = 0):
         super().__init__()
         self.base_power = power
@@ -37,6 +41,8 @@ class CreatureType(TypeObject):
 
 
 class UpgradeType(TypeObject):
+    __slots__ = ("host",)
+
     def __init__(self):
         super().__init__()
         self.host: Optional["Card"] = None
@@ -91,6 +97,20 @@ class CardDef:
 class Card:
     """A single physical instance of a card."""
 
+    __slots__ = (
+        "instance_id", "id", "name", "house", "type", "tags", "keywords",
+        "aember_on_play", "aember_captured", "image", "card_def", "owner", "controller",
+        "type_object", "IgnoreElusive", "CanBeUsed", "Exhausted", "destroyed", "fought_this_turn",
+        "flank", "extra_triggers", "destined_zone", "power_counters", "stunned", "house_override",
+        "forced_flank", "granted_action", "aember_stored", "under_cards", "purged_by",
+        "redirect_fight_damage_to", "armor_negated", "damage_prevented", "archive_return_to_owner",
+        # Ember Imp's own back-reference to its registered effect (Dis) --
+        # never read anywhere, only ever set once; declared here (as `None`
+        # by default) rather than left as the one ad hoc attribute that
+        # would otherwise make __slots__ impossible on this class.
+        "_ember_imp_effect",
+    )
+
     def __init__(self, card_def: CardDef, owner: int):
         self.instance_id = next(_instance_counter)
         self.id = card_def.id
@@ -144,6 +164,7 @@ class Card:
         # else's archive; when it leaves that archive, it goes to its own
         # owner's hand instead of wherever it would otherwise go.
         self.archive_return_to_owner = False
+        self._ember_imp_effect = None
 
     def __repr__(self):
         return f"<Card {self.name} #{self.instance_id}>"

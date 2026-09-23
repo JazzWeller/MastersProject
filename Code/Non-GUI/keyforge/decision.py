@@ -8,7 +8,7 @@ from typing import Any, List, Optional
 from .enums import Affects, DecisionIntent, DecisionKind
 
 
-@dataclass
+@dataclass(slots=True)
 class Decision:
     player: int
     kind: DecisionKind

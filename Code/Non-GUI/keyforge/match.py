@@ -135,6 +135,24 @@ class Match:
             self.is_over = True
             self.pending_decision = None
 
+    def submit_index(self, encoded) -> None:
+        """Fast path for a trusted, already-encoded choice (Milestone L,
+        mirroring `Game.submit_index`) -- used by `match_replay`. Note this
+        only skips the match-level validate/encode: a per-game decision
+        still goes through `Game.submit`'s own full validate/encode inside
+        `_play_game`'s generator, since by the time control reaches there
+        the index has already been decoded into a value. Still a real
+        saving for match-level decisions (BID_CHAINS, CHOOSE_FIRST_PLAYER)."""
+        if self.is_over or self.pending_decision is None:
+            raise RuntimeError("No pending decision to submit a choice for")
+        choice = match_decode_choice(self.pending_decision, encoded)
+        self.choice_record.append(list(encoded) if isinstance(encoded, list) else encoded)
+        try:
+            self.pending_decision = self._driver.send(choice)
+        except StopIteration:
+            self.is_over = True
+            self.pending_decision = None
+
     def view_for(self, pid: int):
         if self.current_game is not None and not self.current_game.is_over:
             return self.current_game.view_for(pid)
@@ -333,5 +351,5 @@ def match_replay(config: MatchConfig, record: List[Any], upto: Optional[int] = N
     for n, encoded in enumerate(steps):
         if match.is_over or match.pending_decision is None:
             raise ValueError(f"record has more choices than the match ({n})")
-        match.submit(match_decode_choice(match.pending_decision, encoded))
+        match.submit_index(encoded)
     return match

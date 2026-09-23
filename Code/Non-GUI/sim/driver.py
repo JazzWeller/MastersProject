@@ -230,7 +230,11 @@ def run_games(
                 if forced is _NOT_FORCED:
                     break
                 before = len(_live_game(obj).log.events) if _live_game(obj) is not None else 0
-                obj.submit(forced)
+                # `_forced_choice` only returns non-_NOT_FORCED when there's
+                # exactly one option and the kind isn't CHOOSE_CARDS/
+                # ORDER_EFFECTS -- `forced` is always encoded as index 0
+                # (Milestone L: submit_index skips validate + re-encoding).
+                obj.submit_index(0)
                 live = _live_game(obj)
                 new_events = live.log.events[before:] if live is not None else []
                 notify_observers(slot, d, forced, new_events)

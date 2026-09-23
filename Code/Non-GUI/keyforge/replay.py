@@ -92,7 +92,14 @@ def config_from_dict(data: Dict[str, Any]) -> GameConfig:
 def replay(config: GameConfig, record: List[Any], upto: Optional[int] = None):
     """A fresh Game advanced through the first `upto` recorded choices (all
     of them if None). Raises ValueError if the record doesn't fit the game,
-    e.g. it was made by a different engine version."""
+    e.g. it was made by a different engine version.
+
+    Uses `Game.submit_index` (Milestone L): a replay record is exactly the
+    "trusted, already-encoded" input that fast path exists for -- it was
+    itself only ever produced by a prior `submit`/`Decision.validate`
+    (either in this same run, or, for a loaded record, behind the engine-
+    version stamp check in `config_from_dict`), so re-validating and
+    re-encoding every choice a second time here is pure waste."""
     from .game import Game  # local import: game.py imports this module
 
     game = Game(config)
@@ -100,5 +107,5 @@ def replay(config: GameConfig, record: List[Any], upto: Optional[int] = None):
     for n, encoded in enumerate(steps):
         if game.is_over or game.pending_decision is None:
             raise ValueError(f"record has more choices than the game ({n})")
-        game.submit(decode_choice(game.pending_decision, encoded))
+        game.submit_index(encoded)
     return game
