@@ -5,7 +5,7 @@ for the FAQ rulings behind each implementation."""
 from __future__ import annotations
 
 from ...enums import Affects, CardType, DecisionIntent, House
-from ..effect_object import DurationEffect, INFINITE, InsteadEffect, ModifierEffect, TriggerEffect
+from ..effect_object import DurationEffect, INFINITE, InsteadEffect, ModifierEffect, TriggerEffect, register_cleanup_operation
 from .. import steps
 from ..generic import controller_of, opponent_of, reveal_from_hand
 
@@ -440,9 +440,16 @@ def mothergun(game, card):
     yield from game.check_destroyed(choice)
 
 
+def _clear_elusive_suppressed_op(game, iid):
+    game._elusive_suppressed = False
+
+
+register_cleanup_operation("mars.clear_elusive_suppressed", _clear_elusive_suppressed_op)
+
+
 def sniffer_action(game, card):
     game._elusive_suppressed = True
-    game._end_of_turn_cleanups.append(lambda g=game: setattr(g, "_elusive_suppressed", False))
+    game._end_of_turn_cleanups.append(("mars.clear_elusive_suppressed", None))
     return
     yield
 
@@ -734,6 +741,13 @@ def biomatrix_backup_unregister(game, card):
         host.extra_triggers["destroyed"].remove(_biomatrix_backup_effect)
 
 
+def _clear_house_override_op(game, iid):
+    game.card_by_id(iid).house_override = None
+
+
+register_cleanup_operation("mars.clear_house_override", _clear_house_override_op)
+
+
 def brain_stem_antenna_register(game, card):
     host = card.type_object.host
 
@@ -746,7 +760,7 @@ def brain_stem_antenna_register(game, card):
             host.CanBeUsed = player.selected_house is not None and (
                 g.get_effective_house(host) == player.selected_house or "versatile" in g.get_keywords(host)
             )
-            g._end_of_turn_cleanups.append(lambda h=host: setattr(h, "house_override", None))
+            g._end_of_turn_cleanups.append(("mars.clear_house_override", host.instance_id))
         return
         yield
 

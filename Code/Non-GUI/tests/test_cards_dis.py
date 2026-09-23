@@ -2,8 +2,9 @@ import unittest
 
 from helpers import hand_card, make_card, new_game, put_artifact, put_creature, run_hook
 
-from keyforge.enums import House
 from keyforge.effects import named
+from keyforge.effects.effect_object import resolve_cleanup
+from keyforge.enums import House
 
 
 class TestDis(unittest.TestCase):
@@ -170,6 +171,22 @@ class TestDis(unittest.TestCase):
         card = put_creature(game, 1, "The Terror")
         run_hook(game, named.the_terror_play, card)
         self.assertEqual(game.players[1].aember, 0)
+
+    def test_red_hot_armor_strips_armor_and_deals_damage_for_the_loss(self):
+        game = new_game()
+        p2 = game.players[2]
+        armored = put_creature(game, 2, "Firespitter")  # power 5, armor 1
+        unarmored = put_creature(game, 2, "Doc Bookton")  # power 5, no armor
+        card = make_card("Red-Hot Armor", 1)
+        run_hook(game, named.red_hot_armor, card)
+        self.assertEqual(game.get_armor(armored), 0)
+        self.assertEqual(armored.type_object.damage, 1)
+        self.assertIn(armored, p2.play_area.creatures)  # 1 damage to 5 power: survives
+        self.assertEqual(unarmored.type_object.damage, 0)
+        # Armor comes back at the end of the turn.
+        for operation, iid in game._end_of_turn_cleanups:
+            resolve_cleanup(game, operation, iid)
+        self.assertEqual(game.get_armor(armored), 1)
 
     def test_three_fates_destroys_three_most_powerful(self):
         game = new_game()

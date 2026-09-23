@@ -14,6 +14,34 @@ _OPS = {
     "=": lambda base, value: value,
 }
 
+# End-of-turn cleanups as data, not closures (Agent Interface Plan, Milestone
+# E2: "cleanups as data" -- a closure captures a specific Card object by
+# reference, which `Game.copy()`'s snapshot-copy backend can't rebind the
+# way replaying naturally would; a `(operation, instance_id)` pair is plain,
+# copyable data instead). Each `effects/named/*.py` file that needs a
+# cleanup registers its own resolver here, at import time, keeping `game.py`
+# and this module ignorant of any specific card's behavior.
+_CLEANUP_OPERATIONS: Dict[str, Callable[[object, Optional[int]], None]] = {}
+
+
+def register_cleanup_operation(name: str, resolver: Callable[[object, Optional[int]], None]) -> None:
+    """`resolver(game, instance_id)` performs the cleanup -- `instance_id`
+    is `None` for a game-level (not card-specific) cleanup."""
+    if name in _CLEANUP_OPERATIONS:
+        raise ValueError(f"cleanup operation {name!r} already registered")
+    _CLEANUP_OPERATIONS[name] = resolver
+
+
+def resolve_cleanup(game, operation: str, instance_id: Optional[int]) -> None:
+    _CLEANUP_OPERATIONS[operation](game, instance_id)
+
+
+def _remove_effects_from_source_op(game, instance_id: Optional[int]) -> None:
+    game.active_effects.remove_from_source(game.card_by_id(instance_id))
+
+
+register_cleanup_operation("remove_effects_from_source", _remove_effects_from_source_op)
+
 
 class EffectObject:
     def __init__(self, source_card, controller: int):

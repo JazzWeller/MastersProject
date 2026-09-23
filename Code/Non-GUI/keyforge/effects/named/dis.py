@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ...enums import Affects, CardType, DecisionIntent, House
-from ..effect_object import DurationEffect, InsteadEffect, TriggerEffect, INFINITE
+from ..effect_object import DurationEffect, InsteadEffect, TriggerEffect, INFINITE, register_cleanup_operation
 from .. import steps
 from ..generic import controller_of, opponent_of
 
@@ -380,8 +380,11 @@ def poltergeist(game, card):
     yield from game.destroy_cards([target])
 
 
-def _revert_armor_negated(card):
-    card.armor_negated = False
+def _revert_armor_negated_op(game, iid):
+    game.card_by_id(iid).armor_negated = False
+
+
+register_cleanup_operation("dis.clear_armor_negated", _revert_armor_negated_op)
 
 
 def red_hot_armor(game, card):
@@ -393,7 +396,7 @@ def red_hot_armor(game, card):
     for c in targets:
         lost = game.get_armor(c)
         c.armor_negated = True
-        game._end_of_turn_cleanups.append(lambda c=c: _revert_armor_negated(c))
+        game._end_of_turn_cleanups.append(("dis.clear_armor_negated", c.instance_id))
         steps.deal_damage(game, c, lost)
     yield from game.check_destroyed(targets)
 

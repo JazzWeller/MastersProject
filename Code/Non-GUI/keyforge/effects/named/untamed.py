@@ -231,7 +231,7 @@ def scout(game, card):
         return frozenset({"skirmish"}) if target.instance_id in chosen_ids else frozenset()
 
     game.active_effects.add(ModifierEffect(card, player.id, "keywords", mod))
-    game._end_of_turn_cleanups.append(lambda: game.active_effects.remove_from_source(card))
+    game._end_of_turn_cleanups.append(("remove_effects_from_source", card.instance_id))
     for c in choice:
         yield from game.ready_and_fight(c)
 
