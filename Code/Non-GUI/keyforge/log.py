@@ -9,7 +9,7 @@ from typing import Any, Dict, FrozenSet, List, Optional
 _BOTH_PLAYERS = frozenset({1, 2})
 
 
-@dataclass
+@dataclass(slots=True)
 class LogEvent:
     kind: str
     data: Dict[str, Any] = field(default_factory=dict)

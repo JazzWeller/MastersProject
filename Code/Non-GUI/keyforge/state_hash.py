@@ -115,7 +115,23 @@ def canonical_type_object_state(type_object) -> dict:
 
 
 def canonical_card_state(card: Card) -> dict:
-    data = {k: canonicalize(v) for k, v in vars(card).items() if k not in _EXCLUDED_CARD_ATTRS}
+    # `card.__slots__` instead of `vars(card)` -- Card has no `__dict__`
+    # (Milestone L: __slots__, for less memory and cheaper copies), but its
+    # own `__slots__` tuple is exactly the same "every attribute name" list
+    # vars() used to give for free.
+    data = {}
+    for k in Card.__slots__:
+        if k in _EXCLUDED_CARD_ATTRS:
+            continue
+        value = getattr(card, k)
+        if k == "_ember_imp_effect" and value is None:
+            # Only Ember Imp ever sets this -- skipping it here when unset
+            # matches vars()'s old behavior exactly (absent for every other
+            # card, rather than a newly-uniform `None` on all of them, which
+            # would silently change every card's canonical state and, with
+            # it, every recorded state_hash).
+            continue
+        data[k] = canonicalize(value)
     data["type_object"] = canonical_type_object_state(card.type_object)
     return data
 
