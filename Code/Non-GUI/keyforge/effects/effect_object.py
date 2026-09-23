@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import operator
-from typing import Callable, Optional
+from collections import defaultdict
+from typing import Callable, Dict, List, Optional, Tuple
 
 INFINITE = -1
 
@@ -103,15 +104,27 @@ class TriggerEffect(EffectObject):
 
 
 class ActiveEffectList:
+    """`duration_effects_for(variable, player)` is by far the hottest query
+    here (460k calls over 150 profiled games, Milestone L) -- indexed by
+    `(variable, player_affected)` in `_duration_by_key`, kept up to date in
+    `add`/`remove_from_source`/`end_of_turn_tick` (the only three places
+    `duration_effects` ever changes -- see those methods' own comments) so
+    a read is a dict lookup instead of a scan of every active effect.
+    `variable`/`player_affected` are set once at construction and never
+    mutated (DurationEffect.__init__), so an effect's index key never goes
+    stale during its own lifetime."""
+
     def __init__(self):
-        self.duration_effects = []
+        self.duration_effects: List[DurationEffect] = []
         self.trigger_effects = []
         self.instead_effects = []
         self.modifier_effects = []
+        self._duration_by_key: Dict[Tuple[str, int], List[DurationEffect]] = defaultdict(list)
 
     def add(self, effect):
         if isinstance(effect, DurationEffect):
             self.duration_effects.append(effect)
+            self._duration_by_key[(effect.variable, effect.player_affected)].append(effect)
         elif isinstance(effect, TriggerEffect):
             self.trigger_effects.append(effect)
         elif isinstance(effect, InsteadEffect):
@@ -120,17 +133,22 @@ class ActiveEffectList:
             self.modifier_effects.append(effect)
 
     def remove_from_source(self, card):
+        removed = [e for e in self.duration_effects if e.source_card is card]
         self.duration_effects = [e for e in self.duration_effects if e.source_card is not card]
+        for e in removed:
+            self._drop_from_index(e)
         self.trigger_effects = [e for e in self.trigger_effects if e.source_card is not card]
         self.instead_effects = [e for e in self.instead_effects if e.source_card is not card]
         self.modifier_effects = [e for e in self.modifier_effects if e.source_card is not card]
 
+    def _drop_from_index(self, effect: DurationEffect) -> None:
+        key = (effect.variable, effect.player_affected)
+        bucket = self._duration_by_key.get(key)
+        if bucket:
+            self._duration_by_key[key] = [e for e in bucket if e is not effect]
+
     def duration_effects_for(self, variable, player):
-        return [
-            e
-            for e in self.duration_effects
-            if e.variable == variable and e.player_affected == player
-        ]
+        return list(self._duration_by_key.get((variable, player), ()))
 
     def triggers_for(self, event):
         return [e for e in self.trigger_effects if e.event == event]
@@ -142,5 +160,13 @@ class ActiveEffectList:
         return [e for e in self.modifier_effects if e.kind == kind]
 
     def end_of_turn_tick(self):
-        self.duration_effects = [e for e in self.duration_effects if not e.tick()]
+        survivors = []
+        for e in self.duration_effects:
+            # `tick()` mutates `remaining_duration` -- call it exactly once
+            # per effect, here, never again (e.g. in a second filter pass).
+            if e.tick():
+                self._drop_from_index(e)
+            else:
+                survivors.append(e)
+        self.duration_effects = survivors
         self.trigger_effects = [e for e in self.trigger_effects if not e.tick()]

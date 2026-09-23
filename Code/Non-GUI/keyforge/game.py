@@ -25,6 +25,22 @@ from .view import build_view
 from .zones import Deck
 
 
+@dataclasses.dataclass(frozen=True)
+class _PlayGate:
+    """The player-wide facts behind `why_not_playable`/`_legal_actions`'s
+    hand-card checks, computed once per `_legal_actions` call instead of
+    once per card -- see `Game._build_play_gate`."""
+
+    can_play_cards: bool
+    house: Optional[House]
+    non_logos_allowance: int
+    card_played_limit: Optional[int]
+    can_play_creatures: bool
+    can_play_actions: bool
+    any_creature_in_play: bool
+    artifact_toll: Optional[tuple]
+
+
 class Game:
     def __init__(self, config: GameConfig):
         self.config = config
@@ -81,6 +97,35 @@ class Game:
             raise ValueError(f"Invalid choice {choice!r} for decision {self.pending_decision}")
         self.choice_log.append(choice)
         self.choice_record.append(encode_choice(self.pending_decision, choice))
+        try:
+            self.pending_decision = self._driver.send(choice)
+        except StopIteration:
+            self.is_over = True
+            self.pending_decision = None
+
+    def submit_index(self, encoded) -> None:
+        """Fast path for a TRUSTED, already-encoded choice -- an int (a list
+        of ints for CHOOSE_CARDS/ORDER_EFFECTS), `choice_record`'s own shape
+        -- from `replay()`, `apply()`, or the driver's forced-decision
+        step (Milestone L). Skips `Decision.validate`'s and `encode_choice`'s
+        O(len(options)) scans: the caller already knows the index is legal,
+        since it either came from a prior `submit`/`validate` (a stored
+        record) or from a `Decision` the engine itself built with exactly
+        one option. Skips `choice_log` too (kept only by `submit`, for a
+        caller that wants live `Card` references in the log -- not needed
+        to replay, since `choice_record` alone is sufficient).
+
+        Never call this with an untrusted or hand-constructed index --
+        there is no check here that `encoded` actually names a legal
+        option. Human and GUI input must keep using `submit`."""
+        if self.is_over or self.pending_decision is None:
+            raise RuntimeError("No pending decision to submit a choice for")
+        choice = decode_choice(self.pending_decision, encoded)
+        # A copy, not `encoded` itself, matching `encode_choice`'s own
+        # contract of always handing `choice_record` a fresh list -- `encoded`
+        # here is usually an element of the CALLER's own record/list, and
+        # `choice_record` must never alias it.
+        self.choice_record.append(list(encoded) if isinstance(encoded, list) else encoded)
         try:
             self.pending_decision = self._driver.send(choice)
         except StopIteration:
@@ -241,11 +286,13 @@ class Game:
     def apply(self, choice_indices) -> "Game":
         """Advances this game along a recorded path of *encoded* choices
         (`Game.choice_record`'s own shape) -- typically called on a fresh
-        fork. Returns `self`, for chaining onto `fork()`/`fork_determinized`."""
+        fork. Returns `self`, for chaining onto `fork()`/`fork_determinized`.
+        Uses `submit_index` (Milestone L): `choice_indices` is trusted,
+        already-encoded input, same as `replay()`'s own record."""
         for encoded in choice_indices:
             if self.is_over or self.pending_decision is None:
                 raise ValueError("Game.apply: more choices than the game has pending decisions for")
-            self.submit(decode_choice(self.pending_decision, encoded))
+            self.submit_index(encoded)
         return self
 
     def run_until(self, predicate, policy) -> "Game":
@@ -852,6 +899,56 @@ class Game:
             and self.players[pid].cards_played_or_discarded_this_turn >= 1
         )
 
+    def _build_play_gate(self, pid: int) -> "_PlayGate":
+        """The player-wide facts `why_not_playable`/`_is_playable_fast` both
+        check, computed once instead of once per hand card (Milestone L:
+        ~35 calls/game with ~4-8 cards each -> ~4-8x fewer `duration_effects_
+        for` scans, which is where most of the profiled cost was). No
+        `_effect_source` lookups here -- those only matter for a rejection
+        message, which `why_not_playable` builds lazily, on its own slow
+        path, only for the one card a caller actually asked about."""
+        player = self.players[pid]
+        return _PlayGate(
+            can_play_cards=player.get_can_play_cards(self),
+            house=player.selected_house,
+            non_logos_allowance=player.get_non_logos_cards_playable(self),
+            card_played_limit=player.get_card_played_limit(self),
+            can_play_creatures=player.get_can_play_creatures(self),
+            can_play_actions=player.get_can_play_actions(self),
+            any_creature_in_play=bool(self.players[1].play_area.creatures or self.players[2].play_area.creatures),
+            artifact_toll=player.get_artifact_play_toll(self),
+        )
+
+    def _is_playable_fast(self, gate: "_PlayGate", card: Card, player: "Player") -> bool:
+        """Same conditions as `why_not_playable`'s reject checks (from
+        `can_play_cards` on -- the three checks before that, "not in hand"/
+        "not your turn"/"first turn limited", hold by construction for every
+        card `_legal_actions` calls this on), but boolean-only, and reading
+        `gate` instead of re-querying every effect-derived flag per card."""
+        if not gate.can_play_cards:
+            return False
+        if not ((card.house == gate.house) or (card.house != House.LOGOS and gate.non_logos_allowance > 0)):
+            return False
+        if gate.card_played_limit is not None and player.hand_plays_this_turn >= gate.card_played_limit:
+            return False
+        if card.type == CardType.CREATURE and not gate.can_play_creatures:
+            return False
+        if card.type == CardType.ACTION and not gate.can_play_actions:
+            return False
+        if card.type == CardType.UPGRADE and not gate.any_creature_in_play:
+            return False
+        if not self._rule_of_six_ok(player, card.name):
+            return False
+        if card.card_def.play_cost_aember > player.aember:
+            return False
+        if card.card_def.min_aember_to_play > player.aember:
+            return False
+        if card.type == CardType.ARTIFACT:
+            toll = gate.artifact_toll
+            if toll is not None and toll[0] > player.aember:
+                return False
+        return True
+
     def why_not_playable(self, pid: int, card: Card) -> Optional[str]:
         """Why `card` in `pid`'s hand can't be played right now, or None if it can.
         Uses exactly the checks `_legal_actions` uses, so the two can't disagree."""
@@ -862,24 +959,25 @@ class Game:
             return "Not your turn"
         if self.first_turn_limited(pid):
             return "First turn: you may play or discard only one card"
-        if not player.get_can_play_cards(self):
+        gate = self._build_play_gate(pid)
+        if self._is_playable_fast(gate, card, player):
+            return None
+        if not gate.can_play_cards:
             source = self._effect_source("CanPlayCards", pid)
             return "You cannot play cards this turn" + (f" ({source})" if source else "")
-        house = player.selected_house
-        allowance = player.get_non_logos_cards_playable(self)
-        if not ((card.house == house) or (card.house != House.LOGOS and allowance > 0)):
+        house = gate.house
+        if not ((card.house == house) or (card.house != House.LOGOS and gate.non_logos_allowance > 0)):
             return f"Not of your active house ({house.value})"
-        limit = player.get_card_played_limit(self)
-        if limit is not None and player.hand_plays_this_turn >= limit:
+        if gate.card_played_limit is not None and player.hand_plays_this_turn >= gate.card_played_limit:
             source = self._effect_source("CardPlayedLimit", pid)
-            return f"Card play limit reached ({limit}{', ' + source if source else ''})"
-        if card.type == CardType.CREATURE and not player.get_can_play_creatures(self):
+            return f"Card play limit reached ({gate.card_played_limit}{', ' + source if source else ''})"
+        if card.type == CardType.CREATURE and not gate.can_play_creatures:
             source = self._effect_source("CanPlayCreatures", pid)
             return "You cannot play creatures this turn" + (f" ({source})" if source else "")
-        if card.type == CardType.ACTION and not player.get_can_play_actions(self):
+        if card.type == CardType.ACTION and not gate.can_play_actions:
             source = self._effect_source("CanPlayActions", pid)
             return "You cannot play actions this turn" + (f" ({source})" if source else "")
-        if card.type == CardType.UPGRADE and not (self.players[1].play_area.creatures or self.players[2].play_area.creatures):
+        if card.type == CardType.UPGRADE and not gate.any_creature_in_play:
             return "No creature to attach it to"
         if not self._rule_of_six_ok(player, card.name):
             return "Rule of six: already played or used 6 times this turn"
@@ -888,10 +986,12 @@ class Game:
         if card.card_def.min_aember_to_play > player.aember:
             return f"Needs {card.card_def.min_aember_to_play} Æmber in your pool to play (you have {player.aember})"
         if card.type == CardType.ARTIFACT:
-            toll = player.get_artifact_play_toll(self)
+            toll = gate.artifact_toll
             if toll is not None and toll[0] > player.aember:
                 return f"Costs {toll[0]} Æmber to play (Customs Office) and you have {player.aember}"
-        return None
+        raise AssertionError(  # pragma: no cover -- would mean _is_playable_fast disagrees with the checks above it
+            f"why_not_playable: no reason found for {card.name!r} despite _is_playable_fast rejecting it"
+        )
 
     def why_not_usable(self, pid: int, card: Card) -> Optional[str]:
         """Why `card` (a creature or artifact already in `pid`'s play area)
@@ -963,8 +1063,9 @@ class Game:
         limited_now = self.first_turn_limited(pid)
 
         if not limited_now:
+            gate = self._build_play_gate(pid)
             for card in player.hand.cards():
-                if self.why_not_playable(pid, card) is None:
+                if self._is_playable_fast(gate, card, player):
                     actions.append(PlayCard(card))
                 if house is not None and card.house == house:
                     actions.append(DiscardCard(card))
