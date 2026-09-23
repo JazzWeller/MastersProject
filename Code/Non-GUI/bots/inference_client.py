@@ -13,27 +13,36 @@ Two implementations:
 
 **The CUDA rule** (only the inference server process ever initializes CUDA,
 since CUDA does not survive `fork`) is a deployment constraint on whatever
-real model eventually plugs into `InferenceServer` -- there is no GPU or
-`torch` in this environment to enforce it against. What this module *can*
-and does guarantee in code: nothing in `keyforge`, `bots`, or `sim` imports
-`torch`, so an engine worker pool built from these modules alone never
-risks initializing CUDA by accident.
+real model plugs into `InferenceServer` -- enforced in code the only way it
+can be without a GPU in most environments: nothing in `keyforge`, `bots.
+base`, `bots.registry`, or `sim` imports `torch`, so an engine worker pool
+built from those modules alone never risks initializing CUDA by accident.
+`bots/torch_model.py` is the one module that DOES import it, for a real
+GPU-resident model (this machine has one -- an RTX 5060 Ti; see that
+module's own tests, which actually run on it).
 
-`InferenceServer.serve_forever` handles each accepted connection in its own
-thread, with the model call itself under one lock -- correct (one client's
-batch is never interleaved with another's) and simple, but it does not
-implement cross-request dynamic batching (collecting several workers'
-concurrent requests into a single larger model call). That's a real
-throughput feature worth adding once there's an actual model whose batching
-sweet spot can be measured -- premature here.
+`InferenceServer` does real cross-request dynamic batching: every accepted
+connection's request lands in one shared queue; a single batching thread
+drains it -- everything already queued, then whatever else arrives within
+`batch_window_seconds`, up to `max_batch_size` -- into ONE call to the
+model, then hands each connection back its own slice of the results. A
+model that exposes `predict_many` (any real batched model, e.g.
+`bots.torch_model.TorchInferenceModel`) gets one real batched call across
+however many requests coalesced; a plain `observation -> (policy, value)`
+callable (every test double in this codebase, and the simplest possible
+real model) still works, just without a batching win, via a per-item loop
+over the same coalesced list.
 """
 
 from __future__ import annotations
 
+import queue
 import threading
+import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from multiprocessing.connection import AuthenticationError, Client, Listener
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 Prediction = Tuple[List[float], float]  # (policy, value)
 
@@ -58,10 +67,18 @@ class InProcessInferenceClient(InferenceClient):
         return [self._model(o) for o in observations]
 
 
+@dataclass
+class _PendingRequest:
+    observations: List[Any]
+    event: threading.Event = field(default_factory=threading.Event)
+    result: Optional[Any] = None  # ("ok", [Prediction, ...]) or ("error", message) once `event` is set
+
+
 class InferenceServer:
     """Owns a model (in a real deployment: GPU-resident) and serves
     `predict_many` requests from any number of `RemoteInferenceClient`s over
-    one `multiprocessing.connection.Listener`.
+    one `multiprocessing.connection.Listener`, batching concurrent requests
+    into real, single model calls (see this module's own docstring).
 
     `address` is a `(host, port)` pair for a TCP listener, or a single
     string for a platform pipe/socket path -- whatever
@@ -70,11 +87,17 @@ class InferenceServer:
     server process the plan calls for, never inside an engine worker.
     """
 
-    def __init__(self, address: Any, authkey: bytes, model: Callable[[Any], Prediction]):
+    def __init__(
+        self, address: Any, authkey: bytes, model: Callable[[Any], Prediction],
+        *, max_batch_size: int = 128, batch_window_seconds: float = 0.01,
+    ):
         self._address = address
         self._authkey = authkey
         self._model = model
-        self._lock = threading.Lock()
+        self._model_predict_many = getattr(model, "predict_many", None)
+        self._max_batch_size = max_batch_size
+        self._batch_window_seconds = batch_window_seconds
+        self._queue: "queue.Queue[Optional[_PendingRequest]]" = queue.Queue()
         self._listener: Listener | None = None
         self._stop = threading.Event()
 
@@ -84,17 +107,78 @@ class InferenceServer:
         given as `("localhost", 0)` and the OS picked the port."""
         return self._listener.address if self._listener is not None else self._address
 
+    def _predict(self, observations: List[Any]) -> List[Prediction]:
+        if self._model_predict_many is not None:
+            return list(self._model_predict_many(observations))
+        return [self._model(o) for o in observations]
+
     def _handle(self, conn) -> None:
         try:
             observations = conn.recv()
-            with self._lock:
-                results = [self._model(o) for o in observations]
-            conn.send(results)
+            request = _PendingRequest(observations)
+            self._queue.put(request)
+            request.event.wait()
+            status, payload = request.result
+            # A model error is sent back as data (a tagged tuple), not
+            # raised here and the connection dropped -- the latter would
+            # leave the client's own `conn.recv()` seeing a bare EOFError,
+            # with no way to tell "the model raised" from "the network
+            # dropped" or from any other reason the connection might close.
+            conn.send((status, payload))
         finally:
             conn.close()
 
+    def _batch_loop(self) -> None:
+        """The one thread that ever calls the model: pulls the first
+        request (blocking), then keeps coalescing whatever else is already
+        queued or arrives within `batch_window_seconds`, up to
+        `max_batch_size` observations total, into one `_predict` call."""
+        while True:
+            first = self._queue.get()
+            if first is None:
+                return
+            batch = [first]
+            total = len(first.observations)
+            deadline = time.monotonic() + self._batch_window_seconds
+            while total < self._max_batch_size:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                try:
+                    nxt = self._queue.get(timeout=remaining)
+                except queue.Empty:
+                    break
+                if nxt is None:
+                    self._queue.put(None)  # let the next iteration see the stop signal
+                    break
+                batch.append(nxt)
+                total += len(nxt.observations)
+
+            all_observations = [o for req in batch for o in req.observations]
+            try:
+                all_results = self._predict(all_observations)
+                i = 0
+                for req in batch:
+                    n = len(req.observations)
+                    req.result = ("ok", all_results[i : i + n])
+                    i += n
+            except Exception as e:  # noqa: BLE001 -- every waiting connection must be released
+                message = f"{type(e).__name__}: {e}"
+                for req in batch:
+                    req.result = ("error", message)
+            for req in batch:
+                req.event.set()
+
     def serve_forever(self) -> None:
-        self._listener = Listener(self._address, authkey=self._authkey)
+        # `Listener`'s own default backlog is 1 -- fine for occasional
+        # inter-process connections, much too small for a burst of self-play
+        # workers all connecting within the same batch window: a queued-but-
+        # not-yet-accepted connection can stall for hundreds of ms (measured
+        # on Windows), which starves this very batch window of exactly the
+        # concurrent requests it exists to coalesce.
+        self._listener = Listener(self._address, authkey=self._authkey, backlog=128)
+        batch_thread = threading.Thread(target=self._batch_loop, daemon=True)
+        batch_thread.start()
         try:
             while not self._stop.is_set():
                 try:
@@ -106,6 +190,8 @@ class InferenceServer:
                 threading.Thread(target=self._handle, args=(conn,), daemon=True).start()
         finally:
             self._listener.close()
+            self._queue.put(None)
+            batch_thread.join(timeout=5)
 
     def stop(self) -> None:
         """Unblocks a `serve_forever` running on another thread."""
@@ -127,6 +213,9 @@ class RemoteInferenceClient(InferenceClient):
         conn = Client(self._address, authkey=self._authkey)
         try:
             conn.send(observations)
-            return conn.recv()
+            status, payload = conn.recv()
+            if status == "error":
+                raise RuntimeError(f"InferenceServer's model raised: {payload}")
+            return payload
         finally:
             conn.close()

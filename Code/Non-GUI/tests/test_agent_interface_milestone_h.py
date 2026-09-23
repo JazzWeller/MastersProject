@@ -1,11 +1,13 @@
 """Milestone H (Code/AGENT_INTERFACE_PLAN.md): parallelism and inference.
 
-Scoped to what's testable without a GPU, torch, or WSL in this environment:
-the InferenceClient abstraction (in-process and a real stdlib-socket remote
-server), the checkpoint registry, and the self-play actor loop's real
-subprocess-based parallelism and resumability. The CUDA rule and an actual
-GPU-resident model are deployment concerns for whatever real model plugs
-into `InferenceServer` later -- see bots/inference_client.py's docstring.
+The InferenceClient abstraction (in-process, and a real stdlib-socket
+remote server with real cross-request dynamic batching), the checkpoint
+registry, and the self-play actor loop's real subprocess-based parallelism
+and resumability -- all testable without a GPU or torch. The actual
+GPU-resident model (bots/torch_model.py) has its own test file, skipped
+here and run from the isolated environment torch was installed into (an
+RTX 5060 Ti is genuinely present on this machine -- see that module's own
+docstring and tests/test_torch_model.py).
 """
 
 import os
@@ -18,6 +20,12 @@ from bots.checkpoint import CheckpointRegistry
 from bots.inference_client import InferenceServer, InProcessInferenceClient, RemoteInferenceClient
 from sim.actor import game_seed, run_actor, run_self_play
 from sim.generate import read_shard
+
+
+def _wait_for_bind(server, timeout_s=2.0):
+    deadline = time.monotonic() + timeout_s
+    while server.address == ("localhost", 0) and time.monotonic() < deadline:
+        time.sleep(0.01)
 
 
 class TestInProcessInferenceClient(unittest.TestCase):
@@ -73,6 +81,132 @@ class TestRemoteInferenceClient(unittest.TestCase):
             # everyone else.
             good_client = RemoteInferenceClient(server.address, authkey=b"secret")
             self.assertEqual(good_client.predict(5), ([], 5.0))
+        finally:
+            server.stop()
+            thread.join(timeout=5)
+
+
+class TestDynamicBatching(unittest.TestCase):
+    """Real cross-request batching: concurrent requests from independent
+    connections must land in ONE call to the model, not one per connection."""
+
+    def test_concurrent_requests_are_coalesced_into_one_model_call(self):
+        calls = []
+        call_lock = threading.Lock()
+
+        def model_predict_many(observations):
+            with call_lock:
+                calls.append(len(observations))
+            return [([o], float(o)) for o in observations]
+
+        class _BatchModel:
+            predict_many = staticmethod(model_predict_many)
+
+        server = InferenceServer(
+            ("localhost", 0), authkey=b"k", model=_BatchModel(),
+            max_batch_size=100, batch_window_seconds=0.2,
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            _wait_for_bind(server)
+            results = [None] * 5
+
+            def fire(i):
+                client = RemoteInferenceClient(server.address, authkey=b"k")
+                results[i] = client.predict_many([i, i + 100])
+
+            workers = [threading.Thread(target=fire, args=(i,)) for i in range(5)]
+            for w in workers:
+                w.start()
+            for w in workers:
+                w.join(timeout=5)
+
+            for i in range(5):
+                self.assertEqual(results[i], [([i], float(i)), ([i + 100], float(i + 100))])
+            # 5 connections x 2 observations each, fired concurrently and
+            # well within the 0.2s batch window -- must be ONE model call,
+            # not 5.
+            self.assertEqual(calls, [10])
+        finally:
+            server.stop()
+            thread.join(timeout=5)
+
+    def test_a_model_without_predict_many_still_works_without_batching(self):
+        """Backward compatible with a plain observation -> (policy, value)
+        callable (every model in this test file except this class) -- no
+        batching win, but correct, via a per-item loop."""
+        server = InferenceServer(("localhost", 0), authkey=b"k", model=lambda o: ([o], float(o)))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            _wait_for_bind(server)
+            client = RemoteInferenceClient(server.address, authkey=b"k")
+            self.assertEqual(client.predict_many([1, 2, 3]), [([1], 1.0), ([2], 2.0), ([3], 3.0)])
+        finally:
+            server.stop()
+            thread.join(timeout=5)
+
+    def test_a_batch_wide_model_error_is_reported_to_every_waiting_connection(self):
+        def boom(observations):
+            raise ValueError("model exploded")
+
+        class _BoomModel:
+            predict_many = staticmethod(boom)
+
+        server = InferenceServer(("localhost", 0), authkey=b"k", model=_BoomModel(), batch_window_seconds=0.05)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            _wait_for_bind(server)
+            client = RemoteInferenceClient(server.address, authkey=b"k")
+            with self.assertRaises(RuntimeError) as ctx:
+                client.predict_many([1])
+            self.assertIn("model exploded", str(ctx.exception))
+            # The server must survive its own model raising and keep serving.
+            server2_client = RemoteInferenceClient(server.address, authkey=b"k")
+            with self.assertRaises(RuntimeError):
+                server2_client.predict_many([2])
+        finally:
+            server.stop()
+            thread.join(timeout=5)
+
+    def test_respects_max_batch_size(self):
+        batch_sizes = []
+        lock = threading.Lock()
+
+        def model_predict_many(observations):
+            with lock:
+                batch_sizes.append(len(observations))
+            return [([o], float(o)) for o in observations]
+
+        class _BatchModel:
+            predict_many = staticmethod(model_predict_many)
+
+        server = InferenceServer(
+            ("localhost", 0), authkey=b"k", model=_BatchModel(),
+            max_batch_size=3, batch_window_seconds=0.3,
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            _wait_for_bind(server)
+            results = [None] * 6
+
+            def fire(i):
+                client = RemoteInferenceClient(server.address, authkey=b"k")
+                results[i] = client.predict_many([i])
+
+            workers = [threading.Thread(target=fire, args=(i,)) for i in range(6)]
+            for w in workers:
+                w.start()
+            for w in workers:
+                w.join(timeout=5)
+
+            for i in range(6):
+                self.assertEqual(results[i], [([i], float(i))])
+            self.assertTrue(all(size <= 3 for size in batch_sizes))
+            self.assertEqual(sum(batch_sizes), 6)
         finally:
             server.stop()
             thread.join(timeout=5)

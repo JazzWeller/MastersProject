@@ -10,15 +10,16 @@ from bots.registry import available_agents, make_agent
 from keyforge.cards.card_data import CARD_DEFS
 from keyforge.cards.decks import random_deck
 from keyforge.config import GameConfig
-from keyforge.enums import DecisionKind
+from keyforge.enums import BOUNDARY_KINDS as _BOUNDARY_KINDS
 from keyforge.game import Game
 from keyforge.match import Match, MatchConfig
 
 # Card-count invariants only need to hold at the boundaries between top-level
 # actions: mid-resolution, a card can be legitimately "in transit" (e.g.
 # removed from the deck top by Wild Wormhole but not yet placed, while a
-# nested CHOOSE_FLANK decision is pending).
-_BOUNDARY_KINDS = (DecisionKind.CHOOSE_ACTION, DecisionKind.CHOOSE_HOUSE, DecisionKind.TAKE_ARCHIVE)
+# nested CHOOSE_FLANK decision is pending). `_BOUNDARY_KINDS` name kept for
+# every existing importer (tests/test_agent_contract.py); `enums.
+# BOUNDARY_KINDS` is the one canonical definition now.
 
 
 def check_invariants(game: Game):

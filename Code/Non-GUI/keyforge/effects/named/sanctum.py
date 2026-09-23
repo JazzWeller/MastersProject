@@ -5,7 +5,7 @@ for the FAQ rulings behind each implementation."""
 from __future__ import annotations
 
 from ...enums import Affects, CardType, DecisionIntent, House
-from ..effect_object import DurationEffect, INFINITE, InsteadEffect, ModifierEffect, TriggerEffect
+from ..effect_object import DurationEffect, INFINITE, InsteadEffect, ModifierEffect, TriggerEffect, register_cleanup_operation
 from .. import steps
 from ..generic import choose_least_powerful, choose_most_powerful, controller_of, opponent_of
 
@@ -529,8 +529,11 @@ def numquid_the_fair(game, card):
             return
 
 
-def _revert_damage_prevented(card):
-    card.damage_prevented = False
+def _revert_damage_prevented_op(game, iid):
+    game.card_by_id(iid).damage_prevented = False
+
+
+register_cleanup_operation("sanctum.clear_damage_prevented", _revert_damage_prevented_op)
 
 
 def protectrix_after_reap(game, card):
@@ -549,7 +552,7 @@ def protectrix_after_reap(game, card):
     target = choice[0]
     steps.fully_heal(game, target)
     target.damage_prevented = True
-    game._end_of_turn_cleanups.append(lambda t=target: _revert_damage_prevented(t))
+    game._end_of_turn_cleanups.append(("sanctum.clear_damage_prevented", target.instance_id))
 
 
 def sanctum_guardian_after(game, card):

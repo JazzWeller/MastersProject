@@ -6,16 +6,17 @@ import dataclasses
 import itertools
 import math
 import random
-from typing import Any, Dict, List, Optional
+import types
+from typing import Any, Dict, List, Optional, Tuple
 
 from .actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
-from .cards.card import Card, CreatureType, UpgradeType
+from .cards.card import ActionType, ArtifactType, Card, CreatureType, TypeObject, UpgradeType
 from .cards.decks import build_deck
 from .config import GameConfig
 from .decision import Decision
 from .effects import steps
-from .effects.effect_object import ActiveEffectList, ModifierEffect, TriggerEffect
-from .enums import Affects, CardType, DecisionIntent, DecisionKind, House, Resample
+from .effects.effect_object import ActiveEffectList, DurationEffect, InsteadEffect, ModifierEffect, TriggerEffect, resolve_cleanup
+from .enums import Affects, BOUNDARY_KINDS, CardType, DecisionIntent, DecisionKind, House, Resample
 from .keyed_random import derive_rng, portable_choice, portable_shuffle
 from .log import GameLog
 from .player import Player
@@ -39,6 +40,165 @@ class _PlayGate:
     can_play_actions: bool
     any_creature_in_play: bool
     artifact_toll: Optional[tuple]
+
+
+# --------------------------------------------- Game.copy() (Milestone E2) ----
+# Hand-written, not `copy.deepcopy`: deepcopy treats functions as atomic
+# (shared by reference, never copied), so a deepcopied game's
+# DurationEffect.value/TriggerEffect.handler/etc. would still close over
+# the ORIGINAL game's Card objects wherever that closure captured one --
+# and empirically (across hundreds of games' worth of active effects, every
+# house), a Card is the ONLY kind of object any such closure ever captures
+# in this codebase. `_rebind_closure` fixes exactly that, generically,
+# rather than requiring every card file to avoid closures entirely (the
+# six `_end_of_turn_cleanups` sites still moved to plain data, since a
+# *pending* cleanup has no `game.active_effects` entry of its own to visit
+# and rebind post hoc).
+
+
+def _make_cell(value):
+    return (lambda: value).__closure__[0]
+
+
+def _rebind_closure(fn, card_remap: Dict[int, Card]):
+    """`fn`, or a function behaviorally identical to it, except any `Card`
+    in its closure that's a key in `card_remap` (by `id()` of the OLD card)
+    is replaced with the corresponding new one. Plain data (True, an int, a
+    House, ...) and closures that capture nothing pass through unchanged."""
+    if fn is None or not isinstance(fn, types.FunctionType) or fn.__closure__ is None:
+        return fn
+    new_cells = []
+    changed = False
+    for cell in fn.__closure__:
+        try:
+            value = cell.cell_contents
+        except ValueError:  # pragma: no cover -- an empty cell (a function referencing itself); never seen here
+            new_cells.append(cell)
+            continue
+        if isinstance(value, Card) and id(value) in card_remap:
+            value = card_remap[id(value)]
+            changed = True
+        new_cells.append(_make_cell(value))
+    if not changed:
+        return fn
+    new_fn = types.FunctionType(fn.__code__, fn.__globals__, fn.__name__, fn.__defaults__, tuple(new_cells))
+    new_fn.__kwdefaults__ = fn.__kwdefaults__
+    return new_fn
+
+
+def _copy_type_object(old: TypeObject) -> TypeObject:
+    """A fresh `TypeObject`, `card` left `None` -- the caller sets it once
+    the new `Card` it belongs to exists (a `Card` and its `type_object`
+    are constructed together, but that back-reference is only meaningful
+    once both new objects exist)."""
+    if isinstance(old, CreatureType):
+        new = CreatureType.__new__(CreatureType)
+        new.base_power = old.base_power
+        new.base_armor = old.base_armor
+        new.damage = old.damage
+        new.armor_used_this_turn = old.armor_used_this_turn
+        new.upgrades = list(old.upgrades)  # Card refs fixed up in _relink_card
+    elif isinstance(old, UpgradeType):
+        new = UpgradeType.__new__(UpgradeType)
+        new.host = old.host  # Card ref fixed up in _relink_card
+    elif isinstance(old, ArtifactType):
+        new = ArtifactType.__new__(ArtifactType)
+    else:
+        new = ActionType.__new__(ActionType)
+    new.card = None
+    return new
+
+
+def _copy_card(old: Card) -> Card:
+    """A fresh `Card` with the same instance_id and every current field
+    value, sharing `card_def` (immutable, printed-card data). Cross-card
+    references (`type_object.upgrades`/`.host`, `purged_by`,
+    `redirect_fight_damage_to`, `under_cards`) still point at the OLD
+    game's cards until `_relink_card` runs -- deferred because the card
+    they need to point at instead might not exist yet during this pass."""
+    new = Card.__new__(Card)
+    for slot in Card.__slots__:
+        setattr(new, slot, getattr(old, slot))
+    new.type_object = _copy_type_object(old.type_object)
+    new.type_object.card = new
+    new.extra_triggers = {k: list(v) for k, v in old.extra_triggers.items()}
+    new.under_cards = list(old.under_cards)
+    return new
+
+
+def _relink_card(new_card: Card, card_remap: Dict[int, Card]) -> None:
+    """Fixes up `new_card`'s references to OTHER cards (set to the old
+    game's cards by `_copy_card`) to point at their new-game counterparts.
+    Run only after every card has been copied, so every reference this
+    looks up is guaranteed to already be in `card_remap`."""
+    new_card.purged_by = card_remap.get(id(new_card.purged_by), new_card.purged_by) if new_card.purged_by is not None else None
+    if new_card.redirect_fight_damage_to is not None:
+        new_card.redirect_fight_damage_to = card_remap[id(new_card.redirect_fight_damage_to)]
+    new_card.under_cards = [card_remap[id(c)] for c in new_card.under_cards]
+    if isinstance(new_card.type_object, CreatureType):
+        new_card.type_object.upgrades = [card_remap[id(c)] for c in new_card.type_object.upgrades]
+    elif isinstance(new_card.type_object, UpgradeType) and new_card.type_object.host is not None:
+        new_card.type_object.host = card_remap[id(new_card.type_object.host)]
+
+
+def _copy_zone_cards(cards: List[Card], card_remap: Dict[int, Card]) -> List[Card]:
+    return [card_remap[id(c)] for c in cards]
+
+
+def _copy_player(old, card_remap: Dict[int, Card]) -> "Player":
+    new = Player.__new__(Player)
+    new.__dict__.update(old.__dict__)
+    new.all_cards = _copy_zone_cards(old.all_cards, card_remap)
+    new.deck = Deck(_copy_zone_cards(old.deck.cards(), card_remap))
+    new.hand = type(old.hand)()
+    for c in _copy_zone_cards(old.hand.cards(), card_remap):
+        new.hand.add(c)
+    new.discard = type(old.discard)()
+    for c in _copy_zone_cards(old.discard.cards(), card_remap):
+        new.discard.push(c)
+    new.archive = type(old.archive)()
+    for c in _copy_zone_cards(old.archive.cards(), card_remap):
+        new.archive.add(c)
+    new.purged = type(old.purged)()
+    for c in _copy_zone_cards(old.purged.cards(), card_remap):
+        new.purged.add(c)
+    new.play_area = type(old.play_area)()
+    new.play_area.creatures = _copy_zone_cards(old.play_area.creatures, card_remap)
+    new.play_area.artifacts = _copy_zone_cards(old.play_area.artifacts, card_remap)
+    new.CardsPlayed = dict(old.CardsPlayed)
+    new.used_this_turn = dict(old.used_this_turn)
+    new.hand_revealed_to = set(old.hand_revealed_to)
+    return new
+
+
+def _copy_active_effects(old: ActiveEffectList, card_remap: Dict[int, Card]) -> ActiveEffectList:
+    def remapped_source(e):
+        return card_remap[id(e.source_card)] if e.source_card is not None else None
+
+    new = ActiveEffectList()
+    for e in old.duration_effects:
+        new.add(DurationEffect(
+            source_card=remapped_source(e), controller=e.controller, remaining_duration=e.remaining_duration,
+            player_affected=e.player_affected, variable=e.variable, op=e.op,
+            value=_rebind_closure(e.value, card_remap) if callable(e.value) else e.value,
+            conditional=_rebind_closure(e.conditional, card_remap),
+        ))
+    for e in old.trigger_effects:
+        new.add(TriggerEffect(
+            source_card=remapped_source(e), controller=e.controller, event=e.event,
+            handler=_rebind_closure(e.handler, card_remap), remaining_duration=e.remaining_duration,
+        ))
+    for e in old.instead_effects:
+        new.add(InsteadEffect(
+            source_card=remapped_source(e), controller=e.controller, kind=e.kind,
+            handler=_rebind_closure(e.handler, card_remap),
+        ))
+    for e in old.modifier_effects:
+        new.add(ModifierEffect(
+            source_card=remapped_source(e), controller=e.controller, kind=e.kind,
+            handler=_rebind_closure(e.handler, card_remap),
+        ))
+    return new
 
 
 class Game:
@@ -69,14 +229,23 @@ class Game:
         # Harland Mindlock-style "until this leaves play" control changes:
         # source card instance_id -> [(controlled_card, original_pid), ...]
         self._temp_control: dict = {}
-        # Zero-arg callables run once at the active player's next cleanup,
-        # for one-off "remainder of the turn" effects that don't fit the
-        # DurationEffect model (Spectral Tunneler).
-        self._end_of_turn_cleanups: list = []
+        # `(operation, instance_id)` pairs resolved via `effect_object.
+        # resolve_cleanup` at the active player's next cleanup, for one-off
+        # "remainder of the turn" effects that don't fit the DurationEffect
+        # model (Spectral Tunneler). Data, not closures (Milestone E2:
+        # `Game.copy()` can copy a plain tuple; it can't rebind a closure
+        # over a specific Card the way replaying naturally would).
+        self._end_of_turn_cleanups: List[Tuple[str, Optional[int]]] = []
         self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
         # Populated once in _setup: the decklist never changes mid-game, so
         # player_houses() doesn't need to recompute it on every call.
         self._player_houses_cache: Dict[int, List[House]] = {}
+        # instance_id -> Card, for every card either player was ever dealt
+        # (Milestone E2's cleanup-as-data resolvers and Game.copy() both
+        # need to look a card up by id rather than close over it directly).
+        # No card is ever created after _setup with a fresh instance_id
+        # (see new_instance_id's own callers), so this never needs updating.
+        self._cards_by_id: Dict[int, Card] = {}
         self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
@@ -142,6 +311,10 @@ class Game:
         `cards/card.py`'s process-wide fallback counter, so that the same
         seed produces the same ids in any process or fork."""
         return next(self._instance_counter)
+
+    def card_by_id(self, instance_id: int) -> Card:
+        """The `Card` with this instance id, wherever it currently sits."""
+        return self._cards_by_id[instance_id]
 
     def event_rng(self, kind: str, player: Optional[int] = None):
         """A fresh, independent `random.Random` for one instance of
@@ -294,6 +467,79 @@ class Game:
                 raise ValueError("Game.apply: more choices than the game has pending decisions for")
             self.submit_index(encoded)
         return self
+
+    def copy(self) -> "Game":
+        """An independent snapshot of this game (Milestone E2's snapshot-
+        copy backend) -- exact and PRIVILEGED, the fast analog of `fork()`.
+        See this module's `_copy_card`/`_copy_player`/`_copy_active_effects`/
+        `_rebind_closure` for how; the short version: hand-written, not
+        `copy.deepcopy` (which treats functions as atomic/shared by
+        reference, so a deepcopied game's effect handlers would still close
+        over THIS game's cards, not the copy's own).
+
+        ONLY VALID AT A BOUNDARY DECISION (`enums.BOUNDARY_KINDS`) -- raises
+        otherwise. Not-a-boundary means part of the "generator stack" (a
+        card effect mid-resolution, Step 1's key-forge payment) is
+        suspended state this can't reconstruct the way an OS-level fork
+        (Milestone E1) or a full replay (`fork()`, valid at ANY decision)
+        does. `is_over` is the other valid case (nothing left to resume)."""
+        if not self.is_over and (self.pending_decision is None or self.pending_decision.kind not in BOUNDARY_KINDS):
+            kind = self.pending_decision.kind.name if self.pending_decision is not None else None
+            raise ValueError(
+                f"Game.copy() is only valid at a boundary decision "
+                f"({', '.join(k.name for k in BOUNDARY_KINDS)}) or a finished game, not {kind} -- use fork() instead"
+            )
+
+        new = Game.__new__(Game)
+        new.config = self.config
+        new._instance_counter = self._instance_counter  # never advances past _setup; safe to share
+        new._rng_counters = dict(self._rng_counters)
+        new.active_player_id = self.active_player_id
+        new.turn_number = self.turn_number
+        new._first_player = self._first_player
+        new.is_over = self.is_over
+        new.result = dict(self.result) if self.result is not None else None
+        new._elusive_suppressed = self._elusive_suppressed
+        new._player_houses_cache = dict(self._player_houses_cache)
+
+        card_remap: Dict[int, Card] = {}
+        new._cards_by_id = {}
+        for iid, old_card in self._cards_by_id.items():
+            new_card = _copy_card(old_card)
+            card_remap[id(old_card)] = new_card
+            new._cards_by_id[iid] = new_card
+        for new_card in new._cards_by_id.values():
+            _relink_card(new_card, card_remap)
+
+        new.players = {pid: _copy_player(p, card_remap) for pid, p in self.players.items()}
+
+        new.log = GameLog()
+        new.log.events = list(self.log.events)
+        for kind_, events in self.log.by_kind.items():
+            new.log.by_kind[kind_] = list(events)
+
+        new.active_effects = _copy_active_effects(self.active_effects, card_remap)
+        new._end_of_turn_cleanups = list(self._end_of_turn_cleanups)
+        new._temp_control = {
+            source_iid: [(card_remap.get(id(c), c), orig_pid) for c, orig_pid in entries]
+            for source_iid, entries in self._temp_control.items()
+        }
+
+        new.choice_log = list(self.choice_log)
+        new.choice_record = [list(e) if isinstance(e, list) else e for e in self.choice_record]
+
+        if self.is_over:
+            new._driver = iter(())
+            new.pending_decision = None
+        else:
+            new.pending_decision = self.pending_decision  # _resume dispatches on .kind alone; replaced below
+            new._driver = new._resume()
+            try:
+                new.pending_decision = next(new._driver)
+            except StopIteration:
+                new.is_over = True
+                new.pending_decision = None
+        return new
 
     def run_until(self, predicate, policy) -> "Game":
         """Plays this game forward with `policy(game, decision) -> choice`
@@ -523,6 +769,8 @@ class Game:
                 card.instance_id = self.new_instance_id()
             self.players[pid].all_cards = list(cards)
             self._player_houses_cache[pid] = sorted({c.house for c in cards}, key=lambda h: h.value)
+            for c in cards:
+                self._cards_by_id[c.instance_id] = c
             self.players[pid].deck = Deck(cards)
             self.players[pid].deck.shuffle(self.event_rng("deck_shuffle", pid))
             if self.config.starting_chains:
@@ -659,7 +907,11 @@ class Game:
 
         # Step 1: forge a key. A routine "not enough Æmber yet" isn't logged
         # (that's normal, expected state almost every early turn); only a
-        # notable block -- affordable but disabled (Miasma) -- is.
+        # notable block -- affordable but disabled (Miasma) -- is. Step 1
+        # never itself pauses at a boundary decision, so `Game.copy()`
+        # (Milestone E2) never needs to resume mid-Step-1 -- everything
+        # from Step 2 on is factored into `_take_turn_from_house` so
+        # `_resume` can re-enter there directly.
         cost = player.get_key_forge_cost(self)
         if player.aember >= cost:
             if player.get_can_key_forge(self):
@@ -670,9 +922,22 @@ class Game:
                 source = self._effect_source("CanKeyForge", pid)
                 self.log.add("forge_skipped", player=pid, aember=player.aember, cost=cost, source=source)
 
+        return (yield from self._take_turn_from_house(pid))
+
+    def _take_turn_from_house(self, pid: int):
+        """Steps 2-6 of `_take_turn`: choose a house, optional archive
+        pickup, the main action loop, cleanup, draw. Split out so
+        `Game._resume` (Milestone E2) can re-enter turn resolution here
+        directly for a copy taken at a `CHOOSE_HOUSE` boundary, without
+        redoing Step 1's already-resolved key-forge payment."""
         # Step 2: choose a house
         yield from self._choose_house_step(pid)
+        return (yield from self._take_turn_from_archive(pid))
 
+    def _take_turn_from_archive(self, pid: int):
+        """Steps 3-6: as `_take_turn_from_house`, for a copy taken at a
+        `TAKE_ARCHIVE` boundary."""
+        player = self.players[pid]
         # Step 3: optional archive pickup
         if len(player.archive) > 0:
             take = yield Decision(
@@ -690,6 +955,13 @@ class Game:
                         player.hand.add(c)
                 self.log.add("take_archive", player=pid)
 
+        return (yield from self._take_turn_action_loop(pid))
+
+    def _take_turn_action_loop(self, pid: int):
+        """Steps 4-6: as `_take_turn_from_house`, for a copy taken at a
+        `CHOOSE_ACTION` boundary -- the common case (64% of all decisions,
+        Milestone L's own baseline)."""
+        player = self.players[pid]
         # Step 4: main action loop
         while True:
             options = self._legal_actions(pid)
@@ -705,6 +977,37 @@ class Game:
         # Step 6: draw
         self._draw_step(pid)
         return False
+
+    def _resume(self):
+        """Re-enters turn resolution at exactly the boundary decision
+        `self.pending_decision` already holds (Milestone E2's snapshot-copy
+        backend) -- the driver a `Game.copy()` gets in place of the live
+        generator `deepcopy` can't duplicate. Dispatches on `pending_decision
+        .kind` alone (CHOOSE_HOUSE / TAKE_ARCHIVE / CHOOSE_ACTION each map
+        to exactly one of the `_take_turn_from_*` entry points above, and
+        `Game.copy()` only ever runs at one of these three kinds), then
+        continues the outer turn loop exactly like `_run` does."""
+        pid = self.active_player_id
+        kind = self.pending_decision.kind
+        if kind == DecisionKind.CHOOSE_HOUSE:
+            over = yield from self._take_turn_from_house(pid)
+        elif kind == DecisionKind.TAKE_ARCHIVE:
+            over = yield from self._take_turn_from_archive(pid)
+        elif kind == DecisionKind.CHOOSE_ACTION:
+            over = yield from self._take_turn_action_loop(pid)
+        else:
+            raise AssertionError(f"Game._resume: {kind.name} is not a boundary kind")
+        if over:
+            return
+        while True:
+            if self.config.max_turns is not None and self.turn_number >= self.config.max_turns:
+                self.result = {"winner": None, "turns": self.turn_number, "reason": "turn limit"}
+                return
+            self.active_player_id = 3 - self.active_player_id
+            self.turn_number += 1
+            over = yield from self._take_turn(self.active_player_id)
+            if over:
+                return
 
     def _choose_house_step(self, pid: int):
         player = self.players[pid]
@@ -749,8 +1052,8 @@ class Game:
         player.reset_turn_counters()
         self.active_effects.end_of_turn_tick()
         cleanups, self._end_of_turn_cleanups = self._end_of_turn_cleanups, []
-        for fn in cleanups:
-            fn()
+        for operation, iid in cleanups:
+            resolve_cleanup(self, operation, iid)
 
     def _draw_step(self, pid: int):
         player = self.players[pid]
@@ -1975,8 +2278,6 @@ class Game:
 # takes whatever context it needs at creation time and returns a plain
 # `predicate(game) -> bool`.
 
-_BOUNDARY_KINDS = (DecisionKind.CHOOSE_ACTION, DecisionKind.CHOOSE_HOUSE, DecisionKind.TAKE_ARCHIVE)
-
 
 def until_game_over(game: "Game") -> bool:
     return game.is_over
@@ -1991,11 +2292,11 @@ def until_player_decides(pid: int):
 
 def until_boundary():
     """The next `CHOOSE_ACTION`/`CHOOSE_HOUSE`/`TAKE_ARCHIVE` decision --
-    `sim/simulate.py`'s own `_BOUNDARY_KINDS`, where no card effect is
-    mid-resolution (88.9% of all decisions, per the plan's own baseline)."""
+    `enums.BOUNDARY_KINDS`, where no card effect is mid-resolution (88.9%
+    of all decisions, per the plan's own baseline)."""
 
     def predicate(game: "Game") -> bool:
-        return game.is_over or (game.pending_decision is not None and game.pending_decision.kind in _BOUNDARY_KINDS)
+        return game.is_over or (game.pending_decision is not None and game.pending_decision.kind in BOUNDARY_KINDS)
 
     return predicate
 

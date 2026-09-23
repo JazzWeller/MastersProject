@@ -123,11 +123,20 @@ def bench_copy(config: GameConfig, record: List) -> Dict[str, float]:
     mid = max(1, len(record) // 2)
     game = replay(config, record, upto=mid)
     driver = game._driver
+    # `itertools.count` deepcopies fine on CPython 3.12 but raises
+    # "cannot pickle 'itertools.count' object" on 3.14 (measured directly --
+    # a real behavior change between versions, not anything specific to
+    # this engine) -- detached the same way `_driver` (a live generator,
+    # never copyable at all) already is, for the same reason: this measures
+    # the cost of copying the game's DATA, and neither field is data.
+    counter = game._instance_counter
     game._driver = None
+    game._instance_counter = None
     t0 = time.perf_counter()
     copy.deepcopy(game)
     elapsed = (time.perf_counter() - t0) * 1000.0
     game._driver = driver
+    game._instance_counter = counter
     return {"at_50%_ms": elapsed, "decision_index": mid}
 
 

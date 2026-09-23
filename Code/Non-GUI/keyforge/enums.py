@@ -161,3 +161,14 @@ class DecisionKind(Enum):
     CHOOSE_FIRST_PLAYER = auto()  # match formats: "first" or "second"
     CHOOSE_NUMBER = auto()  # Dance of Doom: pick an integer from a list of choices
     CHOOSE_MODE = auto()  # Knowledge is Power: pick one of several named modes
+
+
+# The three decision kinds where the generator stack is only `Game._run`'s
+# turn loop and one step of `Game._take_turn` -- Step 1 (forge a key) and
+# any card resolution have already fully unwound by the time one of these
+# is yielded, so `Game.copy()` (Milestone E2) is valid here and only here
+# (see its own docstring for why: not at any of these means a suspended,
+# unreconstructable generator frame). The single canonical definition --
+# sim/simulate.py's own invariant-check boundaries and Game.copy()'s
+# precondition must never quietly drift apart.
+BOUNDARY_KINDS = (DecisionKind.CHOOSE_ACTION, DecisionKind.CHOOSE_HOUSE, DecisionKind.TAKE_ARCHIVE)

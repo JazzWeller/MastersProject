@@ -61,6 +61,7 @@ def make_card(name: str, owner: int, controller: int = None) -> Card:
 def put_creature(game, pid, name, exhausted=False, can_be_used=True, flank=None):
     card = make_card(name, pid)
     game.players[pid].play_area.add_creature(card, flank)
+    game._cards_by_id[card.instance_id] = card
     cdef = card.card_def
     if cdef.register_passive:
         cdef.register_passive(game, card)
@@ -72,6 +73,7 @@ def put_creature(game, pid, name, exhausted=False, can_be_used=True, flank=None)
 def put_artifact(game, pid, name, exhausted=False, can_be_used=True):
     card = make_card(name, pid)
     game.players[pid].play_area.add_artifact(card)
+    game._cards_by_id[card.instance_id] = card
     cdef = card.card_def
     if cdef.register_passive:
         cdef.register_passive(game, card)
@@ -83,6 +85,7 @@ def put_artifact(game, pid, name, exhausted=False, can_be_used=True):
 def hand_card(game, pid, name):
     card = make_card(name, pid)
     game.players[pid].hand.add(card)
+    game._cards_by_id[card.instance_id] = card
     return card
 
 

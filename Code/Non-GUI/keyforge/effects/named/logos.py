@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ...enums import Affects, DecisionIntent, House
 from ...zones import Deck
-from ..effect_object import DurationEffect, TriggerEffect, INFINITE
+from ..effect_object import DurationEffect, TriggerEffect, INFINITE, register_cleanup_operation
 from .. import steps
 from ..generic import controller_of, opponent_of
 
@@ -463,7 +463,7 @@ def spectral_tunneler(game, card):
         "duration_effect", card=card.name, iid=card.instance_id, variable="FlankAndAfterReapDraw", op="=",
         value=True, player=card.controller, affected=[target.controller],
     )
-    game._end_of_turn_cleanups.append(lambda: _spectral_tunneler_revert(target))
+    game._end_of_turn_cleanups.append(("logos.spectral_tunneler_revert", target.instance_id))
 
 
 def _spectral_tunneler_draw(game, host_card):
@@ -472,10 +472,14 @@ def _spectral_tunneler_draw(game, host_card):
     yield
 
 
-def _spectral_tunneler_revert(target):
+def _spectral_tunneler_revert_op(game, iid):
+    target = game.card_by_id(iid)
     target.forced_flank = False
     if _spectral_tunneler_draw in target.extra_triggers["after_reap"]:
         target.extra_triggers["after_reap"].remove(_spectral_tunneler_draw)
+
+
+register_cleanup_operation("logos.spectral_tunneler_revert", _spectral_tunneler_revert_op)
 
 
 def strange_gizmo_register(game, card):
