@@ -1,0 +1,6 @@
+{
+  "name": "tier1-search",
+  "tier": 1,
+  "notes": "M4/M5 with the heuristic evaluator (no network), plus the two diagnostics.",
+  "search": {"regime": "within_turn", "leaf": "heuristic", "simulations": 200}
+}

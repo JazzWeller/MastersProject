@@ -118,6 +118,18 @@ class Observation:
     privileged: bool = False
 
 
+def _in_play_state(card: Card, viewer: int, privileged: bool) -> dict:
+    """`canonical_card_state`, minus the identity of any card facedown
+    beneath this one (Masterplan) that `viewer` didn't put there: the count
+    is public, the identity isn't."""
+    state = canonical_card_state(card)
+    if not privileged and card.under_cards:
+        state["under_cards"] = [
+            {"__card__": u.instance_id} if u.owner == viewer else {"__card__": None} for u in card.under_cards
+        ]
+    return state
+
+
 def _observed_player(player, viewer: int, privileged: bool) -> ObservedPlayer:
     is_mine = privileged or player.id == viewer
     visible_hand = is_mine or viewer in player.hand_revealed_to
@@ -133,8 +145,8 @@ def _observed_player(player, viewer: int, privileged: bool) -> ObservedPlayer:
         deck_count=len(player.deck),
         discard=tuple(canonical_card_state(c) for c in player.discard.cards()),
         purged=tuple(canonical_card_state(c) for c in player.purged.cards()),
-        creatures=tuple(canonical_card_state(c) for c in player.play_area.creatures),
-        artifacts=tuple(canonical_card_state(c) for c in player.play_area.artifacts),
+        creatures=tuple(_in_play_state(c, viewer, privileged) for c in player.play_area.creatures),
+        artifacts=tuple(_in_play_state(c, viewer, privileged) for c in player.play_area.artifacts),
         decklist=tuple(_card_identity(c) for c in player.all_cards),
         selected_house=player.selected_house.value if player.selected_house else None,
     )

@@ -1,0 +1,8 @@
+{
+  "name": "tier0-bc",
+  "tier": 0,
+  "notes": "M3: behaviour cloning + value regression screens on Fignor vs Igor (Archon).",
+  "pool": {"decks": ["fignor", "igor"], "format": "archon", "deck_source": "presets"},
+  "network": {"d_model": 128, "layers": 4, "identity": "both", "policy_head": "pointer", "multi_select": "enumerate"},
+  "bc": {"heuristic_games": 20000, "epsilon_games": 5000, "random_games": 5000, "epochs": 4}
+}

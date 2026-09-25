@@ -1,0 +1,7 @@
+{
+  "name": "tier0-generalization",
+  "tier": 0,
+  "notes": "M3 Screen 5: random legal decks over all 370 cards, some cards held out of training entirely.",
+  "pool": {"deck_source": "random", "max_turns": 200},
+  "bc": {"heuristic_games": 6000, "epsilon_games": 0, "random_games": 0, "epochs": 4}
+}

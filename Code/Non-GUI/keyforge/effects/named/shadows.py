@@ -359,7 +359,11 @@ def masterplan_play(game, card):
     c = choice[0]
     player.hand.remove(c)
     card.under_cards.append(c)
-    game.log.add("under_card", player=player.id, card=card.name, iid=card.instance_id, under=c.name, under_iid=c.instance_id)
+    # Facedown: only the player who put it there knows what it is.
+    game.log.add(
+        "under_card", visible_to={player.id},
+        player=player.id, card=card.name, iid=card.instance_id, under=c.name, under_iid=c.instance_id,
+    )
 
 
 def masterplan_omni(game, card):

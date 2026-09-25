@@ -1,0 +1,8 @@
+{
+  "name": "tier3-selfplay-full-game",
+  "tier": 3,
+  "notes": "M7: the full-game ISMCTS arm of the bake-off.",
+  "network": {"dropout": 0.0},
+  "search": {"regime": "full_game", "leaf": "student", "resample": "opponent_private", "simulations": 100},
+  "selfplay": {"games": 50000}
+}
