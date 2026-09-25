@@ -259,11 +259,7 @@ def imperial_traitor(game, card):
     player = controller_of(game, card)
     opponent = opponent_of(game, card)
     game.reveal_hand(opponent.id, player.id, source=card)
-    # No Sanctum card can exist in this CotA-only pool, so this compares by
-    # value rather than `House.SANCTUM` (which the enum doesn't define) --
-    # the comparison is always False here, correctly leaving the ability
-    # dead text rather than crashing.
-    targets = [c for c in opponent.hand.cards() if c.house.value == "Sanctum"]
+    targets = [c for c in opponent.hand.cards() if c.house == House.SANCTUM]
     if not targets:
         steps.shortfall(game, card, f"purges nothing: {{pos:{opponent.id}}} hand has no Sanctum card", "No Sanctum card in hand")
         return

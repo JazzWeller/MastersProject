@@ -292,14 +292,21 @@ def sacrifice(game, card):
     return card in destroyed
 
 
-def return_to_hand(game, card) -> bool:
-    owner = game.players[card.owner]
+def return_to_hand(game, card, to_player: int = None) -> bool:
+    """Returns `card` from play to a hand -- its OWNER's by default (Key
+    Abduction: "return ... to its owner's hand"), or `to_player`'s hand when
+    given. Most "return to YOUR hand" card text (Wardrummer, Total Recall)
+    means the ability's controller, which is normally the same player as
+    the owner but can differ after a control-changing effect (Dis's Control
+    the Weak) -- pass `to_player=card.controller` (or the acting player's
+    id) for that wording instead of leaving this at the owner default."""
+    receiver = game.players[to_player] if to_player is not None else game.players[card.owner]
     area = game.find_play_area(card)
     if area is None or not area.remove(card):
         return False
     game.leave_play(card)
-    owner.hand.add(card)
-    game.log.add("return_to_hand", card=card.name, iid=card.instance_id, owner=owner.id)
+    receiver.hand.add(card)
+    game.log.add("return_to_hand", card=card.name, iid=card.instance_id, owner=receiver.id)
     return True
 
 

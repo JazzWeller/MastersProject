@@ -558,7 +558,7 @@ def wardrummer(game, card):
         steps.shortfall(game, card, "returns nothing: there is no other friendly Brobnar creature in play", "No other Brobnar creature")
     else:
         for t in targets:
-            steps.return_to_hand(game, t)
+            steps.return_to_hand(game, t, to_player=card.controller)
     return
     yield
 

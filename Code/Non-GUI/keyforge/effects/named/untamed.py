@@ -101,21 +101,27 @@ def lifeweb(game, card):
 
 
 def lost_in_the_woods(game, card):
+    # Printed text: "Choose 2 friendly creatures and 2 enemy creatures" --
+    # exactly 2 of each (mandatory, not "up to"), or all of that side if
+    # fewer are available (MRB "Resolve As Much As You Can", p.20; see the
+    # identical Lights Out pattern).
     player = controller_of(game, card)
     opponent = opponent_of(game, card)
     friendly_options = list(player.play_area.creatures)
     friendly_choice = []
     if friendly_options:
+        n = min(2, len(friendly_options))
         friendly_choice = yield from game.choose_cards(
-            player.id, f"{card.name}: choose up to 2 friendly creatures", friendly_options, 0, min(2, len(friendly_options)),
-            source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY, optional=True,
+            player.id, f"{card.name}: choose {n} friendly creature{'s' if n != 1 else ''}", friendly_options, n, n,
+            source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY,
         )
     enemy_options = list(opponent.play_area.creatures)
     enemy_choice = []
     if enemy_options:
+        n = min(2, len(enemy_options))
         enemy_choice = yield from game.choose_cards(
-            player.id, f"{card.name}: choose up to 2 enemy creatures", enemy_options, 0, min(2, len(enemy_options)),
-            source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY, optional=True,
+            player.id, f"{card.name}: choose {n} enemy creature{'s' if n != 1 else ''}", enemy_options, n, n,
+            source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY,
         )
     for c in friendly_choice + enemy_choice:
         owner = game.players[c.owner]
@@ -317,21 +323,26 @@ def word_of_returning(game, card):
 # ------------------------------------------------------------ artifacts --
 
 def bear_flute(game, card):
+    # "Fully heal an Ancient Bear. If there are no Ancient Bears in play"
+    # carries no "friendly" qualifier -- unlike this same card's later
+    # "your deck and discard pile" clause -- so it can target (or be
+    # satisfied by) an Ancient Bear under either player's control, e.g.
+    # after a control-changing effect such as Harland Mindlock.
     player = controller_of(game, card)
-    bears_in_play = [c for c in player.play_area.creatures if c.name == "Ancient Bear"]
+    bears_in_play = [c for c in game.all_creatures("any", card) if c.name == "Ancient Bear"]
     if bears_in_play:
         target = bears_in_play[0]
         if len(bears_in_play) > 1:
             choice = yield from game.choose_cards(
                 player.id, f"{card.name}: choose an Ancient Bear to fully heal", bears_in_play, 1, 1,
-                source_card=card, intent=DecisionIntent.HEAL, affects=Affects.FRIENDLY,
+                source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY,
             )
             target = choice[0]
         steps.fully_heal(game, target)
         return
     found = [c for c in player.deck.cards() if c.name == "Ancient Bear"] + [c for c in player.discard.cards() if c.name == "Ancient Bear"]
     if not found:
-        steps.shortfall(game, card, "finds no Ancient Bear in your deck, discard pile, or play", "No Ancient Bear")
+        steps.shortfall(game, card, "finds no Ancient Bear in play or in your deck or discard pile", "No Ancient Bear")
         return
     for c in found:
         # `found` mixes deck (hidden) and discard (public) cards, and by
@@ -415,10 +426,12 @@ def bigtwig_after_reap(game, card):
 def witch_of_the_wilds_register(game, card):
     def handler(g, event):
         if event["player"] == card.controller and event["house"] != House.UNTAMED:
-            # Grants the same "extra off-house play" allowance Phase Shift
-            # uses, rather than a new Untamed-only counter -- a documented
-            # simplification (slightly broader than "one Untamed card").
-            g.players[card.controller].NonLogosCardsPlayable += 1
+            # Untamed-only, unlike Phase Shift's blanket "any house"
+            # allowance -- ExtraHousePlayable tracks a count per house so
+            # this doesn't also let through an off-house Brobnar/Logos/etc
+            # card the way reusing NonLogosCardsPlayable used to.
+            player = g.players[card.controller]
+            player.ExtraHousePlayable[House.UNTAMED] = player.ExtraHousePlayable.get(House.UNTAMED, 0) + 1
         return
         yield
 

@@ -519,6 +519,20 @@ class TestBrobnarCreatures(unittest.TestCase):
         self.assertIn(other_house, game.players[1].play_area.creatures)
         self.assertIn(drummer, game.players[1].play_area.creatures)
 
+    def test_wardrummer_returns_to_controllers_hand_not_owners(self):
+        # "Return each other friendly Brobnar creature to YOUR hand" means
+        # Wardrummer's controller's hand -- which isn't always the same as
+        # a returned creature's owner, e.g. after a control-changing effect
+        # like Dis's Control the Weak (bug #6/Milestone: core-engine sweep).
+        game = new_game()
+        drummer = put_creature(game, 1, "Wardrummer")
+        stolen = make_card("Bumpsy", owner=2, controller=1)  # Brobnar, owned by 2 but under 1's control
+        game.players[1].play_area.add_creature(stolen)
+        game._cards_by_id[stolen.instance_id] = stolen
+        run_hook(game, named.wardrummer, drummer)
+        self.assertIn(stolen, game.players[1].hand.cards())
+        self.assertNotIn(stolen, game.players[2].hand.cards())
+
 
 class TestBrobnarUpgrades(unittest.TestCase):
     def test_blood_of_titans_grants_plus_five_power(self):

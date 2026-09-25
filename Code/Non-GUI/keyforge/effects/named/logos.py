@@ -662,7 +662,9 @@ def replicator(game, card):
 
 
 def research_smoko_destroyed(game, card):
-    player = game.players[card.owner]
+    # Unqualified "Destroyed:" abilities benefit the controller at the
+    # moment of destruction, not the owner (see dust_imp_destroyed).
+    player = controller_of(game, card)
     top = player.deck.draw_top()
     if top is None:
         steps.shortfall(game, card, f"archives nothing: {{pos:{player.id}}} deck is empty", "Deck is empty")

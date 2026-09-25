@@ -90,6 +90,22 @@ class TestUntamedActions(unittest.TestCase):
         self.assertNotIn(mine, game.players[1].play_area.creatures)
         self.assertNotIn(theirs, game.players[2].play_area.creatures)
 
+    def test_lost_in_the_woods_must_choose_two_of_each_side_when_available(self):
+        game = new_game()
+        put_creature(game, 1, "Drumble")
+        put_creature(game, 1, "Charette")
+        put_creature(game, 1, "Truebaru")
+        put_creature(game, 2, "Drumble")
+        put_creature(game, 2, "Charette")
+        put_creature(game, 2, "Truebaru")
+        card = make_card("Lost in the Woods", 1)
+        # No explicit answers -- the default chooser takes options[:min_n],
+        # so this only shuffles 2 of each side away if the choice is
+        # mandatory (min_n == 2) rather than "up to 2" (min_n == 0).
+        run_hook(game, named.lost_in_the_woods, card)
+        self.assertEqual(len(game.players[1].play_area.creatures), 1)
+        self.assertEqual(len(game.players[2].play_area.creatures), 1)
+
     def test_mimicry_copies_an_opponents_discarded_action(self):
         game = new_game()
         p2 = game.players[2]
@@ -243,6 +259,19 @@ class TestUntamedArtifacts(unittest.TestCase):
         run_hook(game, named.bear_flute, flute)
         self.assertIn(bear, p1.hand.cards())
 
+    def test_bear_flute_heals_an_ancient_bear_even_under_opponent_control(self):
+        # "Fully heal an Ancient Bear. If there are no Ancient Bears in
+        # play" has no "friendly" qualifier, unlike the card's later "your
+        # deck and discard pile" clause -- so it reaches an Ancient Bear
+        # under either player's control (e.g. after a control-stealing
+        # effect like Harland Mindlock).
+        game = new_game()
+        flute = put_artifact(game, 1, "Bear Flute")
+        bear = put_creature(game, 2, "Ancient Bear")
+        bear.type_object.damage = 3
+        run_hook(game, named.bear_flute, flute)
+        self.assertEqual(bear.type_object.damage, 0)
+
     def test_nepenthe_seed_sacrifices_and_returns_a_card(self):
         game = new_game()
         seed = put_artifact(game, 1, "Nepenthe Seed")
@@ -309,9 +338,26 @@ class TestUntamedCreatures(unittest.TestCase):
         game = new_game()
         put_creature(game, 1, "Witch of the Wilds")
         drive(game._fire_event("house_chosen", {"player": 1, "house": House.DIS}))
-        self.assertEqual(game.players[1].NonLogosCardsPlayable, 1)
+        self.assertEqual(game.players[1].ExtraHousePlayable.get(House.UNTAMED, 0), 1)
         drive(game._fire_event("house_chosen", {"player": 1, "house": House.UNTAMED}))
-        self.assertEqual(game.players[1].NonLogosCardsPlayable, 1)  # unchanged
+        self.assertEqual(game.players[1].ExtraHousePlayable.get(House.UNTAMED, 0), 1)  # unchanged
+
+    def test_witch_of_the_wilds_allowance_is_untamed_only_not_any_house(self):
+        # The allowance is scoped to Untamed specifically ("you may play one
+        # Untamed card that is not in your active house") -- unlike Phase
+        # Shift's NonLogosCardsPlayable, it must NOT let through an
+        # off-house card of some other house (Milestone: bug #6 fix).
+        game = new_game()
+        put_creature(game, 1, "Witch of the Wilds")
+        game.players[1].selected_house = House.DIS
+        drive(game._fire_event("house_chosen", {"player": 1, "house": House.DIS}))
+        untamed_card = hand_card(game, 1, "Briar Grubbling")  # Untamed, off active house
+        brobnar_card = hand_card(game, 1, "Bumpsy")  # off active house, NOT Untamed
+        self.assertIsNone(game.why_not_playable(1, untamed_card))
+        self.assertIsNotNone(game.why_not_playable(1, brobnar_card))
+        drive(game._play_card(1, untamed_card))
+        self.assertEqual(game.players[1].ExtraHousePlayable.get(House.UNTAMED, 0), 0)
+        self.assertIsNotNone(game.why_not_playable(1, brobnar_card))  # still not playable after the allowance is spent
 
     def test_briar_grubbling_has_printed_hazardous(self):
         game = new_game()

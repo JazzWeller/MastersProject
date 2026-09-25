@@ -1,6 +1,10 @@
+import os
+import sys
 import unittest
 
-from helpers import drive, hand_card, make_card, new_game, put_artifact, put_creature, run_hook
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from tests.helpers import drive, hand_card, make_card, new_game, put_artifact, put_creature, run_hook
 
 from keyforge.effects import named
 

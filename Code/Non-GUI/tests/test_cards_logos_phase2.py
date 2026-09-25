@@ -371,6 +371,23 @@ class TestLogosPhase2(unittest.TestCase):
         drive(game.destroy_cards([smoko]))
         self.assertIn(top, p1.archive.cards())
 
+    def test_research_smoko_destroyed_pays_the_controller_not_the_owner(self):
+        # Same "user decision" as Truebaru (Dis): an unqualified "Destroyed:"
+        # ability archives from whoever controls the creature at the moment
+        # of destruction, not its original owner, when a control-change
+        # effect moved it first.
+        game = new_game()
+        p1, p2 = game.players[1], game.players[2]
+        owner_top = make_card("Batdrone", 1)
+        p1.deck.put_on_top(owner_top)
+        controller_top = make_card("Dr. Escotera", 2)
+        p2.deck.put_on_top(controller_top)
+        smoko = put_creature(game, 1, "Research Smoko")  # owned by p1
+        smoko.controller = 2  # taken control of by p2 before being destroyed
+        drive(game.destroy_cards([smoko]))
+        self.assertIn(controller_top, p2.archive.cards())  # controller's deck
+        self.assertNotIn(owner_top, p1.archive.cards())  # not the owner's
+
     def test_skippy_timehog_prevents_opponent_from_using_cards_next_turn(self):
         game = new_game()
         p2 = game.players[2]

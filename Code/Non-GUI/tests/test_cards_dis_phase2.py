@@ -369,6 +369,22 @@ class TestDisPhase2(unittest.TestCase):
         self.assertIn(weak, p2.purged.cards())
         self.assertEqual(p1.aember, 1)
 
+    def test_stealer_of_souls_still_gains_1_but_cannot_purge_a_bad_penny(self):
+        # Confirmed ruling: Bad Penny's own "Destroyed:" ability returns it
+        # to hand before Stealer of Souls' trigger runs, so there is
+        # nothing left in the discard pile to purge -- but the Æmber gain
+        # still happens, since Bad Penny was still destroyed.
+        game = new_game()
+        p1, p2 = game.players[1], game.players[2]
+        stealer = put_creature(game, 1, "Stealer of Souls", exhausted=False, can_be_used=True)  # power 6
+        penny = put_creature(game, 2, "Bad Penny")  # power 1: dies to Stealer's counter-hit
+        gen = game._fight(1, stealer)
+        drive(gen, answers=[[penny]])
+        self.assertIn(penny, p2.hand.cards())
+        self.assertNotIn(penny, p2.discard.cards())
+        self.assertNotIn(penny, p2.purged.cards())
+        self.assertEqual(p1.aember, 1)
+
     def test_stealer_of_souls_does_not_trigger_if_it_also_dies(self):
         game = new_game()
         p1, p2 = game.players[1], game.players[2]

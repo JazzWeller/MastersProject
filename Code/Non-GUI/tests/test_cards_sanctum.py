@@ -498,6 +498,26 @@ class TestSanctumUpgrades(unittest.TestCase):
         self.assertNotIn(cloak, host.type_object.upgrades)
         self.assertIn(cloak, game.players[1].discard.cards())
 
+    def test_armageddon_cloak_also_replaces_a_direct_destroy(self):
+        # Armageddon Cloak's "Destroyed: instead..." replacement must
+        # intercept a DIRECT destroy (Begone!, EMP Blast, Horseman of
+        # Famine, ...) as well as the damage-lethality path -- not just
+        # `check_destroyed` -- since `destroy_cards` is what dozens of card
+        # effects across every house call directly (Milestone: core-engine
+        # sweep, bug #2).
+        game = new_game()
+        host = put_creature(game, 2, "Charette")  # Dis, no damage involved
+        cloak = make_card("Armageddon Cloak", 2)
+        cloak.type_object.host = host
+        host.type_object.upgrades.append(cloak)
+        named.armageddon_cloak_register(game, cloak)
+        begone = make_card("Begone!", 1)
+        run_hook(game, named.begone, begone, answers=["Destroy each Dis creature"])
+        self.assertIn(host, game.players[2].play_area.creatures)
+        self.assertEqual(host.type_object.damage, 0)
+        self.assertNotIn(cloak, host.type_object.upgrades)
+        self.assertIn(cloak, game.players[2].discard.cards())
+
     def test_armageddon_cloak_grants_hazardous_two(self):
         game = new_game()
         host = put_creature(game, 1, "Drumble")
