@@ -15,6 +15,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 from bots.checkpoint import CheckpointRegistry
 from bots.inference_client import InferenceServer, InProcessInferenceClient, RemoteInferenceClient
@@ -240,6 +241,29 @@ class TestCheckpointRegistry(unittest.TestCase):
             CheckpointRegistry(d).save({"w": 1})
             reg2 = CheckpointRegistry(d)
             self.assertEqual(reg2.latest_version(), 1)
+
+    def test_a_listed_checkpoint_loads(self):
+        # latest()/list() parse the hash prefix from the filename; loading
+        # one must verify against that prefix, not demand the full hash.
+        with tempfile.TemporaryDirectory() as d:
+            reg = CheckpointRegistry(d)
+            reg.save({"w": 1})
+            self.assertEqual(reg.load(reg.latest()), {"w": 1})
+
+    def test_find_by_content_hash(self):
+        with tempfile.TemporaryDirectory() as d:
+            reg = CheckpointRegistry(d)
+            c1 = reg.save({"w": 1})
+            reg.save({"w": 2})
+            self.assertEqual(reg.find(c1.content_hash).version, c1.version)
+            self.assertIsNone(reg.find("0" * 64))
+
+    def test_a_relative_directory_lands_under_the_data_root(self):
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch.dict(os.environ, {"KEYFORGE_DATA": d}):
+                reg = CheckpointRegistry("ckpts")
+                c = reg.save({"w": 1})
+            self.assertEqual(os.path.dirname(c.path), os.path.join(d, "ckpts"))
 
     def test_corrupted_checkpoint_file_is_detected_on_load(self):
         with tempfile.TemporaryDirectory() as d:
