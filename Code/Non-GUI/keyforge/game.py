@@ -1631,10 +1631,15 @@ class Game:
     def _play_resolution(self, card: Card):
         """Resolve a played card's Play effect and its play-trigger check, in the
         tied order described in the plan (3.5)."""
+        # Only other cards' triggers compete with the Play effect -- the same
+        # set `_run_play_trigger_check` fires. A creature's own passive
+        # registered as it entered (Tunk) isn't one, and with no Play effect
+        # there is nothing to order.
         pre_existing = [
-            t for t in self.active_effects.triggers_for("card_played") if t.controller == card.controller
+            t for t in self.active_effects.triggers_for("card_played")
+            if t.controller == card.controller and t.source_card is not card
         ]
-        if pre_existing:
+        if pre_existing and card.card_def.on_play is not None:
             order = yield from self.order_effects(
                 card.controller, ["effect", "check"], f"{card.name}: choose what resolves first", source_card=card,
             )

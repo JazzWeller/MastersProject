@@ -100,10 +100,13 @@ class TestOptionLabels(unittest.TestCase):
         }
 
         seen_kinds = set()
-        # A spread of decks: the original Phase 1 pair, plus two of the
-        # Milestone D curated decks so Phase 2 cards' newer log kinds
-        # (take_control, stun, under_card, move_aember, ...) get exercised too.
-        deck_pairs = [("fignor", "igor"), ("wraith", "cinder"), ("riftwalker", "gambit")]
+        # A spread of decks: the original Phase 1 pair, two of the Phase 2
+        # curated decks (take_control, stun, under_card, move_aember, ...),
+        # and the four Phase 3 presets (armor, capture, reveal, ready, ...).
+        deck_pairs = [
+            ("fignor", "igor"), ("wraith", "cinder"), ("riftwalker", "gambit"),
+            ("stonewall", "starfall"), ("vigil", "thornwood"),
+        ]
         for seed in range(10):
             decks = deck_pairs[seed % len(deck_pairs)]
             game = Game(GameConfig(decks=decks, seed=seed, max_turns=30))
@@ -142,10 +145,9 @@ class TestOptionLabels(unittest.TestCase):
 
     def test_phase_3_log_event_sentences(self):
         # Milestone D added log kinds (damage prevention/redirection, Blood
-        # Money's place_aember, Mimicry's copy) that the fignor/igor/wraith/
-        # cinder/riftwalker/gambit preset decks (all Phase 1/2 houses) never
-        # exercise, so the fuzz-coverage test above can't catch a missing
-        # sentence for them -- check each directly instead.
+        # Money's place_aember, Mimicry's copy) that the fuzz-coverage test
+        # above only reaches if the right cards happen to come up -- check
+        # each directly instead.
         cases = [
             (LogEvent("damage_prevented", {"card": "Protectrix", "iid": 1, "amount": 3}),
              "Protectrix can't be dealt damage: 3 damage is prevented."),

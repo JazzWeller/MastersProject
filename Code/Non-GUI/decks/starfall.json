@@ -1,0 +1,47 @@
+{
+  "name": "Starfall",
+  "pods": {
+    "Mars": [
+      "Mothership Support",
+      "Orbital Bombardment",
+      "Key Abduction",
+      "Commpod",
+      "Red Planet Ray Gun",
+      "Ether Spider",
+      "Mindwarper",
+      "Yxilo Bolter",
+      "Zorg",
+      "Tunk",
+      "Ulyq Megamouth",
+      "Grabber Jammer"
+    ],
+    "Logos": [
+      "Phase Shift",
+      "Library Access",
+      "Labwork",
+      "Twin Bolt Emission",
+      "Wild Wormhole",
+      "Dextre",
+      "Doc Bookton",
+      "Titan Mechanic",
+      "Brain Eater",
+      "Harland Mindlock",
+      "Timetraveller",
+      "Replicator"
+    ],
+    "Brobnar": [
+      "Lava Ball",
+      "Tremor",
+      "Warsong",
+      "Cannon",
+      "Screechbomb",
+      "Bilgum Avalanche",
+      "Earthshaker",
+      "Lomir Flamefist",
+      "Looter Goblin",
+      "Rock-Hurling Giant",
+      "Rogue Ogre",
+      "Hebe the Huge"
+    ]
+  }
+}

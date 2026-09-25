@@ -20,9 +20,18 @@ EPSILON = 0.5
 
 class TestHeadlessAutoplay(unittest.TestCase):
     def test_games_run_and_stay_in_sync(self):
+        self._run(("fignor", "igor"), range(20))
+
+    def test_phase_3_presets_stay_in_sync(self):
+        # Armor, capture, reveal, stun-on-entry and the rest of the four
+        # Phase 3 houses, which fignor/igor never exercise.
+        for seed, decks in enumerate([("stonewall", "starfall"), ("vigil", "thornwood"), ("starfall", "vigil"), ("thornwood", "stonewall")]):
+            self._run(decks, [seed])
+
+    def _run(self, decks, seeds):
         assets = AssetCache()
-        for seed in range(20):
-            game = Game(GameConfig(decks=("fignor", "igor"), seed=seed, max_turns=30))
+        for seed in seeds:
+            game = Game(GameConfig(decks=decks, seed=seed, max_turns=30))
             bots = {1: RandomBot(seed=seed), 2: RandomBot(seed=seed + 500)}
             board = Board(assets, viewer=1)
             animator = Animator()

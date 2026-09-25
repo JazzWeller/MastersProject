@@ -123,6 +123,14 @@ class TestResolveAndBuild(unittest.TestCase):
         for key, deck in DECKS.items():
             self.assertEqual(validate_deck(deck), [], f"preset {key!r} is invalid")
 
+    def test_presets_cover_every_house(self):
+        # Phase 3 Milestone B: at least one preset per house, and at least
+        # one built only from the four Phase 3 houses.
+        covered = {h for deck in DECKS.values() for h in deck.pods}
+        self.assertEqual(covered, set(House))
+        phase_2_houses = {House.DIS, House.LOGOS, House.SHADOWS}
+        self.assertTrue(any(not (set(d.pods) & phase_2_houses) for d in DECKS.values()))
+
     def test_resolve_deck_by_preset_name_is_case_insensitive(self):
         self.assertIs(resolve_deck("fignor"), resolve_deck("FIGNOR"))
 

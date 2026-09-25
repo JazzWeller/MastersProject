@@ -1,0 +1,47 @@
+{
+  "name": "Stonewall",
+  "pods": {
+    "Brobnar": [
+      "Anger",
+      "Punch",
+      "Relentless Assault",
+      "Smith",
+      "Iron Obelisk",
+      "Firespitter",
+      "Ganger Chieftain",
+      "Krump",
+      "Troll",
+      "Bumpsy",
+      "Valdr",
+      "Headhunter"
+    ],
+    "Sanctum": [
+      "Charge!",
+      "Shield of Justice",
+      "Glorious Few",
+      "Inspiration",
+      "Armageddon Cloak",
+      "Shoulder Armor",
+      "Bulwark",
+      "Grey Monk",
+      "Sequis",
+      "Staunch Knight",
+      "Raiding Knight",
+      "Champion Anaphiel"
+    ],
+    "Untamed": [
+      "Key Charge",
+      "Mimicry",
+      "Fogbank",
+      "Regrowth",
+      "Bear Flute",
+      "Ancient Bear",
+      "Halacor",
+      "Dew Faerie",
+      "Dust Pixie",
+      "Mighty Tiger",
+      "Snufflegator",
+      "Witch of the Wilds"
+    ]
+  }
+}

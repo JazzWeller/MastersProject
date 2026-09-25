@@ -1,0 +1,47 @@
+{
+  "name": "Thornwood",
+  "pods": {
+    "Untamed": [
+      "Lost in the Woods",
+      "Perilous Wild",
+      "Troop Call",
+      "Word of Returning",
+      "Way of the Wolf",
+      "Chota Hazri",
+      "Murmook",
+      "Mushroom Man",
+      "Niffle Ape",
+      "Niffle Queen",
+      "Lupo the Scarred",
+      "Briar Grubbling"
+    ],
+    "Shadows": [
+      "Ghostly Hand",
+      "Poison Wave",
+      "Routine Job",
+      "Treasure Map",
+      "Masterplan",
+      "Seeker Needle",
+      "Silvertooth",
+      "Umbra",
+      "Urchin",
+      "Noddy the Thief",
+      "Shadow Self",
+      "Macis Asp"
+    ],
+    "Logos": [
+      "Foggify",
+      "Neuro Syphon",
+      "Positron Bolt",
+      "Random Access Archives",
+      "The Howling Pit",
+      "Rocket Boots",
+      "Mother",
+      "Novu Archaeologist",
+      "Dr. Escotera",
+      "Psychic Bug",
+      "Batdrone",
+      "Veylan Analyst"
+    ]
+  }
+}
