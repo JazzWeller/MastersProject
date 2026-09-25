@@ -3,17 +3,20 @@
 A from-scratch KeyForge engine, now covering the full 370-card *Call of the
 Archons* set across all 7 houses (Dis, Logos, Shadows, Brobnar, Mars,
 Sanctum, Untamed) — plus the two original custom decks, Fignor and Igor,
-from `PHASE_1_1_PLAN.md`'s Archon-format starting point. See
-`PHASE_1_1_PLAN.md`, `PHASE_2_PLAN.md`, and `PHASE_3_PLAN.md` for how it
-got here, and `PHASE_2_CARD_POOL.md`/`PHASE_3_CARD_POOL.md` +
+from the Phase 1.1 Archon-format starting point. The phase plans it was
+built from are complete and live in the git history; see
+`PHASE_2_CARD_POOL.md`/`PHASE_3_CARD_POOL.md` +
 `PHASE_2_CARD_RULINGS.md`/`PHASE_3_CARD_RULINGS.md` for the canonical text,
 errata, and FAQ rulings behind every card. Pure Python standard library, no
 dependencies.
 
 Decks aren't limited to Fignor/Igor: `keyforge/cards/decks.py` builds a
 legal deck from any 3 of the 7 houses (`random_deck`, or a hand-built
-`Deck`), loads/saves user decks as JSON, and ships a handful of bundled
-presets (`decks/*.json`) alongside Fignor and Igor. `keyforge/match.py`
+`Deck`), loads/saves user decks as JSON, and ships bundled presets
+(`decks/*.json`): Fignor and Igor, four more Dis/Logos/Shadows decks
+(Cinder, Gambit, Riftwalker, Wraith), and four that cover the other houses
+(Stonewall: Brobnar/Sanctum/Untamed; Starfall: Mars/Logos/Brobnar; Vigil:
+Sanctum/Dis/Mars; Thornwood: Untamed/Shadows/Logos). `keyforge/match.py`
 plays a full Archon/Reversal/Adaptive match (not just a single game),
 including the Adaptive chain-bid between games 2 and 3.
 
@@ -44,7 +47,9 @@ including the Adaptive chain-bid between games 2 and 3.
 - `text_ui/` — a playable command-line client (`python -m text_ui.main`)
 - `sim/` — headless batch simulation (`python -m sim.simulate`), including
   a full-card-pool coverage report (`--coverage`) and invariant checks
-  (`--check-invariants`)
+  (`--check-invariants`). Self-play shards and checkpoints given a
+  relative path land under `$KEYFORGE_DATA` (default `~/keyforge-data`;
+  under WSL, point it at the Linux filesystem) — see `sim/data_root.py`
 - `tests/` — unit and interaction tests, `unittest`-based (also runs under `pytest`)
 
 ## Bot-first decision API

@@ -1,6 +1,6 @@
 # Phase 3 Card Rulings — Brobnar, Mars, Sanctum, Untamed
 
-One entry per new-house card (Code/PHASE_3_PLAN.md Milestone A). Canonical text and errata are in Code/PHASE_3_CARD_POOL.md; this file adds the official KeyForge Master Rulebook v18.3 FAQ rulings that bear on implementation, quoted as test cases where a card has a specific one. A card with no MRB 18.3 FAQ entry gets a one-line placeholder -- standard rules apply and no card-specific ruling exists to test against.
+One entry per new-house card. Canonical text and errata are in Code/PHASE_3_CARD_POOL.md; this file adds the official KeyForge Master Rulebook v18.3 FAQ rulings that bear on implementation, quoted as test cases where a card has a specific one. A card with no MRB 18.3 FAQ entry gets a one-line placeholder -- standard rules apply and no card-specific ruling exists to test against.
 
 ## Brobnar
 

@@ -3,9 +3,8 @@
 A graphical, animated, fully playable client covering the full 370-card
 *Call of the Archons* set across all 7 houses (Dis, Logos, Shadows,
 Brobnar, Mars, Sanctum, Untamed), built on top of the engine in
-[`Code/Non-GUI`](../Non-GUI). See [`PHASE_1_1_GUI_PLAN.md`](PHASE_1_1_GUI_PLAN.md)
-for the original design and [`../PHASE_3_PLAN.md`](../PHASE_3_PLAN.md)'s
-Milestone E for the house-of-7 upgrade.
+[`Code/Non-GUI`](../Non-GUI). The design, usability-fix and phase plans
+it was built from are complete and live in the git history.
 
 ![Screenshot](docs/screenshot.png)
 
@@ -99,10 +98,6 @@ The game-over screen draws over the final board and lists each player's
 keys, Æmber and the turn every key was forged; **View Board** hides the
 panel so you can inspect the final position.
 
-See [`../PLAYTEST_FIX_PLAN.md`](../PLAYTEST_FIX_PLAN.md) and
-[`UX_FIX_PLAN.md`](UX_FIX_PLAN.md) for what was wrong, why, and how it was
-fixed.
-
 ## Layout
 
 ```
@@ -175,7 +170,7 @@ python -m unittest discover -s tests
   phrasing switch.
 - `test_input_coords.py` — hover and click resolve to the right card at
   window sizes other than the canvas's own 1600x900 (the bug behind most
-  of `UX_FIX_PLAN.md`'s findings).
+  of the early usability findings).
 - `test_decision_ui.py` — the action chooser and Options grid never show
   the same card's art twice; MULLIGAN always opens the dedicated review
   screen; Discard and a premature End Turn always require a second click;
