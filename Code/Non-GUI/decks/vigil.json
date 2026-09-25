@@ -1,0 +1,47 @@
+{
+  "name": "Vigil",
+  "pods": {
+    "Sanctum": [
+      "Begone!",
+      "Cleansing Wave",
+      "Honorable Claim",
+      "Oath of Poverty",
+      "Potion of Invulnerability",
+      "Protect the Weak",
+      "Champion Tabris",
+      "Lady Maxena",
+      "Protectrix",
+      "Sanctum Guardian",
+      "The Vaultkeeper",
+      "Horseman of War"
+    ],
+    "Dis": [
+      "Red-Hot Armor",
+      "Hand of Dis",
+      "Tendrils of Pain",
+      "Gateway to Dis",
+      "Key Hammer",
+      "Lash of Broken Dreams",
+      "Shooler",
+      "Pit Demon",
+      "Charette",
+      "Tocsin",
+      "Succubus",
+      "Snudge"
+    ],
+    "Mars": [
+      "Hypnotic Command",
+      "Martian Hounds",
+      "Psychic Network",
+      "Total Recall",
+      "Swap Widget",
+      "Biomatrix Backup",
+      "Blypyp",
+      "Chuff Ape",
+      "Yxili Marauder",
+      "Vezyma Thinkdrone",
+      "Zyzzix the Many",
+      "Yxilx Dominator"
+    ]
+  }
+}

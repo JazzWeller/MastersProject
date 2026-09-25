@@ -35,6 +35,20 @@ class TestPhase3Invariants(unittest.TestCase):
             self.assertGreater(turns, 0)
 
 
+class TestPhase3Presets(unittest.TestCase):
+    def test_phase_3_presets_play_to_completion_against_each_other(self):
+        # The four Phase 3 presets (each new house appears in two of them),
+        # every pairing, both bot types, invariants checked at every boundary.
+        presets = ("stonewall", "starfall", "vigil", "thornwood")
+        for i, p1_deck in enumerate(presets):
+            for p2_deck in presets[i + 1:]:
+                for agent in ("random", "heuristic"):
+                    for seed in range(3):
+                        result, turns = run_one(p1_deck, p2_deck, None, seed, 80, True, p1_agent=agent, p2_agent=agent)
+                        self.assertIn(result["reason"], ("3 keys", "turn limit"))
+                        self.assertGreater(turns, 0)
+
+
 class TestCardCoverage(unittest.TestCase):
     def test_every_card_gets_played_or_used_across_a_long_random_run(self):
         """Milestone F: across enough random-house games, every one of the

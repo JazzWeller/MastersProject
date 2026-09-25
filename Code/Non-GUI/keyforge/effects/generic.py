@@ -113,8 +113,11 @@ def deal_damage_to_chosen(n: int, targets="any"):
             player.id, f"Deal {n} damage ({card.name})", options, 1, 1,
             source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(targets, Affects.ANY),
         )
-        steps.deal_damage(game, choice[0], n)
-        yield from game.check_destroyed(choice)
+        # `deal_damage` returns whoever actually took the hit -- a redirect
+        # (Shadow Self) can mean that isn't `choice[0]` -- so lethality/purge
+        # checks below must key off the return value, not the chosen target.
+        hit = steps.deal_damage(game, choice[0], n)
+        yield from game.check_destroyed([hit] if hit is not None else [])
 
     return effect
 
@@ -208,10 +211,13 @@ def deal_damage_to_chosen_with_splash(main: int, splash: int, targets="any"):
         target = choice[0]
         area = game.find_play_area(target)
         neighbors = area.neighbors(target) if area is not None else []
-        steps.deal_damage(game, target, main)
+        # As in `deal_damage_to_chosen`: check the creature each `deal_damage`
+        # call says actually took the hit (post-redirect), not the original
+        # target/neighbor, for lethality.
+        hits = [steps.deal_damage(game, target, main)]
         for n in neighbors:
-            steps.deal_damage(game, n, splash)
-        yield from game.check_destroyed([target] + neighbors)
+            hits.append(steps.deal_damage(game, n, splash))
+        yield from game.check_destroyed([c for c in hits if c is not None])
 
     return effect
 

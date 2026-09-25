@@ -225,6 +225,7 @@ def deal_damage(game, creature, amount: int, ignore_armor: bool = False):
             "damage_redirected", card=creature.name, iid=creature.instance_id,
             to=target.name, to_iid=target.instance_id, amount=remaining,
         )
+        game._redirected_hits.append(target)
     target.type_object.damage += remaining
     return target
 
@@ -293,13 +294,18 @@ def sacrifice(game, card):
 
 
 def return_to_hand(game, card) -> bool:
-    owner = game.players[card.owner]
+    """Returns `card` from play to its OWNER's hand -- always, even when the
+    card text says "your hand" (Wardrummer, Total Recall): MRB 18.3
+    "Movement between zones" puts a card leaving play in its owner's zone
+    unless the ability explicitly names another zone, and the Faygin FAQ
+    applies that to exactly this wording."""
+    receiver = game.players[card.owner]
     area = game.find_play_area(card)
     if area is None or not area.remove(card):
         return False
     game.leave_play(card)
-    owner.hand.add(card)
-    game.log.add("return_to_hand", card=card.name, iid=card.instance_id, owner=owner.id)
+    receiver.hand.add(card)
+    game.log.add("return_to_hand", card=card.name, iid=card.instance_id, owner=receiver.id)
     return True
 
 

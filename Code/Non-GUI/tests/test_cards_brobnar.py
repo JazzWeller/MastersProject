@@ -519,6 +519,18 @@ class TestBrobnarCreatures(unittest.TestCase):
         self.assertIn(other_house, game.players[1].play_area.creatures)
         self.assertIn(drummer, game.players[1].play_area.creatures)
 
+    def test_wardrummer_returns_a_borrowed_creature_to_its_owners_hand(self):
+        # MRB 18.3 "Movement between zones" + the Faygin FAQ: a card leaving
+        # play goes to its owner's hand even when the text says "your hand".
+        game = new_game()
+        drummer = put_creature(game, 1, "Wardrummer")
+        stolen = make_card("Bumpsy", owner=2, controller=1)  # Brobnar, owned by 2 but under 1's control
+        game.players[1].play_area.add_creature(stolen)
+        game._cards_by_id[stolen.instance_id] = stolen
+        run_hook(game, named.wardrummer, drummer)
+        self.assertIn(stolen, game.players[2].hand.cards())
+        self.assertNotIn(stolen, game.players[1].hand.cards())
+
 
 class TestBrobnarUpgrades(unittest.TestCase):
     def test_blood_of_titans_grants_plus_five_power(self):

@@ -34,6 +34,7 @@ from typing import List, Tuple
 
 from bots.registry import make_agent
 from keyforge.config import GameConfig
+from sim import data_root
 from sim.generate import play_and_record, read_shard, write_shard
 
 _NON_GUI_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -87,7 +88,9 @@ def run_self_play(
     """Launches `n_workers` OS subprocesses, each running `actor_worker.py`
     against its own shard file `shard_dir/worker_{id:04d}.jsonl`. Blocks
     until every worker exits; raises if any exited non-zero. Returns the
-    shard paths, in worker order."""
+    shard paths, in worker order. A relative `shard_dir` lands under the
+    data root (`sim.data_root`)."""
+    shard_dir = data_root.resolve(shard_dir)
     os.makedirs(shard_dir, exist_ok=True)
     shard_paths = [os.path.join(shard_dir, f"worker_{i:04d}.jsonl") for i in range(n_workers)]
     procs = []

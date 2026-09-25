@@ -26,6 +26,7 @@ import multiprocessing
 import os
 from typing import List, Tuple
 
+from sim import data_root
 from sim.actor import run_actor
 
 
@@ -56,6 +57,7 @@ def run_self_play_pool(
     available (Windows)."""
     if not available():
         raise RuntimeError("run_self_play_pool needs the 'fork' start method (POSIX/WSL/Linux only)")
+    shard_dir = data_root.resolve(shard_dir)
     os.makedirs(shard_dir, exist_ok=True)
     shard_paths = [os.path.join(shard_dir, f"worker_{i:04d}.jsonl") for i in range(n_workers)]
     tasks = [

@@ -35,6 +35,7 @@ class _PlayGate:
     can_play_cards: bool
     house: Optional[House]
     non_logos_allowance: int
+    extra_house_playable: Dict[House, int]
     card_played_limit: Optional[int]
     can_play_creatures: bool
     can_play_actions: bool
@@ -167,6 +168,7 @@ def _copy_player(old, card_remap: Dict[int, Card]) -> "Player":
     new.play_area.artifacts = _copy_zone_cards(old.play_area.artifacts, card_remap)
     new.CardsPlayed = dict(old.CardsPlayed)
     new.used_this_turn = dict(old.used_this_turn)
+    new.ExtraHousePlayable = dict(old.ExtraHousePlayable)
     new.hand_revealed_to = set(old.hand_revealed_to)
     return new
 
@@ -236,6 +238,12 @@ class Game:
         # `Game.copy()` can copy a plain tuple; it can't rebind a closure
         # over a specific Card the way replaying naturally would).
         self._end_of_turn_cleanups: List[Tuple[str, Optional[int]]] = []
+        # Creatures that took redirected damage (Shadow Self) since the last
+        # `check_destroyed`: that call destroy-checks them too, so an effect
+        # that only checks the creature it chose still destroys the one that
+        # actually took the damage (MRB 18.3 FAQ, Shadow Self / Special
+        # Delivery).
+        self._redirected_hits: List[Card] = []
         self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
         # Populated once in _setup: the decklist never changes mid-game, so
         # player_houses() doesn't need to recompute it on every call.
@@ -520,6 +528,7 @@ class Game:
 
         new.active_effects = _copy_active_effects(self.active_effects, card_remap)
         new._end_of_turn_cleanups = list(self._end_of_turn_cleanups)
+        new._redirected_hits = [card_remap.get(id(c), c) for c in self._redirected_hits]
         new._temp_control = {
             source_iid: [(card_remap.get(id(c), c), orig_pid) for c, orig_pid in entries]
             for source_iid, entries in self._temp_control.items()
@@ -1202,6 +1211,23 @@ class Game:
             and self.players[pid].cards_played_or_discarded_this_turn >= 1
         )
 
+    @staticmethod
+    def _uses_play_allowance(gate: "_PlayGate", card: Card) -> bool:
+        """True if playing `card` would spend an off-house allowance (Phase
+        Shift: any non-Logos card; Witch of the Wilds: an Untamed card).
+        Such an allowance also lifts the First Turn Rule for the card it
+        permits (MRB 18.3 General FAQ, "First Turn Rule": playing Phase
+        Shift lets the first player play another card)."""
+        if card.house == gate.house:
+            return False
+        return (
+            (card.house != House.LOGOS and gate.non_logos_allowance > 0)
+            or gate.extra_house_playable.get(card.house, 0) > 0
+        )
+
+    def _has_play_allowance(self, player: Player) -> bool:
+        return player.get_non_logos_cards_playable(self) > 0 or any(v > 0 for v in player.ExtraHousePlayable.values())
+
     def _build_play_gate(self, pid: int) -> "_PlayGate":
         """The player-wide facts `why_not_playable`/`_is_playable_fast` both
         check, computed once instead of once per hand card (Milestone L:
@@ -1215,6 +1241,7 @@ class Game:
             can_play_cards=player.get_can_play_cards(self),
             house=player.selected_house,
             non_logos_allowance=player.get_non_logos_cards_playable(self),
+            extra_house_playable=player.ExtraHousePlayable,
             card_played_limit=player.get_card_played_limit(self),
             can_play_creatures=player.get_can_play_creatures(self),
             can_play_actions=player.get_can_play_actions(self),
@@ -1230,7 +1257,11 @@ class Game:
         `gate` instead of re-querying every effect-derived flag per card."""
         if not gate.can_play_cards:
             return False
-        if not ((card.house == gate.house) or (card.house != House.LOGOS and gate.non_logos_allowance > 0)):
+        if not (
+            card.house == gate.house
+            or (card.house != House.LOGOS and gate.non_logos_allowance > 0)
+            or gate.extra_house_playable.get(card.house, 0) > 0
+        ):
             return False
         if gate.card_played_limit is not None and player.hand_plays_this_turn >= gate.card_played_limit:
             return False
@@ -1260,16 +1291,20 @@ class Game:
             return "Not in hand"
         if pid != self.active_player_id or player.selected_house is None:
             return "Not your turn"
-        if self.first_turn_limited(pid):
-            return "First turn: you may play or discard only one card"
         gate = self._build_play_gate(pid)
+        if self.first_turn_limited(pid) and not self._uses_play_allowance(gate, card):
+            return "First turn: you may play or discard only one card"
         if self._is_playable_fast(gate, card, player):
             return None
         if not gate.can_play_cards:
             source = self._effect_source("CanPlayCards", pid)
             return "You cannot play cards this turn" + (f" ({source})" if source else "")
         house = gate.house
-        if not ((card.house == house) or (card.house != House.LOGOS and gate.non_logos_allowance > 0)):
+        if not (
+            card.house == house
+            or (card.house != House.LOGOS and gate.non_logos_allowance > 0)
+            or gate.extra_house_playable.get(card.house, 0) > 0
+        ):
             return f"Not of your active house ({house.value})"
         if gate.card_played_limit is not None and player.hand_plays_this_turn >= gate.card_played_limit:
             source = self._effect_source("CardPlayedLimit", pid)
@@ -1365,12 +1400,14 @@ class Game:
         actions = []
         limited_now = self.first_turn_limited(pid)
 
-        if not limited_now:
+        if not limited_now or self._has_play_allowance(player):
             gate = self._build_play_gate(pid)
             for card in player.hand.cards():
+                if limited_now and not self._uses_play_allowance(gate, card):
+                    continue
                 if self._is_playable_fast(gate, card, player):
                     actions.append(PlayCard(card))
-                if house is not None and card.house == house:
+                if not limited_now and house is not None and card.house == house:
                     actions.append(DiscardCard(card))
 
         cannot_use = player.get_cannot_use_cards(self)
@@ -1473,7 +1510,12 @@ class Game:
 
         house = player.selected_house
         if house is not None and card.house != house and card.house != House.LOGOS:
-            if player.NonLogosCardsPlayable > 0:
+            # A house-scoped allowance (Witch of the Wilds: Untamed only) is
+            # more specific than the blanket one (Phase Shift: any house), so
+            # it's consumed first when both could cover this play.
+            if player.ExtraHousePlayable.get(card.house, 0) > 0:
+                player.ExtraHousePlayable[card.house] -= 1
+            elif player.NonLogosCardsPlayable > 0:
                 player.NonLogosCardsPlayable -= 1
 
         # Resolve the flank choice (which may require a player decision) before
@@ -1589,10 +1631,15 @@ class Game:
     def _play_resolution(self, card: Card):
         """Resolve a played card's Play effect and its play-trigger check, in the
         tied order described in the plan (3.5)."""
+        # Only other cards' triggers compete with the Play effect -- the same
+        # set `_run_play_trigger_check` fires. A creature's own passive
+        # registered as it entered (Tunk) isn't one, and with no Play effect
+        # there is nothing to order.
         pre_existing = [
-            t for t in self.active_effects.triggers_for("card_played") if t.controller == card.controller
+            t for t in self.active_effects.triggers_for("card_played")
+            if t.controller == card.controller and t.source_card is not card
         ]
-        if pre_existing:
+        if pre_existing and card.card_def.on_play is not None:
             order = yield from self.order_effects(
                 card.controller, ["effect", "check"], f"{card.name}: choose what resolves first", source_card=card,
             )
@@ -1951,6 +1998,9 @@ class Game:
     # ------------------------------------------------------------ destroy ----
 
     def check_destroyed(self, cards: List[Card]):
+        if self._redirected_hits:
+            cards = list(cards) + [c for c in self._redirected_hits if c not in cards]
+            self._redirected_hits.clear()
         to_destroy = []
         for c in cards:
             if c.destroyed or not isinstance(c.type_object, CreatureType):
@@ -1959,21 +2009,10 @@ class Game:
                 continue
             if c.type_object.damage >= self.get_power(c):
                 to_destroy.append(c)
-        # "Would be destroyed, instead X" replacements (Armageddon Cloak) get
-        # a chance to intercept before the normal destroy pipeline runs, one
-        # creature at a time -- each registered handler decides for itself
-        # whether it applies to that specific creature, and returns whether
-        # it fired.
-        still_to_destroy = []
-        for c in to_destroy:
-            intercepted = False
-            for e in self.active_effects.insteads_for("would_be_destroyed"):
-                if e.handler(self, c):
-                    intercepted = True
-                    break
-            if not intercepted:
-                still_to_destroy.append(c)
-        destroyed = yield from self.destroy_cards(still_to_destroy)
+        # `destroy_cards` itself checks "would be destroyed, instead X"
+        # replacements (Armageddon Cloak) -- every path that destroys a
+        # card, damage-lethality or direct, funnels through it.
+        destroyed = yield from self.destroy_cards(to_destroy)
         return destroyed
 
     def put_creature_into_play_from_hand(self, player_id: int, card: Card, flank: Optional[str] = None, ready: bool = False) -> bool:
@@ -2029,6 +2068,26 @@ class Game:
         return True
 
     def destroy_cards(self, cards: List[Card]):
+        # "Would be destroyed, instead X" replacements (Armageddon Cloak) get
+        # a chance to intercept before anything is actually destroyed, one
+        # card at a time -- each registered handler decides for itself
+        # whether it applies to that specific card, and returns whether it
+        # fired. This runs here, not in `check_destroyed`, so it covers
+        # EVERY path that destroys a card -- damage-lethality (check_
+        # destroyed) as well as a direct `game.destroy_cards(...)` call from
+        # dozens of card effects across every house (Begone!, EMP Blast, ...).
+        insteads = self.active_effects.insteads_for("would_be_destroyed")
+        if insteads:
+            survivors = []
+            for c in cards:
+                intercepted = False
+                for e in insteads:
+                    if e.handler(self, c):
+                        intercepted = True
+                        break
+                if not intercepted:
+                    survivors.append(c)
+            cards = survivors
         batch = []
         for c in cards:
             # `.destroyed` only dedupes within one batch that's still being

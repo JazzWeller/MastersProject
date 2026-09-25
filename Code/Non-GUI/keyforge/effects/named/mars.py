@@ -43,22 +43,13 @@ def emp_blast(game, card):
     for t in stun_targets:
         steps.stun(game, t)
     artifacts = list(game.players[1].play_area.artifacts) + list(game.players[2].play_area.artifacts)
-    for a in artifacts:
-        owner = game.players[a.owner]
-        area = game.find_play_area(a)
-        if area is not None:
-            area.remove(a)
-            game.leave_play(a)
-            owner.discard.push(a)
-            game.log.add("destroyed", card=a.name, iid=a.instance_id, destination="discard")
-    return
-    yield
+    yield from game.destroy_cards(artifacts)
 
 
 def hypnotic_command(game, card):
     player = controller_of(game, card)
     opponent = opponent_of(game, card)
-    n = sum(1 for c in player.play_area.creatures if c.house == House.MARS)
+    n = sum(1 for c in player.play_area.creatures if game.get_effective_house(c) == House.MARS)
     if n == 0 or not opponent.play_area.creatures:
         steps.shortfall(game, card, "does nothing: no friendly Mars creature or no enemy creature", "Nothing to capture")
         return
@@ -95,7 +86,11 @@ def key_abduction(game, card):
     )
     if not do_it:
         return
-    modifier = max(0, 9 - len(player.hand))
+    # `forge_key` itself floors the final cost at 0 -- don't pre-clamp the
+    # modifier here, or a hand of 10+ cards (plausible after this very card
+    # just returned every Mars creature) couldn't push the cost below the
+    # printed current cost the way "reduced by 1Æ per card" implies.
+    modifier = 9 - len(player.hand)
     yield from game.forge_key(player.id, cost_modifier=modifier, source=card)
 
 
@@ -115,7 +110,8 @@ def martian_hounds(game, card):
 
 def martians_make_bad_allies(game, card):
     player = controller_of(game, card)
-    game.reveal_hand(3 - player.id, player.id, source=card)
+    opponent = opponent_of(game, card)
+    game.reveal_hand(player.id, opponent.id, source=card)
     targets = [c for c in player.hand.cards() if c.type == CardType.CREATURE and c.house != House.MARS]
     for t in targets:
         steps.purge(game, t)
@@ -163,7 +159,7 @@ def mating_season(game, card):
 
 def mothership_support(game, card):
     player = controller_of(game, card)
-    n = sum(1 for c in player.play_area.creatures if c.house == House.MARS and not c.Exhausted)
+    n = sum(1 for c in player.play_area.creatures if game.get_effective_house(c) == House.MARS and not c.Exhausted)
     if n == 0:
         steps.shortfall(game, card, "deals no damage: there is no friendly ready Mars creature", "No ready Mars creature")
         return
@@ -209,7 +205,7 @@ def phosphorus_stars(game, card):
 
 def psychic_network(game, card):
     player = controller_of(game, card)
-    n = sum(1 for c in player.play_area.creatures if c.house == House.MARS and not c.Exhausted)
+    n = sum(1 for c in player.play_area.creatures if game.get_effective_house(c) == House.MARS and not c.Exhausted)
     steps.steal(game, opponent_of(game, card), player, n, source=card)
     return
     yield
@@ -465,10 +461,15 @@ def swap_widget(game, card):
         source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY,
     )
     returning = choice[0]
+    # "Return ... to your hand" is mandatory (no "may"); "If you do, put ..."
+    # only conditions the second half on whether the return happened, not on
+    # whether a differently-named replacement is available in hand.
+    if not steps.return_to_hand(game, returning):
+        return
     hand_options = [c for c in player.hand.cards() if c.house == House.MARS and c.type == CardType.CREATURE and c.name != returning.name]
     if not hand_options:
+        steps.shortfall(game, card, "puts nothing into play: your hand has no differently-named Mars creature", "No replacement")
         return
-    steps.return_to_hand(game, returning)
     choice2 = yield from game.choose_cards(
         player.id, f"{card.name}: choose a differently-named Mars creature to put into play", hand_options, 1, 1,
         source_card=card, intent=DecisionIntent.PLAY, affects=Affects.FRIENDLY,
@@ -570,7 +571,7 @@ def mindwarper_action(game, card):
 def phylyx_the_disintegrator_action(game, card):
     player = controller_of(game, card)
     opponent = opponent_of(game, card)
-    n = sum(1 for c in player.play_area.creatures if c.house == House.MARS and c is not card)
+    n = sum(1 for c in player.play_area.creatures if game.get_effective_house(c) == House.MARS and c is not card)
     steps.lose(game, opponent, n)
     return
     yield
@@ -599,9 +600,18 @@ def tunk_register(game, card):
 
 def ulyq_megamouth_after(game, card):
     player = controller_of(game, card)
-    options = [c for c in player.play_area.creatures if c.house != House.MARS]
+    # Only creatures that can actually be used: picking an exhausted one (or
+    # one past the rule of six) would silently waste the trigger, same as
+    # Dominator Bauble.
+    options = [
+        c for c in player.play_area.creatures
+        if c.house != House.MARS and not c.Exhausted and game._rule_of_six_ok(player, c.name)
+    ]
     if not options:
-        steps.shortfall(game, card, "does nothing: there is no friendly non-Mars creature in play", "No non-Mars creature")
+        if any(c.house != House.MARS for c in player.play_area.creatures):
+            steps.shortfall(game, card, "does nothing: every friendly non-Mars creature is exhausted (or already used 6 times this turn)", "No usable non-Mars creature")
+        else:
+            steps.shortfall(game, card, "does nothing: there is no friendly non-Mars creature in play", "No non-Mars creature")
         return
     choice = yield from game.choose_cards(
         player.id, f"{card.name}: choose a friendly non-Mars creature to use", options, 1, 1,
@@ -626,8 +636,9 @@ def uxlyx_the_zookeeper_after(game, card):
 
 def vezyma_thinkdrone_after(game, card):
     player = controller_of(game, card)
+    # Printed text has no "another" qualifier -- Vezyma Thinkdrone may
+    # archive itself.
     options = list(player.play_area.creatures) + list(player.play_area.artifacts)
-    options = [c for c in options if c is not card]
     if not options:
         return
     do_it = yield from game.yes_no(
@@ -658,7 +669,7 @@ def yxili_marauder_register(game, card):
 
 def yxili_marauder_play(game, card):
     player = controller_of(game, card)
-    n = sum(1 for c in player.play_area.creatures if c.house == House.MARS and not c.Exhausted)
+    n = sum(1 for c in player.play_area.creatures if game.get_effective_house(c) == House.MARS and not c.Exhausted)
     if n == 0:
         steps.shortfall(game, card, "captures nothing: there is no friendly ready Mars creature", "No ready Mars creature")
         return
@@ -676,11 +687,15 @@ def yxilo_bolter_after(game, card):
         card.controller, f"{card.name}: choose a creature", options, 1, 1,
         source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
     )
-    target = choice[0]
-    steps.deal_damage(game, target, 2)
-    if target.type_object.damage >= game.get_power(target):
-        target.destined_zone = "purged"
-    yield from game.check_destroyed([target])
+    # `deal_damage` returns whoever actually took the hit -- a redirect
+    # (Shadow Self) can mean that isn't `choice[0]` -- so the purge check
+    # and the destroy check below must both key off the return value.
+    hit = steps.deal_damage(game, choice[0], 2)
+    if hit is None:
+        return
+    if hit.type_object.damage >= game.get_power(hit):
+        hit.destined_zone = "purged"
+    yield from game.check_destroyed([hit])
 
 
 def yxilx_dominator_register(game, card):
@@ -703,7 +718,7 @@ def zorg_before_fight(game, card, target):
 
 def zyzzix_the_many_after(game, card):
     player = controller_of(game, card)
-    options = player.hand.cards()
+    options = [c for c in player.hand.cards() if c.type == CardType.CREATURE]
     if not options:
         return
     do_it = yield from game.yes_no(
@@ -712,7 +727,7 @@ def zyzzix_the_many_after(game, card):
     if not do_it:
         return
     choice = yield from game.choose_cards(
-        player.id, f"{card.name}: choose a card to reveal", options, 1, 1,
+        player.id, f"{card.name}: choose a creature to reveal", options, 1, 1,
         source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY,
     )
     target = choice[0]
@@ -780,10 +795,12 @@ def _red_planet_ray_gun_effect(game, host_card):
         host_card.controller, f"{host_card.name}: choose a creature", options, 1, 1,
         source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
     )
-    target = choice[0]
-    n = sum(1 for c in game.all_creatures("any", host_card) if c.house == House.MARS)
-    steps.deal_damage(game, target, n)
-    yield from game.check_destroyed([target])
+    n = sum(1 for c in game.all_creatures("any", host_card) if game.get_effective_house(c) == House.MARS)
+    # `deal_damage` returns whoever actually took the hit -- a redirect
+    # (Shadow Self) can mean that isn't `choice[0]` -- so the destroy check
+    # must key off the return value.
+    hit = steps.deal_damage(game, choice[0], n)
+    yield from game.check_destroyed([hit] if hit is not None else [])
 
 
 def red_planet_ray_gun_register(game, card):

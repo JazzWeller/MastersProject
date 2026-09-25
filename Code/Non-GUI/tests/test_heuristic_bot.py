@@ -188,6 +188,22 @@ class TestHeuristicBotChooseCards(unittest.TestCase):
         )
         self.assertEqual(bot.decide(game.view_for(1), decision), [other_enemy])
 
+    def test_pawn_sacrifice_damages_enemies_before_its_own_creatures(self):
+        # Playtest fix plan, section 5: the bot used to rank every option by
+        # power, so "deal 3 to 2 creatures" hit its own big creatures.
+        game = new_game()
+        bot = HeuristicBot(seed=1)
+        own_big = put_creature(game, 1, "Krump")  # power 6
+        own_small = put_creature(game, 1, "Blypyp")  # power 2
+        enemy = put_creature(game, 2, "Snudge")  # power 4
+        pawn = make_card("Pawn Sacrifice", 1)
+        decision = Decision(
+            player=1, kind=DecisionKind.CHOOSE_CARDS, prompt="Pawn Sacrifice: choose 2 different creatures",
+            options=[own_big, own_small, enemy], min_n=2, max_n=2,
+            source_card=pawn, intent=DecisionIntent.DAMAGE, affects=Affects.ANY,
+        )
+        self.assertEqual(bot.decide(game.view_for(1), decision), [enemy, own_small])
+
 
 if __name__ == "__main__":
     unittest.main()

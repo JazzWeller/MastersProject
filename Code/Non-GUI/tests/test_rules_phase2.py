@@ -26,7 +26,7 @@ def drive_return(gen, answers=None):
             return stop.value
 
 from keyforge.cards.card import Card, CardDef
-from keyforge.effects import named, steps
+from keyforge.effects import generic, named, steps
 from keyforge.effects.effect_object import DurationEffect, InsteadEffect, INFINITE
 from keyforge.enums import CardType, House
 
@@ -404,6 +404,55 @@ class TestOwnerControllerAndBorrowedUse(unittest.TestCase):
             gen.send([other1])
         except StopIteration:
             pass
+
+
+class TestDamageRedirectFollowUp(unittest.TestCase):  # core-engine sweep, bug #4
+    def test_deal_damage_to_chosen_checks_lethality_on_the_actual_redirect_target(self):
+        # Shadow Self redirects damage dealt to a non-Specter neighbor to
+        # itself. `generic.deal_damage_to_chosen` (Punch, Cannon, Mighty
+        # Tiger, and most houses' own damage effects) must check "was this
+        # lethal" against whichever creature the damage actually landed on
+        # (Shadow Self, power 9), not the originally chosen target (its
+        # neighbor, power 4) -- `steps.deal_damage`'s return value.
+        game = new_game()
+        neighbor = put_creature(game, 1, "Charette", flank="left")  # power 4
+        shadow_self = put_creature(game, 1, "Shadow Self")  # power 9, redirect target
+        card = Card(_synthetic("Test Blaster", ctype=CardType.ACTION, on_play=generic.deal_damage_to_chosen(9)), 1)
+        drive(card.card_def.on_play(game, card), answers=[[neighbor]])
+        self.assertEqual(neighbor.type_object.damage, 0)
+        self.assertIn(neighbor, game.players[1].play_area.creatures)  # took no real damage: survives
+        # `shadow_self` took the redirected 9 damage (lethal, power 9) and
+        # was destroyed -- `reset_on_leave_play` zeroes its damage counter
+        # back out on the way to the discard pile, so play-area membership
+        # (not the now-reset damage counter) is what proves the fix worked.
+        self.assertNotIn(shadow_self, game.players[1].play_area.creatures)
+
+    def test_deal_damage_to_chosen_with_splash_checks_lethality_on_actual_hits(self):
+        # Battleline: main_target -- neighbor -- shadow_self. The chosen
+        # (main) target isn't adjacent to Shadow Self, so its hit isn't
+        # redirected; the SPLASH hit lands on `neighbor`, which IS adjacent
+        # to Shadow Self, so that one redirects to Shadow Self instead.
+        # Old code checked destroy on `[main_target, neighbor]` -- never on
+        # Shadow Self, which is the one that actually took lethal damage.
+        game = new_game()
+        p1 = game.players[1]
+        main_target = Card(_synthetic("Splash Main", power=6), 1)
+        p1.play_area.add_creature(main_target, flank="left")
+        neighbor = Card(_synthetic("Splash Neighbor", power=5), 1)
+        p1.play_area.add_creature(neighbor)
+        shadow_self = put_creature(game, 1, "Shadow Self")  # power 9
+        card = Card(
+            _synthetic("Test Splash Blaster", ctype=CardType.ACTION, on_play=generic.deal_damage_to_chosen_with_splash(4, 9)),
+            1,
+        )
+        drive(card.card_def.on_play(game, card), answers=[[main_target]])
+        self.assertEqual(main_target.type_object.damage, 4)
+        self.assertEqual(neighbor.type_object.damage, 0)  # splash redirected away from it
+        self.assertIn(main_target, p1.play_area.creatures)  # 4 < power 6: survives
+        self.assertIn(neighbor, p1.play_area.creatures)  # took no real damage: survives
+        # As above: shadow_self's damage counter is reset by leaving play,
+        # so membership is the proof, not a post-destruction damage read.
+        self.assertNotIn(shadow_self, p1.play_area.creatures)
 
 
 if __name__ == "__main__":

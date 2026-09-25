@@ -57,6 +57,18 @@ class TestMarsActions(unittest.TestCase):
         self.assertFalse(other_creature.stunned)
         self.assertNotIn(artifact, game.players[2].play_area.artifacts)
 
+    def test_emp_blast_destroys_artifacts_through_the_shared_pipeline(self):
+        # Must go through game.destroy_cards (not an ad hoc removal) so any
+        # captured Æmber on the artifact properly releases via the standard
+        # leave-play bookkeeping (and any future Destroyed: hook would fire).
+        game = new_game()
+        artifact = put_artifact(game, 2, "Hallowed Blaster")
+        artifact.aember_captured = 3
+        card = make_card("EMP Blast", 1)
+        run_hook(game, named.emp_blast, card)
+        self.assertIn(artifact, game.players[2].discard.cards())
+        self.assertEqual(game.players[1].aember, 3)  # captured Æmber released to the opponent
+
     def test_hypnotic_command_captures_from_targets_own_side(self):
         game = new_game()
         put_creature(game, 1, "Yxili Marauder")  # friendly Mars
@@ -89,6 +101,21 @@ class TestMarsActions(unittest.TestCase):
         self.assertIn(theirs_mars, game.players[2].hand.cards())
         self.assertEqual(game.players[1].keys, 1)
 
+    def test_key_abduction_reduction_can_go_below_the_base_cost(self):
+        # Base key cost is 6; +9 reduced by 1 per card in hand means a hand
+        # of 11+ cards should push the final cost BELOW 6, not just to 0
+        # bonus -- the modifier itself may go negative.
+        game = new_game()
+        p1 = game.players[1]
+        p1.hand.take_all()
+        for _ in range(11):
+            hand_card(game, 1, "Ammonia Clouds")
+        p1.aember = 20
+        card = make_card("Key Abduction", 1)
+        run_hook(game, named.key_abduction, card, answers=[True])
+        self.assertEqual(p1.keys, 1)
+        self.assertEqual(p1.aember, 20 - 4)  # max(0, 6 + (9 - 11)) == 4
+
     def test_martian_hounds_grants_counters_per_damaged_creature(self):
         game = new_game()
         target = put_creature(game, 1, "Drumble")
@@ -113,6 +140,16 @@ class TestMarsActions(unittest.TestCase):
         self.assertIn(mars_creature, p1.hand.cards())
         self.assertIn(action_card, p1.hand.cards())
         self.assertEqual(p1.aember, 1)
+
+    def test_martians_make_bad_allies_reveals_own_hand_not_opponents(self):
+        # "Reveal your hand" -- must reveal the caster's own hand to the
+        # opponent, not the opponent's hand to the caster.
+        game = new_game()
+        p1, p2 = game.players[1], game.players[2]
+        card = make_card("Martians Make Bad Allies", 1)
+        run_hook(game, named.martians_make_bad_allies, card)
+        self.assertIn(2, p1.hand_revealed_to)
+        self.assertNotIn(1, p2.hand_revealed_to)
 
     def test_mass_abduction_archives_damaged_enemies_returning_to_owner(self):
         game = new_game()
@@ -227,6 +264,18 @@ class TestMarsActions(unittest.TestCase):
         self.assertIn(ready, game.players[1].hand.cards())
         self.assertIn(exhausted, game.players[1].hand.cards())
 
+    def test_total_recall_returns_a_borrowed_creature_to_its_owners_hand(self):
+        # MRB 18.3 "Movement between zones" + the Faygin FAQ: a card leaving
+        # play goes to its owner's hand even when the text says "your hand".
+        game = new_game()
+        stolen = make_card("Drumble", owner=2, controller=1)
+        game.players[1].play_area.add_creature(stolen)
+        game._cards_by_id[stolen.instance_id] = stolen
+        card = make_card("Total Recall", 1)
+        run_hook(game, named.total_recall, card)
+        self.assertIn(stolen, game.players[2].hand.cards())
+        self.assertNotIn(stolen, game.players[1].hand.cards())
+
 
 class TestMarsArtifacts(unittest.TestCase):
     def test_combat_pheromones_lets_mars_creatures_be_used_off_house(self):
@@ -321,6 +370,17 @@ class TestMarsArtifacts(unittest.TestCase):
         self.assertIn(in_hand, game.players[1].play_area.creatures)
         self.assertFalse(in_hand.Exhausted)
 
+    def test_swap_widget_still_returns_with_no_replacement_in_hand(self):
+        # "Return ... to your hand" is mandatory; "If you do, put ..." only
+        # conditions the second half on the return happening, not on a
+        # replacement being available.
+        game = new_game()
+        widget = put_artifact(game, 1, "Swap Widget")
+        in_play = put_creature(game, 1, "Yxili Marauder")
+        run_hook(game, named.swap_widget, widget, answers=[[in_play]])
+        self.assertIn(in_play, game.players[1].hand.cards())
+        self.assertNotIn(in_play, game.players[1].play_area.creatures)
+
 
 class TestMarsCreatures(unittest.TestCase):
     def test_chuff_ape_enters_stunned_and_may_sacrifice_to_heal(self):
@@ -413,6 +473,17 @@ class TestMarsCreatures(unittest.TestCase):
         run_hook(game, named.ulyq_megamouth_after, ulyq, answers=[[other]])
         self.assertEqual(game.players[1].aember, 1)  # reaped by default
 
+    def test_ulyq_megamouth_does_not_offer_an_exhausted_non_mars_creature(self):
+        # Picking an exhausted creature would silently waste the trigger --
+        # it must be filtered out of the options, same as Dominator Bauble.
+        game = new_game()
+        ulyq = put_creature(game, 1, "Ulyq Megamouth")
+        exhausted = put_creature(game, 1, "Charette", exhausted=True)
+        before = game.players[1].aember
+        run_hook(game, named.ulyq_megamouth_after, ulyq)
+        self.assertEqual(game.players[1].aember, before)  # nothing usable, no-op
+        self.assertTrue(exhausted.Exhausted)
+
     def test_uxlyx_the_zookeeper_archives_an_enemy_returning_to_owner(self):
         game = new_game()
         zookeeper = put_creature(game, 1, "Uxlyx the Zookeeper")
@@ -427,6 +498,14 @@ class TestMarsCreatures(unittest.TestCase):
         other = put_creature(game, 1, "Charette")
         run_hook(game, named.vezyma_thinkdrone_after, thinkdrone, answers=[True, [other]])
         self.assertIn(other, game.players[1].archive.cards())
+
+    def test_vezyma_thinkdrone_may_archive_itself(self):
+        # Printed text has no "another" qualifier, unlike Chuff Ape's
+        # sacrifice -- Vezyma may target itself.
+        game = new_game()
+        thinkdrone = put_creature(game, 1, "Vezyma Thinkdrone")
+        run_hook(game, named.vezyma_thinkdrone_after, thinkdrone, answers=[True, [thinkdrone]])
+        self.assertIn(thinkdrone, game.players[1].archive.cards())
 
     def test_yxili_marauder_gets_power_from_its_own_aember(self):
         game = new_game()
@@ -486,6 +565,19 @@ class TestMarsCreatures(unittest.TestCase):
         self.assertIn(card_to_reveal, game.players[1].archive.cards())
         self.assertEqual(zyzzix.power_counters, 3)
 
+    def test_zyzzix_the_many_only_offers_creatures_to_reveal(self):
+        # "Reveal a CREATURE from your hand" -- an action/artifact/upgrade
+        # card in hand must not be a legal choice.
+        game = new_game()
+        game.players[1].hand.take_all()  # clear the starting hand
+        zyzzix = put_creature(game, 1, "Zyzzix the Many")
+        non_creature = hand_card(game, 1, "Squawker")
+        before = len(game.players[1].hand)
+        run_hook(game, named.zyzzix_the_many_after, zyzzix)
+        self.assertEqual(zyzzix.power_counters, 0)  # no legal target, no-op
+        self.assertIn(non_creature, game.players[1].hand.cards())
+        self.assertEqual(len(game.players[1].hand), before)
+
 
 class TestMarsUpgrades(unittest.TestCase):
     def test_biomatrix_backup_sends_host_to_archive_on_destroy(self):
@@ -512,6 +604,27 @@ class TestMarsUpgrades(unittest.TestCase):
         self.assertFalse(host.Exhausted)
         self.assertTrue(host.CanBeUsed)
         self.assertEqual(game.get_effective_house(host), House.MARS)
+
+    def test_mars_tallies_count_a_creature_rehoused_by_brain_stem_antenna(self):
+        # A "for each friendly ready Mars creature" tally (Psychic Network,
+        # here) must count a creature re-housed to Mars for the turn (Brain
+        # Stem Antenna), not just creatures printed Mars -- Milestone:
+        # core-engine sweep, bug #5.
+        game = new_game()
+        game.players[1].selected_house = House.MARS
+        host = put_creature(game, 1, "Charette", exhausted=True, can_be_used=False)  # Dis, not Mars
+        upgrade = make_card("Brain Stem Antenna", 1)
+        upgrade.type_object.host = host
+        host.type_object.upgrades.append(upgrade)
+        named.brain_stem_antenna_register(game, upgrade)
+        new_mars_creature = make_card("Yxili Marauder", 1)
+        game.players[1].play_area.add_creature(new_mars_creature)
+        drive(game._fire_event("card_played", {"player": 1, "card": new_mars_creature}))
+        self.assertFalse(host.Exhausted)  # readied by Brain Stem Antenna, and now effectively Mars
+        game.players[2].aember = 5
+        card = make_card("Psychic Network", 1)
+        run_hook(game, named.psychic_network, card)
+        self.assertEqual(game.players[1].aember, 1)  # only `host` is ready -- new_mars_creature entered exhausted
 
     def test_jammer_pack_raises_opponent_key_cost(self):
         game = new_game()

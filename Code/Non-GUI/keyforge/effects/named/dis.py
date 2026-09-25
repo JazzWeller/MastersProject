@@ -529,8 +529,17 @@ def overlord_greking_on_destroyed_fighting(game, survivor, victim):
 
 
 def stealer_of_souls_on_destroyed_fighting(game, survivor, victim):
-    if steps.purge(game, victim):
-        steps.gain(game, game.players[survivor.controller], 1)
+    # Confirmed ruling (Bad Penny vs. Stealer of Souls): the creature's own
+    # "Destroyed:" ability resolves first and can redirect it out of the
+    # discard pile (e.g. Bad Penny returns to hand) before this trigger
+    # runs, in which case there's nothing left here to purge -- but the
+    # Æmber gain still happens either way, since the creature was still
+    # destroyed. Same reasoning already applied to Overlord Greking above
+    # (`owner.discard.remove(victim)` there).
+    owner = game.players[victim.owner]
+    if victim in owner.discard.cards():
+        steps.purge(game, victim)
+    steps.gain(game, game.players[survivor.controller], 1)
     return
     yield
 

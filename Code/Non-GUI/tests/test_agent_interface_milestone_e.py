@@ -239,6 +239,20 @@ class TestGameCopy(unittest.TestCase):
 
         self.assertEqual(game.state_hash(), before)
 
+    def test_no_mutable_player_container_is_shared_with_the_copy(self):
+        """`_copy_player` starts from a shallow `__dict__` copy, so any
+        dict/list/set attribute it forgets to rebuild ends up shared between
+        branches (ExtraHousePlayable once was). This fails for a new
+        container field the moment one is added to Player."""
+        config = GameConfig(decks=("fignor", "igor"), seed=4, max_turns=60)
+        game = _play_to_boundary(config, n_decisions=10)
+        branch = game.copy()
+        for pid, old in game.players.items():
+            new = branch.players[pid]
+            for name, value in vars(old).items():
+                if isinstance(value, (dict, list, set)):
+                    self.assertIsNot(getattr(new, name), value, f"Player.{name} is shared between the game and its copy")
+
     def test_end_of_turn_cleanups_resolve_independently_per_branch(self):
         """A converted cleanup (Milestone E2's own motivating example)
         looked up by instance_id against each game's OWN `_cards_by_id` --

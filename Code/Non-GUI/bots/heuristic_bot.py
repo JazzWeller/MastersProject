@@ -337,9 +337,14 @@ class HeuristicBot(Controller):
 
     def _target_destroy(self, view, decision, cards, mine):
         # A forced self-destroy (bouncing_deathquark's friendly half, e.g.)
-        # gives up the least; anything else takes the most dangerous target.
-        reverse = decision.affects != Affects.FRIENDLY
-        return self._take_n(decision, sorted(cards, key=_power, reverse=reverse))
+        # gives up the least; anything else takes the most dangerous enemy
+        # first, and only then (Pawn Sacrifice's "2 creatures" with one
+        # enemy left) the least valuable friendly one.
+        if decision.affects == Affects.FRIENDLY:
+            return self._take_n(decision, sorted(cards, key=_power))
+        theirs = sorted((c for c in cards if id(c) not in mine), key=_power, reverse=True)
+        own = sorted((c for c in cards if id(c) in mine), key=_power)
+        return self._take_n(decision, theirs + own)
 
     def _target_stun(self, view, decision, cards, mine):
         theirs = [c for c in cards if id(c) not in mine and not c.stunned]

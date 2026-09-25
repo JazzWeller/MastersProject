@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Dict, Optional
 
 from .effects.effect_object import ActiveEffectList
+from .enums import House
 from .zones import Archive, Deck, DiscardPile, Hand, PurgedZone, PlayArea
 
 
@@ -32,6 +33,7 @@ class Player:
         self.DrawUpToLimit = 6
         self.KeyForgeCost = 6
         self.NonLogosCardsPlayable = 0
+        self.ExtraHousePlayable: Dict[House, int] = {}  # house -> off-house cards of THAT house playable this turn (Witch of the Wilds: Untamed only, narrower than NonLogosCardsPlayable's any-house allowance)
         self.HouseSelection = None  # forced house, or None
         self.ReapGainBecomesSteal = False  # Dimension Door: reap gain is stolen from the opponent instead
         self.CanFight = True  # Foggify: cannot use creatures to fight
@@ -89,6 +91,13 @@ class Player:
 
     def get_non_logos_cards_playable(self, game) -> int:
         return max(0, self._apply(game, "NonLogosCardsPlayable", self.NonLogosCardsPlayable))
+
+    def get_extra_house_playable(self, house: House) -> int:
+        """Off-house cards of `house` specifically playable this turn, on
+        top of the active house (Witch of the Wilds: "you may play one
+        Untamed card that is not in your active house" -- narrower than
+        NonLogosCardsPlayable's blanket any-non-Logos-house allowance)."""
+        return max(0, self.ExtraHousePlayable.get(house, 0))
 
     def get_house_selection(self, game):
         return self._apply(game, "HouseSelection", self.HouseSelection)
@@ -171,6 +180,7 @@ class Player:
         self.cards_played_or_discarded_this_turn = 0
         self.hand_plays_this_turn = 0
         self.NonLogosCardsPlayable = 0
+        self.ExtraHousePlayable = {}
         self.selected_house = None
         self.HouseSelection = None
         self.archive_choice_made_this_turn = False

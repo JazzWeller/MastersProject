@@ -17,6 +17,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, List, Optional
 
+from sim import data_root
+
 _FILENAME_RE = re.compile(r"^(\d{6})_([0-9a-f]{16})\.ckpt$")
 
 
@@ -35,8 +37,9 @@ class CheckpointRegistry:
     identical in content."""
 
     def __init__(self, directory: str):
-        self._dir = directory
-        os.makedirs(directory, exist_ok=True)
+        # A relative directory lands under the data root (sim.data_root).
+        self._dir = data_root.resolve(directory)
+        os.makedirs(self._dir, exist_ok=True)
 
     def _entries(self) -> List[Checkpoint]:
         out = []
@@ -58,7 +61,9 @@ class CheckpointRegistry:
     def load(self, checkpoint: Checkpoint) -> Any:
         with open(checkpoint.path, "rb") as f:
             payload = f.read()
-        if hashlib.sha256(payload).hexdigest() != checkpoint.content_hash:
+        # A Checkpoint listed from disk only knows the 16-digit prefix its
+        # filename carries; one returned by save() knows the full hash.
+        if not hashlib.sha256(payload).hexdigest().startswith(checkpoint.content_hash):
             raise ValueError(f"checkpoint {checkpoint.path!r} content hash does not match its filename -- corrupted?")
         return pickle.loads(payload)
 
@@ -72,3 +77,12 @@ class CheckpointRegistry:
 
     def list(self) -> List[Checkpoint]:
         return self._entries()
+
+    def find(self, content_hash: str) -> Optional[Checkpoint]:
+        """The newest checkpoint whose content hash starts with
+        `content_hash` (at least 16 hex digits, as filenames carry). Records
+        name checkpoints this way rather than by absolute path, which
+        differs between Windows and WSL."""
+        prefix = content_hash[:16]
+        matches = [c for c in self._entries() if c.content_hash.startswith(prefix)]
+        return matches[-1] if matches else None

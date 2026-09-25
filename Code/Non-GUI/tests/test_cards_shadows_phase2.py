@@ -34,16 +34,26 @@ class TestShadowsPhase2(unittest.TestCase):
         self.assertIn(target, game.players[2].play_area.creatures)
         self.assertEqual(p1.aember, 0)
 
-    def test_imperial_traitor_reveals_hand_and_never_finds_a_sanctum_card(self):
+    def test_imperial_traitor_reveals_hand_and_finds_no_target_without_a_sanctum_card(self):
         game = new_game()
         p2 = game.players[2]
-        hand_card(game, 2, "Charette")
+        hand_card(game, 2, "Charette")  # Mars, not Sanctum
         before = len(p2.hand)
         card = make_card("Imperial Traitor", 1)
         run_hook(game, named.imperial_traitor, card)
         events = [e for e in game.log.events if e.kind == "reveal_hand"]
         self.assertEqual(events[-1].data["player"], 2)
-        self.assertEqual(len(p2.hand), before)  # nothing purged: no Sanctum house exists in this pool
+        self.assertEqual(len(p2.hand), before)
+
+    def test_imperial_traitor_may_purge_a_sanctum_card_from_opponent_hand(self):
+        game = new_game()
+        p2 = game.players[2]
+        sanctum_card = hand_card(game, 2, "Begone!")
+        other_card = hand_card(game, 2, "Charette")
+        card = make_card("Imperial Traitor", 1)
+        run_hook(game, named.imperial_traitor, card, answers=[[sanctum_card]])
+        self.assertNotIn(sanctum_card, p2.hand.cards())
+        self.assertIn(other_card, p2.hand.cards())
 
     def test_key_of_darkness_uses_plus_6_when_opponent_has_aember(self):
         game = new_game()
