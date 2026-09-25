@@ -238,6 +238,12 @@ class Game:
         # `Game.copy()` can copy a plain tuple; it can't rebind a closure
         # over a specific Card the way replaying naturally would).
         self._end_of_turn_cleanups: List[Tuple[str, Optional[int]]] = []
+        # Creatures that took redirected damage (Shadow Self) since the last
+        # `check_destroyed`: that call destroy-checks them too, so an effect
+        # that only checks the creature it chose still destroys the one that
+        # actually took the damage (MRB 18.3 FAQ, Shadow Self / Special
+        # Delivery).
+        self._redirected_hits: List[Card] = []
         self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
         # Populated once in _setup: the decklist never changes mid-game, so
         # player_houses() doesn't need to recompute it on every call.
@@ -522,6 +528,7 @@ class Game:
 
         new.active_effects = _copy_active_effects(self.active_effects, card_remap)
         new._end_of_turn_cleanups = list(self._end_of_turn_cleanups)
+        new._redirected_hits = [card_remap.get(id(c), c) for c in self._redirected_hits]
         new._temp_control = {
             source_iid: [(card_remap.get(id(c), c), orig_pid) for c, orig_pid in entries]
             for source_iid, entries in self._temp_control.items()
@@ -1204,6 +1211,23 @@ class Game:
             and self.players[pid].cards_played_or_discarded_this_turn >= 1
         )
 
+    @staticmethod
+    def _uses_play_allowance(gate: "_PlayGate", card: Card) -> bool:
+        """True if playing `card` would spend an off-house allowance (Phase
+        Shift: any non-Logos card; Witch of the Wilds: an Untamed card).
+        Such an allowance also lifts the First Turn Rule for the card it
+        permits (MRB 18.3 General FAQ, "First Turn Rule": playing Phase
+        Shift lets the first player play another card)."""
+        if card.house == gate.house:
+            return False
+        return (
+            (card.house != House.LOGOS and gate.non_logos_allowance > 0)
+            or gate.extra_house_playable.get(card.house, 0) > 0
+        )
+
+    def _has_play_allowance(self, player: Player) -> bool:
+        return player.get_non_logos_cards_playable(self) > 0 or any(v > 0 for v in player.ExtraHousePlayable.values())
+
     def _build_play_gate(self, pid: int) -> "_PlayGate":
         """The player-wide facts `why_not_playable`/`_is_playable_fast` both
         check, computed once instead of once per hand card (Milestone L:
@@ -1267,9 +1291,9 @@ class Game:
             return "Not in hand"
         if pid != self.active_player_id or player.selected_house is None:
             return "Not your turn"
-        if self.first_turn_limited(pid):
-            return "First turn: you may play or discard only one card"
         gate = self._build_play_gate(pid)
+        if self.first_turn_limited(pid) and not self._uses_play_allowance(gate, card):
+            return "First turn: you may play or discard only one card"
         if self._is_playable_fast(gate, card, player):
             return None
         if not gate.can_play_cards:
@@ -1376,12 +1400,14 @@ class Game:
         actions = []
         limited_now = self.first_turn_limited(pid)
 
-        if not limited_now:
+        if not limited_now or self._has_play_allowance(player):
             gate = self._build_play_gate(pid)
             for card in player.hand.cards():
+                if limited_now and not self._uses_play_allowance(gate, card):
+                    continue
                 if self._is_playable_fast(gate, card, player):
                     actions.append(PlayCard(card))
-                if house is not None and card.house == house:
+                if not limited_now and house is not None and card.house == house:
                     actions.append(DiscardCard(card))
 
         cannot_use = player.get_cannot_use_cards(self)
@@ -1967,6 +1993,9 @@ class Game:
     # ------------------------------------------------------------ destroy ----
 
     def check_destroyed(self, cards: List[Card]):
+        if self._redirected_hits:
+            cards = list(cards) + [c for c in self._redirected_hits if c not in cards]
+            self._redirected_hits.clear()
         to_destroy = []
         for c in cards:
             if c.destroyed or not isinstance(c.type_object, CreatureType):

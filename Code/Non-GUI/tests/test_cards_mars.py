@@ -264,19 +264,17 @@ class TestMarsActions(unittest.TestCase):
         self.assertIn(ready, game.players[1].hand.cards())
         self.assertIn(exhausted, game.players[1].hand.cards())
 
-    def test_total_recall_returns_to_controllers_hand_not_owners(self):
-        # "Return each friendly creature to YOUR hand" means Total Recall's
-        # controller's hand, not necessarily each returned creature's own
-        # owner (e.g. after a control-changing effect like Dis's Control
-        # the Weak) -- Milestone: core-engine sweep, bug #3.
+    def test_total_recall_returns_a_borrowed_creature_to_its_owners_hand(self):
+        # MRB 18.3 "Movement between zones" + the Faygin FAQ: a card leaving
+        # play goes to its owner's hand even when the text says "your hand".
         game = new_game()
         stolen = make_card("Drumble", owner=2, controller=1)
         game.players[1].play_area.add_creature(stolen)
         game._cards_by_id[stolen.instance_id] = stolen
         card = make_card("Total Recall", 1)
         run_hook(game, named.total_recall, card)
-        self.assertIn(stolen, game.players[1].hand.cards())
-        self.assertNotIn(stolen, game.players[2].hand.cards())
+        self.assertIn(stolen, game.players[2].hand.cards())
+        self.assertNotIn(stolen, game.players[1].hand.cards())
 
 
 class TestMarsArtifacts(unittest.TestCase):

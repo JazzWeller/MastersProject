@@ -280,7 +280,7 @@ def total_recall(game, card):
     ready_count = sum(1 for c in player.play_area.creatures if not c.Exhausted)
     steps.gain(game, player, ready_count)
     for c in list(player.play_area.creatures):
-        steps.return_to_hand(game, c, to_player=card.controller)
+        steps.return_to_hand(game, c)
     return
     yield
 

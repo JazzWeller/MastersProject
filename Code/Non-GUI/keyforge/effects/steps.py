@@ -225,6 +225,7 @@ def deal_damage(game, creature, amount: int, ignore_armor: bool = False):
             "damage_redirected", card=creature.name, iid=creature.instance_id,
             to=target.name, to_iid=target.instance_id, amount=remaining,
         )
+        game._redirected_hits.append(target)
     target.type_object.damage += remaining
     return target
 
@@ -292,15 +293,13 @@ def sacrifice(game, card):
     return card in destroyed
 
 
-def return_to_hand(game, card, to_player: int = None) -> bool:
-    """Returns `card` from play to a hand -- its OWNER's by default (Key
-    Abduction: "return ... to its owner's hand"), or `to_player`'s hand when
-    given. Most "return to YOUR hand" card text (Wardrummer, Total Recall)
-    means the ability's controller, which is normally the same player as
-    the owner but can differ after a control-changing effect (Dis's Control
-    the Weak) -- pass `to_player=card.controller` (or the acting player's
-    id) for that wording instead of leaving this at the owner default."""
-    receiver = game.players[to_player] if to_player is not None else game.players[card.owner]
+def return_to_hand(game, card) -> bool:
+    """Returns `card` from play to its OWNER's hand -- always, even when the
+    card text says "your hand" (Wardrummer, Total Recall): MRB 18.3
+    "Movement between zones" puts a card leaving play in its owner's zone
+    unless the ability explicitly names another zone, and the Faygin FAQ
+    applies that to exactly this wording."""
+    receiver = game.players[card.owner]
     area = game.find_play_area(card)
     if area is None or not area.remove(card):
         return False
