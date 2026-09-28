@@ -231,6 +231,7 @@ def load_model(source, *, device="cpu", strict_engine: bool = False, net_overrid
     model_sd = {k[len("model.") :]: v for k, v in tensors.items() if k.startswith("model.")}
     if new_v > saved_v:
         model_sd = grow_vocabulary(model_sd, saved_v, new_v)
+    zero_newer_inputs(model_sd, int(stamp.get("feature_minor", 0)), int(net_cfg["card_embed"]))
     model = KeyForgeNet(net_cfg, vocab_size=new_v)
     model.load_state_dict(model_sd)
     model.to(device)
@@ -246,6 +247,26 @@ def load_model(source, *, device="cpu", strict_engine: bool = False, net_overrid
             state.setdefault(int(pid), {})[name] = v
         opt = {"state": state, "param_groups": meta["optimizer"]["param_groups"], "grown_from": saved_v if new_v > saved_v else None}
     return model, meta, opt
+
+
+def zero_newer_inputs(sd: Dict[str, torch.Tensor], saved_minor: int, card_embed: int) -> None:
+    """Zeroes the input-weight columns of every feature added in a minor
+    version newer than the checkpoint's (`spec.MINOR_ADDITIONS`), so those
+    dimensions start out exactly inert -- the reserved-slot rule's promise
+    that an old checkpoint keeps working unchanged."""
+    targets = {
+        "option": ("option_in.weight", 0, spec.OPTION),
+        "global": ("global_in.weight", 0, spec.GLOBAL),
+        "entity": ("entity_in.weight", card_embed + spec.STATIC.width, spec.ENTITY),
+        "static": ("entity_in.weight", card_embed, spec.STATIC),
+    }
+    for minor, additions in spec.MINOR_ADDITIONS.items():
+        if minor <= saved_minor:
+            continue
+        for block_name, field in additions:
+            key, base, block = targets[block_name]
+            off, width = block.span(field)
+            sd[key][:, base + off : base + off + width] = 0.0
 
 
 def grow_vocabulary(sd: Dict[str, torch.Tensor], old_v: int, new_v: int) -> Dict[str, torch.Tensor]:

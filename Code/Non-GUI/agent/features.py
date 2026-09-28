@@ -53,6 +53,7 @@ from keyforge.infoset import (
     IP_STUNNED,
     IP_ARMOR_NEGATED,
     VERB,
+    ZONE,
     InfoSet,
 )
 
@@ -277,7 +278,34 @@ def _encode_player(p: tuple, out: array, base: int) -> None:
             out[base + j] = float(v) / scale
 
 
-def _encode_option(entry: tuple, out: array, base: int) -> None:
+_HOUSE_OF_NAME = {name: HOUSE_INDEX[cdef.house] for name, cdef in CARD_DEFS.items()}
+_Z_MY_HAND = ZONE["my_hand"]
+_Z_MY_CREATURE = ZONE["my_creature"]
+_Z_MY_ARTIFACT = ZONE["my_artifact"]
+
+
+def _house_context(info: InfoSet) -> list:
+    """Per house: [my hand cards, my creatures, my ready creatures, my
+    artifacts] of that house (effective house for cards in play)."""
+    ctx = [[0, 0, 0, 0] for _ in HOUSE_INDEX]
+    zones = info.zones
+    for i, name in enumerate(info.entity_names):
+        z = zones[i]
+        if z == _Z_MY_HAND:
+            ctx[_HOUSE_OF_NAME[name]][0] += 1
+        elif z == _Z_MY_CREATURE or z == _Z_MY_ARTIFACT:
+            t = info.inplay.get(i)
+            h = HOUSE_INDEX[t[IP_EFF_HOUSE]] if t is not None and t[IP_EFF_HOUSE] is not None else _HOUSE_OF_NAME[name]
+            if z == _Z_MY_CREATURE:
+                ctx[h][1] += 1
+                if t is not None and not t[IP_EXHAUSTED]:
+                    ctx[h][2] += 1
+            else:
+                ctx[h][3] += 1
+    return ctx
+
+
+def _encode_option(entry: tuple, out: array, base: int, house_ctx=None) -> None:
     verb, ptr, payload = entry
     out[base + _O["verb"] + verb] = 1.0
     if ptr >= 0:
@@ -285,7 +313,15 @@ def _encode_option(entry: tuple, out: array, base: int) -> None:
     if payload is None:
         return
     if verb == VERB["house"]:
-        out[base + _O["house"] + HOUSE_INDEX[payload]] = 1.0
+        h = HOUSE_INDEX[payload]
+        out[base + _O["house"] + h] = 1.0
+        if house_ctx is not None:
+            hand, creatures, ready, artifacts = house_ctx[h]
+            hc = base + _O["house_context"]
+            out[hc] = hand / 6.0
+            out[hc + 1] = creatures / 6.0
+            out[hc + 2] = ready / 6.0
+            out[hc + 3] = artifacts / 4.0
     elif verb == VERB["bool"]:
         out[base + _O["bool"]] = 1.0 if payload else 0.0
     elif verb == VERB["flank"]:
@@ -362,8 +398,9 @@ def encode(info: InfoSet, prefix: Optional[Sequence[int]] = None, *, with_stop: 
     ow = OPTION.width
     options = array("f", bytes(4 * ow * n_opts))
     pointers = array("b", [-1]) * n_opts
+    house_ctx = _house_context(info) if any(entry[0] == VERB["house"] for entry in info.options) else None
     for k, entry in enumerate(info.options):
-        _encode_option(entry, options, k * ow)
+        _encode_option(entry, options, k * ow, house_ctx)
         pointers[k] = entry[1]
     if with_stop:
         options[(n_opts - 1) * ow + _O["verb"] + spec.STOP_VERB] = 1.0

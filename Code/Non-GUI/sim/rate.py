@@ -154,3 +154,34 @@ def sprt(
     if llr <= lower_bound:
         return "H0"
     return None
+
+
+def bradley_terry_intervals(
+    results, *, anchor: Optional[str] = None, samples: int = 200, level: float = 0.95, seed: int = 0,
+) -> Dict[str, Tuple[float, float]]:
+    """Bootstrap confidence intervals for `bradley_terry` ratings: refit on
+    `samples` resamplings (with replacement) of the game list and take the
+    central `level` percentile band per competitor. Stdlib only, like the
+    rest of this module."""
+    import random as _random
+
+    games = list(results)
+    if not games:
+        return {}
+    rng = _random.Random(seed)
+    names = sorted({n for a, b, _s in games for n in (a, b)})
+    draws: Dict[str, List[float]] = {n: [] for n in names}
+    for _ in range(samples):
+        boot = [games[rng.randrange(len(games))] for _ in games]
+        fit = bradley_terry(boot, anchor=anchor, iterations=100)
+        for n in names:
+            if n in fit:
+                draws[n].append(fit[n].rating)
+    lo_q, hi_q = (1 - level) / 2, 1 - (1 - level) / 2
+    out = {}
+    for n, xs in draws.items():
+        if not xs:
+            continue
+        xs.sort()
+        out[n] = (xs[int(lo_q * (len(xs) - 1))], xs[int(hi_q * (len(xs) - 1))])
+    return out

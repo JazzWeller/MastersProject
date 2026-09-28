@@ -97,7 +97,12 @@ class NetAgent(BatchController):
         for i, (d, e) in enumerate(zip(decisions, encs)):
             if d.kind in _MULTI:
                 ordered = d.kind == DecisionKind.ORDER_EFFECTS
-                if self.multi_select == "enumerate":
+                if self.mode == "q":
+                    # DMC (M8) chooses from Q alone: per-option action
+                    # values, centred, through the top-k rule.
+                    reqs.append(Request(enc=e, head=HEAD_Q))
+                    slots.append((i, "q_multi", None))
+                elif self.multi_select == "enumerate":
                     cands = enumerate_candidates(ordered, len(d.options), d.min_n, d.max_n, self.enumerate_cap)
                     reqs.append(Request(enc=e, head=HEAD_SUBSET, candidates=cands, ordered=ordered))
                     slots.append((i, "subset", cands))
@@ -119,6 +124,13 @@ class NetAgent(BatchController):
             elif how == "subset":
                 picked = extra[self._pick(scores, True)]
                 choices[i] = [d.options[j] for j in picked]
+            elif how == "q_multi":
+                mean = sum(scores) / len(scores) if scores else 0.0
+                centred = [q - mean for q in scores]
+                if self.epsilon and self.rng.random() < self.epsilon:
+                    centred = [self.rng.uniform(-1, 1) for _ in centred]
+                idx = decode_topk(centred, d.kind == DecisionKind.ORDER_EFFECTS, d.min_n, d.max_n)
+                choices[i] = [d.options[j] for j in idx]
             else:
                 idx = decode_topk(scores, d.kind == DecisionKind.ORDER_EFFECTS, d.min_n, d.max_n)
                 choices[i] = [d.options[j] for j in idx]

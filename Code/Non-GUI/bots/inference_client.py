@@ -58,12 +58,18 @@ class InferenceClient(ABC):
 
 
 class InProcessInferenceClient(InferenceClient):
-    """Wraps a plain `observation -> (policy, value)` callable."""
+    """Wraps a plain `observation -> (policy, value)` callable -- or, if the
+    model exposes its own batched `predict_many` (any real network, e.g.
+    `ml.infer_server.TorchModel`), calls that once per batch instead, the
+    same way `InferenceServer` does."""
 
     def __init__(self, model: Callable[[Any], Prediction]):
         self._model = model
+        self._batched = getattr(model, "predict_many", None)
 
     def predict_many(self, observations: List[Any]) -> List[Prediction]:
+        if self._batched is not None:
+            return list(self._batched(observations))
         return [self._model(o) for o in observations]
 
 

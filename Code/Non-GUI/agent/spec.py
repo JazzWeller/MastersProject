@@ -43,7 +43,16 @@ from keyforge.enums import Affects, CardType, DecisionIntent, DecisionKind
 from keyforge.infoset import FLAG_BITS, HOUSES, VERB_NAMES, ZONE_NAMES
 
 FEATURE_VERSION = 1  # major: any non-reserved layout change
-FEATURE_MINOR = 0  # a reserved slot put to use
+FEATURE_MINOR = 1  # a reserved slot put to use -- 1: house-option context (OPTION.house_context)
+
+# Reserved slots put to use, per minor version: (block name, field name).
+# A checkpoint from an older minor version never trained on these inputs,
+# so `ml/checkpoints.py` zeroes their input weights on load -- the new
+# dimension then starts out exactly inert, and the old network's behaviour
+# is preserved until it's fine-tuned.
+MINOR_ADDITIONS = {
+    1: (("option", "house_context"),),
+}
 
 N_ENTITIES = 72
 CARDS_PER_PLAYER = 36
@@ -196,7 +205,11 @@ OPTION = Block("option", [
     ("flank", 2),
     ("first_player", 2),
     ("string", STRING_BUCKETS),
-    ("reserved_option", 8),
+    # Minor 1: a house option (CHOOSE_HOUSE / CHOOSE_HOUSE_FOR_EFFECT) has
+    # no entity to point at, so it carries what choosing it unlocks: my hand
+    # cards, creatures, ready creatures and artifacts of that house.
+    ("house_context", 4),
+    ("reserved_option", 4),
 ])
 STOP_VERB = len(VERB_NAMES)  # the sequential multi-select "stop here" pseudo-option
 

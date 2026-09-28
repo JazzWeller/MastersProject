@@ -14,6 +14,9 @@ answers a list of these with one `(scores, value)` pair each:
 - `HEAD_TOPK`: an independent logit per option.
 - `HEAD_Q`: a Deep Monte-Carlo action value per option (M8).
 - `HEAD_BELIEF`: per entity, P(in the opponent's hand) (M6).
+- `HEAD_ORACLE`: the oracle value head given a hypothesized hidden state:
+  `hidden` = (entity indices in the opponent's hand, entity indices of my
+  next draws) -- a *sample*, from the belief head, never the truth (M6).
 """
 
 from __future__ import annotations
@@ -29,6 +32,7 @@ HEAD_SEQUENTIAL = "sequential"
 HEAD_TOPK = "topk"
 HEAD_Q = "q"
 HEAD_BELIEF = "belief"
+HEAD_ORACLE = "oracle"
 
 
 @dataclass
@@ -39,3 +43,4 @@ class Request:
     ordered: bool = False
     prefix: Sequence[int] = field(default_factory=tuple)
     legal: Sequence[int] = field(default_factory=tuple)
+    hidden: Optional[Tuple[Tuple[int, ...], Tuple[int, ...]]] = None

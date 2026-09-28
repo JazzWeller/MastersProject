@@ -168,6 +168,25 @@ class TestCheckpoints(unittest.TestCase):
             with self.assertRaises(spec.FeatureVersionMismatch):
                 load_model(data)
 
+    def test_an_older_minor_checkpoint_loads_with_new_inputs_inert(self):
+        from ml.checkpoints import deserialize, load_model, save_model, serialize
+        from ml.model import KeyForgeNet
+
+        net = KeyForgeNet(_net_cfg())
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "x.kfc")
+            save_model(net, path)
+            with open(path, "rb") as f:
+                tensors, meta = deserialize(f.read())
+            meta["stamp"]["feature_minor"] = 0  # pretend it predates house_context
+            data, _ = serialize(tensors, {k: v for k, v in meta.items() if k != "weights_digest"})
+            old, _meta, _ = load_model(data)
+            off, w = spec.OPTION.span("house_context")
+            self.assertEqual(float(old.option_in.weight[:, off : off + w].abs().sum()), 0.0)
+            self.assertGreater(float(net.option_in.weight[:, off : off + w].abs().sum()), 0.0)
+            # Everything else is untouched.
+            self.assertTrue(torch.equal(old.option_in.weight[:, :off], net.option_in.weight[:, :off]))
+
     def test_optimizer_state_round_trips(self):
         from ml.checkpoints import load_model, save_model
         from ml.model import KeyForgeNet
@@ -254,8 +273,7 @@ class TestInferenceAndNetAgent(unittest.TestCase):
         from sim.paired import run_paired
 
         model = self._model()
-        client = InProcessInferenceClient(model)
-        client.predict_many = model.predict_many  # batched, as the server would
+        client = InProcessInferenceClient(model)  # uses model.predict_many: batched, as the server would
         for treatment in ("enumerate", "sequential", "topk"):
             with self.subTest(treatment=treatment):
                 agent = NetAgent(client, multi_select=treatment, seed=1)
@@ -301,6 +319,99 @@ class TestInferenceAndNetAgent(unittest.TestCase):
         rate = n * 512 / (time.perf_counter() - t0)
         print(f"\n[M2 throughput] {rate:,.0f} evaluations/sec at batch 512, fp16")
         self.assertGreater(rate, 2000)
+
+
+@unittest.skipUnless(TORCH, "torch is intentionally not installed for the rest of this suite")
+class TestSelfPlayLearner(unittest.TestCase):
+    """M7/M8: the learner's losses on real actor output, mirror
+    augmentation, and the gate's verdict rule."""
+
+    @classmethod
+    def setUpClass(cls):
+        from agent.selfplay import Actor, SelfPlaySettings
+        from bots.inference_client import InProcessInferenceClient
+        from ml.infer_server import TorchModel
+        from ml.model import KeyForgeNet
+
+        torch.manual_seed(0)
+        cls.net = KeyForgeNet(_net_cfg())
+        client = InProcessInferenceClient(TorchModel(cls.net, "cpu"))
+        cls.records = {}
+        for mode in ("search", "dmc"):
+            s = SelfPlaySettings(mode=mode, leaf="student", sims_full=6, sims_small=3, full_fraction=0.5, concurrency=2,
+                                 max_turns=14, leaves_in_flight=2)
+            recs = []
+            Actor(client, s, run_seed=1).play(range(2), recs.append)
+            cls.records[mode] = recs
+
+    def _positions(self, mode):
+        from ml.selfplay_train import Buffer
+
+        buf = Buffer(10_000, 100)
+        for r in self.records[mode]:
+            buf.add(r)
+        return buf.sample(48, random.Random(0))
+
+    def test_search_mode_losses_are_finite_and_train(self):
+        from ml.selfplay_train import losses_for
+
+        pos = self._positions("search")
+        total, L, stats = losses_for(self.net, pos, torch.device("cpu"), {"policy": 1, "value": 1, "belief": 0.25, "oracle": 0.25}, "search", True, random.Random(1))
+        self.assertTrue(torch.isfinite(total))
+        self.assertIn("value", L)
+        self.assertTrue({"policy", "multi"} & set(L))
+        total.backward()
+
+    def test_dmc_mode_regresses_q(self):
+        from ml.selfplay_train import losses_for
+
+        total, L, _ = losses_for(self.net, self._positions("dmc"), torch.device("cpu"), {"q": 1.0}, "dmc", False, random.Random(1))
+        self.assertIn("q", L)
+        self.assertTrue(torch.isfinite(total))
+
+    def test_mirror_is_an_involution_that_swaps_left_and_right(self):
+        from ml.encode import collate
+        from ml.selfplay_train import _FLANK_OFF, mirror
+
+        encs = [p["enc"] for p in self._positions("search")[:16]]
+        b0, b1 = collate(encs), collate(encs)
+        which = torch.ones(len(encs), dtype=torch.bool)
+        mirror(b1, which)
+        self.assertTrue(torch.equal(b1.inplay[..., _FLANK_OFF], b0.inplay[..., _FLANK_OFF + 1]))
+        mirror(b1, which)
+        self.assertTrue(torch.allclose(b1.inplay, b0.inplay))
+        self.assertTrue(torch.equal(b1.options, b0.options))
+
+    def test_gate_verdict_uses_sprt_then_a_fixed_n_fallback(self):
+        from ml.selfplay_train import gate_verdict
+        from sim.paired import PairedReport
+
+        self.assertEqual(gate_verdict(PairedReport(games=400, a_wins=300, b_wins=100, draws=0, forfeits=0)), "H1")
+        self.assertEqual(gate_verdict(PairedReport(games=40, a_wins=36, b_wins=4, draws=0, forfeits=0)), "H1")  # fixed-N: far past 2 SE
+        self.assertIsNone(gate_verdict(PairedReport(games=40, a_wins=21, b_wins=19, draws=0, forfeits=0)))
+
+
+@unittest.skipUnless(TORCH, "torch is intentionally not installed for the rest of this suite")
+class TestM11NetworkAgent(unittest.TestCase):
+    def test_a_network_plays_legal_keyforge_on_other_pools_and_formats(self):
+        from agent.agents.net_agent import NetAgent
+        from bots.inference_client import InProcessInferenceClient
+        from ml.infer_server import TorchModel
+        from ml.model import KeyForgeNet
+        from sim.driver import run_games
+
+        torch.manual_seed(2)
+        agent = NetAgent(InProcessInferenceClient(TorchModel(KeyForgeNet(_net_cfg()), "cpu")), seed=1)
+        rng = random.Random(9)
+        configs = [
+            GameConfig(decks=("stonewall", "starfall"), seed=1, max_turns=30),
+            GameConfig(decks=(random_deck(rng, "R1"), random_deck(rng, "R2")), seed=2, max_turns=30),
+            MatchConfig(format="adaptive", decks=("vigil", "thornwood"), seed=3, max_turns=30),
+            MatchConfig(format="reversal", decks=("fignor", "igor"), seed=4, max_turns=30),
+        ]
+        results = run_games(len(configs), lambda i: configs[i], lambda i: {1: agent, 2: RandomBot(seed=i)}, concurrency=4)
+        for r in results:
+            self.assertIsNone(r.forfeit, r.forfeit)
 
 
 if __name__ == "__main__":

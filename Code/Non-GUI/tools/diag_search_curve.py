@@ -6,6 +6,15 @@ fixed opponent. A flat curve rules out search-heavy designs; a steep one
 rules out search-free designs.
 
 Run from Code/Non-GUI: `python -m tools.diag_search_curve`
+
+**Agent Training Plan (M9)** version, the default from the command line:
+the M4/M5 `SearchAgent` at 1 / 10 / 100 / 1,000 simulations per decision
+(`--sims`), paired seeds against HeuristicBot, in parallel, with the mean
+seconds per searched decision at each level -- strength against compute,
+never a single number. The M9 decision rules read its shape: flat from 10
+to 100 makes search-free DMC the primary design; still steep at 1,000
+turns on the fast fork backend. `--agent rollout` keeps the interface
+plan's original DeterminizedRolloutBot version (`run`).
 """
 
 from __future__ import annotations
@@ -48,14 +57,41 @@ def run(
     return report
 
 
+def run_search_levels(regime: str = "within_turn", levels=(1, 10, 100, 1000), n_seeds: int = 50, workers: int = 8,
+                      first_seed: int = 4_000_000, max_turns: int = 200) -> List[dict]:
+    from sim.parallel_eval import AgentSpec, evaluate_parallel
+
+    name = "search-" + regime.replace("_", "-")
+    out = []
+    for sims in levels:
+        res = evaluate_parallel(AgentSpec.of(name, simulations=sims), AgentSpec.of("heuristic"),
+                                range(first_seed, first_seed + n_seeds), workers=workers, max_turns=max_turns)
+        res["simulations"] = sims
+        out.append(res)
+    return out
+
+
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--agent", choices=("search", "rollout"), default="search")
+    parser.add_argument("--regime", default="within_turn")
+    parser.add_argument("--sims", type=int, nargs="+", default=[1, 10, 100, 1000])
+    parser.add_argument("--seeds", type=int, default=50, help="paired seeds per level (search agent)")
+    parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--games", type=int, default=20)
     parser.add_argument("--samples", type=int, nargs="+", default=list(DEFAULT_SAMPLE_COUNTS))
     parser.add_argument("--max-turns", type=int, default=100)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--privileged", action="store_true", help="use the exact fork instead of a determinized one")
     args = parser.parse_args()
+    if args.agent == "search":
+        rows = run_search_levels(args.regime, args.sims, args.seeds, args.workers, max_turns=max(args.max_turns, 200))
+        print(f"SearchAgent ({args.regime}) vs HeuristicBot, {args.seeds} paired seeds x 4 games/level:\n")
+        for r in rows:
+            spd = r.get("mean_seconds_per_search") or 0.0
+            print(f"  {r['simulations']:>5} sims  {r['a_score']:.3f} +/- {r['standard_error']:.3f}"
+                  f"  ({spd * 1000:.0f} ms/search, {r['games']} games)")
+        return
 
     privilege = PrivilegeLevel.PRIVILEGED if args.privileged else PrivilegeLevel.SEARCH
     report = run(args.games, args.samples, args.max_turns, args.seed, privilege)

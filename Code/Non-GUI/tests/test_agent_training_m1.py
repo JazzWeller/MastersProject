@@ -291,7 +291,7 @@ class TestReservedSlots(unittest.TestCase):
         report = spec.reserved_report()
         self.assertEqual(report["entity"], 16)
         self.assertEqual(report["global"], 24)
-        self.assertEqual(report["option"], 8)
+        self.assertEqual(report["option"], 4)  # minor 1 used 4 for house_context
         self.assertGreaterEqual(report["keyword_bits"], 0)
         self.assertEqual(report["intents"], 8)
         for name, remaining in report.items():

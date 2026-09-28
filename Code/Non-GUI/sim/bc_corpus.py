@@ -92,6 +92,14 @@ def restricted_random_deck(rng: random.Random, name: str, excluded: frozenset = 
     raise ValueError("restricted_random_deck: no deck with a required card in 1000 draws")
 
 
+def fixed_deck_set(n: int, deck_seed=0, excluded: frozenset = frozenset()) -> list:
+    """`n` random legal decks, reproducible from `deck_seed` -- a deck set
+    with a different seed never shares a deck with this one except by
+    coincidence, which is what makes a held-out evaluation set clean by
+    construction (M11)."""
+    return [restricted_random_deck(random.Random(f"deckset|{deck_seed}|{k}"), f"D{deck_seed}-{k}", excluded) for k in range(n)]
+
+
 def held_out_cards(seed: int, fraction: float = 0.2) -> frozenset:
     """A reproducible set of cards held out of training for Screen 5."""
     names = sorted(CARD_DEFS)
@@ -110,6 +118,12 @@ def _decks_for(pool: dict, index: int, rng: random.Random, excluded: frozenset, 
             restricted_random_deck(rng, "R1", excluded, required),
             restricted_random_deck(rng, "R2", excluded, required),
         )
+    if source == "fixed_random":
+        # M11's held-out-deck experiment: games only ever use decks from a
+        # fixed, reproducible set of `n_decks` random decks.
+        deck_set = fixed_deck_set(int(pool["n_decks"]), pool.get("deck_seed", 0), excluded)
+        i, j = rng.randrange(len(deck_set)), rng.randrange(len(deck_set))
+        return deck_set[i], deck_set[j]
     if source == "alliance":
         presets = list(pool.get("alliance_sources") or ["fignor", "igor", "stonewall", "starfall", "vigil", "thornwood"])
         def one(label):
