@@ -420,7 +420,11 @@ def main():
                 run.journal("actor_restarted", game_index=games_done, worker=w, exit_code=code)
                 procs[w] = _start_actor(run, w, per_worker, args.port, args.mode)
                 alive += 1
-        if (args.no_actors or alive == 0) and allowed <= 0 and not new:
+        if server is not None and server.poll() is not None and alive:
+            run.journal("server_restarted", game_index=games_done, exit_code=server.returncode)
+            server = _start_server(store.path_of(best["checkpoint"]), args.port, best_json, os.path.join(run.root, "server.log"))
+        starved = buffer.size < int(sp["batch"])  # nothing more will ever arrive to fill a batch
+        if (args.no_actors or alive == 0) and (allowed <= 0 or starved) and not new:
             break
         if time.time() - t_last > 60:
             t_last = time.time()

@@ -47,6 +47,7 @@ class Player:
     simulations: int = 100
     resample: str = "all"
     mode: str = "policy"  # net: policy | q
+    quiet_leaves: bool = False
     bot: str = "heuristic"
     _client: Any = field(default=None, repr=False)
 
@@ -70,7 +71,7 @@ class _Cap:
 
 def _make_search(p: Player, seed: int) -> Search:
     policy = make_policy("heuristic", seed=seed)
-    regime = WithinTurn(policy) if p.regime == "within_turn" else FullGame(policy)
+    regime = WithinTurn(policy) if p.regime == "within_turn" else FullGame(policy, quiet_leaves=p.quiet_leaves)
     settings = SearchSettings(simulations=p.simulations, resample=Resample(p.resample), reuse=False)
     leaf = p.leaf if p.model is not None else "heuristic"
     return Search(regime, make_evaluator(leaf, seed=seed), policy, settings, seed=seed)

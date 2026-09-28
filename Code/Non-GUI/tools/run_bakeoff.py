@@ -101,13 +101,14 @@ def stage_diagnostics(d: str, args) -> dict:
     path = os.path.join(d, "diagnostics.json")
     diag = _load(path, {})
     for regime in ARMS:
+        extra = {"quiet_leaves": True} if (regime == "full_game" and args.quiet_leaves) else {}
         key = f"hidden_{regime}"
         if key not in diag:
-            diag[key] = run_search_conditions(regime, args.diag_sims, args.diag_seeds, args.workers)
+            diag[key] = run_search_conditions(regime, args.diag_sims, args.diag_seeds, args.workers, **extra)
             _save(path, diag)
         key = f"curve_{regime}"
         if key not in diag:
-            diag[key] = run_search_levels(regime, args.curve_levels, args.diag_seeds, args.workers)
+            diag[key] = run_search_levels(regime, args.curve_levels, args.diag_seeds, args.workers, **extra)
             _save(path, diag)
     decisions = {r: decide(diag[f"hidden_{r}"], diag[f"curve_{r}"]) for r in ARMS}
     _save(os.path.join(d, "decisions.json"), decisions)
@@ -205,7 +206,8 @@ def build_players(args, decisions: dict):
         for play in play_regimes:
             for leaf in leaves:
                 players.append(Player(f"train={arm}/{key.split('/')[1]} play={play} leaf={leaf}", "search", model(ckpt),
-                                      regime=play, leaf=leaf, simulations=args.sims))
+                                      regime=play, leaf=leaf, simulations=args.sims,
+                                      quiet_leaves=args.quiet_leaves and play == "full_game"))
     return players
 
 
@@ -280,6 +282,7 @@ def main():
     parser.add_argument("--concurrency", type=int, default=64)
     parser.add_argument("--bootstrap", type=int, default=200)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--quiet-leaves", action="store_true", help="full-game search evaluates leaves at the end of their turn")
     args = parser.parse_args()
     d = _dir(args.name)
     stages = set(args.stages.split(","))

@@ -79,6 +79,7 @@ DEFAULTS: Dict[str, Any] = {
         "temperature_low": 0.1,
         "belief_samples": 8,
         "branch_opponent_mid_turn": False,
+        "quiet_leaves": False,  # full-game: evaluate leaves at the end of their own turn
     },
     "selfplay": {
         "games": 50000,

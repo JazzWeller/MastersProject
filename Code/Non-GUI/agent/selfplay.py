@@ -70,6 +70,7 @@ class SelfPlaySettings:
     leaf: str = "student"
     rollout: str = "heuristic"
     resample: str = "all"
+    quiet_leaves: bool = False
     sims_full: int = 100
     sims_small: int = 25
     full_fraction: float = 0.25
@@ -101,6 +102,7 @@ class SelfPlaySettings:
         sp, se = cfg["selfplay"], cfg["search"]
         return cls(
             mode=mode, regime=se["regime"], leaf=se["leaf"], rollout=se["rollout"], resample=se["resample"],
+            quiet_leaves=bool(se.get("quiet_leaves", False)),
             sims_full=sp["playout_cap_full"], sims_small=sp["playout_cap_small"],
             full_fraction=sp["playout_cap_full_fraction"], temperature_moves=se["temperature_moves"],
             tau_high=se["temperature_high"], tau_low=se["temperature_low"], c_puct=se["c_puct"],
@@ -270,7 +272,7 @@ class Actor:
     def _new_search(self, seed: int) -> Search:
         s = self.s
         policy = make_policy(s.rollout, seed=seed, client=self.client)
-        regime = WithinTurn(policy) if s.regime == "within_turn" else FullGame(policy)
+        regime = WithinTurn(policy) if s.regime == "within_turn" else FullGame(policy, quiet_leaves=s.quiet_leaves)
         settings = SearchSettings(
             simulations=s.sims_full, c_puct=s.c_puct, dirichlet_alpha=s.dirichlet_alpha, dirichlet_eps=s.dirichlet_eps,
             root_noise=True, leaves_in_flight=s.leaves_in_flight, resample=Resample(s.resample),

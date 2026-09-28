@@ -58,13 +58,13 @@ def run(
 
 
 def run_search_levels(regime: str = "within_turn", levels=(1, 10, 100, 1000), n_seeds: int = 50, workers: int = 8,
-                      first_seed: int = 4_000_000, max_turns: int = 200) -> List[dict]:
+                      first_seed: int = 4_000_000, max_turns: int = 200, **agent_kwargs) -> List[dict]:
     from sim.parallel_eval import AgentSpec, evaluate_parallel
 
     name = "search-" + regime.replace("_", "-")
     out = []
     for sims in levels:
-        res = evaluate_parallel(AgentSpec.of(name, simulations=sims), AgentSpec.of("heuristic"),
+        res = evaluate_parallel(AgentSpec.of(name, simulations=sims, **agent_kwargs), AgentSpec.of("heuristic"),
                                 range(first_seed, first_seed + n_seeds), workers=workers, max_turns=max_turns)
         res["simulations"] = sims
         out.append(res)

@@ -67,13 +67,13 @@ SEARCH_CONDITIONS = [
 
 
 def run_search_conditions(regime: str = "within_turn", simulations: int = 100, n_seeds: int = 50, workers: int = 8,
-                          first_seed: int = 3_000_000, max_turns: int = 200) -> List[dict]:
+                          first_seed: int = 3_000_000, max_turns: int = 200, **agent_kwargs) -> List[dict]:
     from sim.parallel_eval import AgentSpec, evaluate_parallel
 
     base = "search-" + regime.replace("_", "-")
     out = []
     for label, name, resample in SEARCH_CONDITIONS:
-        kwargs = {"simulations": simulations}
+        kwargs = {"simulations": simulations, **agent_kwargs}
         if resample:
             kwargs["resample"] = resample
         res = evaluate_parallel(AgentSpec.of(name.format(base=base), **kwargs), AgentSpec.of("heuristic"),
