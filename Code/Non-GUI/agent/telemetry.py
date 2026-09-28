@@ -93,6 +93,26 @@ class Run:
         return run
 
     @classmethod
+    def resume_or_create(cls, run_id: str, source: Any = None, overrides: Optional[dict] = None, *, root: Optional[str] = None) -> "Run":
+        """The entry point for long-running tools: a new run is created; an
+        existing one is reopened **under its original config** (what it
+        started with stays what it is), and if resolving `source` against
+        today's code gives something different -- a changed default, a
+        rules fix -- the difference is journalled as `config_drift`, with
+        every differing path, instead of refusing to resume."""
+        run_root = os.path.join(root or runs_root(), run_id)
+        if not os.path.exists(os.path.join(run_root, "config.json")):
+            return cls.create(run_id, source, overrides, root=root)
+        run = cls.open(run_id, root=root)
+        now = config_mod.resolve(source, overrides)
+        if config_mod.config_hash(now) != run.config_hash:
+            diffs = config_mod.diff_configs(run.config, now)
+            run.journal("config_drift", game_index=0, paths=[p for p, _a, _b in diffs][:50],
+                        new_config_hash=config_mod.config_hash(now))
+        run.journal("run_reopened", game_index=0)
+        return run
+
+    @classmethod
     def open(cls, run_id: str, *, root: Optional[str] = None) -> "Run":
         run_root = os.path.join(root or runs_root(), run_id)
         with open(os.path.join(run_root, "config.json"), "rb") as f:

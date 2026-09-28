@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--agent", default="search-within-turn")
     parser.add_argument("--sims", type=int, default=200)
     parser.add_argument("--resample", default=None, help="own_deck | opponent_private | all (search agents)")
+    parser.add_argument("--quiet-leaves", action="store_true", help="full-game search: evaluate leaves at the end of their turn")
     parser.add_argument("--opponent", default="heuristic")
     parser.add_argument("--seeds", type=int, default=100, help="paired seeds (4 games each)")
     parser.add_argument("--first-seed", type=int, default=2_000_000)
@@ -39,6 +40,8 @@ def main():
         kwargs["simulations"] = args.sims
         if args.resample:
             kwargs["resample"] = args.resample
+        if args.quiet_leaves:
+            kwargs["quiet_leaves"] = True
     a = AgentSpec.of(args.agent, **kwargs)
     b = AgentSpec.of(args.opponent)
     seeds = range(args.first_seed, args.first_seed + args.seeds)

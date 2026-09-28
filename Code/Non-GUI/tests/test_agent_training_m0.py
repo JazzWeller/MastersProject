@@ -129,6 +129,19 @@ class TestRunProvenance(unittest.TestCase):
             self.assertEqual(run.journal_entries()[1]["game_index"], 1234)
 
 
+class TestResume(unittest.TestCase):
+    def test_reopening_keeps_the_original_config_and_journals_drift(self):
+        with tempfile.TemporaryDirectory() as root:
+            first = Run.resume_or_create("r", {"tier": 1}, root=root)
+            again = Run.resume_or_create("r", {"tier": 1}, root=root)
+            self.assertEqual(again.config_hash, first.config_hash)
+            drifted = Run.resume_or_create("r", {"tier": 2}, root=root)
+            self.assertEqual(drifted.config_hash, first.config_hash)  # still the run it started as
+            drift = [e for e in drifted.journal_entries() if e["event"] == "config_drift"]
+            self.assertEqual(len(drift), 1)
+            self.assertIn("tier", drift[0]["paths"])
+
+
 class TestMetricsWriter(unittest.TestCase):
     def test_rate_limited_flush_with_rates_means_and_gauges(self):
         with tempfile.TemporaryDirectory() as d:

@@ -107,6 +107,8 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
         flags.append(f"actor:learner {ratio:.2f} >> 2 -- the learner can't keep up")
     if ratio is not None and ratio < 0.5:
         flags.append(f"actor:learner {ratio:.2f} << 0.5 -- the actors are starved (fork cost? raise K)")
+    if games_done >= 25_000 and slope is not None and slope <= 0:
+        flags.append("G6: no improvement over the last gates -- bank the promoted checkpoint and stop; spend the time on the matrix")
     ent = last["means"].get("policy_entropy") if last else None
     if ent is not None and ent < 0.2:
         flags.append(f"policy entropy {ent:.3f} is collapsing -- raise root noise / check the temperature schedule")

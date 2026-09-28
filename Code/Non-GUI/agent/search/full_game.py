@@ -14,13 +14,23 @@ from __future__ import annotations
 
 
 class FullGame:
+    """`quiet_leaves` (an option, off by default): play a leaf's *own* turn
+    out with the rollout policy before evaluating it, so the estimator is
+    only ever asked at the end of a turn -- regime A's evaluation point on
+    regime B's tree. It exists to tell a search defect apart from the cost
+    of evaluating mid-turn (gate G2 with the heuristic evaluator)."""
+
     name = "full_game"
 
-    def __init__(self, rollout=None):
-        self.rollout = rollout  # unused for values; the fixed policy for over-cap multi-selects
+    def __init__(self, rollout=None, *, quiet_leaves: bool = False):
+        self.rollout = rollout  # the fixed policy for over-cap multi-selects, and quiet-leaf rollouts
+        self.quiet_leaves = quiet_leaves
 
     def classify(self, search, world, decision) -> str:
         return "branch"
 
     def value_state(self, search, world) -> None:
-        return None
+        if not self.quiet_leaves:
+            return None
+        start = world.turn_number
+        world.run_until(lambda g: g.is_over or g.turn_number > start, self.rollout)

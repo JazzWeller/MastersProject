@@ -194,7 +194,10 @@ class TestAvailabilityCounts(unittest.TestCase):
 
 class TestSubtreeReuse(unittest.TestCase):
     def test_reused_root_carries_its_statistics_and_agrees_with_a_fresh_search(self):
-        game = Nim(8, to_move=1, sub_moves=2)
+        # Turns remove 1-3 in this variant, so multiples of 4 are lost; 9 is
+        # won, and whichever first sub-move is taken, exactly one second
+        # sub-move leaves the opponent a multiple of 4.
+        game = Nim(9, to_move=1, sub_moves=2)
         search = _nim_search(sims=1200)
         res, _ = _search(search, game, 1)
         key = res.keys[res.chosen]
@@ -252,6 +255,35 @@ class TestBatching(unittest.TestCase):
         # than evaluations, and the first round carries all three roots.
         self.assertEqual(Client.sizes[0], 3)
         self.assertLess(Client.calls, sum(Client.sizes))
+
+
+class TestBeliefSampling(unittest.TestCase):
+    """M6: sampled worlds always satisfy the count constraint, and follow
+    the marginals."""
+
+    def test_exact_hand_count_distinct_cards_from_the_candidates(self):
+        from agent.search.leaf import sample_hand
+
+        rng = random.Random(0)
+        marginals = [0.0] * 72
+        candidates = list(range(36, 72))
+        for i in candidates:
+            marginals[i] = 0.9 if i < 42 else 0.05
+        counts = [0] * 72
+        for _ in range(2000):
+            hand = sample_hand(marginals, candidates, 6, rng)
+            self.assertEqual(len(hand), 6)
+            self.assertEqual(len(set(hand)), 6)
+            self.assertTrue(set(hand) <= set(candidates))
+            for i in hand:
+                counts[i] += 1
+        likely = sum(counts[36:42]) / 2000
+        self.assertGreater(likely, 4.0)  # the six high-marginal cards dominate the samples
+
+    def test_never_more_than_the_candidates(self):
+        from agent.search.leaf import sample_hand
+
+        self.assertEqual(sorted(sample_hand([0.5] * 72, [3, 9], 6, random.Random(1))), [3, 9])
 
 
 # --------------------------------------------------------- KeyForge positions

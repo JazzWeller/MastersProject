@@ -28,9 +28,9 @@ _RESAMPLE = {r.value: r for r in Resample}
 
 
 def _search_factory(regime: str, exact: bool = False):
-    def make(seed=None, simulations: int = 200, resample: str = "all", rollout: str = "heuristic", **_kw):
+    def make(seed=None, simulations: int = 200, resample: str = "all", rollout: str = "heuristic", quiet_leaves: bool = False, **_kw):
         settings = SearchSettings(simulations=int(simulations), resample=None if exact else _RESAMPLE[resample])
-        return SearchAgent(regime, leaf="heuristic", rollout=rollout, settings=settings, seed=seed)
+        return SearchAgent(regime, leaf="heuristic", rollout=rollout, settings=settings, seed=seed, quiet_leaves=quiet_leaves)
 
     return make
 

@@ -171,6 +171,40 @@ def format_report(with_views: dict, without_views: Optional[dict], fork: dict, c
     return "\n".join(lines)
 
 
+def bench_encoding(config: GameConfig, record: List, repeats: int = 3) -> Dict[str, float]:
+    """Agent Training Plan M1's throughput criterion: the info-set extract
+    and the encoder, per decision, against the engine's own per-decision
+    cost on the same game (replay, views off)."""
+    from agent.features import encode
+    from keyforge.infoset import build_infoset
+
+    t0 = time.perf_counter()
+    for _ in range(repeats):
+        replay(config, record)
+    engine_us = (time.perf_counter() - t0) / (repeats * max(1, len(record))) * 1e6
+    infoset_s = encode_s = 0.0
+    n = 0
+    for _ in range(repeats):
+        game = Game(config)
+        for enc in record:
+            d = game.pending_decision
+            a = time.perf_counter()
+            info = build_infoset(game, d.player)
+            b = time.perf_counter()
+            encode(info)
+            c = time.perf_counter()
+            infoset_s += b - a
+            encode_s += c - b
+            n += 1
+            game.submit_index(enc)
+    return {
+        "engine_us_per_decision": engine_us,
+        "infoset_us": infoset_s / n * 1e6,
+        "encode_us": encode_s / n * 1e6,
+        "encoding_share_of_engine": (infoset_s + encode_s) / n * 1e6 / engine_us,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--games", type=int, default=200)
@@ -181,6 +215,7 @@ def main(argv=None):
     parser.add_argument("--max-turns", type=int, default=200)
     parser.add_argument("--compare-views", action="store_true", help="also run with build_view() skipped, to isolate its cost")
     parser.add_argument("--json", default=None, help="write raw per-run stats to this path as JSON")
+    parser.add_argument("--encoding", action="store_true", help="also measure the M1 info-set extract + encoder cost")
     args = parser.parse_args(argv)
 
     decks = (args.p1_deck, args.p2_deck)
@@ -194,6 +229,14 @@ def main(argv=None):
     copy_cost = bench_copy(config, record)
 
     print(format_report(with_views, without_views, fork, copy_cost))
+    enc = None
+    if args.encoding:
+        enc = bench_encoding(config, record)
+        print(
+            f"Encoding (Agent Training Plan M1): infoset {enc['infoset_us']:.1f} us + encode {enc['encode_us']:.1f} us "
+            f"per decision vs engine {enc['engine_us_per_decision']:.1f} us -> {enc['encoding_share_of_engine']:.0%} of engine cost "
+            f"(plan target: < 25%)"
+        )
 
     if args.json:
         payload = {
@@ -206,6 +249,7 @@ def main(argv=None):
             },
             "fork_ms": fork,
             "copy_ms": copy_cost,
+            "encoding": enc,
         }
         if without_views:
             payload["without_views"] = {

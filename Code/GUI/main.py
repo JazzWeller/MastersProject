@@ -25,6 +25,8 @@ def main(argv=None) -> None:
     parser.add_argument("--first", choices=["p1", "p2"], default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max-turns", type=int, default=None)
+    parser.add_argument("--bot", default="heuristic",
+                        help="the bot seat's agent, by registry name: heuristic, random, search-within-turn, search-full-game")
     args = parser.parse_args(argv)
 
     from gui.app import App
@@ -45,6 +47,7 @@ def main(argv=None) -> None:
             first_player=first_player,
             seed=args.seed,
             max_turns=args.max_turns,
+            bot_agent=args.bot,
         )
         if args.format == "archon":
             from gui.scenes.game_scene import GameScene

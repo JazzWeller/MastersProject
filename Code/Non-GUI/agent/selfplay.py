@@ -88,6 +88,13 @@ class SelfPlaySettings:
     epsilon_decay_games: int = 20000  # ... over this many of a worker's games
     value_only_fraction: float = 0.5  # non-decider value records, as in ml/dataset.py
     enumerate_cap: int = 1024
+    # Resignation (M7): off (None) until the value head is calibrated. A
+    # seat whose searched value stays below -threshold for `consecutive`
+    # decisions resigns -- except in `exempt_fraction` of games, which play
+    # on and record whether the resignation would have been wrong.
+    resign_threshold: Optional[float] = None
+    resign_consecutive: int = 3
+    resign_exempt_fraction: float = 0.1
 
     @classmethod
     def from_config(cls, cfg: dict, mode: str = "search") -> "SelfPlaySettings":
@@ -103,6 +110,8 @@ class SelfPlaySettings:
             epsilon=cfg["dmc"]["epsilon_start"], epsilon_end=cfg["dmc"]["epsilon_end"],
             epsilon_decay_games=max(1, cfg["dmc"]["epsilon_decay_games"] // max(1, sp["workers"])),
             enumerate_cap=cfg["network"]["enumerate_cap"],
+            resign_threshold=sp.get("resign_threshold"), resign_consecutive=int(sp.get("resign_consecutive", 3)),
+            resign_exempt_fraction=float(sp.get("resign_exempt_fraction", 0.1)),
         )
 
 
@@ -189,9 +198,10 @@ def _keep(seed: int, n: int, fraction: float) -> bool:
     return int.from_bytes(h, "big") / 2**32 < fraction
 
 
-def _pick(visits: List[int], tau: float, rng: random.Random) -> int:
+def _pick(visits: List[int], tau: float, rng: random.Random, q: Optional[List[float]] = None) -> int:
     if tau <= 0.05:
-        return max(range(len(visits)), key=lambda i: (visits[i], -i))
+        qq = q or [0.0] * len(visits)
+        return max(range(len(visits)), key=lambda i: (visits[i], qq[i] if visits[i] else -2.0, -i))
     w = [v ** (1.0 / tau) for v in visits]
     total = sum(w)
     if total <= 0:
@@ -230,6 +240,14 @@ class _Slot:
     positions: List[dict] = field(default_factory=list)
     decisions: Dict[int, int] = field(default_factory=lambda: {1: 0, 2: 0})
     t0: float = field(default_factory=time.time)
+    low: Dict[int, int] = field(default_factory=lambda: {1: 0, 2: 0})  # consecutive low-value decisions
+    exempt: bool = False
+    resigned_by: Optional[int] = None
+    would_resign: Optional[int] = None  # exempt games: the first seat that would have resigned
+
+    @property
+    def over(self) -> bool:
+        return self.game.is_over or self.resigned_by is not None
 
 
 class Actor:
@@ -265,7 +283,9 @@ class Actor:
         decks = self.s.decks if index % 2 == 0 else (self.s.decks[1], self.s.decks[0])
         game = Game(GameConfig(decks=decks, seed=seed, max_turns=self.s.max_turns))
         searches = {pid: self._new_search(seed + pid) for pid in (1, 2)} if self.s.mode == "search" else {}
-        return _Slot(index=index, seed=seed, game=game, rng=random.Random(seed ^ 0xA5), searches=searches)
+        slot = _Slot(index=index, seed=seed, game=game, rng=random.Random(seed ^ 0xA5), searches=searches)
+        slot.exempt = random.Random(seed ^ 0x5E516).random() < self.s.resign_exempt_fraction
+        return slot
 
     def _advance_forced(self, slot: _Slot) -> None:
         g = slot.game
@@ -279,12 +299,16 @@ class Actor:
 
     def _finish(self, slot: _Slot) -> dict:
         g = slot.game
-        outcome = {pid: g.outcome_for(pid) for pid in (1, 2)}
+        if slot.resigned_by is not None:
+            outcome = {slot.resigned_by: -1, 3 - slot.resigned_by: 1}
+        else:
+            outcome = {pid: g.outcome_for(pid) for pid in (1, 2)}
         return {
             "meta": {
                 "seed": slot.seed, "index": slot.index, "worker": self.worker, "decks": [str(d) for d in g.config.decks],
                 "turns": g.turn_number, "reason": (g.result or {}).get("reason"), "checkpoint": self.checkpoint_tag,
                 "mode": self.s.mode, "regime": self.s.regime, "seconds": time.time() - slot.t0,
+                "resigned_by": slot.resigned_by, "resign_exempt": slot.exempt, "would_resign": slot.would_resign,
             },
             "positions": slot.positions,
             "outcome": outcome,
@@ -304,7 +328,7 @@ class Actor:
                 slot = self._new_slot(queue.pop(0))
                 self._advance_forced(slot)
                 active.append(slot)
-            done = [sl for sl in active if sl.game.is_over]
+            done = [sl for sl in active if sl.over]
             for sl in done:
                 active.remove(sl)
                 on_game(self._finish(sl))
@@ -341,7 +365,7 @@ class Actor:
         for (sl, d, pid, full), res in zip(meta, results):
             n = sl.decisions[pid]
             tau = s.tau_high if n < s.temperature_moves else s.tau_low
-            k = _pick(res.visits, tau, sl.rng)
+            k = _pick(res.visits, tau, sl.rng, res.q)
             total = sum(res.visits) or 1
             target = [v / total for v in res.visits]
             multi = d.kind in MULTI
@@ -353,6 +377,8 @@ class Actor:
             if _keep(sl.seed, len(sl.game.choice_record), s.value_only_fraction):
                 sl.positions.append(_position(sl.game, 3 - pid, d, full=False, turn=turn, value_only=True))
             sl.decisions[pid] = n + 1
+            if s.resign_threshold is not None and self._resigns(sl, pid, res.value):
+                continue
             if self.metrics is not None:
                 self.metrics.count("decisions")
                 self.metrics.count("simulations", res.stats["simulations"])
@@ -360,6 +386,20 @@ class Actor:
                 self.metrics.observe("fork_ms", 1000 * res.stats["fork_seconds"] / max(res.stats["forks"], 1))
             sl.game.submit(res.choices[k])
             self._advance_forced(sl)
+
+    def _resigns(self, sl: _Slot, pid: int, value: float) -> bool:
+        """Tracks `pid`'s run of low searched values; True if it resigns now
+        (the game is then over for the actor). Exempt games note the first
+        would-be resignation and play on."""
+        sl.low[pid] = sl.low[pid] + 1 if value < -self.s.resign_threshold else 0
+        if sl.low[pid] < self.s.resign_consecutive:
+            return False
+        if sl.exempt:
+            if sl.would_resign is None:
+                sl.would_resign = pid
+            return False
+        sl.resigned_by = pid
+        return True
 
     def _dmc_round(self, active: List[_Slot]) -> None:
         from .agents.net_agent import NetAgent

@@ -116,7 +116,7 @@ def main():
     args = parser.parse_args()
     stages = {"data", "main", "g1", "ablations", "generalization"} if args.stages == "all" else set(args.stages.split(","))
 
-    run = Run.create(args.run, args.config)
+    run = Run.resume_or_create(args.run, args.config)
     cfg = run.config
     workers = args.workers or cfg["bc"]["workers"]
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
@@ -221,7 +221,11 @@ def write_markdown(run: Run, report: dict) -> None:
             lines.append(f"| {row['turns']} | {row['n']} | {row['logloss']} | {row['constant_logloss']} | {row['accuracy']} |")
         if main.get("belief"):
             b = main["belief"]
-            lines += ["", f"Belief head: log-loss {b['logloss']} vs uniform-over-consistent-worlds {b['uniform_logloss']} (n={b['n']:,})."]
+            lines += ["", f"Belief head: log-loss {b['logloss']} vs uniform-over-consistent-worlds {b['uniform_logloss']} (n={b['n']:,}).", "",
+                      "| Belief bin | n | predicted | observed |", "|---|---|---|---|"]
+            for row in b.get("reliability", []):
+                lines.append(f"| {row['bin']} | {row['n']} | {row['predicted']} | {row['observed']} |")
+            lines.append("")
         o = main["oracle"]
         lines += [f"Oracle value head: log-loss {o['logloss']} (student {v['logloss']}).", ""]
     g1 = report.get("g1")

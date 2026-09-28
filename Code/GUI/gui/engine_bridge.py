@@ -12,7 +12,9 @@ import random
 from dataclasses import dataclass, replace
 from typing import Dict, List, Optional, Tuple
 
-from bots.registry import make_agent
+import agent.agents.registry_entries  # noqa: F401 -- registers the search agents (torch-free)
+from bots.registry import make_agent, privilege_of
+from keyforge.capabilities import make_capability
 from keyforge.cards.decks import deck_label
 from keyforge.config import GameConfig
 from keyforge.enums import DecisionKind
@@ -106,7 +108,11 @@ class EngineBridge:
 
     def bot_choice(self, pid: int):
         d = self.game.pending_decision
-        return self.bots[pid].decide(self.game.view_for(pid), d)
+        # The bot's registered privilege decides what it may do to the live
+        # game (Agent Interface Plan, Milestone G): observation-only for the
+        # plain bots, forking for a search agent.
+        cap = make_capability(privilege_of(self.settings.bot_agent), self.game, pid)
+        return self.bots[pid].decide(self.game.view_for(pid), d, None, cap)
 
     def submit(self, choice, viewer: int) -> Tuple[BoardSnapshot, list, BoardSnapshot]:
         before = self.snapshot(viewer)
@@ -256,7 +262,9 @@ class MatchBridge:
 
     def bot_choice(self, pid: int):
         d = self.match.pending_decision
-        return self.bots[pid].decide(self.match.view_for(pid), d)
+        live = self.match.current_game if (self.match.current_game is not None and not self.match.current_game.is_over) else None
+        cap = make_capability(privilege_of(self.settings.bot_agent), live, pid, match=self.match)
+        return self.bots[pid].decide(self.match.view_for(pid), d, None, cap)
 
     def submit(self, choice, viewer: int) -> Tuple[Optional[BoardSnapshot], list, Optional[BoardSnapshot]]:
         game_before = self.match.current_game

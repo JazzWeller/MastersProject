@@ -66,6 +66,25 @@ class TestActor(unittest.TestCase):
                 self.assertTrue(all(0 <= a < p["enc"].n_options for a in p["target"]))
 
 
+class TestResignation(unittest.TestCase):
+    def test_resigns_on_a_run_of_low_values_except_in_exempt_games(self):
+        # A threshold every real value is below: the first seat to search
+        # three times in a row resigns, unless the game is exempt.
+        records = []
+        actor = Actor(None, _settings(resign_threshold=-2.0, resign_consecutive=3, resign_exempt_fraction=0.5), run_seed=6)
+        actor.play(range(8), records.append)
+        resigned = [r for r in records if r["meta"]["resigned_by"] is not None]
+        exempt = [r for r in records if r["meta"]["resign_exempt"]]
+        self.assertTrue(resigned and exempt)
+        for r in resigned:
+            seat = r["meta"]["resigned_by"]
+            self.assertEqual(r["outcome"][seat], -1)
+            self.assertEqual(r["outcome"][3 - seat], 1)
+        for r in exempt:
+            self.assertIsNone(r["meta"]["resigned_by"])
+            self.assertIsNotNone(r["meta"]["would_resign"])
+
+
 class TestShards(unittest.TestCase):
     def test_a_torn_last_frame_is_truncated_and_resume_skips_exactly_the_finished_games(self):
         with tempfile.TemporaryDirectory() as d:

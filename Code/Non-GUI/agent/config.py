@@ -98,8 +98,9 @@ DEFAULTS: Dict[str, Any] = {
         "mirror_augmentation": True,
         "training_max_turns": 60,
         "resign_threshold": None,
+        "resign_consecutive": 3,
         "resign_exempt_fraction": 0.1,
-        "loss_weights": {"policy": 1.0, "value": 1.0, "belief": 0.25, "oracle": 0.25},
+        "loss_weights": {"policy": 1.0, "value": 1.0, "belief": 0.25, "oracle": 0.25, "distill": 0.0},
         "weight_decay": 1e-4,
     },
     "dmc": {

@@ -281,6 +281,10 @@ class Search:
                     stats["evaluations"] += 1
                 done += len(descents)
         stats["simulations"] = done
+        cache = getattr(self.evaluator, "cache", None)
+        if cache is not None:
+            stats["cache_hits"] = cache.hits
+            stats["cache_misses"] = cache.misses
         return self._result(decision, root_actions, root_priors, root_value, stats)
 
     def _world(self, capability, rng):
@@ -377,6 +381,8 @@ class Search:
     def _select(self, node: Node, actions, actor: int):
         c = self.settings.c_puct
         best, best_key, best_choice = -math.inf, None, None
+        ties = 0
+        rand = self.rng.random
         for key, choice, _i in actions:
             e = node.edges[key]
             n = e.N + e.vloss
@@ -385,7 +391,14 @@ class Search:
             u = c * (e.P or 0.0) * math.sqrt(e.A) / (1 + n)
             score = q + u
             if score > best:
-                best, best_key, best_choice = score, key, choice
+                best, best_key, best_choice, ties = score, key, choice, 1
+            elif score == best:
+                # Exact ties (every unvisited action under uniform priors)
+                # are broken uniformly at random -- never "the first
+                # option", which is End Turn at every CHOOSE_ACTION.
+                ties += 1
+                if rand() * ties < 1.0:
+                    best_key, best_choice = key, choice
         return best_key, best_choice
 
     def _set_priors(self, node: Node, actions, priors: List[float]) -> None:
@@ -415,15 +428,18 @@ class Search:
             forms.append(form)
             visits.append(e.N)
             q.append(e.W / e.N if e.N else 0.0)
-        chosen = self._choose(visits, root_priors)
+        chosen = self._choose(visits, root_priors, q)
         total = sum(visits)
         value = sum(v * qq for v, qq in zip(visits, q)) / total if total else root_value
         return SearchResult(keys, choices, forms, visits, list(root_priors), q, chosen, value, stats)
 
-    def _choose(self, visits: List[int], priors: List[float]) -> int:
+    def _choose(self, visits: List[int], priors: List[float], q: Optional[List[float]] = None) -> int:
         tau = self.settings.temperature
         if tau <= 0 or sum(visits) == 0:
-            return max(range(len(visits)), key=lambda i: (visits[i], priors[i], -i))
+            # Most visits; ties (common at tiny budgets) go to the better
+            # value estimate, then the prior -- the option order only last.
+            qq = q or [0.0] * len(visits)
+            return max(range(len(visits)), key=lambda i: (visits[i], qq[i] if visits[i] else -2.0, priors[i], -i))
         weights = [v ** (1.0 / tau) for v in visits]
         r = self.rng.random() * sum(weights)
         for i, w in enumerate(weights):

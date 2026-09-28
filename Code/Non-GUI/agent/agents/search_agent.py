@@ -31,13 +31,13 @@ from ..search.within_turn import WithinTurn
 def make_search(
     regime: str = "within_turn", *, leaf: str = "heuristic", rollout: str = "heuristic", client=None,
     settings: Optional[SearchSettings] = None, seed: Optional[int] = None, belief_samples: int = 8,
-    branch_opponent: bool = False,
+    branch_opponent: bool = False, quiet_leaves: bool = False,
 ) -> Search:
     policy = make_policy(rollout, seed=seed, client=client)
     if regime == "within_turn":
         reg = WithinTurn(policy, branch_opponent=branch_opponent)
     elif regime == "full_game":
-        reg = FullGame(policy)
+        reg = FullGame(policy, quiet_leaves=quiet_leaves)
     else:
         raise ValueError(f"unknown search regime {regime!r}")
     evaluator = make_evaluator(leaf, samples=belief_samples, seed=seed)
@@ -50,14 +50,14 @@ class SearchAgent(Controller):
     def __init__(
         self, regime: str = "within_turn", *, leaf: str = "heuristic", rollout: str = "heuristic", client=None,
         settings: Optional[SearchSettings] = None, seed: Optional[int] = None, belief_samples: int = 8,
-        branch_opponent: bool = False,
+        branch_opponent: bool = False, quiet_leaves: bool = False,
     ):
         if leaf != "heuristic" and client is None:
             raise ValueError(f"leaf estimator {leaf!r} needs an inference client")
         self.client = client
         self.search = make_search(
             regime, leaf=leaf, rollout=rollout, client=client, settings=settings, seed=seed,
-            belief_samples=belief_samples, branch_opponent=branch_opponent,
+            belief_samples=belief_samples, branch_opponent=branch_opponent, quiet_leaves=quiet_leaves,
         )
         self.fallback = HeuristicBot(seed=seed)
         self.seat: Optional[int] = None
@@ -94,6 +94,9 @@ class SearchAgent(Controller):
         st["search_seconds"] += time.perf_counter() - t0
         for k in ("simulations", "evaluations", "forks", "fork_seconds"):
             st[k] += result.stats.get(k, 0)
+        if "cache_hits" in result.stats:  # cumulative on the evaluator already
+            st["cache_hits"] = result.stats["cache_hits"]
+            st["cache_misses"] = result.stats["cache_misses"]
         choice = result.choices[result.chosen]
         self.search.note_own_action(result.keys[result.chosen], capability.infoset().turn_number)
         return choice

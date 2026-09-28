@@ -85,6 +85,43 @@ python -m sim.simulate --games 1500 --coverage
 python -m unittest discover -s tests
 ```
 
+## Agents and training
+
+The learned-agent stack from `Code/AGENT_TRAINING_PLAN.md` (see its
+"Implementation status" section for what's measured so far):
+
+- `agent/` — **pure standard library, never imports torch** (a test enforces
+  it), so engine workers can `fork()` and could run under PyPy:
+  `spec.py` (the feature layout, versions and reserved slots),
+  `features.py` (the encoder, reading `keyforge/infoset.py`'s fast redacted
+  extract), `search/` (the ISMCTS core, both regimes, leaf estimators),
+  `agents/` (the search-free `NetAgent`, the `SearchAgent`, registry
+  entries), `selfplay.py` (the self-play actor), `config.py` +
+  `telemetry.py` (resolved/hashed configs, runs, journals, metrics).
+- `ml/` — torch only (CPython; CUDA in WSL): the network, batching,
+  checkpoints, the inference server, behaviour cloning, the self-play
+  learner, the arena.
+- `configs/*.json` — one file per experiment; every artifact carries its
+  resolved config's hash.
+
+Pipeline output goes under `$KEYFORGE_DATA` (default `~/keyforge-data`).
+The torch half runs in WSL (`~/torchenv`, see `tests/test_torch_model.py`);
+everything else runs anywhere.
+
+```bash
+# Tier 0: data, behaviour cloning, screens 1-5, gate G1
+python -m tools.run_screens --run tier0 --config tier0_bc.json
+# Tier 1: search with the heuristic evaluator (gate G2) and the diagnostics (G3)
+python -m tools.eval_search --agent search-within-turn --sims 200 --seeds 100 --gate 0.55
+python -m tools.diag_hidden_info --regime within_turn --sims 100
+python -m tools.diag_search_curve --regime full_game --sims 1 10 100 1000
+# Tier 2+: self-play (one arm), then the whole bake-off
+python -m ml.selfplay_train --run wt-s0 --config tier2_selfplay_within_turn.json --init <bc.kfc>
+python -m tools.run_bakeoff --name main --bc <bc.kfc> --stages diagnostics,train,matrix
+# Watch any run
+python -m tools.monitor --watch 60
+```
+
 ## Notable design points
 
 - **Decision-pausing engine**: `Game._run()` is a generator driving the whole

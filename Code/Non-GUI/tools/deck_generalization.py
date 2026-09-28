@@ -47,7 +47,7 @@ def main():
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
 
-    run = Run.create(args.run, args.config)
+    run = Run.resume_or_create(args.run, args.config)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     out_path = os.path.join(run.root, "deck_generalization.json")
     report = json.load(open(out_path)) if os.path.exists(out_path) else {"points": {}}

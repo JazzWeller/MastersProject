@@ -233,6 +233,20 @@ class Prefetcher:
             yield item
 
 
+def reliability(p: np.ndarray, y: np.ndarray, bins: int = 10) -> list:
+    """The M6 reliability diagram as data: per predicted-probability bin,
+    the mean prediction and the observed frequency (a calibrated head has
+    them equal)."""
+    out = []
+    edges = np.linspace(0.0, 1.0, bins + 1)
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        m = (p >= lo) & ((p < hi) if hi < 1.0 else (p <= hi))
+        if m.sum() >= 20:
+            out.append({"bin": f"{lo:.1f}-{hi:.1f}", "n": int(m.sum()), "predicted": round(float(p[m].mean()), 4),
+                        "observed": round(float(y[m].mean()), 4)})
+    return out
+
+
 def _logloss(p: np.ndarray, y: np.ndarray) -> float:
     p = np.clip(p, 1e-4, 1 - 1e-4)
     return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))) if len(p) else float("nan")
@@ -325,7 +339,8 @@ def evaluate(model: KeyForgeNet, corpus: Corpus, idx: np.ndarray, *, policy_head
     belief = None
     if b_p:
         p, yy, u = np.concatenate(b_p), np.concatenate(b_y), np.concatenate(b_u)
-        belief = {"n": int(len(p)), "logloss": round(_logloss(p, yy), 4), "uniform_logloss": round(_logloss(u, yy), 4)}
+        belief = {"n": int(len(p)), "logloss": round(_logloss(p, yy), 4), "uniform_logloss": round(_logloss(u, yy), 4),
+                  "reliability": reliability(p, yy)}
     return {
         "top1_by_kind": {k: {"accuracy": round(h[0] / h[1], 4), "n": h[1]} for k, h in sorted(single_hits.items()) if h[1]},
         "multi_select_exact": {
@@ -444,7 +459,7 @@ def main():
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
     overrides = json.loads(args.override) if args.override else None
-    run = Run.create(args.run, args.config, overrides)
+    run = Run.resume_or_create(args.run, args.config, overrides)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     corpus = Corpus.from_dir(args.data)
     run.journal("bc_train_start", game_index=0, data=args.data, positions=corpus.size, device=str(device))

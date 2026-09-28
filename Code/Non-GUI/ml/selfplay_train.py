@@ -236,7 +236,13 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
             for e in p["priv"]["opp_hand"]:
                 in_hand[b, e] = 1.0
         L["belief"] = F.binary_cross_entropy_with_logits(model.belief_logits(out)[unseen], in_hand[unseen])
-    L["oracle"] = F.mse_loss(model.oracle_value(out, _hidden_counts(batch, positions, model.vocab_size, device)), z)
+    oracle = model.oracle_value(out, _hidden_counts(batch, positions, model.vocab_size, device))
+    L["oracle"] = F.mse_loss(oracle, z)
+    if weights.get("distill", 0.0) > 0:
+        # Suphx-style oracle guidance, the distillation route (M6): the
+        # student value regresses onto the oracle's (a far less noisy
+        # target than the outcome), never the other way round.
+        L["distill"] = F.mse_loss(v, oracle.detach())
     total = sum(weights.get(k, 1.0) * x for k, x in L.items())
     return total, L, stats
 
@@ -270,7 +276,7 @@ def main():
     parser.add_argument("--no-actors", action="store_true", help="learn from existing shards only")
     args = parser.parse_args()
 
-    run = Run.create(args.run, args.config)
+    run = Run.resume_or_create(args.run, args.config)
     cfg = run.config
     sp = cfg["selfplay"]
     budget = args.games or int(sp["games"])
@@ -348,6 +354,14 @@ def main():
             n = buffer.add(rec)
             metrics.count("positions_produced", n)
             metrics.count("games_seen")
+            meta = rec["meta"]
+            if meta.get("resigned_by") is not None:
+                metrics.count("resignations")
+            if meta.get("would_resign") is not None:
+                # Exempt game: would the resignation have been wrong?
+                metrics.count("resign_tests")
+                if rec["outcome"][meta["would_resign"]] >= 0:
+                    metrics.count("false_resignations")
         games_done = buffer.total_games
         # Train at most one step per `positions_per_step` new positions.
         allowed = int(buffer.total_positions / sp["positions_per_step"]) - step
