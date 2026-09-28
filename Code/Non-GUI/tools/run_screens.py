@@ -46,6 +46,10 @@ from sim import data_root
 from sim.bc_corpus import generate, held_out_cards
 
 ABLATIONS = {
+    # The main network's config at the ablations' epoch budget: every
+    # ablation is compared against this row, not against the main run
+    # (which may have trained for more epochs).
+    "reference": {},
     "fixed_vocabulary_head": {"network": {"policy_head": "fixed"}},
     "identity_attributes_only": {"network": {"identity": "attr"}},
     "identity_id_only": {"network": {"identity": "id"}},
@@ -164,7 +168,8 @@ def main():
             run.journal("screen4_ablation", game_index=0, ablation=name, **{k: v for k, v in _key_metrics(rep).items()})
             save_report()
 
-    if "generalization" in stages and "generalization" not in report:
+    identities = ("both", "attr", "id")
+    if "generalization" in stages and not all(i in report.get("generalization", {}) for i in identities):
         held = held_out_cards(cfg["seed"])
         gcfg = copy.deepcopy(cfg)
         gpool = dict(cfg["pool"], deck_source="random")
@@ -178,20 +183,27 @@ def main():
         held_ids = {CARD_VOCAB[n_] for n_ in held}
         all_idx = ev.indices()
         involves = _involves(ev, all_idx, held_ids)
-        gen = {"held_out_cards": len(held), "train_positions": tr.size, "eval_positions": ev.size,
-               "eval_involving_held_out": int(involves.sum())}
-        for ident in ("both", "attr", "id"):
+        gen = report.setdefault("generalization", {})
+        gen.update({"held_out_cards": len(held), "train_positions": tr.size, "eval_positions": ev.size,
+                    "eval_involving_held_out": int(involves.sum())})
+        for ident in identities:
+            if ident in gen:
+                continue  # resumable one identity at a time
             icfg = config_mod._deep_merge(gcfg, {"network": {"identity": ident}})
-            model, _rep = train(icfg, tr, device=device)
+            model, rep_ = train(icfg, tr, device=device)
             ph = icfg["network"].get("policy_head", "pointer")
             cap = int(icfg["network"].get("enumerate_cap", 1024))
             seen = evaluate(model, ev, all_idx[~involves], policy_head=ph, cap=cap, device=device)
             unseen = evaluate(model, ev, all_idx[involves], policy_head=ph, cap=cap, device=device)
-            gen[ident] = {"seen": _key_metrics(seen), "held_out": _key_metrics(unseen)}
+            # Every random-deck game has its own deck pair, so the decklists
+            # identify the game: the value head can memorize training
+            # outcomes. Its log-loss on the training corpus's held-out games
+            # (unseen deck pairs) is the honest number.
+            gen[ident] = {"seen": _key_metrics(seen), "held_out": _key_metrics(unseen),
+                          "value_logloss_unseen_games": rep_["value"]["logloss"]}
             run.journal("screen5_identity", game_index=0, identity=ident,
                         seen=gen[ident]["seen"]["CHOOSE_ACTION_top1"], held_out=gen[ident]["held_out"]["CHOOSE_ACTION_top1"])
-        report["generalization"] = gen
-        save_report()
+            save_report()
 
     save_report()
     print(f"report: {report_path}")
@@ -237,7 +249,10 @@ def write_markdown(run: Run, report: dict) -> None:
                   f"-- **{h['verdict']}** (need >= 0.40). Vs RandomBot: {r['a_score']:.3f} over {r['games']:,}.", ""]
     abl = report.get("ablations")
     if abl:
-        lines += ["## Screen 4 (ablations)", "", "| Variant | CHOOSE_ACTION | CHOOSE_CARDS (enum) | value log-loss | params |", "|---|---|---|---|---|"]
+        lines += ["## Screen 4 (ablations)", "",
+                  "Every variant (and `reference`, the main config) trained for the same ablation epoch budget; "
+                  "`main` is the full run, shown for scale only.", "",
+                  "| Variant | CHOOSE_ACTION | CHOOSE_CARDS (enum) | value log-loss | params |", "|---|---|---|---|---|"]
         if main:
             km = _key_metrics(main)
             lines.append(f"| main | {km['CHOOSE_ACTION_top1']} | {km['CHOOSE_CARDS_enumerate']} | {km['value_logloss']} | {main['training']['params']:,} |")
@@ -248,12 +263,14 @@ def write_markdown(run: Run, report: dict) -> None:
     if gen:
         lines += ["## Screen 5 (unseen cards)", "",
                   f"{gen['held_out_cards']} cards held out of training; {gen['eval_involving_held_out']:,} of {gen['eval_positions']:,} "
-                  "evaluation decisions offer one.", "", "| Identity | CHOOSE_ACTION seen | CHOOSE_ACTION held-out | CHOOSE_CARDS seen | CHOOSE_CARDS held-out |",
-                  "|---|---|---|---|---|"]
+                  "evaluation decisions offer one.", "",
+                  "| Identity | CHOOSE_ACTION seen | CHOOSE_ACTION held-out | CHOOSE_CARDS seen | CHOOSE_CARDS held-out | value log-loss, unseen games |",
+                  "|---|---|---|---|---|---|"]
         for ident in ("both", "attr", "id"):
             if ident in gen:
                 s, u = gen[ident]["seen"], gen[ident]["held_out"]
-                lines.append(f"| {ident} | {s['CHOOSE_ACTION_top1']} | {u['CHOOSE_ACTION_top1']} | {s['CHOOSE_CARDS_enumerate']} | {u['CHOOSE_CARDS_enumerate']} |")
+                lines.append(f"| {ident} | {s['CHOOSE_ACTION_top1']} | {u['CHOOSE_ACTION_top1']} | {s['CHOOSE_CARDS_enumerate']} | "
+                             f"{u['CHOOSE_CARDS_enumerate']} | {gen[ident].get('value_logloss_unseen_games', '--')} |")
     with open(os.path.join(run.root, "screens.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
