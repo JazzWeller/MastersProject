@@ -116,7 +116,8 @@ python -m tools.eval_search --agent search-within-turn --sims 200 --seeds 100 --
 python -m tools.diag_hidden_info --regime within_turn --sims 100
 python -m tools.diag_search_curve --regime full_game --sims 1 10 100 1000
 # Tier 2+: self-play (one arm), then the whole bake-off
-python -m ml.selfplay_train --run wt-s0 --config tier2_selfplay_within_turn.json --init <bc.kfc>
+python -m ml.selfplay_train --run wt-s1 --config tier2_selfplay_within_turn.json --init <bc.kfc>
+#   (gates run in their own process; a killed learner resumes from learner_state.kfc)
 python -m tools.run_bakeoff --name main --bc <bc.kfc> --stages diagnostics,train,matrix
 # Watch any run
 python -m tools.monitor --watch 60

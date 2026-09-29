@@ -116,7 +116,7 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
 | M4 | `agent/search/core.py` | toy-game checks exact: forced win/loss -> +/-1 from either seat, availability ~ 1/2 for a coin-only option, subtree reuse agrees with a fresh search, batching; conformance at every privilege level |
 | M5 | `agent/search/within_turn.py`, `full_game.py` | **G2 within-turn: PASS** 0.913 (CI 0.881-0.936) vs HeuristicBot over 400 paired games at 200 sims, 0.43 s/search; 1.000 vs RandomBot. **G2 full-game, as specified (mid-turn leaves): FAIL** 0.4225 (CI 0.375-0.471); **with `quiet_leaves`: PASS** 0.8925 (CI 0.858-0.919), 0.44 s/search; 1.000 vs RandomBot. See "Findings" |
 | M6 | `agent/search/leaf.py` | heuristic / student / belief+oracle estimators; count-constrained hand sampling tested; belief reliability table and log-loss vs the uniform baseline in the M3 report |
-| M7 | `agent/selfplay.py`, `ml/selfplay_train.py`, `ml/arena.py` | smoke run end to end (server + 2 actors + learner + 3 gates); crash-safe shards resume the exact missing game indices; resignation with exempt games; no full run yet |
+| M7 | `agent/selfplay.py`, `ml/selfplay_train.py`, `ml/selfplay_gate.py`, `ml/arena.py`, `agent/lifecycle.py` | smoke run end to end (server + 2 actors + learner + 3 gates); crash-safe shards resume the exact missing game indices; resignation with exempt games; no valid full run yet (the first was aborted -- see "Findings") |
 | M8 | DMC mode of the same actor/learner, `NetAgent(mode="q")` | smoke-tested; no run yet |
 | M9 | `tools/run_bakeoff.py`, `sim/parallel_eval.py`, `tools/eval_search.py`, `tools/diag_*.py` | matrix stage smoke-tested (ratings with bootstrap CIs, non-transitivity). **G3 diagnostics run** (heuristic evaluator; full-game with quiet leaves): search curve and hidden-information gap under "Findings" -- no arm cancelled; the belief arm stays for full-game only |
 | M10 | `agent/telemetry.py`, `tools/monitor.py` | the three decision numbers plus G5/G6 flags, from real run records |
@@ -216,10 +216,43 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
   expected to pay off here without heavy regularization of the privileged input and far more games;
   the distillation route stays an option (`loss_weights.distill`, default 0).
 
+- **First self-play attempt (`wt-s0`, 2026-09-28): stopped after 35 minutes; its data is unusable.**
+  A code review afterwards found:
+  - **The tier configs overrode departure 4.** `tier2_selfplay_within_turn.json` said
+    `resample: own_deck` and `tier3_selfplay_full_game.json` `opponent_private` (and the config
+    `DEFAULTS` said `own_deck`), so `wt-s0`'s searches saw the opponent's true hand. The configs
+    and defaults now say `all`, a test holds every shipped config to it, and the learner refuses
+    to start *or resume* a search run with anything else, so `wt-s0` can't be continued by
+    accident. Its 526 games are contaminated: restart under a new run id.
+  - **The gate blocked the learner.** It ran inside the learner's loop -- up to 400 games at 50
+    simulations, ~30 minutes -- during which nothing was ingested or trained while the actors kept
+    producing (the learner sat at game 62 while the shards held 526). Gating is now its own
+    process (`ml/selfplay_gate.py`); the learner keeps training, at most one gate is in flight,
+    and a gate interrupted by a kill is replayed on resume with the same seeds (now a function of
+    the run seed and gate number, not the clock).
+  - **Gate bias.** With many games in flight, the SPRT read every finished game: short games
+    finish first, and a seed's four paired games straddled the stopping point. It now reads
+    complete seeds only, and an early stop reports only those.
+  - **Resume.** Learner state was saved only at gates (so a kill before the first gate restarted
+    from the warm start, and then trained ~1,000 steps on the backlog in a burst); it now saves
+    to one overwritten `learner_state.kfc` every 5 minutes and at every gate. The cosine schedule
+    decayed twice after a resume (CosineAnnealingLR is recursive and started from the already
+    decayed lr); fixed and tested.
+  - **Orphans.** Killing the learner left its actors and server running; a relaunch could then
+    have two writers on one shard. Children now exit with their parent, a shard takes an
+    exclusive lock, and restarts are rate-limited (5 per 10 minutes per child).
+  - **Over-cap multi-selects** (more than `enumerate_cap` legal submissions) crashed the learner
+    (a fallback recorded as a target with no candidates) and the search-free `NetAgent`; both
+    handled.
+  - **Monitor:** reads gauges/losses from the newest record that has them, flags a silent learner.
+
 ### Next
 
-A first self-play run (within-turn arm, warm-started from the Tier 0 network) to measure games/hour
-at the two-hour mark (G5) before committing to Tier 2 or 3.
+A smoke run first (`configs/smoke_selfplay.json`): the out-of-process gate, periodic learner state
+and child supervision above are unit-tested but haven't run end to end. Then a first valid
+self-play run under a new run id (within-turn arm, warm-started from the Tier 0 network) to measure games/hour at the two-hour mark (G5) before committing to Tier 2 or 3. The
+aborted run measured ~900 games/hour from five actors against the plan's 1,500 -- unconfirmed (35
+minutes, with the learner stalled), but a sign G5 may flag.
 
 ---
 

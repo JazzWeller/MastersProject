@@ -382,6 +382,58 @@ class TestSelfPlayLearner(unittest.TestCase):
         self.assertTrue(torch.allclose(b1.inplay, b0.inplay))
         self.assertTrue(torch.equal(b1.options, b0.options))
 
+    def test_a_resumed_learner_continues_the_same_learning_rate_schedule(self):
+        from ml.checkpoints import load_model, save_model
+        from ml.model import KeyForgeNet
+        from ml.selfplay_train import cosine_schedule
+
+        def fresh():
+            torch.manual_seed(0)
+            net = KeyForgeNet(_net_cfg(layers=1))
+            return net, torch.optim.AdamW(net.parameters(), lr=2e-3)
+
+        net, opt = fresh()
+        sched = cosine_schedule(opt, 100, 1e-5, 0, 2e-3)
+        lrs = []
+        for _ in range(60):
+            opt.step()
+            sched.step()
+            lrs.append(sched.get_last_lr()[0])
+        with tempfile.TemporaryDirectory() as d:
+            # Save at step 30 (as the learner does), resume, replay 30 more.
+            net2, opt2 = fresh()
+            s2 = cosine_schedule(opt2, 100, 1e-5, 0, 2e-3)
+            for _ in range(30):
+                opt2.step()
+                s2.step()
+            path = os.path.join(d, "state.kfc")
+            save_model(net2, path, optimizer=opt2, extra={"step": 30})
+            net3, meta, opt_state = load_model(path)
+            opt3 = torch.optim.AdamW(net3.parameters(), lr=2e-3)
+            opt3.load_state_dict({"state": opt_state["state"], "param_groups": opt_state["param_groups"]})
+            s3 = cosine_schedule(opt3, 100, 1e-5, int(meta["extra"]["step"]), 2e-3)
+            self.assertAlmostEqual(s3.get_last_lr()[0], lrs[29], places=12)
+            for i in range(30, 60):
+                opt3.step()
+                s3.step()
+                self.assertAlmostEqual(s3.get_last_lr()[0], lrs[i], places=12)
+
+    def test_fallback_multi_select_positions_train_value_only(self):
+        from ml.selfplay_train import Buffer, losses_for
+
+        buf = Buffer(10_000, 100)
+        for r in self.records["search"]:
+            buf.add(r)
+        pos = [dict(p) for g in buf.games for p in g]
+        # What an older actor wrote for a multi-select that fell back to the
+        # fixed policy: kind CHOOSE_CARDS, candidates [None], target [1.0].
+        for p in pos:
+            if p["target"] is not None and not p["value_only"]:
+                p["kind"], p["candidates"], p["target"] = "CHOOSE_CARDS", [None], [1.0]
+        total, L, _ = losses_for(self.net, pos, torch.device("cpu"), {"policy": 1, "value": 1}, "search", False, random.Random(1))
+        self.assertTrue(torch.isfinite(total))
+        self.assertNotIn("multi", L)
+
     def test_gate_verdict_uses_sprt_then_a_fixed_n_fallback(self):
         from ml.selfplay_train import gate_verdict
         from sim.paired import PairedReport

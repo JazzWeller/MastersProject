@@ -67,7 +67,11 @@ DEFAULTS: Dict[str, Any] = {
         "regime": "within_turn",  # within_turn | full_game
         "leaf": "student",  # student | belief_oracle | heuristic
         "rollout": "heuristic",  # heuristic | network | random
-        "resample": "own_deck",  # own_deck | opponent_private | all
+        # all | own_deck | opponent_private. Only "all" is honest: own_deck
+        # leaves the opponent's true hand in every world, opponent_private my
+        # true future draws (plan status, departure 4). The other two exist
+        # for the hidden-information diagnostic, which sets them explicitly.
+        "resample": "all",
         "simulations": 100,
         "c_puct": 1.5,
         "dirichlet_alpha": 0.8,

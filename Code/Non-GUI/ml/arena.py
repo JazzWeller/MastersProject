@@ -11,7 +11,12 @@ network-policy decisions through one `decide_many` per network.
 
 With `sprt=(elo0, elo1)` it stops as soon as the sequential test decides
 (chess-engine practice: clear-cut comparisons finish on a fraction of the
-fixed budget) -- used for promotion gating.
+fixed budget) -- used for promotion gating. The test only ever reads
+*complete* seeds (all four arrangements finished): with many games in
+flight, short games finish first and a seed's four games straddle any
+stopping point, so testing every finished game would read an unpaired
+sample biased toward quick wins. An early stop reports those complete
+seeds only.
 """
 
 from __future__ import annotations
@@ -33,8 +38,7 @@ from keyforge.config import GameConfig
 from keyforge.enums import Resample
 from keyforge.game import Game
 from keyforge.infoset import build_infoset
-from sim.paired import PairedReport, arrangements
-from sim.rate import sprt as sprt_test
+from sim.paired import PairedReport, _label, arrangements
 
 
 @dataclass
@@ -82,7 +86,10 @@ def play_paired(
     sprt: Optional[Tuple[float, float]] = None, min_games: int = 40, log=None,
 ) -> PairedReport:
     arr = arrangements(list(seeds), deck_x, deck_y)
+    per_seed = len(arr) // max(1, len(set(x.seed for x in arr)))  # 4
     rep = PairedReport(games=0, a_wins=0, b_wins=0, draws=0, forfeits=0)
+    complete = PairedReport(games=0, a_wins=0, b_wins=0, draws=0, forfeits=0)  # whole seeds only
+    pending: Dict[int, List[Tuple[int, Optional[int], int]]] = {}  # seed -> [(arrangement, winner, turns)]
     net_agents = {id(p): NetAgent(p.client(), mode=p.mode, seed=7) for p in (a, b) if p.kind == "net"}
     queue = list(range(len(arr)))
     active: List[dict] = []
@@ -122,18 +129,15 @@ def play_paired(
         for slot in [s for s in active if s["game"].is_over]:
             active.remove(slot)
             g = slot["game"]
-            a_seat = arr[slot["i"]].a_seat
             winner = (g.result or {}).get("winner")
-            rep.games += 1
-            rep.a_wins += winner == a_seat
-            rep.b_wins += winner is not None and winner != a_seat
-            rep.draws += winner is None
-            rep.turns.append(g.turn_number)
-            seat = rep.by_seat.setdefault(a_seat, [0, 0])
-            seat[0] += winner == a_seat
-            seat[1] += 1
-        if sprt is not None and rep.games >= min_games and rep.sprt(*sprt) is not None:
-            break
+            _tally(rep, arr[slot["i"]], winner, g.turn_number)
+            group = pending.setdefault(arr[slot["i"]].seed, [])
+            group.append((slot["i"], winner, g.turn_number))
+            if len(group) == per_seed:
+                for i, w, t in pending.pop(arr[slot["i"]].seed):
+                    _tally(complete, arr[i], w, t)
+        if sprt is not None and complete.games >= min_games and complete.sprt(*sprt) is not None:
+            return complete
         if not active:
             continue
         pairs, meta = [], []
@@ -160,3 +164,18 @@ def play_paired(
         if log is not None and rep.games and rep.games % 50 == 0:
             log(f"[arena] {a.name} vs {b.name}: {rep.games} games, score {rep.score:.3f} ({time.time() - t0:.0f}s)")
     return rep
+
+
+def _tally(rep: PairedReport, ar, winner: Optional[int], turns: int) -> None:
+    won = winner == ar.a_seat
+    rep.games += 1
+    rep.a_wins += won
+    rep.b_wins += winner is not None and not won
+    rep.draws += winner is None
+    rep.turns.append(turns)
+    seat = rep.by_seat.setdefault(ar.a_seat, [0, 0])
+    seat[0] += won
+    seat[1] += 1
+    dk = rep.by_deck.setdefault(_label(ar.a_deck), [0, 0])
+    dk[0] += won
+    dk[1] += 1

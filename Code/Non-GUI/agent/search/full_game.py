@@ -6,8 +6,11 @@ acting player (the core stores each edge's value from the chooser's
 perspective). The leaf estimator is applied wherever the leaf falls,
 mid-turn included.
 
-Determinization: `OPPONENT_PRIVATE` (the plan's default) or `ALL` -- the
-search must invent a concrete opponent hand to let the opponent act at all.
+Determinization: `ALL`. The plan names `OPPONENT_PRIVATE`, but that leaves
+the searcher's *true* future draws in every world; `ALL` (same cost) also
+re-deals my own deck, so nothing in a world is ever the true hidden state
+(plan status, departure 4). `OPPONENT_PRIVATE` stays available for the
+hidden-information diagnostic.
 """
 
 from __future__ import annotations

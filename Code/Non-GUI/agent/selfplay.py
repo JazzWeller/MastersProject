@@ -61,6 +61,7 @@ from .search.within_turn import WithinTurn
 
 MULTI = (DecisionKind.CHOOSE_CARDS, DecisionKind.ORDER_EFFECTS)
 FRAME = struct.Struct("<I")
+EXIT_SHARD_BUSY = 4  # another live process owns this worker's shard: not a crash, never restarted
 
 
 @dataclass
@@ -371,10 +372,14 @@ class Actor:
             total = sum(res.visits) or 1
             target = [v / total for v in res.visits]
             multi = d.kind in MULTI
+            # A multi-select space over `enumerate_cap` falls back to the
+            # fixed policy (index form None): there is no search target to
+            # learn, only the value.
+            searched = not any(f is None for f in res.index_forms)
             turn = sl.game.turn_number
             sl.positions.append(_position(
-                sl.game, pid, d, target=target if full else None, candidates=list(res.index_forms) if multi else None,
-                full=full, turn=turn,
+                sl.game, pid, d, target=target if (full and searched) else None,
+                candidates=list(res.index_forms) if (multi and searched) else None, full=full, turn=turn,
             ))
             if _keep(sl.seed, len(sl.game.choice_record), s.value_only_fraction):
                 sl.positions.append(_position(sl.game, 3 - pid, d, full=False, turn=turn, value_only=True))
@@ -432,6 +437,7 @@ def main():
     into its own shard, against the run's inference server."""
     from bots.inference_client import RemoteInferenceClient
 
+    from .lifecycle import ShardBusy, exclusive, exit_with_parent
     from .telemetry import Run
 
     parser = argparse.ArgumentParser(description=main.__doc__)
@@ -447,6 +453,12 @@ def main():
     run = Run.open(args.run)
     settings = SelfPlaySettings.from_config(run.config, args.mode)
     shard = os.path.join(run.artifact_dir("shards"), f"actor_{args.worker:03d}.bin")
+    try:
+        lock = exclusive(shard)  # noqa: F841 -- held for the life of the process
+    except ShardBusy as e:
+        print(f"actor {args.worker}: {e}", flush=True)
+        raise SystemExit(EXIT_SHARD_BUSY)
+    exit_with_parent()
     done = repair_shard(shard)
     todo = [i for i in range(args.games) if i not in done]
     client = RemoteInferenceClient((args.host, args.port), args.authkey.encode())

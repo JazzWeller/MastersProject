@@ -82,7 +82,11 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
     steps_rate = total_rate("learner", "gradient_steps")
     ratio = produced / (steps_rate * pps) if steps_rate else None
     learner = [m for m in metrics if m["source"] == "learner"]
-    last = learner[-1] if learner else None
+    # The newest record that carries each kind of reading: an idle
+    # interval's record has no losses (and older learners wrote no gauges
+    # while idle), and must not read as "step 0, no losses".
+    last = next((m for m in reversed(learner) if "step" in m["gauges"]), None)
+    last_losses = next((m for m in reversed(learner) if any(k.startswith("loss_") for k in m["means"])), None)
     games_done = int(last["gauges"].get("games", 0)) if last else 0
     budget = int(run.config.get("selfplay", {}).get("games", 0))
     remaining = max(0, budget - games_done)
@@ -108,6 +112,10 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
         to_gate_hours = ((gate_every - step % gate_every) / steps_per_sec) / 3600.0
 
     flags = []
+    interval = float(run.config.get("telemetry", {}).get("interval_seconds", 60))
+    finished = any(j["event"] == "run_finished" for j in journal[-3:])
+    if learner and not finished and now - learner[-1]["t"] > 3 * interval:
+        flags.append(f"learner silent for {(now - learner[-1]['t']) / 60:.0f} min -- blocked or dead (actors may still be writing shards)")
     if games_per_hour and games_per_hour < 0.6 * projected_gph:
         flags.append(f"G5: games/hour {games_per_hour:.0f} is under 60% of the projected {projected_gph:.0f} -- re-plan the tier")
     if ratio is not None and ratio > 2:
@@ -116,7 +124,7 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
         flags.append(f"actor:learner {ratio:.2f} << 0.5 -- inconsistent (the learner shouldn't outrun its data); check positions_per_step")
     if games_done >= 25_000 and slope is not None and slope <= 0:
         flags.append("G6: no improvement over the last gates -- bank the promoted checkpoint and stop; spend the time on the matrix")
-    ent = last["means"].get("policy_entropy") if last else None
+    ent = last_losses["means"].get("policy_entropy") if last_losses else None
     if ent is not None and ent < 0.2:
         flags.append(f"policy entropy {ent:.3f} is collapsing -- raise root noise / check the temperature schedule")
     return {
@@ -136,7 +144,8 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
         "promotions": max(0, len(promotions) - 1),
         "last_gate_score": gates[-1]["score"] if gates else None,
         "gate_score_slope_per_10k_games": round(slope, 4) if slope is not None else None,
-        "losses": {k: round(v, 4) for k, v in (last["means"].items() if last else ()) if k.startswith("loss_")},
+        "gate_running": bool(last["gauges"].get("gate_running")) if last else False,
+        "losses": {k: round(v, 4) for k, v in (last_losses["means"].items() if last_losses else ()) if k.startswith("loss_")},
         "policy_entropy": round(ent, 4) if ent is not None else None,
         "interventions": [j for j in journal if j["event"] not in ("gate", "promoted", "run_created")][-5:],
         "flags": flags,
@@ -150,7 +159,8 @@ def render(s: Dict[str, object]) -> str:
         f"   ETA {s['eta_hours']} h",
         f"   actor:learner {s['actor_learner_ratio']}   steps {s['gradient_steps']:,} ({s['steps_per_second']}/s)"
         f"   next gate in {s['hours_to_next_gate']} h",
-        f"   gates {s['gates']}, promotions {s['promotions']}, last score {s['last_gate_score']}, slope/10k games {s['gate_score_slope_per_10k_games']}",
+        f"   gates {s['gates']}{' (one running)' if s['gate_running'] else ''}, promotions {s['promotions']},"
+        f" last score {s['last_gate_score']}, slope/10k games {s['gate_score_slope_per_10k_games']}",
         f"   losses {s['losses']}   entropy {s['policy_entropy']}",
     ]
     for f in s["flags"]:

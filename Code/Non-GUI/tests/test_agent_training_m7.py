@@ -102,6 +102,119 @@ class TestShards(unittest.TestCase):
             indices = [rec["meta"]["index"] for _end, rec in read_frames(path)]
             self.assertEqual(sorted(indices), list(range(6)))  # nothing lost, nothing duplicated
 
+    def test_a_shard_has_exactly_one_live_writer(self):
+        from agent.lifecycle import ShardBusy, exclusive
+
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "actor_000.bin")
+            first = exclusive(path)
+            if first is None:
+                self.skipTest("no advisory locks on this platform (runs are WSL-only)")
+            with self.assertRaises(ShardBusy):
+                exclusive(path)
+            first.close()
+            exclusive(path).close()  # released with its holder
+
+
+class TestFallbackPositions(unittest.TestCase):
+    def test_a_multi_select_over_the_enumeration_cap_records_no_policy_target(self):
+        # enumerate_cap=1: every multi-select with more than one legal
+        # submission falls back to the fixed policy inside the search.
+        records = []
+        Actor(None, _settings(enumerate_cap=1, full_fraction=1.0), run_seed=5).play(range(4), records.append)
+        multi = [p for r in records for p in r["positions"] if p["kind"] in ("CHOOSE_CARDS", "ORDER_EFFECTS") and not p["value_only"]]
+        if not multi:
+            self.skipTest("no multi-select decision came up")
+        for p in multi:
+            self.assertIsNone(p["target"])
+            self.assertIsNone(p["candidates"])
+
+
+class TestNetAgentOverTheCap(unittest.TestCase):
+    def test_a_multi_select_past_the_enumeration_cap_still_gets_a_legal_answer(self):
+        from agent.agents.net_agent import NetAgent
+        from keyforge.config import GameConfig
+        from sim.driver import run_games
+
+        heads = []
+
+        class Stub:
+            def predict_many(self, reqs):
+                out = []
+                for r in reqs:
+                    heads.append(r.head)
+                    n = len(r.candidates) if r.head == "subset" else r.enc.n_options + (r.head == "sequential")
+                    out.append(([1.0 / max(n, 1)] * n, 0.0))
+                return out
+
+        agent = NetAgent(Stub(), enumerate_cap=1, seed=3)  # every real multi-select is over the cap
+        results = run_games(4, lambda i: GameConfig(decks=("fignor", "igor"), seed=40 + i, max_turns=20),
+                            lambda i: {1: agent, 2: agent}, concurrency=4)
+        self.assertTrue(all(r.forfeit is None for r in results))
+        if "topk" not in heads:
+            self.skipTest("no multi-select decision with more than one legal answer came up")
+
+
+class TestConfigsAreHonest(unittest.TestCase):
+    def test_every_shipped_config_resamples_everything(self):
+        """Plan status, departure 4: own_deck leaves the opponent's true
+        hand in every world, opponent_private my true draws. Only the
+        hidden-information diagnostic may use them, and it sets them in
+        code, never through a config."""
+        from agent import config as config_mod
+
+        self.assertEqual(config_mod.DEFAULTS["search"]["resample"], "all")
+        for name in sorted(os.listdir(config_mod.CONFIG_DIR)):
+            if name.endswith(".json"):
+                with self.subTest(config=name):
+                    self.assertEqual(config_mod.resolve(name)["search"]["resample"], "all")
+
+
+class TestGatePairing(unittest.TestCase):
+    def test_an_early_sprt_stop_reads_only_complete_paired_seeds(self):
+        from ml.arena import Player, play_paired
+        from ml.selfplay_gate import GATE_SPRT
+
+        rep = play_paired(Player("heuristic", "bot", bot="heuristic"), Player("random", "bot", bot="random"),
+                          range(700, 764), concurrency=24, sprt=GATE_SPRT, min_games=8)
+        self.assertEqual(rep.sprt(*GATE_SPRT), "H1")
+        self.assertLess(rep.games, 256, "should stop early")
+        self.assertEqual(rep.games % 4, 0)
+        self.assertEqual(rep.by_seat[1][1], rep.by_seat[2][1])
+        self.assertEqual(len(set(g for _w, g in rep.by_deck.values())), 1)
+
+    def test_gate_seeds_depend_on_the_run_and_gate_number_only(self):
+        from ml.selfplay_gate import gate_seeds
+
+        self.assertEqual(gate_seeds(0, 3, 100), gate_seeds(0, 3, 100))
+        self.assertNotEqual(gate_seeds(0, 3, 100), gate_seeds(0, 4, 100))
+        self.assertNotEqual(gate_seeds(0, 3, 100), gate_seeds(1, 3, 100))
+
+
+class TestMonitor(unittest.TestCase):
+    def test_an_idle_or_blocked_learner_reads_as_such_not_as_step_zero(self):
+        import json
+        import time
+
+        from agent.telemetry import Run
+        from tools.monitor import summarize
+
+        with tempfile.TemporaryDirectory() as d:
+            run = Run.create("mon", None, root=d)
+            now = time.time()
+            rows = [
+                {"t": now - 900, "source": "learner", "interval": 60, "counts": {"gradient_steps": 30, "positions_produced": 360},
+                 "rates": {}, "gauges": {"step": 50, "games": 10}, "means": {"loss_value": 0.3}, "maxes": {}},
+                {"t": now - 840, "source": "learner", "interval": 60, "counts": {}, "rates": {}, "gauges": {}, "means": {}, "maxes": {}},
+            ]
+            with open(run.metrics_path, "a", encoding="utf-8") as f:
+                for r in rows:
+                    f.write(json.dumps(dict(r, config_hash=run.config_hash, host="h", pid=1)) + "\n")
+            s = summarize(run)
+            self.assertEqual((s["games_done"], s["gradient_steps"]), (10, 50))
+            self.assertEqual(s["losses"], {"loss_value": 0.3})
+            self.assertTrue(any("learner silent" in f for f in s["flags"]))
+
 
 if __name__ == "__main__":
     unittest.main()

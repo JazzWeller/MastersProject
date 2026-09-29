@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 from typing import List, Sequence, Tuple
 
+import numpy as np
 import torch
 
 from agent.agents.requests import HEAD_BELIEF, HEAD_FIXED, HEAD_ORACLE, HEAD_POLICY, HEAD_Q, HEAD_SEQUENTIAL, HEAD_SUBSET, HEAD_TOPK, HEAD_VALUE, Request
@@ -76,15 +77,25 @@ class TorchModel:
                     for i in idxs:
                         results[i] = (torch.sigmoid(logits[i]).tolist(), float(values[i]))
                 elif head == HEAD_ORACLE:
+                    # Count vectors built on the CPU and written in one
+                    # accumulate (as the learner's targets); -1 = no card.
                     V = self.net.vocab_size
-                    hidden = torch.zeros(len(idxs), 2 * V, device=self.device)
+                    rows, cols = [], []
                     for j, i in enumerate(idxs):
                         hand, draws = reqs[i].hidden
-                        ids = batch.card_ids[i]
+                        ids = reqs[i].enc.card_ids
                         for ent in hand:
-                            hidden[j, ids[ent]] += 1.0
+                            if ent >= 0:
+                                rows.append(j)
+                                cols.append(ids[ent])
                         for ent in draws:
-                            hidden[j, V + ids[ent]] += 1.0
+                            if ent >= 0:
+                                rows.append(j)
+                                cols.append(V + ids[ent])
+                    hidden = torch.zeros(len(idxs), 2 * V, device=self.device)
+                    if rows:
+                        at = (torch.tensor(rows, device=self.device), torch.tensor(cols, device=self.device))
+                        hidden.index_put_(at, torch.ones(len(rows), device=self.device), accumulate=True)
                     sub = type(out)(g=out.g[sel], h=out.h[sel], e_opt=out.e_opt[sel], option_mask=out.option_mask[sel])
                     ov = self.net.oracle_value(sub, hidden).float()
                     for j, i in enumerate(idxs):
@@ -105,14 +116,14 @@ class TorchModel:
                         results[i] = (torch.softmax(scores[start : start + n], dim=0).tolist(), float(values[i]))
                 elif head == HEAD_SEQUENTIAL:
                     K = batch.options.shape[1]
-                    prefix = torch.zeros(len(idxs), K, device=self.device)
-                    legal = torch.zeros(len(idxs), K + 1, dtype=torch.bool, device=self.device)
+                    prefix_np = np.zeros((len(idxs), K), dtype=np.float32)
+                    legal_np = np.zeros((len(idxs), K + 1), dtype=bool)
                     for j, i in enumerate(idxs):
                         r = reqs[i]
-                        for p in r.prefix:
-                            prefix[j, p] = 1.0
-                        for l in r.legal:
-                            legal[j, K if l == -1 else l] = True
+                        prefix_np[j, list(r.prefix)] = 1.0
+                        legal_np[j, [K if l == -1 else l for l in r.legal]] = True
+                    prefix = torch.from_numpy(prefix_np).to(self.device)
+                    legal = torch.from_numpy(legal_np).to(self.device)
                     logits = self.net.sequential_logits(out, sel, prefix, legal).float()
                     probs = torch.softmax(logits, dim=-1)
                     for j, i in enumerate(idxs):
@@ -199,6 +210,10 @@ def main():
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--watch", default=None, help="a run's best.json: hot-reload promoted checkpoints")
     args = parser.parse_args()
+    if args.watch:  # started by a run's learner: never outlive it (an orphan keeps the port)
+        from agent.lifecycle import exit_with_parent
+
+        exit_with_parent()
     serve(args.checkpoint, (args.host, args.port), args.authkey.encode(), args.device, watch=args.watch)
 
 

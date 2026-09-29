@@ -67,9 +67,9 @@ class NetAgent(BatchController):
         return self.decide_many([(view, decision, budget, capability)])[0]
 
     # ------------------------------------------------------------------
-    def _pick(self, scores: List[float], is_prob: bool) -> int:
+    def _pick(self, scores: List[float], is_prob: bool, allowed: Optional[List[int]] = None) -> int:
         if self.epsilon and self.rng.random() < self.epsilon:
-            return self.rng.randrange(len(scores))
+            return self.rng.choice(allowed) if allowed else self.rng.randrange(len(scores))
         if self.temperature <= 0 or not is_prob:
             return _argmax(scores)
         weights = [max(p, 0.0) ** (1.0 / self.temperature) for p in scores]
@@ -103,7 +103,15 @@ class NetAgent(BatchController):
                     reqs.append(Request(enc=e, head=HEAD_Q))
                     slots.append((i, "q_multi", None))
                 elif self.multi_select == "enumerate":
-                    cands = enumerate_candidates(ordered, len(d.options), d.min_n, d.max_n, self.enumerate_cap)
+                    try:
+                        cands = enumerate_candidates(ordered, len(d.options), d.min_n, d.max_n, self.enumerate_cap)
+                    except ValueError:
+                        # Over the enumeration cap (the search falls back to
+                        # its fixed policy here): per-option scores through
+                        # the top-k rule -- always a legal submission.
+                        reqs.append(Request(enc=e, head=HEAD_TOPK))
+                        slots.append((i, "topk", None))
+                        continue
                     reqs.append(Request(enc=e, head=HEAD_SUBSET, candidates=cands, ordered=ordered))
                     slots.append((i, "subset", cands))
                 elif self.multi_select == "topk":
@@ -152,7 +160,7 @@ class NetAgent(BatchController):
                     legal, stop_ok = legal_of[i]
                     allowed = legal + ([len(scores) - 1] if stop_ok else [])
                     masked = [scores[j] if j in allowed else -1.0 for j in range(len(scores))]
-                    j = self._pick(masked, True)
+                    j = self._pick(masked, True, allowed)
                     if j == len(scores) - 1:
                         continue  # stop
                     prefixes[i].append(j)
