@@ -112,13 +112,13 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
 | M0 | `agent/` (torch-free), `ml/`, `configs/*.json`, `agent/config.py`, `agent/telemetry.py` | torch-free enforced statically and by importing every module with torch blocked; resolved configs re-hash byte-identically; every metric/journal row carries the config hash |
 | M1 | `keyforge/infoset.py`, `agent/spec.py`, `agent/features.py` | **no leak**: 1,000 games, 193,523 decisions x 2 viewers clean (`tools/check_encoder.py`), and the encoding is byte-identical under every `fork_determinized` re-deal; determinism across processes/hash seeds; all 13 kinds; presets, random, alliance decks, all formats; reserved slots pinned. **Throughput: not met** (below) |
 | M2 | `ml/model.py`, `ml/encode.py`, `ml/checkpoints.py`, `ml/infer_server.py` | 41-43k evaluations/s at batch 512 fp16 (target >= 20k); shapes for every kind; policy sums to 1 over offered options; checkpoint digests match between WSL and Windows (`tools/verify_checkpoint.py`); older-minor checkpoints load with new inputs zeroed; vocabulary growth attribute-initialized |
-| M3 | `sim/bc_corpus.py`, `ml/dataset.py`, `ml/bc_train.py`, `tools/run_screens.py`, `tools/position_suite.py` | pipeline runs end to end; full Tier 0 run `tier0` in progress (results below when done) |
+| M3 | `sim/bc_corpus.py`, `ml/dataset.py`, `ml/bc_train.py`, `tools/run_screens.py`, `tools/position_suite.py` | **Tier 0 done** (run `tier0`: 30,000 games, 7.46 M labelled decisions, 4 epochs, 2 h on the 5060 Ti). Top-1: CHOOSE_ACTION **0.913** (target >= 0.80), binary kinds **1.000** (>= 0.90), CHOOSE_HOUSE 0.943, CHOOSE_HOUSE_FOR_EFFECT 0.931. Value beats a constant predictor from turn 2 (accuracy 0.62 at turns 2-3, 0.83 by turns 16-19). **G1: PASS**, 0.497 +/- 0.006 vs HeuristicBot over 8,000 paired games (>= 0.40); 1.000 vs RandomBot. Screens 3-5 under "Findings" |
 | M4 | `agent/search/core.py` | toy-game checks exact: forced win/loss -> +/-1 from either seat, availability ~ 1/2 for a coin-only option, subtree reuse agrees with a fresh search, batching; conformance at every privilege level |
 | M5 | `agent/search/within_turn.py`, `full_game.py` | **G2 within-turn: PASS** 0.913 (CI 0.881-0.936) vs HeuristicBot over 400 paired games at 200 sims, 0.43 s/search; 1.000 vs RandomBot. **G2 full-game, as specified (mid-turn leaves): FAIL** 0.4225 (CI 0.375-0.471); **with `quiet_leaves`: PASS** 0.8925 (CI 0.858-0.919), 0.44 s/search; 1.000 vs RandomBot. See "Findings" |
 | M6 | `agent/search/leaf.py` | heuristic / student / belief+oracle estimators; count-constrained hand sampling tested; belief reliability table and log-loss vs the uniform baseline in the M3 report |
 | M7 | `agent/selfplay.py`, `ml/selfplay_train.py`, `ml/arena.py` | smoke run end to end (server + 2 actors + learner + 3 gates); crash-safe shards resume the exact missing game indices; resignation with exempt games; no full run yet |
 | M8 | DMC mode of the same actor/learner, `NetAgent(mode="q")` | smoke-tested; no run yet |
-| M9 | `tools/run_bakeoff.py`, `sim/parallel_eval.py`, `tools/eval_search.py`, `tools/diag_*.py` | matrix stage smoke-tested (ratings with bootstrap CIs, non-transitivity); diagnostics not yet run at scale |
+| M9 | `tools/run_bakeoff.py`, `sim/parallel_eval.py`, `tools/eval_search.py`, `tools/diag_*.py` | matrix stage smoke-tested (ratings with bootstrap CIs, non-transitivity). **G3 diagnostics run** (heuristic evaluator; full-game with quiet leaves): search curve and hidden-information gap under "Findings" -- no arm cancelled; the belief arm stays for full-game only |
 | M10 | `agent/telemetry.py`, `tools/monitor.py` | the three decision numbers plus G5/G6 flags, from real run records |
 | M11 | `agent/augment.py`, `tools/deck_generalization.py` | search and network agents legal on random, alliance, Phase 2/3 presets, Reversal and Adaptive; mirror augmentation exact for Fignor/Igor (not for Cinder, Riftwalker, Starfall); held-out deck sets disjoint by construction; no `FEATURE_VERSION` bump needed |
 
@@ -172,11 +172,54 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
   "where the value head is asked to evaluate" axis M9 measures), `quiet_leaves` is an option
   (`search.quiet_leaves`, `--quiet-leaves`), and the heuristic-evaluator diagnostics (G3) run the
   full-game regime with it, since otherwise they would only re-measure the evaluator's blind spot.
+- **G3 search curve** (vs HeuristicBot, 200 games/level, SE ~0.035): within-turn 0.000 / 0.375 /
+  0.880 / 0.905 at 1 / 10 / 100 / 1,000 simulations (2 / 18 / 164 / 1,863 ms per search);
+  full-game 0.000 / 0.275 / 0.835 / 0.895. Steep from 10 to 100, saturating by 1,000: search earns
+  its cost, DMC does not become the primary design, and the fast fork backend stays off.
+- **G3 hidden information** (exact fork minus the honest agent, 800 games per condition):
+  within-turn **+0.005 +/- 0.015** -> the belief arm is dropped for regime A; full-game
+  **+0.061 +/- 0.015** -> kept for regime B. Not knowing the opponent's hand costs a full-game
+  searcher six points and a within-turn searcher nothing -- consistent with the plan's reasoning
+  that regime A is nearly a single-agent search.
+- **Screen 3 (multi-select):** enumerate / sequential / top-k are within noise (CHOOSE_CARDS exact
+  0.864 / 0.861 / 0.861, n = 26,019; ORDER_EFFECTS 0.937 / 0.948 / 0.931, n = 364). Per the decision
+  rule, enumerate stays the default; sequential stays built and tested for larger pools.
+- **Screen 4 (ablations, all at a 1-epoch budget, vs a same-budget `reference`):** everything within
+  half a point. Pointer head 0.910 vs fixed vocabulary 0.905 on CHOOSE_ACTION (and half the
+  parameters); 2 / 4 / 6 layers 0.907 / 0.910 / 0.908; attributes-only and ID-only both ~equal to
+  both paths on these two decks. **Removing DecisionIntent costs almost nothing** (0.910 / 0.862 vs
+  0.910 / 0.863) -- the plan expected a large CHOOSE_CARDS drop. On a 49-card pool the network can
+  recover the intent from the source-card flag plus that card's identity; the tag should matter
+  more on larger pools, where one card can ask for several different things.
+- **Screen 5 (74 cards held out of training entirely):** on decisions offering a held-out card,
+  CHOOSE_ACTION top-1 is **0.846 with attributes only**, 0.829 with both paths, 0.715 with ID only
+  (seen cards: ~0.90 for all three); CHOOSE_CARDS 0.864 / 0.787 / 0.716. The attribute path is what
+  carries an unseen card, as M11 assumed. "Both" trails "attributes only" because a held-out card's
+  embedding row is still its random initialization -- the M11 attribute-initialization of new rows
+  should also be applied to in-vocabulary cards that never appeared in training (open item).
+- **The value head memorizes random-deck corpora.** Every random-deck game has its own deck pair,
+  so the decklists identify the game: training value loss falls to ~0.02 while log-loss on unseen
+  deck pairs is 1.3-2.0, worse than a constant (0.69). Fixed-deck training (Fignor/Igor) is
+  unaffected. Random-deck and M11 work needs far more games per deck pair, fewer epochs, or value
+  regularization.
+- **M6 belief head: barely beats uniform** (log-loss 0.526 vs 0.541 for "uniform over consistent
+  worlds"; the plan asks for decisive). The encoding carries no history -- which cards were played,
+  kept, revealed, when -- and hand inference is mostly history. Belief modelling needs history
+  features before the B estimator can be worth its 8x cost.
+- **M6 oracle head: not better than the student** (0.496 vs 0.483), where the plan says it must be.
+  Checked: its inputs are built identically in training and evaluation, and with the trunk frozen
+  and the oracle head trained alone at full weight, its held-out log-loss gets *worse* (0.496 ->
+  0.511) while its training loss falls -- the exact opponent hand plus my next draws identifies a
+  training position, so the head memorizes outcomes rather than learning what hidden cards are
+  worth. Consistent with G3: in this matchup the hidden cards carry little outcome signal beyond the
+  public state. Suphx-style oracle guidance (and the B estimator, which averages this head) is not
+  expected to pay off here without heavy regularization of the privileged input and far more games;
+  the distillation route stays an option (`loss_weights.distill`, default 0).
 
 ### Next
 
-The Tier 0 results (G1, screens 1-5), the Tier 1 diagnostics (G3: `tools/run_bakeoff.py --stages
-diagnostics`), then a first self-play run to measure games/hour (G5) before committing to Tier 2 or 3.
+A first self-play run (within-turn arm, warm-started from the Tier 0 network) to measure games/hour
+at the two-hour mark (G5) before committing to Tier 2 or 3.
 
 ---
 
