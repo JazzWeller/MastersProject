@@ -12,7 +12,7 @@ bands:
 | Number | Healthy | Unhealthy means |
 |---|---|---|
 | Games/hour | within 60% of projection (gate G5) | re-plan the tier before continuing |
-| Actor:learner ratio | ~0.5-2 | >>2: learner starved. <<0.5: actors starved |
+| Actor:learner ratio | ~0.5-2 | >>2: the learner can't keep up. <<1 with the learner idle: actors starved |
 | Promoted score slope | clearly positive (gate G6) | converged, stalled, or broken |
 
 Everything else in metrics.jsonl is for diagnosis once one of those goes
@@ -72,8 +72,15 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
 
     games_per_hour = 3600.0 * total_rate("actor", "games")
     produced = total_rate("learner", "positions_produced")
-    consumed = total_rate("learner", "positions_consumed")
-    ratio = produced / consumed if consumed else None
+    # Positions produced over positions *budgeted* by the learner's steps
+    # (one step per `positions_per_step` new positions) -- not over
+    # positions consumed, which counts every reuse of a position (~batch /
+    # positions_per_step of them by design). ~1: the learner keeps pace;
+    # >> 1: it can't. It can't run ahead (it waits for new data), so actor
+    # starvation shows as ~1 with a low steps/second, not as < 1.
+    pps = float(run.config.get("selfplay", {}).get("positions_per_step", 12))
+    steps_rate = total_rate("learner", "gradient_steps")
+    ratio = produced / (steps_rate * pps) if steps_rate else None
     learner = [m for m in metrics if m["source"] == "learner"]
     last = learner[-1] if learner else None
     games_done = int(last["gauges"].get("games", 0)) if last else 0
@@ -106,7 +113,7 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
     if ratio is not None and ratio > 2:
         flags.append(f"actor:learner {ratio:.2f} >> 2 -- the learner can't keep up")
     if ratio is not None and ratio < 0.5:
-        flags.append(f"actor:learner {ratio:.2f} << 0.5 -- the actors are starved (fork cost? raise K)")
+        flags.append(f"actor:learner {ratio:.2f} << 0.5 -- inconsistent (the learner shouldn't outrun its data); check positions_per_step")
     if games_done >= 25_000 and slope is not None and slope <= 0:
         flags.append("G6: no improvement over the last gates -- bank the promoted checkpoint and stop; spend the time on the matrix")
     ent = last["means"].get("policy_entropy") if last else None

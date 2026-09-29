@@ -158,16 +158,25 @@ class Tailer:
         return out
 
 
-def _hidden_counts(batch: Batch, positions: List[dict], vocab: int, device) -> torch.Tensor:
-    B = len(positions)
-    out = torch.zeros(B, 2 * vocab, device=device)
-    ids = batch.card_ids
+def _hidden_counts(positions: List[dict], vocab: int, device) -> torch.Tensor:
+    """[B, 2*vocab] count vectors of the opponent's true hand and my next
+    draws. Index pairs are gathered on the CPU from each position's own
+    encoding and written with one accumulate -- never one tiny GPU write
+    per card (that was ~13 s per step at batch 1024)."""
+    rows, cols = [], []
     for b, p in enumerate(positions):
+        ids = p["enc"].card_ids
         for e in p["priv"]["opp_hand"]:
-            out[b, ids[b, e]] += 1.0
+            rows.append(b)
+            cols.append(ids[e])
         for e in p["priv"]["next_draws"]:
             if e >= 0:
-                out[b, vocab + ids[b, e]] += 1.0
+                rows.append(b)
+                cols.append(vocab + ids[e])
+    out = torch.zeros(len(positions), 2 * vocab, device=device)
+    if rows:
+        idx = (torch.tensor(rows, device=device), torch.tensor(cols, device=device))
+        out.index_put_(idx, torch.ones(len(rows), device=device), accumulate=True)
     return out
 
 
@@ -193,21 +202,23 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
         if rows:
             L["q"] = F.mse_loss(q[torch.tensor(rows, device=device), torch.tensor(cols, device=device)], torch.tensor(tgt, device=device))
     else:
-        single_rows, single_t = [], []
+        single_rows = []
         multi = []
+        K = batch.options.shape[1]
         for b, p in enumerate(positions):
             if p["target"] is None or p["value_only"]:
                 continue
             if p["kind"] in MULTI_KINDS:
                 multi.append(b)
             else:
-                t = torch.zeros(batch.options.shape[1])
-                t[: len(p["target"])] = torch.tensor(p["target"])
                 single_rows.append(b)
-                single_t.append(t)
         if single_rows:
+            pi_np = np.zeros((len(single_rows), K), dtype=np.float32)
+            for r, b in enumerate(single_rows):
+                t = positions[b]["target"]
+                pi_np[r, : len(t)] = t
             logits = model.policy_logits(out)[torch.tensor(single_rows, device=device)]
-            pi = torch.stack(single_t).to(device)
+            pi = torch.from_numpy(pi_np).to(device)
             logp = torch.log_softmax(logits, dim=-1).masked_fill(pi == 0, 0.0)
             L["policy"] = -(pi * logp).sum(-1).mean()
             probs = torch.softmax(logits.detach().float(), -1)
@@ -222,21 +233,31 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
                 members.extend(cands)
                 ordered.extend([p["kind"] == "ORDER_EFFECTS"] * len(cands))
             scores = model.subset_scores(out, torch.tensor(c_rows, device=device), candidates_tensor(members, device), torch.tensor(ordered, device=device))
-            total = 0.0
-            for start, n, t in spans:
-                total = total - (torch.tensor(t, device=device) * torch.log_softmax(scores[start : start + n], 0)).sum()
-            L["multi"] = total / len(spans)
+            cmax = max(n for _s, n, _t in spans)
+            padded = torch.full((len(spans), cmax), float("-inf"), device=device)
+            tgt = np.zeros((len(spans), cmax), dtype=np.float32)
+            src_rows, src_cols, src_idx = [], [], []
+            for r, (start, n, t) in enumerate(spans):
+                tgt[r, :n] = t
+                src_rows.extend([r] * n)
+                src_cols.extend(range(n))
+                src_idx.extend(range(start, start + n))
+            padded[torch.tensor(src_rows, device=device), torch.tensor(src_cols, device=device)] = scores[torch.tensor(src_idx, device=device)]
+            logp = torch.log_softmax(padded, dim=-1)
+            tg = torch.from_numpy(tgt).to(device)
+            L["multi"] = -(tg * logp.masked_fill(tg == 0, 0.0)).sum(-1).mean()
     v = model.value(out)
     L["value"] = F.mse_loss(v, z)
     stats["value_calibration"] = float((v.detach() - z).abs().mean())
     unseen = batch.zones == OPP_UNSEEN
     if bool(unseen.any()):
-        in_hand = torch.zeros_like(batch.zones, dtype=torch.float32)
+        hand_np = np.zeros(tuple(batch.zones.shape), dtype=np.float32)
         for b, p in enumerate(positions):
-            for e in p["priv"]["opp_hand"]:
-                in_hand[b, e] = 1.0
+            if p["priv"]["opp_hand"]:
+                hand_np[b, p["priv"]["opp_hand"]] = 1.0
+        in_hand = torch.from_numpy(hand_np).to(device)
         L["belief"] = F.binary_cross_entropy_with_logits(model.belief_logits(out)[unseen], in_hand[unseen])
-    oracle = model.oracle_value(out, _hidden_counts(batch, positions, model.vocab_size, device))
+    oracle = model.oracle_value(out, _hidden_counts(positions, model.vocab_size, device))
     L["oracle"] = F.mse_loss(oracle, z)
     if weights.get("distill", 0.0) > 0:
         # Suphx-style oracle guidance, the distillation route (M6): the
