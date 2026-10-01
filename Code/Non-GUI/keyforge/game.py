@@ -378,7 +378,9 @@ class Game:
         search its own future draws and the opponent's true hand."""
         return replay(self.config, self.choice_record)
 
-    def fork_determinized(self, viewer: int, rng: random.Random, resample: Resample = Resample.ALL) -> "Game":
+    def fork_determinized(
+        self, viewer: int, rng: random.Random, resample: Resample = Resample.ALL, *, backend: str = "replay",
+    ) -> "Game":
         """`fork()`, then resamples what `viewer` doesn't know, then
         reseeds the fork's own future randomness from `rng`. Without the
         reseed, every future `event_rng` draw in the fork would exactly
@@ -397,8 +399,19 @@ class Game:
           reveal covers it, matching `keyforge/view.py`'s own visibility
           rule for the non-privileged `PlayerView`.
         - `ALL`: both.
+
+        `backend`: `"replay"` (the default, valid at any decision), `"copy"`
+        (Milestone E2's snapshot copy -- ~4x cheaper mid-game, but only at a
+        boundary decision; raises elsewhere), or `"auto"` (copy at a
+        boundary, replay otherwise). The resulting fork is the same either
+        way (both are exact before the resample).
         """
-        fork = self.fork()
+        if backend == "copy" or (backend == "auto" and (self.is_over or (self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS))):
+            fork = self.copy()
+        elif backend in ("replay", "auto"):
+            fork = self.fork()
+        else:
+            raise ValueError(f"fork_determinized: unknown backend {backend!r}")
         opponent = 3 - viewer
         if resample in (Resample.OWN_DECK, Resample.ALL):
             fork._resample_own_deck(viewer, rng)

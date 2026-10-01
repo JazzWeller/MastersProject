@@ -1,0 +1,10 @@
+{
+  "name": "smoke-selfplay",
+  "tier": 2,
+  "notes": "A minutes-long end-to-end check of the M7 loop (server + actors + learner + gating) -- not a result.",
+  "network": {"dropout": 0.0},
+  "search": {"regime": "within_turn", "leaf": "student", "resample": "all", "leaves_in_flight": 4},
+  "selfplay": {"games": 40, "workers": 2, "games_per_worker": 6, "playout_cap_small": 4, "playout_cap_full": 12,
+               "batch": 64, "positions_per_step": 12, "gate_every_steps": 40, "gate_games": 40,
+               "buffer_positions": 50000, "training_max_turns": 40}
+}

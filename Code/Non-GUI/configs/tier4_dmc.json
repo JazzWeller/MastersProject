@@ -1,0 +1,7 @@
+{
+  "name": "tier4-dmc",
+  "tier": 4,
+  "notes": "M8: search-free Deep Monte-Carlo.",
+  "network": {"dropout": 0.0},
+  "selfplay": {"games": 50000, "batch": 1024, "lr": 1e-3}
+}

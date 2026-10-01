@@ -14,7 +14,8 @@ from typing import Any, Optional
 
 from .branching import run_branches
 from .enums import PrivilegeLevel, Resample
-from .observation import Observation, build_observation, full_state_observation
+from .infoset import InfoSet, build_infoset, build_match_infoset
+from .observation import Observation, build_match_observation, build_observation, full_state_observation
 
 
 class ObservationCapability:
@@ -23,12 +24,26 @@ class ObservationCapability:
 
     level = PrivilegeLevel.OBSERVATION
 
-    def __init__(self, game, viewer: int):
+    def __init__(self, game, viewer: int, match=None):
         self._game = game
         self._viewer = viewer
+        # The match this game belongs to, if any -- supplies format/score
+        # context, and is all there is for a between-games decision
+        # (BID_CHAINS/CHOOSE_FIRST_PLAYER), when `game` is None.
+        self._match = match
 
     def observation(self) -> Observation:
-        return build_observation(self._game, self._viewer)
+        if self._game is None:
+            return build_match_observation(self._match, self._viewer)
+        return build_observation(self._game, self._viewer, match=self._match)
+
+    def infoset(self) -> InfoSet:
+        """The fast, redacted extract a network encoder reads
+        (keyforge/infoset.py) -- the same visibility rules as
+        `observation()`, a small fraction of the cost."""
+        if self._game is None:
+            return build_match_infoset(self._match, self._viewer)
+        return build_infoset(self._game, self._viewer, match=self._match)
 
 
 class SearchCapability(ObservationCapability):
@@ -37,8 +52,12 @@ class SearchCapability(ObservationCapability):
 
     level = PrivilegeLevel.SEARCH
 
-    def fork_determinized(self, rng, resample: Resample = Resample.ALL):
-        return self._game.fork_determinized(self._viewer, rng, resample=resample)
+    def fork_determinized(self, rng, resample: Resample = Resample.ALL, *, backend: str = "replay"):
+        return self._game.fork_determinized(self._viewer, rng, resample=resample, backend=backend)
+
+    @property
+    def viewer(self) -> int:
+        return self._viewer
 
     def fork_many(self, n: int, *, resample: Resample = Resample.ALL, seeds: Optional[Any] = None):
         return self._game.fork_many(n, viewer=self._viewer, resample=resample, seeds=seeds)
@@ -74,5 +93,10 @@ _CAPABILITY_TYPES = {
 }
 
 
-def make_capability(level: PrivilegeLevel, game, viewer: int) -> ObservationCapability:
-    return _CAPABILITY_TYPES[level](game, viewer)
+def make_capability(level: PrivilegeLevel, game, viewer: int, match=None) -> ObservationCapability:
+    """`game` may be None only for a between-games match decision, and then
+    only an observation-level capability exists: there is no live game to
+    fork."""
+    if game is None:
+        return ObservationCapability(None, viewer, match)
+    return _CAPABILITY_TYPES[level](game, viewer, match)

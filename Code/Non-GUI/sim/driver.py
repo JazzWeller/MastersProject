@@ -117,9 +117,12 @@ def _live_game(obj) -> Optional[Game]:
 
 def _capability_for(obj, viewer: int, level: PrivilegeLevel):
     live = _live_game(obj)
+    match = obj if _is_match(obj) else None
     if live is None:
-        return None
-    return make_capability(level, live, viewer)
+        # Between games of a match: nothing to fork, but an agent can still
+        # ask for its (match-level) observation/infoset.
+        return make_capability(PrivilegeLevel.OBSERVATION, None, viewer, match=match) if match is not None else None
+    return make_capability(level, live, viewer, match=match)
 
 
 def _result_for(index: int, obj, forfeit=None) -> GameResult:
@@ -152,7 +155,7 @@ def run_games(
     *,
     concurrency: int = 8,
     budget: Optional[Budget] = None,
-    privilege: Optional[Dict[int, PrivilegeLevel]] = None,
+    privilege: Optional[Union[Dict[int, PrivilegeLevel], Callable[[int], Dict[int, PrivilegeLevel]]]] = None,
     run_seed: int = 0,
     auto_resolve_forced: bool = True,
 ) -> List[GameResult]:
@@ -162,9 +165,11 @@ def run_games(
     `make_agents(game_index)` returns `{seat: Controller}`; each is wrapped
     in a `TimedSyncBatchAdapter` unless it's already a `BatchController`.
     `privilege` (default: observation-only for every seat) maps seat ->
-    `PrivilegeLevel`, applied to every game.
+    `PrivilegeLevel`, applied to every game -- or is a callable
+    `game_index -> {seat: PrivilegeLevel}`, for runs whose seat
+    assignment varies by game (paired evaluation, sim/paired.py).
     """
-    privilege = privilege or {}
+    privilege_of = privilege if callable(privilege) else (lambda _i, _p=(privilege or {}): _p)
     results: List[Optional[GameResult]] = [None] * n_games
     active: Dict[int, _Slot] = {}
     next_to_start = 0
@@ -174,7 +179,8 @@ def run_games(
         obj = Match(config) if isinstance(config, MatchConfig) else Game(config)
         raw_agents = make_agents(index)
         agents = {seat: (a if isinstance(a, BatchController) else TimedSyncBatchAdapter(a)) for seat, a in raw_agents.items()}
-        slot_privilege = {seat: privilege.get(seat, PrivilegeLevel.OBSERVATION) for seat in agents}
+        game_privilege = privilege_of(index)
+        slot_privilege = {seat: game_privilege.get(seat, PrivilegeLevel.OBSERVATION) for seat in agents}
         seat_of_agent = {id(a): seat for seat, a in agents.items()}
         slot = _Slot(index=index, obj=obj, agents=agents, privilege=slot_privilege, seat_of_agent=seat_of_agent)
         fmt = config.format if isinstance(config, MatchConfig) else "archon"

@@ -1,0 +1,6 @@
+{
+  "name": "tier0-bc-smoke",
+  "tier": 0,
+  "notes": "A minutes-long end-to-end check of the M3 pipeline -- not a result.",
+  "bc": {"heuristic_games": 600, "epsilon_games": 150, "random_games": 150, "epochs": 1, "workers": 4}
+}

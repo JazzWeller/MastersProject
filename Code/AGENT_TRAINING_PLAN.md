@@ -99,6 +99,163 @@ stands), and any Phase 2/3 card work.
 
 ---
 
+## Implementation status (2026-09-27, branch `agent-training`)
+
+Everything below this section is the plan as written; this section records what exists, what has
+been measured, and where the build had to depart from the text (with the reason). Code layout and
+per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
+
+### Built
+
+| Milestone | Where | Acceptance so far |
+|---|---|---|
+| M0 | `agent/` (torch-free), `ml/`, `configs/*.json`, `agent/config.py`, `agent/telemetry.py` | torch-free enforced statically and by importing every module with torch blocked; resolved configs re-hash byte-identically; every metric/journal row carries the config hash |
+| M1 | `keyforge/infoset.py`, `agent/spec.py`, `agent/features.py` | **no leak**: 1,000 games, 193,523 decisions x 2 viewers clean (`tools/check_encoder.py`), and the encoding is byte-identical under every `fork_determinized` re-deal; determinism across processes/hash seeds; all 13 kinds; presets, random, alliance decks, all formats; reserved slots pinned. **Throughput: not met** (below) |
+| M2 | `ml/model.py`, `ml/encode.py`, `ml/checkpoints.py`, `ml/infer_server.py` | 41-43k evaluations/s at batch 512 fp16 (target >= 20k); shapes for every kind; policy sums to 1 over offered options; checkpoint digests match between WSL and Windows (`tools/verify_checkpoint.py`); older-minor checkpoints load with new inputs zeroed; vocabulary growth attribute-initialized |
+| M3 | `sim/bc_corpus.py`, `ml/dataset.py`, `ml/bc_train.py`, `tools/run_screens.py`, `tools/position_suite.py` | **Tier 0 done** (run `tier0`: 30,000 games, 7.46 M labelled decisions, 4 epochs, 2 h on the 5060 Ti). Top-1: CHOOSE_ACTION **0.913** (target >= 0.80), binary kinds **1.000** (>= 0.90), CHOOSE_HOUSE 0.943, CHOOSE_HOUSE_FOR_EFFECT 0.931. Value beats a constant predictor from turn 2 (accuracy 0.62 at turns 2-3, 0.83 by turns 16-19). **G1: PASS**, 0.497 +/- 0.006 vs HeuristicBot over 8,000 paired games (>= 0.40); 1.000 vs RandomBot. Screens 3-5 under "Findings" |
+| M4 | `agent/search/core.py` | toy-game checks exact: forced win/loss -> +/-1 from either seat, availability ~ 1/2 for a coin-only option, subtree reuse agrees with a fresh search, batching; conformance at every privilege level |
+| M5 | `agent/search/within_turn.py`, `full_game.py` | **G2 within-turn: PASS** 0.913 (CI 0.881-0.936) vs HeuristicBot over 400 paired games at 200 sims, 0.43 s/search; 1.000 vs RandomBot. **G2 full-game, as specified (mid-turn leaves): FAIL** 0.4225 (CI 0.375-0.471); **with `quiet_leaves`: PASS** 0.8925 (CI 0.858-0.919), 0.44 s/search; 1.000 vs RandomBot. See "Findings" |
+| M6 | `agent/search/leaf.py` | heuristic / student / belief+oracle estimators; count-constrained hand sampling tested; belief reliability table and log-loss vs the uniform baseline in the M3 report |
+| M7 | `agent/selfplay.py`, `ml/selfplay_train.py`, `ml/selfplay_gate.py`, `ml/arena.py`, `agent/lifecycle.py` | smoke run end to end (server + 2 actors + learner + 3 gates); crash-safe shards resume the exact missing game indices; resignation with exempt games; no valid full run yet (the first was aborted -- see "Findings") |
+| M8 | DMC mode of the same actor/learner, `NetAgent(mode="q")` | smoke-tested; no run yet |
+| M9 | `tools/run_bakeoff.py`, `sim/parallel_eval.py`, `tools/eval_search.py`, `tools/diag_*.py` | matrix stage smoke-tested (ratings with bootstrap CIs, non-transitivity). **G3 diagnostics run** (heuristic evaluator; full-game with quiet leaves): search curve and hidden-information gap under "Findings" -- no arm cancelled; the belief arm stays for full-game only |
+| M10 | `agent/telemetry.py`, `tools/monitor.py` | the three decision numbers plus G5/G6 flags, from real run records |
+| M11 | `agent/augment.py`, `tools/deck_generalization.py` | search and network agents legal on random, alliance, Phase 2/3 presets, Reversal and Adaptive; mirror augmentation exact for Fignor/Igor (not for Cinder, Riftwalker, Starfall); held-out deck sets disjoint by construction; no `FEATURE_VERSION` bump needed |
+
+### Departures from the text, and why
+
+1. **The encoder reads a fast info-set extract, not an `Observation`.** `build_observation` costs
+   ~640 us/decision (25x the engine). `keyforge/infoset.py` applies the same visibility rules in
+   ~65 us; the leak tests above hold it to them. `Observation` is unchanged for everything else.
+2. **Compact encoding, attributes on the GPU.** Static card attributes are a table indexed by card id
+   (`spec.STATIC`, 122 wide), expanded on the device; the per-decision entity block is 86 wide (so
+   the dense row the trunk sees is 208, not ~97), globals 222, options 50. Reserved slots as
+   specified; minor version 1 already spent 4 option slots (below).
+3. **House options carry context (minor 1).** A house option has no entity to point at, and the
+   first smoke run left CHOOSE_HOUSE near-uniform (the agent then ended most turns early): house
+   options now carry my hand cards / creatures / ready creatures / artifacts of that house.
+4. **Both regimes resample everything by default.** `OWN_DECK` (regime A's text) leaves the true
+   opponent hand in each world, and within-turn search's mid-turn opponent replies read it;
+   `OPPONENT_PRIVATE` (regime B's text) leaves the searcher's true future draws. Both stay available
+   as the hidden-information diagnostic's conditions.
+5. **Leaf values always come from the searcher's own information set** -- never the other seat's,
+   which in a world holds a sampled or true hidden hand. The value head is therefore trained for any
+   viewer: the corpus adds a value-only record from the non-deciding seat for half the decisions.
+6. **Tree nodes are keyed by action paths** (option keys), not `observation_key` (which builds a full
+   observation, ~640 us, per node visit). The evaluation cache is keyed by the exact network input.
+   A transposition table is not built (open item).
+7. **Configs are JSON** (YAML read if PyYAML happens to be installed): the plan's only mandatory
+   dependency is torch.
+8. **A different `ENGINE_VERSION` warns, it doesn't refuse** to load a checkpoint: the M0 table says
+   rules fixes invalidate data, not checkpoints (`strict_engine=True` refuses).
+9. **Gating** is an SPRT between 0 and 35 Elo (~55%) with a fixed-N fallback at the game budget
+   (score above 0.5 + 2 SE): at 20 Elo, 40 games scoring 36-4 still couldn't decide.
+10. **The no-network value function credits reaching the key cost as a key next turn.** It preferred
+    +4 board power over the Æmber that forges the winning key.
+11. **Environment:** the WSL torch environment is CPython 3.14 (torch 2.14, CUDA 13.0); the engine is
+    version-agnostic. Windows has no torch, so the GUI can't load a network yet (it can play the
+    search agents: `main.py --bot search-within-turn`).
+
+### Findings and open items
+
+- **M1 encoding throughput misses its target.** ~65 us extract + ~35 us encode per decision against
+  ~25-40 us of engine: 250-400%, not < 25%. The cost is spread across the 72-entity pass, not one
+  hotspot, so only the incremental encoder (interface plan L) would change it materially. Where it
+  matters little: in search a simulation costs ~1.5-2 ms (fork-dominated), so encoding is ~10-15%.
+- **Where the value is asked matters more than which tree asks it** (with the heuristic
+  evaluator). Full-game search as specified -- leaves evaluated wherever they fall -- fails G2 at
+  0.4225; the same search with `quiet_leaves` (each leaf's own turn played out by the rollout
+  policy before evaluating) passes at 0.8925 on the same 400 paired games, level with within-turn's
+  0.913. The M4 availability and backup-sign checks pass, and this isolates the cause: the
+  hand-written value can't see what's left to do mid-turn. It is a result, not a defect -- regime B
+  stays as specified (a trained value head learns mid-turn positions from data; this is exactly the
+  "where the value head is asked to evaluate" axis M9 measures), `quiet_leaves` is an option
+  (`search.quiet_leaves`, `--quiet-leaves`), and the heuristic-evaluator diagnostics (G3) run the
+  full-game regime with it, since otherwise they would only re-measure the evaluator's blind spot.
+- **G3 search curve** (vs HeuristicBot, 200 games/level, SE ~0.035): within-turn 0.000 / 0.375 /
+  0.880 / 0.905 at 1 / 10 / 100 / 1,000 simulations (2 / 18 / 164 / 1,863 ms per search);
+  full-game 0.000 / 0.275 / 0.835 / 0.895. Steep from 10 to 100, saturating by 1,000: search earns
+  its cost, DMC does not become the primary design, and the fast fork backend stays off.
+- **G3 hidden information** (exact fork minus the honest agent, 800 games per condition):
+  within-turn **+0.005 +/- 0.015** -> the belief arm is dropped for regime A; full-game
+  **+0.061 +/- 0.015** -> kept for regime B. Not knowing the opponent's hand costs a full-game
+  searcher six points and a within-turn searcher nothing -- consistent with the plan's reasoning
+  that regime A is nearly a single-agent search.
+- **Screen 3 (multi-select):** enumerate / sequential / top-k are within noise (CHOOSE_CARDS exact
+  0.864 / 0.861 / 0.861, n = 26,019; ORDER_EFFECTS 0.937 / 0.948 / 0.931, n = 364). Per the decision
+  rule, enumerate stays the default; sequential stays built and tested for larger pools.
+- **Screen 4 (ablations, all at a 1-epoch budget, vs a same-budget `reference`):** everything within
+  half a point. Pointer head 0.910 vs fixed vocabulary 0.905 on CHOOSE_ACTION (and half the
+  parameters); 2 / 4 / 6 layers 0.907 / 0.910 / 0.908; attributes-only and ID-only both ~equal to
+  both paths on these two decks. **Removing DecisionIntent costs almost nothing** (0.910 / 0.862 vs
+  0.910 / 0.863) -- the plan expected a large CHOOSE_CARDS drop. On a 49-card pool the network can
+  recover the intent from the source-card flag plus that card's identity; the tag should matter
+  more on larger pools, where one card can ask for several different things.
+- **Screen 5 (74 cards held out of training entirely):** on decisions offering a held-out card,
+  CHOOSE_ACTION top-1 is **0.846 with attributes only**, 0.829 with both paths, 0.715 with ID only
+  (seen cards: ~0.90 for all three); CHOOSE_CARDS 0.864 / 0.787 / 0.716. The attribute path is what
+  carries an unseen card, as M11 assumed. "Both" trails "attributes only" because a held-out card's
+  embedding row is still its random initialization -- the M11 attribute-initialization of new rows
+  should also be applied to in-vocabulary cards that never appeared in training (open item).
+- **The value head memorizes random-deck corpora.** Every random-deck game has its own deck pair,
+  so the decklists identify the game: training value loss falls to ~0.02 while log-loss on unseen
+  deck pairs is 1.3-2.0, worse than a constant (0.69). Fixed-deck training (Fignor/Igor) is
+  unaffected. Random-deck and M11 work needs far more games per deck pair, fewer epochs, or value
+  regularization.
+- **M6 belief head: barely beats uniform** (log-loss 0.526 vs 0.541 for "uniform over consistent
+  worlds"; the plan asks for decisive). The encoding carries no history -- which cards were played,
+  kept, revealed, when -- and hand inference is mostly history. Belief modelling needs history
+  features before the B estimator can be worth its 8x cost.
+- **M6 oracle head: not better than the student** (0.496 vs 0.483), where the plan says it must be.
+  Checked: its inputs are built identically in training and evaluation, and with the trunk frozen
+  and the oracle head trained alone at full weight, its held-out log-loss gets *worse* (0.496 ->
+  0.511) while its training loss falls -- the exact opponent hand plus my next draws identifies a
+  training position, so the head memorizes outcomes rather than learning what hidden cards are
+  worth. Consistent with G3: in this matchup the hidden cards carry little outcome signal beyond the
+  public state. Suphx-style oracle guidance (and the B estimator, which averages this head) is not
+  expected to pay off here without heavy regularization of the privileged input and far more games;
+  the distillation route stays an option (`loss_weights.distill`, default 0).
+
+- **First self-play attempt (`wt-s0`, 2026-09-28): stopped after 35 minutes; its data is unusable.**
+  A code review afterwards found:
+  - **The tier configs overrode departure 4.** `tier2_selfplay_within_turn.json` said
+    `resample: own_deck` and `tier3_selfplay_full_game.json` `opponent_private` (and the config
+    `DEFAULTS` said `own_deck`), so `wt-s0`'s searches saw the opponent's true hand. The configs
+    and defaults now say `all`, a test holds every shipped config to it, and the learner refuses
+    to start *or resume* a search run with anything else, so `wt-s0` can't be continued by
+    accident. Its 526 games are contaminated: restart under a new run id.
+  - **The gate blocked the learner.** It ran inside the learner's loop -- up to 400 games at 50
+    simulations, ~30 minutes -- during which nothing was ingested or trained while the actors kept
+    producing (the learner sat at game 62 while the shards held 526). Gating is now its own
+    process (`ml/selfplay_gate.py`); the learner keeps training, at most one gate is in flight,
+    and a gate interrupted by a kill is replayed on resume with the same seeds (now a function of
+    the run seed and gate number, not the clock).
+  - **Gate bias.** With many games in flight, the SPRT read every finished game: short games
+    finish first, and a seed's four paired games straddled the stopping point. It now reads
+    complete seeds only, and an early stop reports only those.
+  - **Resume.** Learner state was saved only at gates (so a kill before the first gate restarted
+    from the warm start, and then trained ~1,000 steps on the backlog in a burst); it now saves
+    to one overwritten `learner_state.kfc` every 5 minutes and at every gate. The cosine schedule
+    decayed twice after a resume (CosineAnnealingLR is recursive and started from the already
+    decayed lr); fixed and tested.
+  - **Orphans.** Killing the learner left its actors and server running; a relaunch could then
+    have two writers on one shard. Children now exit with their parent, a shard takes an
+    exclusive lock, and restarts are rate-limited (5 per 10 minutes per child).
+  - **Over-cap multi-selects** (more than `enumerate_cap` legal submissions) crashed the learner
+    (a fallback recorded as a target with no candidates) and the search-free `NetAgent`; both
+    handled.
+  - **Monitor:** reads gauges/losses from the newest record that has them, flags a silent learner.
+
+### Next
+
+A smoke run first (`configs/smoke_selfplay.json`): the out-of-process gate, periodic learner state
+and child supervision above are unit-tested but haven't run end to end. Then a first valid
+self-play run under a new run id (within-turn arm, warm-started from the Tier 0 network) to measure games/hour at the two-hour mark (G5) before committing to Tier 2 or 3. The
+aborted run measured ~900 games/hour from five actors against the plan's 1,500 -- unconfirmed (35
+minutes, with the learner stalled), but a sign G5 may flag.
+
+---
+
 ## Milestone M0: layout, dependencies, environments
 
 **Two packages, split by whether they import `torch`.**

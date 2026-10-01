@@ -1,0 +1,8 @@
+{
+  "name": "tier2-selfplay-within-turn",
+  "tier": 2,
+  "notes": "M7: one arm (within-turn regime), one seed, 50k games, warm-started from the M3 BC checkpoint.",
+  "network": {"dropout": 0.0},
+  "search": {"regime": "within_turn", "leaf": "student", "resample": "all", "simulations": 100},
+  "selfplay": {"games": 50000}
+}
