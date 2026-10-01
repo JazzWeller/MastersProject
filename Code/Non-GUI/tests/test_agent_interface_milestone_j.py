@@ -1,21 +1,17 @@
-"""Milestone J (Code/AGENT_INTERFACE_PLAN.md): data generation, the
-no-network baseline, and the two diagnostics.
+"""Milestone J (Code/AGENT_INTERFACE_PLAN.md): the no-network baseline and
+the two diagnostics. (Data generation is `sim/bc_corpus.py` and
+`agent/selfplay.py`, tested with the training milestones.)
 """
 
-import os
-import tempfile
 import unittest
 
 from bots.baseline_evaluator import heuristic_value, uniform_policy
-from bots.heuristic_bot import HeuristicBot
 from bots.random_bot import RandomBot
 from bots.search_bot import DeterminizedRolloutBot
 from keyforge.config import GameConfig
 from keyforge.decision import Decision
 from keyforge.enums import DecisionKind, PrivilegeLevel
-from keyforge.game import Game
 from sim.driver import derive_agent_seed, run_games
-from sim.generate import play_and_record, read_shard, write_privileged_shard, write_shard
 from tests.helpers import new_game
 
 
@@ -63,46 +59,6 @@ class TestSearchBot(unittest.TestCase):
             self.assertIsNone(r.forfeit, r.forfeit)
         wins = sum(1 for r in results if r.winner == 1)
         self.assertGreaterEqual(wins, 3)
-
-
-class TestTrajectoryGeneration(unittest.TestCase):
-    def test_play_and_record_produces_a_valid_replayable_trajectory(self):
-        config = GameConfig(decks=("fignor", "igor"), seed=5, max_turns=60)
-        agents = {1: HeuristicBot(seed=5), 2: RandomBot(seed=6)}
-        trajectory, privileged = play_and_record(config, agents)
-        self.assertGreater(len(trajectory.decisions), 0)
-        self.assertIn(trajectory.outcome["1"], (-1, 0, 1))
-        self.assertEqual(trajectory.outcome["1"], -trajectory.outcome["2"])
-
-        from keyforge.replay import config_from_dict, replay
-
-        fork = replay(config_from_dict(trajectory.config), trajectory.choice_record)
-        self.assertTrue(fork.is_over)
-        self.assertEqual(fork.outcome_for(1), trajectory.outcome["1"])
-
-        for pid_str in ("1", "2"):
-            pid = int(pid_str)
-            self.assertEqual(sorted(privileged.final_hand[pid_str]), sorted(c.instance_id for c in fork.players[pid].hand.cards()))
-
-    def test_shards_round_trip_through_disk(self):
-        config = GameConfig(decks=("fignor", "igor"), seed=9, max_turns=40)
-        agents = {1: RandomBot(seed=9), 2: RandomBot(seed=10)}
-        t1, p1 = play_and_record(config, agents)
-        agents2 = {1: RandomBot(seed=11), 2: RandomBot(seed=12)}
-        t2, p2 = play_and_record(GameConfig(decks=("fignor", "igor"), seed=11, max_turns=40), agents2)
-
-        with tempfile.TemporaryDirectory() as d:
-            shard_path = os.path.join(d, "shard.jsonl")
-            priv_path = os.path.join(d, "shard.privileged.jsonl")
-            write_shard(shard_path, [t1, t2])
-            write_privileged_shard(priv_path, [p1, p2])
-            loaded = read_shard(shard_path)
-            self.assertEqual(len(loaded), 2)
-            self.assertEqual(loaded[0].choice_record, t1.choice_record)
-            self.assertEqual(loaded[1].outcome, t2.outcome)
-            # Appending more games to the same shard doesn't clobber it.
-            write_shard(shard_path, [t1])
-            self.assertEqual(len(read_shard(shard_path)), 3)
 
 
 class TestDiagnostics(unittest.TestCase):

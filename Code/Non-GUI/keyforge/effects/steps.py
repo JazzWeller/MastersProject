@@ -309,23 +309,6 @@ def return_to_hand(game, card) -> bool:
     return True
 
 
-def shuffle_into_deck(game, card) -> bool:
-    owner = game.players[card.owner]
-    found = (
-        owner.hand.remove(card)
-        or owner.discard.remove(card)
-        or owner.archive.remove(card)
-    )
-    if not found:
-        return False
-    owner.deck.shuffle_in([card], game.event_rng("reshuffle", owner.id))
-    # From hand, discard, or the owner's own archive -- discard is public,
-    # but hand and archive aren't, and there's no cheap way here to tell
-    # which one matched, so this errs toward not leaking.
-    game.log.add("shuffle_into_deck", card=card.name, iid=card.instance_id, owner=owner.id, visible_to={owner.id})
-    return True
-
-
 def ready(game, card) -> bool:
     if not card.Exhausted:
         return False

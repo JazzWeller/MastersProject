@@ -14,7 +14,7 @@ input format.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 import torch
@@ -112,26 +112,3 @@ def collate(items: Sequence[Encoded], device: Optional[torch.device] = None) -> 
     return batch.to(device) if device is not None else batch
 
 
-def encoded_to_arrays(e: Encoded) -> dict:
-    """One `Encoded` as numpy arrays -- the per-record form the training
-    shards store (`ml/dataset.py`)."""
-    k = e.n_options
-    return {
-        "card_ids": np.frombuffer(e.card_ids.tobytes(), dtype=np.int16),
-        "zones": np.frombuffer(e.zones, dtype=np.uint8),
-        "flags": np.frombuffer(e.flags, dtype=np.uint8),
-        "globals": np.frombuffer(e.globals.tobytes(), dtype=np.float32),
-        "inplay_index": np.frombuffer(e.inplay_index, dtype=np.uint8),
-        "inplay": np.frombuffer(e.inplay.tobytes(), dtype=np.float32).reshape(-1, P),
-        "options": np.frombuffer(e.options.tobytes(), dtype=np.float32).reshape(k, O),
-        "pointers": np.frombuffer(e.pointers.tobytes(), dtype=np.int8),
-    }
-
-
-def pad_list(seqs: List[List[int]], fill: int = -1) -> torch.Tensor:
-    width = max((len(s) for s in seqs), default=0)
-    out = torch.full((len(seqs), max(width, 1)), fill, dtype=torch.int64)
-    for i, s in enumerate(seqs):
-        if s:
-            out[i, : len(s)] = torch.tensor(s, dtype=torch.int64)
-    return out

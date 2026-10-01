@@ -18,7 +18,6 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from keyforge.cards.card import CreatureType
-from keyforge.enums import CardType
 
 ZONE_DECK = "deck"
 ZONE_HAND = "hand"
@@ -103,9 +102,6 @@ class BoardSnapshot:
         out = [c for c in self.cards.values() if c.owner == pid and c.zone == zone]
         out.sort(key=lambda c: c.index)
         return out
-
-    def creatures_and_artifacts(self, pid: int) -> List[CardState]:
-        return self.zone_cards(pid, ZONE_CREATURE) + self.zone_cards(pid, ZONE_ARTIFACT)
 
 
 def _card_state(game, card, owner: int, zone: str, index: int, zone_count: int, viewer: int) -> CardState:

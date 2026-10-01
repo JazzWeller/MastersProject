@@ -1,26 +1,16 @@
 """Milestone H (Code/AGENT_INTERFACE_PLAN.md): parallelism and inference.
 
 The InferenceClient abstraction (in-process, and a real stdlib-socket
-remote server with real cross-request dynamic batching), the checkpoint
-registry, and the self-play actor loop's real subprocess-based parallelism
-and resumability -- all testable without a GPU or torch. The actual
-GPU-resident model (bots/torch_model.py) has its own test file, skipped
-here and run from the isolated environment torch was installed into (an
-RTX 5060 Ti is genuinely present on this machine -- see that module's own
-docstring and tests/test_torch_model.py).
+remote server with real cross-request dynamic batching) -- testable
+without a GPU or torch. The real network behind it (`ml/infer_server.py`)
+is tested in tests/test_agent_training_ml.py.
 """
 
-import os
-import tempfile
 import threading
 import time
 import unittest
-from unittest import mock
 
-from bots.checkpoint import CheckpointRegistry
 from bots.inference_client import InferenceServer, InProcessInferenceClient, RemoteInferenceClient
-from sim.actor import game_seed, run_actor, run_self_play
-from sim.generate import read_shard
 
 
 def _wait_for_bind(server, timeout_s=2.0):
@@ -211,127 +201,6 @@ class TestDynamicBatching(unittest.TestCase):
         finally:
             server.stop()
             thread.join(timeout=5)
-
-
-class TestCheckpointRegistry(unittest.TestCase):
-    def test_save_load_round_trips_and_versions_increase(self):
-        with tempfile.TemporaryDirectory() as d:
-            reg = CheckpointRegistry(d)
-            self.assertIsNone(reg.latest())
-            c1 = reg.save({"w": [1, 2, 3]})
-            c2 = reg.save({"w": [4, 5, 6]})
-            self.assertEqual(c1.version, 1)
-            self.assertEqual(c2.version, 2)
-            self.assertNotEqual(c1.content_hash, c2.content_hash)
-            self.assertEqual(reg.load(c1), {"w": [1, 2, 3]})
-            self.assertEqual(reg.load(c2), {"w": [4, 5, 6]})
-            self.assertEqual(reg.latest().version, 2)
-            self.assertEqual([c.version for c in reg.list()], [1, 2])
-
-    def test_identical_weights_get_distinct_versions_but_matching_hashes(self):
-        with tempfile.TemporaryDirectory() as d:
-            reg = CheckpointRegistry(d)
-            c1 = reg.save({"w": 1})
-            c2 = reg.save({"w": 1})
-            self.assertNotEqual(c1.version, c2.version)
-            self.assertEqual(c1.content_hash, c2.content_hash)
-
-    def test_a_new_registry_on_the_same_directory_sees_existing_checkpoints(self):
-        with tempfile.TemporaryDirectory() as d:
-            CheckpointRegistry(d).save({"w": 1})
-            reg2 = CheckpointRegistry(d)
-            self.assertEqual(reg2.latest_version(), 1)
-
-    def test_a_listed_checkpoint_loads(self):
-        # latest()/list() parse the hash prefix from the filename; loading
-        # one must verify against that prefix, not demand the full hash.
-        with tempfile.TemporaryDirectory() as d:
-            reg = CheckpointRegistry(d)
-            reg.save({"w": 1})
-            self.assertEqual(reg.load(reg.latest()), {"w": 1})
-
-    def test_find_by_content_hash(self):
-        with tempfile.TemporaryDirectory() as d:
-            reg = CheckpointRegistry(d)
-            c1 = reg.save({"w": 1})
-            reg.save({"w": 2})
-            self.assertEqual(reg.find(c1.content_hash).version, c1.version)
-            self.assertIsNone(reg.find("0" * 64))
-
-    def test_a_relative_directory_lands_under_the_data_root(self):
-        with tempfile.TemporaryDirectory() as d:
-            with mock.patch.dict(os.environ, {"KEYFORGE_DATA": d}):
-                reg = CheckpointRegistry("ckpts")
-                c = reg.save({"w": 1})
-            self.assertEqual(os.path.dirname(c.path), os.path.join(d, "ckpts"))
-
-    def test_corrupted_checkpoint_file_is_detected_on_load(self):
-        with tempfile.TemporaryDirectory() as d:
-            reg = CheckpointRegistry(d)
-            c = reg.save({"w": 1})
-            with open(c.path, "ab") as f:
-                f.write(b"corruption")
-            with self.assertRaises(ValueError):
-                reg.load(c)
-
-
-class TestGameSeed(unittest.TestCase):
-    def test_deterministic_and_sensitive_to_every_key_component(self):
-        self.assertEqual(game_seed(0, 0, 0), game_seed(0, 0, 0))
-        self.assertNotEqual(game_seed(0, 0, 0), game_seed(0, 0, 1))
-        self.assertNotEqual(game_seed(0, 0, 0), game_seed(0, 1, 0))
-        self.assertNotEqual(game_seed(0, 0, 0), game_seed(1, 0, 0))
-
-
-class TestRunActor(unittest.TestCase):
-    def test_plays_the_requested_games_and_is_resumable(self):
-        with tempfile.TemporaryDirectory() as d:
-            shard_path = os.path.join(d, "shard.jsonl")
-            played = run_actor(
-                shard_path, n_games=2, decks=("fignor", "igor"), agent1="random", agent2="random",
-                run_seed=0, worker_id=0, max_turns=40,
-            )
-            self.assertEqual(played, 2)
-            first_pass = read_shard(shard_path)
-            self.assertEqual(len(first_pass), 2)
-
-            # "Restarting" with a bigger target only plays the delta, and
-            # never rewrites the games already on disk.
-            played_more = run_actor(
-                shard_path, n_games=3, decks=("fignor", "igor"), agent1="random", agent2="random",
-                run_seed=0, worker_id=0, max_turns=40,
-            )
-            self.assertEqual(played_more, 1)
-            second_pass = read_shard(shard_path)
-            self.assertEqual(len(second_pass), 3)
-            self.assertEqual(second_pass[0].choice_record, first_pass[0].choice_record)
-            self.assertEqual(second_pass[1].choice_record, first_pass[1].choice_record)
-
-            # Calling again at the same target replays nothing.
-            played_none = run_actor(
-                shard_path, n_games=3, decks=("fignor", "igor"), agent1="random", agent2="random",
-                run_seed=0, worker_id=0, max_turns=40,
-            )
-            self.assertEqual(played_none, 0)
-
-
-class TestRunSelfPlay(unittest.TestCase):
-    def test_spawns_one_process_per_worker_each_writing_its_own_shard(self):
-        with tempfile.TemporaryDirectory() as d:
-            shard_paths = run_self_play(
-                n_workers=2, games_per_worker=1, shard_dir=d, run_seed=0,
-                decks=("fignor", "igor"), agent1="random", agent2="random", max_turns=40,
-            )
-            self.assertEqual(len(shard_paths), 2)
-            for path in shard_paths:
-                self.assertTrue(os.path.exists(path))
-                trajectories = read_shard(path)
-                self.assertEqual(len(trajectories), 1)
-                self.assertGreater(len(trajectories[0].decisions), 0)
-            # Different workers play different games (distinct seeds).
-            t0 = read_shard(shard_paths[0])[0]
-            t1 = read_shard(shard_paths[1])[0]
-            self.assertNotEqual(t0.choice_record, t1.choice_record)
 
 
 if __name__ == "__main__":

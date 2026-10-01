@@ -532,7 +532,8 @@ first milestone that produces a usable agent, and it decides two of the four axe
 
 ### Data
 
-`sim/generate.py` (interface plan J) writes trajectories. For the screens, generate:
+`sim/bc_corpus.py` writes the replay records (it replaced interface plan J's `sim/generate.py`). For
+the screens, generate:
 
 - 20,000 `HeuristicBot` mirror games — the imitation target;
 - 5,000 games with an ε-greedy `HeuristicBot` (ε = 0.1) — state coverage the pure heuristic never

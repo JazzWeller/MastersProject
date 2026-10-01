@@ -2351,10 +2351,6 @@ class Game:
 # `predicate(game) -> bool`.
 
 
-def until_game_over(game: "Game") -> bool:
-    return game.is_over
-
-
 def until_player_decides(pid: int):
     def predicate(game: "Game") -> bool:
         return game.is_over or (game.pending_decision is not None and game.pending_decision.player == pid)

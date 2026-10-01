@@ -17,7 +17,7 @@ Replay records stay the source of truth; these shards are a cache,
 regenerated whenever `FEATURE_VERSION` changes (each shard is stamped).
 
 `Corpus(dirs)` memory-maps shards and assembles `ml.encode.Batch` batches
-plus targets; `split_of(game_uid)` is the by-game 90/5/5 split (never by
+plus targets; `Corpus.indices(split=...)` is the by-game 90/5/5 split (never by
 decision -- consecutive decisions within a game are heavily correlated).
 """
 
@@ -62,16 +62,6 @@ _ARRAYS = (
 def _game_uid(rec: dict) -> int:
     h = hashlib.sha256(f"{rec['source']}|{rec['seed']}|{rec.get('index')}".encode("utf-8")).digest()
     return int.from_bytes(h[:6], "big")
-
-
-def split_of(game_uid: int, fractions=(0.9, 0.05, 0.05)) -> int:
-    """0 = train, 1 = validation, 2 = test -- by game, deterministically."""
-    u = (game_uid % 1_000_003) / 1_000_003
-    if u < fractions[0]:
-        return 0
-    if u < fractions[0] + fractions[1]:
-        return 1
-    return 2
 
 
 def _is_forced(d) -> bool:

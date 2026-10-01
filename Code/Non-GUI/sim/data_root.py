@@ -7,8 +7,8 @@ Windows checkout under `/mnt/c`, where heavy file I/O is slow.
 
 Pipeline entry points pass their output locations through `resolve()`: an
 absolute path is used as given, and a relative one lands under the data
-root. So `run_self_play(..., shard_dir="run-7/shards")` writes to
-`$KEYFORGE_DATA/run-7/shards` on either platform.
+root. So `python -m sim.bc_corpus --out bc/smoke` writes to
+`$KEYFORGE_DATA/bc/smoke` on either platform.
 """
 
 from __future__ import annotations

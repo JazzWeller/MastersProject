@@ -1,13 +1,12 @@
 """Milestone I (Code/AGENT_INTERFACE_PLAN.md): the registry and the
-evaluation harness (pairing matrix, duplicate evaluation, Bradley-Terry
-ratings, SPRT).
+rating side of the evaluation harness (Bradley-Terry ratings, SPRT). Paired
+evaluation itself is `sim/paired.py`, tested in tests/test_agent_training_ml.py.
 """
 
 import unittest
 
 from bots.registry import AgentEntry, available_agents, make_agent, privilege_of, register
 from keyforge.enums import PrivilegeLevel
-from sim.evaluate import duplicate_evaluate, pairing_matrix_evaluate, summarize
 from sim.rate import Rating, bradley_terry, games_needed_for_gap, non_transitivity_report, sprt, standard_error
 
 
@@ -49,22 +48,6 @@ class TestRegistry(unittest.TestCase):
     def test_duplicate_registration_is_rejected(self):
         with self.assertRaises(ValueError):
             register("random", lambda seed=None, **kw: None)
-
-
-class TestDuplicateEvaluationAndPairingMatrix(unittest.TestCase):
-    def test_heuristic_beats_random_regardless_of_seat_or_deck(self):
-        result = duplicate_evaluate("heuristic", "random", "fignor", "igor", seed=100, max_turns=150)
-        self.assertEqual(result.agent_a_wins, 2)
-        self.assertEqual(result.agent_b_wins, 0)
-
-    def test_pairing_matrix_covers_all_four_seat_deck_combinations(self):
-        results = pairing_matrix_evaluate("heuristic", "random", "fignor", "igor", seeds=[1, 2], max_turns=150)
-        self.assertEqual(len(results), 4)  # 2 seeds x 2 deck assignments, each a duplicate (2 games)
-        deck_pairs = {(r.deck_a, r.deck_b) for r in results}
-        self.assertEqual(deck_pairs, {("fignor", "igor"), ("igor", "fignor")})
-        summary = summarize(results)
-        self.assertEqual(summary["games"], 8)
-        self.assertGreater(summary["agent_a_win_rate"], 0.9)
 
 
 class TestBradleyTerry(unittest.TestCase):
