@@ -20,33 +20,6 @@ class CardType(Enum):
     UPGRADE = "Upgrade"
 
 
-class Trigger(Enum):
-    PLAY = auto()
-    AFTER_REAP = auto()
-    AFTER_FIGHT = auto()
-    BEFORE_FIGHT = auto()
-    FIGHTING = auto()
-    DESTROYED = auto()
-    OMNI = auto()
-    ACTION = auto()
-
-
-class Zone(Enum):
-    DECK = auto()
-    HAND = auto()
-    DISCARD = auto()
-    ARCHIVE = auto()
-    PURGED = auto()
-    PLAY_CREATURE = auto()
-    PLAY_ARTIFACT = auto()
-
-
-class Flank(Enum):
-    LEFT = auto()
-    CENTER = auto()
-    RIGHT = auto()
-
-
 class Affects(Enum):
     """Whose cards/board a decision's options draw from, relative to the
     player being asked -- independent of `DecisionIntent`, since e.g. a

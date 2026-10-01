@@ -41,13 +41,3 @@ def ease_out_elastic(t: float) -> float:
     c4 = (2 * math.pi) / 3
     return 2 ** (-10 * t) * math.sin((t * 10 - 0.75) * c4) + 1
 
-
-BY_NAME = {
-    "linear": linear,
-    "ease_in_cubic": ease_in_cubic,
-    "ease_out_cubic": ease_out_cubic,
-    "ease_in_out_cubic": ease_in_out_cubic,
-    "ease_out_back": ease_out_back,
-    "ease_in_out_sine": ease_in_out_sine,
-    "ease_out_elastic": ease_out_elastic,
-}

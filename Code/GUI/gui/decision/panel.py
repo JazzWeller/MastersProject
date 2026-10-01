@@ -31,7 +31,7 @@ from ..sprites.widgets import Button, draw_panel
 
 from keyforge.actions import DiscardCard, EndTurn
 from keyforge.cards.card import Card
-from keyforge.enums import CardType, DecisionKind, House
+from keyforge.enums import DecisionKind, House
 
 _ON_BOARD_ZONES = {"hand", "play_creature", "play_artifact", "upgrade"}
 
@@ -84,7 +84,6 @@ class DecisionPanel:
         self.modal_rows: List[OptionRow] = []
         self.modal_scroll = 0
 
-        self._scoped_card_iid: Optional[int] = None
         self._board = None
 
         # The action chooser: a compact popup beside one clicked card that
@@ -130,7 +129,6 @@ class DecisionPanel:
         self.view = view
         self.picked = []
         self.result = None
-        self._scoped_card_iid = None
         self.card_option_map = {}
         self._board = board
         self.chooser_iid = None
@@ -174,7 +172,7 @@ class DecisionPanel:
         if not all_on_board and decision.kind != DecisionKind.CHOOSE_ACTION:
             self._open_modal(decision.options)
 
-    def _open_modal(self, options, scoped_iid: Optional[int] = None) -> None:
+    def _open_modal(self, options) -> None:
         self._close_chooser()
         self.mulligan_open = self.archive_open = self.flank_open = False
         self.modal_rows = [
@@ -183,11 +181,9 @@ class DecisionPanel:
         ]
         self.modal_scroll = 0
         self.modal_open = True
-        self._scoped_card_iid = scoped_iid
 
     def _close_modal(self) -> None:
         self.modal_open = False
-        self._scoped_card_iid = None
         self.hover_house = None
 
     def _row_detail(self, opt) -> str:

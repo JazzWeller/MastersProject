@@ -17,17 +17,16 @@ real model plugs into `InferenceServer` -- enforced in code the only way it
 can be without a GPU in most environments: nothing in `keyforge`, `bots.
 base`, `bots.registry`, or `sim` imports `torch`, so an engine worker pool
 built from those modules alone never risks initializing CUDA by accident.
-`bots/torch_model.py` is the one module that DOES import it, for a real
-GPU-resident model (this machine has one -- an RTX 5060 Ti; see that
-module's own tests, which actually run on it).
+The real network (`ml/infer_server.py`) lives in the torch-only `ml`
+package and is only ever loaded in the server process.
 
 `InferenceServer` does real cross-request dynamic batching: every accepted
 connection's request lands in one shared queue; a single batching thread
 drains it -- everything already queued, then whatever else arrives within
 `batch_window_seconds`, up to `max_batch_size` -- into ONE call to the
 model, then hands each connection back its own slice of the results. A
-model that exposes `predict_many` (any real batched model, e.g.
-`bots.torch_model.TorchInferenceModel`) gets one real batched call across
+model that exposes `predict_many` (any real batched model, e.g. the one
+`ml/infer_server.py` serves) gets one real batched call across
 however many requests coalesced; a plain `observation -> (policy, value)`
 callable (every test double in this codebase, and the simplest possible
 real model) still works, just without a batching win, via a per-item loop

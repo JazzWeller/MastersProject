@@ -13,7 +13,6 @@ import os
 GUI_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CODE_DIR = os.path.dirname(GUI_DIR)
 PROJECT_DIR = os.path.dirname(CODE_DIR)
-NON_GUI_DIR = os.path.join(CODE_DIR, "Non-GUI")
 CARD_ART_DIR = PROJECT_DIR  # CardDef.image paths are root-relative, e.g. "Phase 2/Cards/Dis/..."
 ASSETS_DIR = os.path.join(GUI_DIR, "assets")
 FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
@@ -143,40 +142,27 @@ GLOW_TARGET = PURGE
 # ---------------------------------------------------------- animation timings (ms) ----
 
 T_DEAL = 300
-T_SHUFFLE = 900
 T_RESHUFFLE = 500
 T_BANNER = 900
 T_ARCHIVE_TAKE = 400
 T_PLAY_MOVE = 450
-T_EXHAUST_SETTLE = 200
 T_PLAY_ACTION_FLY = 350
 T_PLAY_ACTION_HOLD = 700
 T_DISCARD = 350
-T_REAP = 500
-T_FIGHT = 700
-T_DAMAGE = 400
-T_HEAL = 350
 T_DESTROY = 650
 T_SHORTFALL = 900        # pause so an "it did nothing, because..." popup can be read
 T_SHORTFALL_TEXT = 2200  # how long that popup stays up
 T_PURGE = 600
 T_MOVE_ZONE = 350
-T_AEMBER_GEM = 500
 T_KEY_FORGE = 2200
-T_CHAIN = 400
-T_CHIP = 400
 T_SETTLE = 300
 T_GAME_OVER = 1500
 T_BOT_THINK = 500
 
-MAX_AEMBER_GEMS = 8
-
 # ------------------------------------------------------------- misc sizes ----
 
-BUTTON_H = 44
 HAND_FAN_MAX_SPREAD = 900
 HAND_FAN_LIFT = 8           # px the outermost card is lifted, arcing toward the board
 HAND_FAN_MAX_ROT = 5        # degrees, clamp on the outermost card's tilt
 HAND_FAN_ROT_SLOPE = 2.0    # degrees of tilt per card-index away from center, before the clamp
 MIN_FONT = 12               # no label anywhere is drawn smaller than this
-LOG_LINES_VISIBLE = 14

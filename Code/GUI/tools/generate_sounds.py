@@ -80,10 +80,6 @@ def sequence(*tracks) -> list:
     return out
 
 
-def silence(dur_ms: float) -> list:
-    return [0.0] * int(SR * dur_ms / 1000)
-
-
 def main() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
 

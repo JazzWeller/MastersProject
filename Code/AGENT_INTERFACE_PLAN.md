@@ -107,8 +107,6 @@ Each of these was checked directly, not assumed:
 - **Agents are hardcoded at both entry points.** `sim/simulate.py:98` builds `RandomBot` for both
   seats (`--p1`/`--p2` accept only `"random"`), and `gui/engine_bridge.py:75` and `:214` build
   `HeuristicBot` for every AI seat.
-- **Checked and harmless:** `current_queue._sequence` is also a module-level counter, but
-  `QueueItem` and `new_batch_id` are unused, so it affects nothing.
 
 ### What each agent family needs
 

@@ -16,7 +16,7 @@ import pygame
 from .. import settings as S
 from ..engine_bridge import MatchSettings, ReplayBridge
 from ..option_labels import describe_option
-from ..sprites.overlays import Banner, Toast
+from ..sprites.overlays import Banner
 from ..sprites.widgets import Button, draw_panel
 from .game_scene import GameScene
 
@@ -30,7 +30,6 @@ class ReplayScene(GameScene):
         super().__init__(settings or MatchSettings())
         self._config = config
         self._record = record
-        self._label_settings = settings
         self.title = title
         self.playing = False
         self._step_request = 0

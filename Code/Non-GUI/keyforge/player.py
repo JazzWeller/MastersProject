@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from .effects.effect_object import ActiveEffectList
 from .enums import House
 from .zones import Archive, Deck, DiscardPile, Hand, PurgedZone, PlayArea
 
@@ -52,7 +51,6 @@ class Player:
         self.cards_played_or_discarded_this_turn = 0
         self.hand_plays_this_turn = 0
         self.used_this_turn: Dict[str, int] = {}  # card name -> uses (rule of 6)
-        self.archive_choice_made_this_turn = False
         self.all_cards: list = []  # the full 36-card pool this player owns, set at setup
 
         # Psychic Bug, Imperial Traitor, A Fair Game: pids this player's
@@ -92,12 +90,6 @@ class Player:
     def get_non_logos_cards_playable(self, game) -> int:
         return max(0, self._apply(game, "NonLogosCardsPlayable", self.NonLogosCardsPlayable))
 
-    def get_extra_house_playable(self, house: House) -> int:
-        """Off-house cards of `house` specifically playable this turn, on
-        top of the active house (Witch of the Wilds: "you may play one
-        Untamed card that is not in your active house" -- narrower than
-        NonLogosCardsPlayable's blanket any-non-Logos-house allowance)."""
-        return max(0, self.ExtraHousePlayable.get(house, 0))
 
     def get_house_selection(self, game):
         return self._apply(game, "HouseSelection", self.HouseSelection)
@@ -183,7 +175,6 @@ class Player:
         self.ExtraHousePlayable = {}
         self.selected_house = None
         self.HouseSelection = None
-        self.archive_choice_made_this_turn = False
         self.creatures_played_this_turn = 0
         self.next_entry_ready = False
         self.next_mars_creature_ready = False
@@ -192,8 +183,3 @@ class Player:
     def uses_of(self, card_name: str) -> int:
         return self.used_this_turn.get(card_name, 0)
 
-    def record_use(self, card_name: str) -> None:
-        self.used_this_turn[card_name] = self.used_this_turn.get(card_name, 0) + 1
-
-    def record_play(self, card_name: str) -> None:
-        self.CardsPlayed[card_name] = self.CardsPlayed.get(card_name, 0) + 1

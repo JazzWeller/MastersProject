@@ -32,7 +32,6 @@ including the Adaptive chain-bid between games 2 and 3.
   - `effects/` — `EffectObject` family (`DurationEffect`/`InsteadEffect`/`TriggerEffect`/`ModifierEffect`),
     basic steps, generic helpers, and `effects/named/{dis,logos,shadows,brobnar,mars,sanctum,untamed}.py`
     (one module per house, every card-specific effect)
-  - `current_queue.py` — tier constants used to order queued effects
   - `decision.py` — `Decision` + choice validation
   - `game.py` — `Game`: setup, turn order, legal actions, play/reap/fight/destroy, `submit()`
   - `match.py` — a best-of-3 match across the three official formats
@@ -105,7 +104,7 @@ The learned-agent stack from `Code/AGENT_TRAINING_PLAN.md` (see its
   resolved config's hash.
 
 Pipeline output goes under `$KEYFORGE_DATA` (default `~/keyforge-data`).
-The torch half runs in WSL (`~/torchenv`, see `tests/test_torch_model.py`);
+The torch half runs in WSL (`~/torchenv`, see `tests/test_agent_training_ml.py`);
 everything else runs anywhere.
 
 ```bash
