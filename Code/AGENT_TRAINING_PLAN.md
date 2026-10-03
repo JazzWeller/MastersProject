@@ -254,6 +254,10 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
     GPU stays about 93% idle.
   - **Training is 2.1× faster:** vectorized multi-select losses, plus `precision: bf16` for both the
     BC trainer and the learner (10,855 against 5,150 samples/s at batch 512).
+  - **bf16 matches fp32 within noise.** Screen 4's `reference` was retrained in bf16 (run
+    `tier0-bf16`) and scored CHOOSE_ACTION 0.9091 against 0.9101, CHOOSE_CARDS enumerate 0.8575
+    against 0.8631, and value log-loss 0.4929 against 0.4928. Every difference lies within the
+    spread of the fp32 one-epoch variants, at half the wall time.
   - **G5's games-per-hour reference** should be re-measured with these defaults when self-play
     resumes.
 
