@@ -853,6 +853,8 @@ of CPU time against 25 ms of GPU kernels, over about 1,100 kernel launches. The 
   thread was before, and a shorter GIL switch interval didn't help. The GPU syncs in the current step
   are what give the prefetch thread its turns.
 - **Batch 2048** amortizes launches too (14,128 samples/s), with the caveat above.
+- **Evaluation prefetches its batches:** 58 s instead of 71 s on Tier 0's validation split, with an
+  identical report.
 
 **bf16 against fp32, measured (2026-10-02).** Screen 4's `reference` network was retrained in bf16:
 one epoch, the same seed, data order and corpus (run `tier0-bf16`):

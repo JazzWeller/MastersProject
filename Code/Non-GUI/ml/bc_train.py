@@ -280,7 +280,10 @@ def evaluate(model: KeyForgeNet, corpus: Corpus, idx: np.ndarray, *, policy_head
     v_pred, v_z, v_turn, v_src = [], [], [], []
     b_p, b_y, b_u = [], [], []
     o_pred = []
-    for batch, tg in corpus.iterate(idx, batch_size, shuffle=False, device=device):
+    for batch, tg in Prefetcher(corpus.iterate(idx, batch_size, shuffle=False, device=None)):
+        batch = batch.to(device)
+        for f in ("kind", "target", "forced", "z", "turn", "source", "min_n", "max_n", "n_opt", "opp_hand", "next_draws"):
+            setattr(tg, f, getattr(tg, f).to(device, non_blocking=True))
         out = model.encode_state(batch)
         kinds = tg.kind.tolist()
         n_opt = tg.n_opt.tolist()
