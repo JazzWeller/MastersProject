@@ -258,6 +258,13 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
     `tier0-bf16`) and scored CHOOSE_ACTION 0.9091 against 0.9101, CHOOSE_CARDS enumerate 0.8575
     against 0.8631, and value log-loss 0.4929 against 0.4928. Every difference lies within the
     spread of the fp32 one-epoch variants, at half the wall time.
+  - **Search forks are cheaper:** +29% searches per second at 8 actors (92.0 against 71.5).
+    Forking the root for each simulation was 57% of an actor's time. Off a boundary decision, a fork
+    now copies a cached boundary snapshot and replays only the choices since, instead of replaying
+    the whole game. Cards are also copied by generated code. Results are exact: they match the
+    replay fork's `state_hash` at every non-boundary decision tested.
+  - **Training uses a fused AdamW:** +8% samples per second. The BC step is bound by kernel
+    launches (CPU 47 ms against GPU 25 ms a step), not by syncs.
   - **G5's games-per-hour reference** should be re-measured with these defaults when self-play
     resumes.
 

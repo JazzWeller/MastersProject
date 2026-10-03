@@ -389,7 +389,9 @@ def main():
     else:
         model, opt_state = KeyForgeNet(dict(cfg["network"], dropout=0.0)), None
     model.to(device)
-    opt = torch.optim.AdamW(model.parameters(), lr=float(sp["lr"]), weight_decay=float(sp["weight_decay"]))
+    # Fused: one kernel for the whole update (see ml/bc_train.py).
+    opt = torch.optim.AdamW(model.parameters(), lr=float(sp["lr"]), weight_decay=float(sp["weight_decay"]),
+                            fused=torch.device(device).type == "cuda")
     if opt_state is not None and opt_state.get("state"):
         opt.load_state_dict({"state": opt_state["state"], "param_groups": opt_state["param_groups"]})
     amp = amp_dtype(sp.get("precision", "fp32"), device)

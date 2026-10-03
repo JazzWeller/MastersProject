@@ -110,6 +110,21 @@ def _copy_type_object(old: TypeObject) -> TypeObject:
     return new
 
 
+def _make_slot_copier(slots):
+    """`copy(old, new)`: `new.<slot> = old.<slot>` for each of `slots`,
+    compiled as straight-line attribute assignments -- about twice as fast
+    as a getattr/setattr loop over the names, and `Game.copy()` runs it for
+    every card on every search simulation."""
+    src = "def copy(old, new):\n" + "".join(f"    new.{s} = old.{s}\n" for s in slots)
+    namespace: dict = {}
+    exec(src, namespace)
+    return namespace["copy"]
+
+
+# Every `Card` slot except the three `_copy_card` rebuilds itself.
+_copy_card_slots = _make_slot_copier([s for s in Card.__slots__ if s not in ("type_object", "extra_triggers", "under_cards")])
+
+
 def _copy_card(old: Card) -> Card:
     """A fresh `Card` with the same instance_id and every current field
     value, sharing `card_def` (immutable, printed-card data). Cross-card
@@ -118,8 +133,7 @@ def _copy_card(old: Card) -> Card:
     game's cards until `_relink_card` runs -- deferred because the card
     they need to point at instead might not exist yet during this pass."""
     new = Card.__new__(Card)
-    for slot in Card.__slots__:
-        setattr(new, slot, getattr(old, slot))
+    _copy_card_slots(old, new)
     new.type_object = _copy_type_object(old.type_object)
     new.type_object.card = new
     new.extra_triggers = {k: list(v) for k, v in old.extra_triggers.items()}
@@ -254,6 +268,12 @@ class Game:
         # No card is ever created after _setup with a fresh instance_id
         # (see new_instance_id's own callers), so this never needs updating.
         self._cards_by_id: Dict[int, Card] = {}
+        # `(n, game)`: a private copy of this game as it stood after its
+        # first `n` choices, at a boundary decision -- what `fork_determinized
+        # (backend="auto")` copies and replays forward from off a boundary,
+        # instead of replaying the whole record. Never handed out, only
+        # copied; valid because `choice_record` only ever grows.
+        self._fork_snapshot: Optional[Tuple[int, "Game"]] = None
         self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
@@ -403,12 +423,16 @@ class Game:
         `backend`: `"replay"` (the default, valid at any decision), `"copy"`
         (Milestone E2's snapshot copy -- ~4x cheaper mid-game, but only at a
         boundary decision; raises elsewhere), or `"auto"` (copy at a
-        boundary, replay otherwise). The resulting fork is the same either
-        way (both are exact before the resample).
+        boundary; otherwise copy the latest boundary before this decision
+        and replay only the choices since -- see `_fork_from_snapshot`).
+        The resulting fork is the same every way (all are exact before the
+        resample).
         """
         if backend == "copy" or (backend == "auto" and (self.is_over or (self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS))):
             fork = self.copy()
-        elif backend in ("replay", "auto"):
+        elif backend == "auto":
+            fork = self._fork_from_snapshot()
+        elif backend == "replay":
             fork = self.fork()
         else:
             raise ValueError(f"fork_determinized: unknown backend {backend!r}")
@@ -426,6 +450,29 @@ class Game:
         # otherwise `self.config.seed` changes too.
         fork.config = dataclasses.replace(fork.config, seed=rng.getrandbits(63))
         return fork
+
+    def _fork_from_snapshot(self) -> "Game":
+        """`fork()`'s exact game, off a boundary decision, without replaying
+        from the first choice: copies `_fork_snapshot` (this game at an
+        earlier boundary) and replays only the choices made since. A search
+        forks its root once per simulation, so the replay from scratch this
+        replaces was a third of an actor's time.
+
+        Moves the snapshot up to the latest boundary it replays through, so
+        it stays a few choices behind the game. Before any snapshot exists,
+        replays from a fresh `Game` and takes the first one on the way."""
+        record = self.choice_record
+        start, base = self._fork_snapshot if self._fork_snapshot is not None else (0, None)
+        world = base.copy() if base is not None else Game(self.config)
+        latest = None
+        for i in range(start, len(record)):
+            if world.pending_decision.kind in BOUNDARY_KINDS:
+                latest = i
+            world.submit_index(record[i])
+        if latest is not None and (base is None or latest > start):
+            snapshot = base.copy() if base is not None else Game(self.config)
+            self._fork_snapshot = (latest, snapshot.apply(record[start:latest]))
+        return world
 
     def _resample_own_deck(self, pid: int, rng: random.Random) -> None:
         player = self.players[pid]
@@ -522,6 +569,7 @@ class Game:
         new.result = dict(self.result) if self.result is not None else None
         new._elusive_suppressed = self._elusive_suppressed
         new._player_houses_cache = dict(self._player_houses_cache)
+        new._fork_snapshot = None  # a branch builds its own if it is ever forked
 
         card_remap: Dict[int, Card] = {}
         new._cards_by_id = {}

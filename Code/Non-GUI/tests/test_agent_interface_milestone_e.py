@@ -360,6 +360,68 @@ class TestClosureRebinding(unittest.TestCase):
         self.assertEqual(creature.controller, original_controller, "the original card must be untouched")
 
 
+class TestForkFromSnapshot(unittest.TestCase):
+    """`fork_determinized(backend="auto")` off a boundary: copy of the
+    latest boundary snapshot + the choices since must be the replay fork,
+    exactly."""
+
+    def _games(self, bot_cls, seeds, max_turns):
+        for seed in seeds:
+            config = GameConfig(decks=("fignor", "igor"), seed=seed, max_turns=max_turns)
+            yield Game(config), {1: bot_cls(seed=seed), 2: bot_cls(seed=seed + 1)}
+
+    def test_matches_the_replay_fork_at_every_non_boundary_decision(self):
+        checked = 0
+        for bot_cls, seeds in ((RandomBot, range(8)), (HeuristicBot, range(6))):
+            for game, bots in self._games(bot_cls, seeds, 60):
+                while not game.is_over:
+                    d = game.pending_decision
+                    if d.kind not in _BOUNDARY_KINDS:
+                        before = game.state_hash()
+                        fork = game._fork_from_snapshot()
+                        self.assertEqual(fork.state_hash(), game.fork().state_hash())
+                        self.assertEqual(game.state_hash(), before)
+                        checked += 1
+                    game.submit(bots[d.player].decide(game.view_for(d.player), d))
+        self.assertGreater(checked, 200)
+
+    def test_auto_determinized_forks_match_the_replay_backend(self):
+        import random as _random
+
+        game = _play_to_mid_resolution(GameConfig(decks=("fignor", "igor"), seed=31, max_turns=60))
+        for resample in (Resample.OWN_DECK, Resample.OPPONENT_PRIVATE, Resample.ALL):
+            with self.subTest(resample=resample):
+                for s in range(3):  # the 2nd and 3rd come from the snapshot the 1st took
+                    auto = game.fork_determinized(1, _random.Random(s), resample, backend="auto")
+                    replayed = game.fork_determinized(1, _random.Random(s), resample, backend="replay")
+                    self.assertEqual(auto.state_hash(), replayed.state_hash())
+
+    def test_a_fork_played_on_never_touches_the_snapshot(self):
+        game = _play_to_mid_resolution(GameConfig(decks=("fignor", "igor"), seed=32, max_turns=60))
+        first = game._fork_from_snapshot()
+        expected = first.state_hash()
+        bots = {1: RandomBot(seed=1), 2: RandomBot(seed=2)}
+        for _ in range(40):
+            if first.is_over:
+                break
+            d = first.pending_decision
+            first.submit(bots[d.player].decide(first.view_for(d.player), d))
+        self.assertEqual(game._fork_from_snapshot().state_hash(), expected)
+
+    def test_the_snapshot_stays_at_a_boundary_behind_the_game(self):
+        game = Game(GameConfig(decks=("fignor", "igor"), seed=33, max_turns=60))
+        bots = {1: RandomBot(seed=33), 2: RandomBot(seed=34)}
+        while len(game.choice_record) < 30 or game.pending_decision.kind in _BOUNDARY_KINDS:
+            d = game.pending_decision
+            game.submit(bots[d.player].decide(game.view_for(d.player), d))
+        game._fork_from_snapshot()
+        n, snapshot = game._fork_snapshot
+        self.assertLess(n, len(game.choice_record))
+        self.assertEqual(len(snapshot.choice_record), n)
+        self.assertIn(snapshot.pending_decision.kind, _BOUNDARY_KINDS)
+        self.assertIsNone(game._fork_from_snapshot()._fork_snapshot, "a fork starts without a snapshot of its own")
+
+
 class TestSnapshotCopyBackend(unittest.TestCase):
     def test_exact_branches_match_the_replay_backend(self):
         config = GameConfig(decks=("fignor", "igor"), seed=27, max_turns=60)
