@@ -43,7 +43,7 @@ from keyforge.infoset import PL_HAND, ZONE
 from .checkpoints import CheckpointStore, save_model
 from .dataset import KINDS, MULTI_KINDS, Corpus, Targets
 from .encode import Batch
-from .model import KeyForgeNet, TrunkOut, candidates_tensor, param_count
+from .model import KeyForgeNet, TrunkOut, amp_dtype, candidates_tensor, param_count
 
 K_CARDS = KINDS.index(DecisionKind.CHOOSE_CARDS)
 K_ORDER = KINDS.index(DecisionKind.ORDER_EFFECTS)
@@ -116,30 +116,36 @@ class MultiPrep:
         self.s_target = s_target
 
     # ------------------------------------------------------------- losses
+    # Every index structure below is built on the CPU and sent in one copy:
+    # writing into a device tensor element by element launched a kernel per
+    # element and left a graph node per element for backward to replay.
     def enumerate_loss(self, model: KeyForgeNet, out: TrunkOut):
         if not self.spans:
             return None, None
         scores = model.subset_scores(out, self.c_rows, self.c_members, self.c_ordered)
-        cmax = max(n for _b, _s, n, _t, _c in self.spans)
-        padded = torch.full((len(self.spans), cmax), float("-inf"), device=scores.device)
-        targets = torch.empty(len(self.spans), dtype=torch.int64, device=scores.device)
-        for r, (_b, start, n, t, _c) in enumerate(self.spans):
-            padded[r, :n] = scores[start : start + n]
-            targets[r] = t
+        counts = np.array([n for _b, _s, n, _t, _c in self.spans], dtype=np.int64)
+        starts = np.array([s for _b, s, _n, _t, _c in self.spans], dtype=np.int64)
+        row_of = np.repeat(np.arange(len(self.spans)), counts)
+        col_of = np.arange(int(counts.sum())) - np.repeat(starts, counts)
+        padded = torch.full((len(self.spans), int(counts.max())), float("-inf"), device=scores.device)
+        padded[torch.from_numpy(row_of).to(scores.device), torch.from_numpy(col_of).to(scores.device)] = scores.float()
+        targets = torch.tensor([t for _b, _s, _n, t, _c in self.spans], dtype=torch.int64, device=scores.device)
         return F.cross_entropy(padded, targets), padded
 
     def sequential_tensors(self, K: int):
         """(rows [S], prefix [S, K], legal [S, K+1]) for every step; the
         last column of `legal` is "stop"."""
         S = len(self.s_rows)
-        prefix = torch.zeros(S, K, device=self.device)
-        legal = torch.zeros(S, K + 1, dtype=torch.bool, device=self.device)
+        prefix = np.zeros((S, K), dtype=np.float32)
+        legal = np.zeros((S, K + 1), dtype=bool)
         for i in range(S):
-            for p in self.s_prefix[i]:
-                prefix[i, p] = 1.0
-            for l in self.s_legal[i]:
-                legal[i, K if l == -1 else l] = True
-        return torch.tensor(self.s_rows, dtype=torch.int64, device=self.device), prefix, legal
+            prefix[i, self.s_prefix[i]] = 1.0
+            legal[i, [K if l == -1 else l for l in self.s_legal[i]]] = True
+        return (
+            torch.tensor(self.s_rows, dtype=torch.int64, device=self.device),
+            torch.from_numpy(prefix).to(self.device),
+            torch.from_numpy(legal).to(self.device),
+        )
 
     def sequential_loss(self, model: KeyForgeNet, out: TrunkOut, n_opt: List[int]):
         if not self.s_rows:
@@ -156,23 +162,31 @@ class MultiPrep:
         if not self.rows:
             return None
         logits = model.topk_logits(out)
-        total, count = 0.0, 0
+        total, count = 0.0, sum(n_opt[b] for b in self.rows)
+        # CHOOSE_CARDS rows, all at once: an independent binary target per
+        # offered option, summed over the options each row offers.
+        cards = [b for b in self.rows if kinds[b] != K_ORDER]
+        if cards:
+            K = logits.shape[1]
+            mask = np.zeros((len(cards), K), dtype=bool)
+            y = np.zeros((len(cards), K), dtype=np.float32)
+            for r, b in enumerate(cards):
+                mask[r, : n_opt[b]] = True
+                y[r, list(self.keys[b])] = 1.0
+            mask_t = torch.from_numpy(mask).to(logits.device)
+            s = logits[torch.tensor(cards, device=logits.device)]
+            # Offered options only: the rest are -inf, and -inf x 0 is NaN.
+            s = torch.where(mask_t, s, torch.zeros_like(s))
+            per = F.binary_cross_entropy_with_logits(s, torch.from_numpy(y).to(logits.device), reduction="none")
+            total = total + (per * mask_t).sum()
+        # ORDER_EFFECTS rows (0.2% of decisions): Plackett-Luce over the
+        # target permutation, with each option scored independently.
         for b in self.rows:
-            n = n_opt[b]
-            s = logits[b, :n]
+            if kinds[b] != K_ORDER:
+                continue
             key = self.keys[b]
-            if kinds[b] == K_ORDER:
-                # Plackett-Luce over the target permutation, with each
-                # option scored independently.
-                order = torch.tensor(list(key), dtype=torch.int64, device=s.device)
-                ss = s[order]
-                total = total + sum(torch.logsumexp(ss[t:], 0) - ss[t] for t in range(len(key)))
-            else:
-                y = torch.zeros(n, device=s.device)
-                if key:
-                    y[list(key)] = 1.0
-                total = total + F.binary_cross_entropy_with_logits(s, y, reduction="sum")
-            count += n
+            ss = logits[b, : n_opt[b]][torch.tensor(list(key), dtype=torch.int64, device=logits.device)]
+            total = total + sum(torch.logsumexp(ss[t:], 0) - ss[t] for t in range(len(key)))
         return total / max(count, 1)
 
 
@@ -403,6 +417,7 @@ def train(
     total_steps = max(1, steps_per_epoch * int(bc["epochs"]))
     opt = torch.optim.AdamW(model.parameters(), lr=float(bc["lr"]), weight_decay=float(bc["weight_decay"]))
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=total_steps, eta_min=float(bc["lr_min"]))
+    amp = amp_dtype(bc.get("precision", "fp32"), device)
     step = 0
     t0 = time.perf_counter()
     history = []
@@ -414,7 +429,8 @@ def train(
             batch = batch.to(device)
             for f in ("kind", "target", "forced", "z", "turn", "source", "min_n", "max_n", "n_opt", "opp_hand", "next_draws"):
                 setattr(tg, f, getattr(tg, f).to(device, non_blocking=True))
-            total, losses, _out, _prep = compute_losses(model, batch, tg, weights=weights, policy_head=policy_head, cap=cap, heads=heads)
+            with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
+                total, losses, _out, _prep = compute_losses(model, batch, tg, weights=weights, policy_head=policy_head, cap=cap, heads=heads)
             opt.zero_grad(set_to_none=True)
             total.backward()
             gnorm = torch.nn.utils.clip_grad_norm_(model.parameters(), float(bc["grad_clip"]))

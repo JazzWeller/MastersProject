@@ -1,7 +1,11 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-10-02): planned. Built so far:** O10's actor benchmark (with its v1 baseline) and
-O8's persistent inference connection. Written 2026-09-28. Amended 2026-09-30:
+**Status (2026-10-02): planned.** Built so far:
+- O10's actor benchmark, with its v1 baseline;
+- O8's persistent inference connection and its faster server result handling;
+- O9's faster training: vectorized losses and bf16.
+
+Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
 - self-play is held until everything here is complete;
 - the inventory is corrected against the dead-code cleanup (committed as `f90a9e0` and merged to
@@ -761,9 +765,15 @@ cost, not the model.
     connection. Before the option was set, actor throughput didn't change (2,049 against 2,101
     evaluations/s, within noise). With it, the gain is the ~1 ms per call above, so the connection
     was not where the time went.
-  - **Server result handling is where it went.** On a 229-request batch, `TorchModel.predict_many`
-    spends 16 of its 22 ms copying results to the CPU one request at a time. Copying once per head
-    takes the same call to 7.1 ms, with identical answers.
+  - **Server result handling was where it went: fixed.** On a 229-request batch,
+    `TorchModel.predict_many` spent 16 of its 22 ms copying results to the CPU one request at a
+    time. It now copies once per head, with identical answers on every head:
+    - 32 requests: 7.3 → 5.5 ms;
+    - 229 requests: 20.5 → 7.0 ms;
+    - 512 requests: 48.8 → 14.3 ms.
+
+    In the actor benchmark (5 × 16 games), waiting fell from 25% to 14% of worker time, and searches
+    per second rose 12% (49.6 → 55.7).
   - Shared memory stays an option behind both.
 - **Search.**
   - `search.determinization` is wired through `SearchSettings`.
@@ -796,6 +806,27 @@ cost, not the model.
   - Add history token dropout (training only, `training.history_dropout`, default 0), alongside
     weight decay, to counter memorization. The random-deck value finding shows that unique inputs
     invite memorization.
+
+**Training throughput (measured 2026-10-02 on the Tier 0 corpus).** Behaviour cloning was
+compute-bound, not data-bound: waiting for data took 1 ms of a 100 ms step. Most of the step went to
+fp32 arithmetic, plus multi-select losses built from Python loops of single-element GPU writes. Two
+changes:
+- **The multi-select losses are vectorized.** The losses are equal and the gradients identical, and
+  a test checks them against per-row references.
+- **Training precision is a config value,** `bc.precision` and `selfplay.precision`. Both default to
+  `bf16` autocast.
+
+| Batch 512 | Samples / s | GPU busy |
+|---|---|---|
+| Before (fp32) | 5,150 | 62% |
+| Vectorized losses, fp32 | 6,677 | 76% |
+| Vectorized losses, bf16 | **10,855** (2.1×) | 57% |
+| Vectorized losses, bf16, batch 2048 | **14,128** (2.7×) | 83% |
+
+**Comparability.** Tier 0's v1 numbers were trained in fp32. The ladder's A0 rung is therefore
+retrained at the same precision as the v2 rungs, which is cheap now, so precision never confounds
+"what does seeing more buy". Batch 2048 changes the optimization, so it's an option to validate with
+a retuned learning rate, not a new default.
 
 **Acceptance.** A round trip through the shards is identical to live encoding, and Tier 0b's wall
 time and memory are recorded.
@@ -878,6 +909,25 @@ What it shows:
   share it.
 - **None of O10's cap conditions comes close** at v1 cost per evaluation. The deciding run after R6
   is the one that counts.
+
+**Scaling the actors (2026-10-02, after O8's server fix).** These are the same within-turn
+settings, 30 s warmup and 150 s measured. Searches per second is the reliable figure: a short window
+finishes too few games for games per hour.
+
+| Workers × games each | Searches / s | Simulations / s | Waiting on inference | GPU mean |
+|---|---|---|---|---|
+| 5 × 16 | 55.7 | 2,427 | 14% | 7% |
+| 8 × 16 | 71.5 | 3,105 | 19% | 8% |
+| 10 × 16 | 74.1 | 3,228 | 24% | 8% |
+| 5 × 32 | 55.1 | 2,397 | 8% | 6% |
+| 10 × 32 | 81.9 | 3,555 | 17% | 8% |
+
+- **Throughput is set by the CPU,** with 6 cores and 12 threads. Beyond 8 workers, the extra
+  hyperthreads add little.
+- **The default is now 8 actors** (`selfplay.workers`): +28% over 5, and it leaves room for the
+  learner and the server.
+- **The GPU stays about 93% idle at every setting.** That headroom is what a larger network (O7)
+  will use. It is free only while the server answers quickly, because actors wait on every call.
 
 **Probes.**
 - Targeted positions where the right move depends on only one new kind of information:

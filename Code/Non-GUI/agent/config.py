@@ -62,6 +62,7 @@ DEFAULTS: Dict[str, Any] = {
         "epochs": 4,
         "grad_clip": 1.0,
         "workers": 5,
+        "precision": "bf16",  # fp32 | bf16 (autocast; 1.5x faster steps, measured 2026-10-02)
     },
     "search": {
         "regime": "within_turn",  # within_turn | full_game
@@ -87,8 +88,12 @@ DEFAULTS: Dict[str, Any] = {
     },
     "selfplay": {
         "games": 50000,
-        "workers": 5,
+        # 8 actors: +28% searches/s over 5 on this machine (6 cores / 12
+        # threads), leaving room for the learner and the inference server;
+        # 10 adds only +4% more (tools/bench_actor_demand.py, 2026-10-02).
+        "workers": 8,
         "games_per_worker": 16,
+        "precision": "bf16",  # learner: fp32 | bf16
         "playout_cap_full_fraction": 0.25,
         "playout_cap_small": 25,
         "playout_cap_full": 100,

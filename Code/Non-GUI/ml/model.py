@@ -246,6 +246,18 @@ def param_count(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())
 
 
+def amp_dtype(precision: str, device) -> Optional[torch.dtype]:
+    """The autocast dtype for a training `precision` setting; None means
+    plain fp32. bf16 needs no gradient scaling, and applies on CUDA only.
+    Measured on the RTX 5060 Ti with Tier 0's BC steps: 1.5x faster than
+    fp32 at the same loss."""
+    if precision == "fp32":
+        return None
+    if precision == "bf16":
+        return torch.bfloat16 if torch.device(device).type == "cuda" else None
+    raise ValueError(f"unknown training precision {precision!r} (fp32 | bf16)")
+
+
 # ------------------------------------------------------ candidate helpers
 # The index-level enumeration/sequencing lives torch-free in
 # agent.multiselect, so engine-side agents build exactly the same candidate
