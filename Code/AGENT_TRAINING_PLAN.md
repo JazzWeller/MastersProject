@@ -92,8 +92,7 @@ entities exist but *what is known about where they are*, which is a per-entity f
 
 ### Scope boundary
 
-**Out of scope:** the generator-to-explicit-stack engine refactor (interface plan scope boundary
-stands), and any Phase 2/3 card work.
+**Out of scope:** any Phase 2/3 card work.
 
 **In scope as options:** every arm in M5, M6 and M8.
 

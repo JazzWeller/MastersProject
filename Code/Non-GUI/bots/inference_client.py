@@ -20,8 +20,8 @@ built from those modules alone never risks initializing CUDA by accident.
 The real network (`ml/infer_server.py`) lives in the torch-only `ml`
 package and is only ever loaded in the server process.
 
-`InferenceServer` does real cross-request dynamic batching: every accepted
-connection's request lands in one shared queue; a single batching thread
+`InferenceServer` does real cross-request dynamic batching: every request,
+on any connection, lands in one shared queue; a single batching thread
 drains it -- everything already queued, then whatever else arrives within
 `batch_window_seconds`, up to `max_batch_size` -- into ONE call to the
 model, then hands each connection back its own slice of the results. A
@@ -31,11 +31,20 @@ however many requests coalesced; a plain `observation -> (policy, value)`
 callable (every test double in this codebase, and the simplest possible
 real model) still works, just without a batching win, via a per-item loop
 over the same coalesced list.
+
+Connections are **persistent**: a `RemoteInferenceClient` connects and
+authenticates once, then sends every request over that one connection, and
+the server answers request after request on it. A fresh connection per call
+made every call pay a TCP connect plus the authentication handshake, all
+handshakes queued behind the server's single accepting thread (Agent
+Observation Plan, O8).
 """
 
 from __future__ import annotations
 
+import os
 import queue
+import socket
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -44,6 +53,29 @@ from multiprocessing.connection import AuthenticationError, Client, Listener
 from typing import Any, Callable, List, Optional, Tuple
 
 Prediction = Tuple[List[float], float]  # (policy, value)
+
+
+def _no_delay(conn) -> None:
+    """Turns Nagle's algorithm off on a TCP connection.
+
+    `multiprocessing.connection` writes a large message's 4-byte length
+    header and its payload separately. On a long-lived connection the
+    receiver's delayed ACK then holds back the payload's last segment by
+    ~40 ms per message: 52 ms against 11 ms per round trip, measured in WSL
+    with a real request batch. A fresh connection per call never showed it,
+    because TCP starts every connection in quick-ACK mode. A pipe or Unix
+    socket address has no such option and is left as it is."""
+    try:
+        s = socket.socket(fileno=conn.fileno())
+    except (OSError, ValueError):
+        return
+    try:
+        if s.family in (socket.AF_INET, socket.AF_INET6):
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    except OSError:
+        pass
+    finally:
+        s.detach()  # the descriptor still belongs to `conn`
 
 
 class InferenceClient(ABC):
@@ -85,6 +117,10 @@ class InferenceServer:
     one `multiprocessing.connection.Listener`, batching concurrent requests
     into real, single model calls (see this module's own docstring).
 
+    Each accepted connection gets a thread that answers request after
+    request until the client closes it. `connections_accepted` counts the
+    connections ever accepted (a persistent client opens one).
+
     `address` is a `(host, port)` pair for a TCP listener, or a single
     string for a platform pipe/socket path -- whatever
     `multiprocessing.connection.Listener` itself accepts. `serve_forever`
@@ -105,6 +141,12 @@ class InferenceServer:
         self._queue: "queue.Queue[Optional[_PendingRequest]]" = queue.Queue()
         self._listener: Listener | None = None
         self._stop = threading.Event()
+        # Guards the hand-off between connection threads and shutdown: once
+        # `_closed`, nothing more is queued, so no request can wait on a
+        # batching thread that has already exited.
+        self._state_lock = threading.Lock()
+        self._closed = False
+        self.connections_accepted = 0
 
     @property
     def address(self) -> Any:
@@ -117,19 +159,45 @@ class InferenceServer:
             return list(self._model_predict_many(observations))
         return [self._model(o) for o in observations]
 
-    def _handle(self, conn) -> None:
-        try:
-            observations = conn.recv()
-            request = _PendingRequest(observations)
+    def _enqueue(self, request: _PendingRequest) -> bool:
+        """Queues `request` for the batching thread; False once the server
+        is shutting down (the batching thread may already be gone)."""
+        with self._state_lock:
+            if self._closed:
+                return False
             self._queue.put(request)
-            request.event.wait()
-            status, payload = request.result
-            # A model error is sent back as data (a tagged tuple), not
-            # raised here and the connection dropped -- the latter would
-            # leave the client's own `conn.recv()` seeing a bare EOFError,
-            # with no way to tell "the model raised" from "the network
-            # dropped" or from any other reason the connection might close.
-            conn.send((status, payload))
+            return True
+
+    def _close_queue(self) -> None:
+        """From now on nothing is queued; the batching thread answers what
+        is already queued, then exits."""
+        with self._state_lock:
+            if not self._closed:
+                self._closed = True
+                self._queue.put(None)
+
+    def _handle(self, conn) -> None:
+        """Serves one connection: request after request until the client
+        closes it, the connection breaks, or the server shuts down."""
+        try:
+            while True:
+                try:
+                    observations = conn.recv()
+                except (EOFError, OSError):
+                    return  # the client closed the connection, or it broke
+                request = _PendingRequest(observations)
+                if not self._enqueue(request):
+                    return  # shutting down: closing tells the client to go elsewhere
+                request.event.wait()
+                # A model error is sent back as data (a tagged tuple), not
+                # raised here and the connection dropped -- the latter would
+                # leave the client's own `conn.recv()` seeing a bare EOFError,
+                # with no way to tell "the model raised" from "the network
+                # dropped" or from any other reason the connection might close.
+                try:
+                    conn.send(request.result)
+                except OSError:
+                    return  # the client went away while its answer was computed
         finally:
             conn.close()
 
@@ -188,39 +256,130 @@ class InferenceServer:
             while not self._stop.is_set():
                 try:
                     conn = self._listener.accept()
-                except AuthenticationError:
-                    continue  # one bad client must not take the server down
-                except OSError:
-                    break  # listener closed from another thread (stop())
+                except (AuthenticationError, EOFError, OSError):
+                    # A client that fails or drops during the handshake must
+                    # not take the server down. stop() lands here too: it
+                    # closes the listener, and wakes the accept with a bare
+                    # connection.
+                    if self._stop.is_set():
+                        break
+                    continue
+                if self._stop.is_set():
+                    conn.close()
+                    break
+                self.connections_accepted += 1
+                _no_delay(conn)
                 threading.Thread(target=self._handle, args=(conn,), daemon=True).start()
         finally:
             self._listener.close()
-            self._queue.put(None)
+            # Everything queued before the sentinel is still answered; nothing
+            # can be queued after it (see `_enqueue`).
+            self._close_queue()
             batch_thread.join(timeout=5)
 
     def stop(self) -> None:
-        """Unblocks a `serve_forever` running on another thread."""
+        """Stops a `serve_forever` running on another thread: requests stop
+        being queued at once, and the accepting loop is woken. Closing the
+        listener wakes a blocked `accept()` on Windows but not on Linux, so
+        for a TCP address a bare connection is made to it first."""
         self._stop.set()
-        if self._listener is not None:
-            self._listener.close()
+        self._close_queue()
+        listener = self._listener
+        if listener is None:
+            return
+        try:
+            address = listener.address
+        except AttributeError:  # already closed
+            return
+        if isinstance(address, tuple):
+            try:
+                socket.create_connection(address, timeout=1.0).close()
+            except OSError:
+                pass
+        listener.close()
 
 
 class RemoteInferenceClient(InferenceClient):
-    """Talks to one `InferenceServer` -- a fresh connection per call, so
-    concurrent callers (e.g. several driver worker processes) never share a
-    socket."""
+    """Talks to one `InferenceServer` over one persistent connection, opened
+    on first use and reused for every call.
 
-    def __init__(self, address: Any, authkey: bytes):
+    - **Threads:** calls on one client are serialized by a lock -- a
+      connection carries one request at a time.
+    - **Processes:** a client that reaches another process (a fork, or
+      pickling -- the connection itself is never pickled) opens its own
+      connection there; two processes never share a socket.
+    - **Failures:** the first connection attempt raises at once (so a caller
+      waiting for the server to come up sees the refusal, as before). Once
+      connected, a broken connection -- the server restarted -- is reopened
+      and the request sent again, retrying for up to `reconnect_seconds`.
+      A resend is always safe: inference has no side effects.
+    """
+
+    def __init__(self, address: Any, authkey: bytes, *, reconnect_seconds: float = 30.0):
         self._address = address
         self._authkey = authkey
+        self._reconnect_seconds = reconnect_seconds
+        self._conn = None
+        self._pid: Optional[int] = None  # the process `_conn` belongs to
+        self._lock = threading.Lock()
+
+    def __getstate__(self):
+        return {"address": self._address, "authkey": self._authkey, "reconnect_seconds": self._reconnect_seconds}
+
+    def __setstate__(self, state):
+        self.__init__(state["address"], state["authkey"], reconnect_seconds=state["reconnect_seconds"])
+
+    def _connection(self):
+        if self._conn is None or self._pid != os.getpid():
+            self._drop()
+            self._conn = Client(self._address, authkey=self._authkey)
+            self._pid = os.getpid()
+            _no_delay(self._conn)
+        return self._conn
+
+    def _drop(self) -> None:
+        """Forgets the connection, closing this process's copy of it (a
+        copy inherited through a fork closes only the child's descriptor)."""
+        conn, self._conn = self._conn, None
+        if conn is not None:
+            try:
+                conn.close()
+            except OSError:
+                pass
+
+    def _round_trip(self, observations: List[Any]):
+        connected = self._conn is not None and self._pid == os.getpid()
+        try:
+            conn = self._connection()
+            conn.send(observations)
+            return conn.recv()
+        except (EOFError, OSError) as first:
+            self._drop()
+            if not connected:
+                raise
+            deadline = time.monotonic() + self._reconnect_seconds
+            while True:
+                try:
+                    conn = self._connection()
+                    conn.send(observations)
+                    return conn.recv()
+                except (EOFError, OSError):
+                    self._drop()
+                    if time.monotonic() >= deadline:
+                        raise ConnectionError(
+                            f"lost the inference server at {self._address!r} and could not reconnect "
+                            f"within {self._reconnect_seconds:g} s"
+                        ) from first
+                    time.sleep(0.25)
 
     def predict_many(self, observations: List[Any]) -> List[Prediction]:
-        conn = Client(self._address, authkey=self._authkey)
-        try:
-            conn.send(observations)
-            status, payload = conn.recv()
-            if status == "error":
-                raise RuntimeError(f"InferenceServer's model raised: {payload}")
-            return payload
-        finally:
-            conn.close()
+        with self._lock:
+            status, payload = self._round_trip(observations)
+        if status == "error":
+            raise RuntimeError(f"InferenceServer's model raised: {payload}")
+        return payload
+
+    def close(self) -> None:
+        """Closes the connection; the next call opens a new one."""
+        with self._lock:
+            self._drop()

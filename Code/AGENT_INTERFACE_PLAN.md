@@ -124,9 +124,6 @@ Every cell that isn't already "yes" for the two existing bots is covered by a mi
 
 ### Scope boundary
 
-**Out of scope:** converting the generator-driven card-effect layer to an explicit continuation
-stack. Card effects stay generators.
-
 **In scope, as options:** Milestone E adds two faster branching backends behind the same API:
 - a **process-fork backend** for Linux/WSL, where `os.fork()` copies the whole process, suspended
   generators included;

@@ -1,6 +1,7 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-09-30): planned, nothing built.** Written 2026-09-28. Amended 2026-09-30:
+**Status (2026-10-02): planned. Built so far:** O10's actor benchmark (with its v1 baseline) and
+O8's persistent inference connection. Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
 - self-play is held until everything here is complete;
 - the inventory is corrected against the dead-code cleanup (committed as `f90a9e0` and merged to
@@ -752,10 +753,18 @@ cost, not the model.
     implementation.
 - **Evaluation cache.** It is keyed by (state bytes, history digest), and its hit rates are
   reported against v1's.
-- **Per-call overhead.** O10's v1 baseline found workers waiting on inference 25–28% of their time,
-  with the GPU about 93% idle, because `RemoteInferenceClient` opens a new connection for every
-  call. The fix is one persistent connection per worker; shared memory is the option behind it. The
-  actor benchmark is re-run to measure the change.
+- **Per-call overhead.** O10's v1 baseline found workers waiting on inference 25–28% of their time
+  with the GPU about 93% idle. What has been measured since (2026-10-02):
+  - **Persistent connections: done.** Each worker now holds one connection, with `TCP_NODELAY` set.
+    Without that option, a long-lived connection stalls about 40 ms per large message on a delayed
+    ACK: 52 ms against 11 ms per round trip. With it, a call takes 9.2 ms, against 10.0 ms on a fresh
+    connection. Before the option was set, actor throughput didn't change (2,049 against 2,101
+    evaluations/s, within noise). With it, the gain is the ~1 ms per call above, so the connection
+    was not where the time went.
+  - **Server result handling is where it went.** On a 229-request batch, `TorchModel.predict_many`
+    spends 16 of its 22 ms copying results to the CPU one request at a time. Copying once per head
+    takes the same call to 7.1 ms, with identical answers.
+  - Shared memory stays an option behind both.
 - **Search.**
   - `search.determinization` is wired through `SearchSettings`.
   - Encodings at the opponent's nodes inside worlds follow O3's private-history option.
@@ -857,8 +866,13 @@ What it shows:
 - **Demand matches the plan's estimate** (about 3k/s). It is roughly a 15th of what the v1 network
   can serve: 47k evaluations/s at batch 512 in the M2 test.
 - **Even so, workers lose a quarter of their time waiting on inference** while the GPU is about 93%
-  idle. The cost is per call, not compute: `RemoteInferenceClient` opens a new connection for every
-  call. O8 takes this on.
+  idle. Attribution (2026-10-02) puts the cost in how the server hands back results, not in the
+  network or the connection:
+  - on a 229-request batch (five workers' calls batched together), `predict_many` takes 22 ms, and
+    16 ms of that is a device-to-host copy for each request;
+  - connecting per call costs about 1 ms.
+
+  O8 takes this on.
 - **The estimate of about 1,300 self-play games per hour** sits below the plan's 1,500 and above the
   aborted `wt-s0` run's ~900, which shared the machine with its learner. A real run would also
   share it.
@@ -1192,8 +1206,9 @@ point is covered or has a written reason why it can't be reached.
 - **A lint test** fails if any pausing function in `keyforge/` is missing from the compiled output.
 - **An authoring guide for new cards:** write a generator in the supported subset, then run the
   compiler. The up-to-date test enforces the second step.
-- **Supersede the scope-boundary text** in the interface plan and the training plan. Bump the
-  engine version's minor number; the rules hash is unchanged.
+- **Bump the engine version's minor number;** the rules hash is unchanged. The scope-boundary lines
+  in the interface and training plans that ruled this refactor out were already removed on
+  2026-10-02.
 
 **Acceptance.**
 - The full suite passes in both modes, on CPython 3.12 (Windows and the GUI), CPython 3.14 (WSL) and
