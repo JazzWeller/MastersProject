@@ -550,6 +550,56 @@ class TestBCTrainer(unittest.TestCase):
             count += n
         self.assertTrue(torch.allclose(loss, total / count, rtol=1e-5, atol=1e-6))
 
+    def test_train_runs_on_cpu_and_gpu(self):
+        """The whole loop, on each device: every step booked, finite losses
+        (on the GPU this covers the fused optimizer too)."""
+        import contextlib
+        import io
+        from unittest import mock
+
+        from ml import bc_train
+
+        class Metrics:
+            def __init__(self):
+                self.counts, self.seen = {}, []
+
+            def count(self, k, n=1):
+                self.counts[k] = self.counts.get(k, 0) + n
+
+            def observe(self, k, v):
+                self.seen.append((k, v))
+
+            def gauge(self, k, v):
+                pass
+
+            def tick(self):
+                pass
+
+        devices = [torch.device("cpu")] + ([torch.device("cuda")] if torch.cuda.is_available() else [])
+        for device in devices:
+            with self.subTest(device=device.type):
+                cfg = {"seed": 0, "network": _net_cfg(), "bc": dict(config_mod.DEFAULTS["bc"], batch=64, epochs=2)}
+                m = Metrics()
+                with mock.patch.object(bc_train, "evaluate", return_value={}), contextlib.redirect_stdout(io.StringIO()):
+                    _net, report = bc_train.train(cfg, self.corpus, device=device, metrics=m, log_every=3)
+                self.assertEqual(m.counts["gradient_steps"], report["training"]["steps"])
+                self.assertEqual(m.counts["positions"], 2 * len(self.corpus.indices(split=0)))
+                self.assertTrue(all(np.isfinite(v) for _k, v in m.seen))
+                self.assertTrue(report["training"]["history"])
+
+    def test_the_prefetcher_raises_what_its_thread_raised(self):
+        from ml.bc_train import Prefetcher
+
+        def items():
+            yield 1
+            raise RuntimeError("shard unreadable")
+
+        got = []
+        with self.assertRaisesRegex(RuntimeError, "shard unreadable"):
+            for x in Prefetcher(items()):
+                got.append(x)
+        self.assertEqual(got, [1])
+
     def test_a_training_step_runs_under_bf16_autocast(self):
         if not torch.cuda.is_available():
             self.skipTest("no GPU")

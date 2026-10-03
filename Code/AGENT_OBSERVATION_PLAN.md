@@ -3,7 +3,8 @@
 **Status (2026-10-02): planned.** Built so far:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
-- O9's faster training: vectorized losses and bf16.
+- O9's faster training: vectorized losses, bf16 and a fused optimizer;
+- faster search forks (cached boundary snapshots and a generated card copy), ahead of Part R.
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
@@ -828,6 +829,20 @@ retrained at the same precision as the v2 rungs, which is cheap now, so precisio
 "what does seeing more buy". Batch 2048 changes the optimization, so it's an option to validate with
 a retuned learning rate, not a new default.
 
+**Where the bf16 step goes (2026-10-02).** The torch profiler puts a batch-512 step at about 47 ms
+of CPU time against 25 ms of GPU kernels, over about 1,100 kernel launches. The step is
+**launch-bound**: the GPU waits for Python to issue work.
+- **Fused AdamW (kept):** one kernel for the whole update, +8% (10,970 against 10,170 samples/s,
+  A/B in one process). Both the BC trainer and the learner use it on CUDA.
+- **A sync-free step (tried, reverted):** index tensors built and pinned on the prefetch thread,
+  masked means instead of boolean gathers, losses read back a step late. This was 5–6% *slower*.
+  The CPU never waited on the GPU, and the prefetch thread's Python competed with the main thread
+  for the GIL.
+- **`torch.compile` of the trunk (not yet measured):** this is what cuts launches, by fusing the
+  layer norms, activations and autocast casts. Inductor needs a C compiler, and WSL has none.
+  Installing `build-essential` is the user's call.
+- **Batch 2048** amortizes launches too (14,128 samples/s), with the caveat above.
+
 **bf16 against fp32, measured (2026-10-02).** Screen 4's `reference` network was retrained in bf16:
 one epoch, the same seed, data order and corpus (run `tier0-bf16`):
 ```
@@ -949,6 +964,46 @@ finishes too few games for games per hour.
   learner and the server.
 - **The GPU stays about 93% idle at every setting.** That headroom is what a larger network (O7)
   will use. It is free only while the server answers quickly, because actors wait on every call.
+
+**Where an actor's time goes, and cheaper forks (2026-10-02).** A single within-turn worker (16
+games, 90 s) was timed with wrappers around its main phases. cProfile overstated the copy about
+3×, because it times every getattr/setattr.
+
+| Phase | Before | After |
+|---|---|---|
+| Forking the root world, every simulation | 57% | 40% |
+| ↳ replay forks off a boundary decision (30% of forks) | 32% (1.6 ms each) | gone |
+| ↳ `Game.copy` | 23% (0.49 ms each) | 37% (0.40 ms each, now also serving the forks above) |
+| Waiting on inference | 18% | 24% |
+| Infoset building and encoding | 9% | 13% |
+| Descent and end-of-turn rollouts | ~13% | ~20% |
+| Searches in 90 s | 1,376 | 1,936 (+41%) |
+
+The two changes, both in `keyforge/game.py`, behave identically:
+- **A fork off a boundary decision copies a cached snapshot.** The true game keeps a private copy
+  of itself at its latest boundary decision. A fork copies that and replays only the few choices
+  since (`Game._fork_from_snapshot`), instead of replaying the whole game. Tests check `state_hash`
+  against the replay fork at every non-boundary decision of 14 games, and every resample mode.
+- **Cards are copied by generated straight-line code** instead of a getattr/setattr loop over 35
+  slot names: 2× per card in isolation, ~17% per copy in a busy worker.
+
+A copy is now mostly allocation, roughly 300 objects for 72 cards. Making it cheaper again is Part
+R's job (copy anywhere, snapshot/restore).
+
+At 8 workers × 16 games (30 s warmup, 150 s measured), more workers now pay, because each worker
+waits longer:
+
+| Workers × games each | Searches / s | Simulations / s | Waiting on inference |
+|---|---|---|---|
+| 8 × 16, before | 71.5 | 3,105 | 19% |
+| 8 × 16 | **92.0** (+29%) | 4,006 | 25% |
+| 8 × 32 | 94.1 | 4,084 | 17% |
+| 10 × 32 | 104.7 | 4,559 | 22% |
+| 12 × 16 | 108.6 | 4,715 | 34% |
+
+The default stays at 8 actors. The benchmark runs no learner, and a real run's learner needs those
+cores. The count is chosen when self-play starts, by measuring with the learner running (O10's
+deciding run).
 
 **Probes.**
 - Targeted positions where the right move depends on only one new kind of information:
