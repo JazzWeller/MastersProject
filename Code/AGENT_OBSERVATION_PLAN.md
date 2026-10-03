@@ -727,9 +727,9 @@ cost, not the model.
 **Cost estimate, to be replaced by measurement.** Assume sequences of about 400 tokens instead of 73:
 - Attention costs about 30× more, and the feed-forward layers about 5.5× more.
 - So `joint` might run at 4–8k evaluations/s, against 41–43k today.
-- Self-play demand is on the order of 3k evaluations/s. That is 5 actors at about 610
-  simulations/s each, taken from G3's 164 ms per 100 simulations. It is itself an estimate, and O10
-  replaces it with a measurement that needs no self-play.
+- Self-play demand, measured without self-play (O10's v1 baseline, 2026-10-02), is 2.1k
+  evaluations/s for the within-turn arm and 2.9k for the full-game arm. The GPU is about 7%
+  utilized at that rate.
 - Part R pushes demand up. Once forks are copies at every decision (R6), simulations get cheaper,
   so each actor asks the GPU for more evaluations per second.
 - So `joint` may or may not keep up at Phase 1.1. O10 decides with measured numbers, taken after
@@ -752,6 +752,10 @@ cost, not the model.
     implementation.
 - **Evaluation cache.** It is keyed by (state bytes, history digest), and its hit rates are
   reported against v1's.
+- **Per-call overhead.** O10's v1 baseline found workers waiting on inference 25–28% of their time,
+  with the GPU about 93% idle, because `RemoteInferenceClient` opens a new connection for every
+  call. The fix is one persistent connection per worker; shared memory is the option behind it. The
+  actor benchmark is re-run to measure the change.
 - **Search.**
   - `search.determinization` is wired through `SearchSettings`.
   - Encodings at the opponent's nodes inside worlds follow O3's private-history option.
@@ -763,6 +767,7 @@ cost, not the model.
   GPU.
 - The prefix cache hit rate within a search is at least 95%.
 - Pipe bytes per request and server throughput are measured.
+- The actor benchmark's share of time spent waiting on inference falls from its v1 baseline (25–28%).
 
 ## Milestone O9: data and training
 
@@ -829,6 +834,36 @@ self-play, so it can run at any time:
 - **A baseline is taken now,** with today's engine and the Tier 0 (v1) network.
 - **The deciding measurement is repeated after R6** with the v2 network, because copy-anywhere
   changes the cost of a simulation.
+
+**The v1 baseline (measured 2026-10-02).** The setup:
+- each arm's config: 5 workers × 16 games, 100 simulations on 25% of decisions and 25 on the rest;
+- the Tier 0 network on the RTX 5060 Ti;
+- 60 s of warmup, then 480 s measured;
+- results under `$KEYFORGE_DATA/bench/actor_demand/baseline-v1-*.json`.
+
+| Quantity | Within-turn | Full-game |
+|---|---|---|
+| Evaluations requested per second | 2,101 | 2,949 |
+| Requests per call | 49 | 75 |
+| Evaluations per simulation (after the evaluation cache) | 0.97 | 1.43 |
+| Searched decisions / simulations per second | 49.6 / 2,167 | 47.3 / 2,070 |
+| Share of worker time spent waiting on inference | 25% | 28% |
+| GPU utilization: mean / p90 | 7% / 13% | 7% / 9% |
+| GPU memory, peak | 1.27 GB | 1.36 GB |
+| Games per hour against HeuristicBot | 2,593 | 2,469 |
+| Self-play games per hour, estimated (both seats searching) | ~1,300 | ~1,230 |
+
+What it shows:
+- **Demand matches the plan's estimate** (about 3k/s). It is roughly a 15th of what the v1 network
+  can serve: 47k evaluations/s at batch 512 in the M2 test.
+- **Even so, workers lose a quarter of their time waiting on inference** while the GPU is about 93%
+  idle. The cost is per call, not compute: `RemoteInferenceClient` opens a new connection for every
+  call. O8 takes this on.
+- **The estimate of about 1,300 self-play games per hour** sits below the plan's 1,500 and above the
+  aborted `wt-s0` run's ~900, which shared the machine with its learner. A real run would also
+  share it.
+- **None of O10's cap conditions comes close** at v1 cost per evaluation. The deciding run after R6
+  is the one that counts.
 
 **Probes.**
 - Targeted positions where the right move depends on only one new kind of information:
