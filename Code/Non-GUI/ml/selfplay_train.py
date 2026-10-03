@@ -62,7 +62,7 @@ from keyforge.infoset import ZONE
 
 from .checkpoints import CheckpointStore, load_model, save_model
 from .encode import Batch, collate
-from .model import KeyForgeNet, candidates_tensor
+from .model import KeyForgeNet, amp_dtype, candidates_tensor
 from .selfplay_gate import GATE_SPRT, gate_verdict  # noqa: F401 -- re-exported (tests, tools)
 
 OPP_UNSEEN = ZONE["opp_unseen"]
@@ -249,7 +249,7 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
                 src_rows.extend([r] * n)
                 src_cols.extend(range(n))
                 src_idx.extend(range(start, start + n))
-            padded[torch.tensor(src_rows, device=device), torch.tensor(src_cols, device=device)] = scores[torch.tensor(src_idx, device=device)]
+            padded[torch.tensor(src_rows, device=device), torch.tensor(src_cols, device=device)] = scores[torch.tensor(src_idx, device=device)].float()
             logp = torch.log_softmax(padded, dim=-1)
             tg = torch.from_numpy(tgt).to(device)
             L["multi"] = -(tg * logp.masked_fill(tg == 0, 0.0)).sum(-1).mean()
@@ -392,6 +392,7 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=float(sp["lr"]), weight_decay=float(sp["weight_decay"]))
     if opt_state is not None and opt_state.get("state"):
         opt.load_state_dict({"state": opt_state["state"], "param_groups": opt_state["param_groups"]})
+    amp = amp_dtype(sp.get("precision", "fp32"), device)
     positions_per_game = 200.0  # ~140 non-forced decisions + half as many value-only records
     total_steps = max(1, int(budget * positions_per_game / sp["positions_per_step"]))
     sched = cosine_schedule(opt, total_steps, float(sp["lr_min"]), step, float(sp["lr"]))
@@ -487,7 +488,8 @@ def main():
             if buffer.size >= int(sp["batch"]) and allowed > 0:
                 model.train()
                 positions = buffer.sample(int(sp["batch"]), rng)
-                total, L, st = losses_for(model, positions, device, weights, args.mode, augment, rng)
+                with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
+                    total, L, st = losses_for(model, positions, device, weights, args.mode, augment, rng)
                 opt.zero_grad(set_to_none=True)
                 total.backward()
                 gn = torch.nn.utils.clip_grad_norm_(model.parameters(), float(sp["grad_clip"]))

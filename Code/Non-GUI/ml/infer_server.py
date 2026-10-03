@@ -42,18 +42,23 @@ class TorchModel:
 
     @torch.no_grad()
     def predict_many(self, requests: Sequence) -> List[Tuple[List[float], float]]:
+        """Answers every request in one batched pass. Each head computes on
+        the device; then each head's results come back to the CPU in one
+        copy. Copying every request's slice on its own (a `.tolist()` or
+        `float()` per request) synchronized with the device once per request:
+        16 of 22 ms on a 229-request batch (Agent Observation Plan, O8)."""
         if not requests:
             return []
         reqs = [r if isinstance(r, Request) else Request(enc=r) for r in requests]
         self.evaluations += len(reqs)
         batch = collate([r.enc for r in reqs], self.device)
+        by_head = {}
+        for i, r in enumerate(reqs):
+            by_head.setdefault(r.head, []).append(i)
+        on_device = {}
         with torch.autocast(self.device.type, dtype=torch.float16, enabled=self.amp):
             out = self.net.encode_state(batch)
-            values = self.net.value(out).float()
-            results: List = [None] * len(reqs)
-            by_head = {}
-            for i, r in enumerate(reqs):
-                by_head.setdefault(r.head, []).append(i)
+            values_t = self.net.value(out).float()
             for head, idxs in by_head.items():
                 sel = torch.tensor(idxs, device=self.device)
                 if head in (HEAD_POLICY, HEAD_FIXED, HEAD_TOPK, HEAD_Q):
@@ -66,16 +71,11 @@ class TorchModel:
                     scores = fn(out).float()[sel]
                     if head in (HEAD_POLICY, HEAD_FIXED):
                         scores = torch.softmax(scores, dim=-1)
-                    for j, i in enumerate(idxs):
-                        k = reqs[i].enc.n_options
-                        results[i] = (scores[j, :k].tolist(), float(values[i]))
+                    on_device[head] = scores
                 elif head == HEAD_VALUE:
-                    for i in idxs:
-                        results[i] = ([], float(values[i]))
+                    pass
                 elif head == HEAD_BELIEF:
-                    logits = self.net.belief_logits(out).float()
-                    for i in idxs:
-                        results[i] = (torch.sigmoid(logits[i]).tolist(), float(values[i]))
+                    on_device[head] = torch.sigmoid(self.net.belief_logits(out).float()[sel])
                 elif head == HEAD_ORACLE:
                     # Count vectors built on the CPU and written in one
                     # accumulate (as the learner's targets); -1 = no card.
@@ -97,9 +97,7 @@ class TorchModel:
                         at = (torch.tensor(rows, device=self.device), torch.tensor(cols, device=self.device))
                         hidden.index_put_(at, torch.ones(len(rows), device=self.device), accumulate=True)
                     sub = type(out)(g=out.g[sel], h=out.h[sel], e_opt=out.e_opt[sel], option_mask=out.option_mask[sel])
-                    ov = self.net.oracle_value(sub, hidden).float()
-                    for j, i in enumerate(idxs):
-                        results[i] = ([], float(ov[j]))
+                    on_device[head] = self.net.oracle_value(sub, hidden).float()
                 elif head == HEAD_SUBSET:
                     rows, members, ordered, spans = [], [], [], []
                     for i in idxs:
@@ -108,12 +106,23 @@ class TorchModel:
                         rows.extend([i] * len(c))
                         members.extend(c)
                         ordered.extend([reqs[i].ordered] * len(c))
+                    width = max((n for _i, _s, n in spans), default=0)
+                    if width == 0:
+                        on_device[head] = (None, spans)
+                        continue
                     scores = self.net.subset_scores(
                         out, torch.tensor(rows, device=self.device), candidates_tensor(members, self.device),
                         torch.tensor(ordered, device=self.device),
                     ).float()
-                    for i, start, n in spans:
-                        results[i] = (torch.softmax(scores[start : start + n], dim=0).tolist(), float(values[i]))
+                    # One softmax per request over its own candidates: the rows
+                    # of a padded matrix, -inf where a request has none.
+                    counts = torch.tensor([n for _i, _s, n in spans], device=self.device)
+                    starts = torch.tensor([s for _i, s, _n in spans], device=self.device)
+                    row_of = torch.repeat_interleave(torch.arange(len(spans), device=self.device), counts)
+                    col_of = torch.arange(len(members), device=self.device) - torch.repeat_interleave(starts, counts)
+                    padded = torch.full((len(spans), width), float("-inf"), device=self.device)
+                    padded[row_of, col_of] = scores
+                    on_device[head] = (torch.softmax(padded, dim=-1), spans)
                 elif head == HEAD_SEQUENTIAL:
                     K = batch.options.shape[1]
                     prefix_np = np.zeros((len(idxs), K), dtype=np.float32)
@@ -125,12 +134,38 @@ class TorchModel:
                     prefix = torch.from_numpy(prefix_np).to(self.device)
                     legal = torch.from_numpy(legal_np).to(self.device)
                     logits = self.net.sequential_logits(out, sel, prefix, legal).float()
-                    probs = torch.softmax(logits, dim=-1)
-                    for j, i in enumerate(idxs):
-                        k = reqs[i].enc.n_options
-                        results[i] = (probs[j, :k].tolist() + [float(probs[j, K])], float(values[i]))
+                    on_device[head] = (torch.softmax(logits, dim=-1), K)
                 else:
                     raise ValueError(f"unknown head {head!r}")
+        values = values_t.cpu().tolist()
+        results: List = [None] * len(reqs)
+        for head, idxs in by_head.items():
+            if head == HEAD_VALUE:
+                for i in idxs:
+                    results[i] = ([], values[i])
+            elif head in (HEAD_POLICY, HEAD_FIXED, HEAD_TOPK, HEAD_Q):
+                rows = on_device[head].cpu().numpy()
+                for j, i in enumerate(idxs):
+                    results[i] = (rows[j, : reqs[i].enc.n_options].tolist(), values[i])
+            elif head == HEAD_BELIEF:
+                rows = on_device[head].cpu().numpy()
+                for j, i in enumerate(idxs):
+                    results[i] = (rows[j].tolist(), values[i])
+            elif head == HEAD_ORACLE:
+                ov = on_device[head].cpu().tolist()
+                for j, i in enumerate(idxs):
+                    results[i] = ([], ov[j])
+            elif head == HEAD_SUBSET:
+                probs_t, spans = on_device[head]
+                probs = probs_t.cpu().numpy() if probs_t is not None else None
+                for r, (i, _start, n) in enumerate(spans):
+                    results[i] = (probs[r, :n].tolist() if n else [], values[i])
+            elif head == HEAD_SEQUENTIAL:
+                probs_t, K = on_device[head]
+                probs = probs_t.cpu().numpy()
+                for j, i in enumerate(idxs):
+                    k = reqs[i].enc.n_options
+                    results[i] = (probs[j, :k].tolist() + [float(probs[j, K])], values[i])
         return results
 
 

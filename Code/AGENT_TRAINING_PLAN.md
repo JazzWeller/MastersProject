@@ -246,6 +246,16 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
   - **Monitor:** reads gauges/losses from the newest record that has them, flags a silent learner.
   - **Throughput:** ~900 games/hour from five actors, against the plan's 1,500. This is
     unconfirmed (35 minutes, with the learner stalled), but a sign that G5 may flag.
+- **Throughput work (2026-10-02, measured without self-play; observation plan O8, O9, O10).**
+  - **The inference server copies results once per head**, no longer once per request. That makes
+    it 3× faster on real batches, with identical answers. Actors wait 14% of their time instead of
+    25%, and search 12% faster.
+  - **Default actors are now 8 instead of 5:** +28% searches per second. The CPU sets the limit; the
+    GPU stays about 93% idle.
+  - **Training is 2.1× faster:** vectorized multi-select losses, plus `precision: bf16` for both the
+    BC trainer and the learner (10,855 against 5,150 samples/s at batch 512).
+  - **G5's games-per-hour reference** should be re-measured with these defaults when self-play
+    resumes.
 
 ### Next
 

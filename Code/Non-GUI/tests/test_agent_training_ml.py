@@ -466,5 +466,149 @@ class TestM11NetworkAgent(unittest.TestCase):
             self.assertIsNone(r.forfeit, r.forfeit)
 
 
+@unittest.skipUnless(TORCH, "torch is intentionally not installed for the rest of this suite")
+class TestBCTrainer(unittest.TestCase):
+    """The BC trainer's losses on a small real corpus: the vectorized
+    multi-select losses equal straightforward per-row references (what the
+    loops computed before they were vectorized), and a training step runs
+    under bf16 autocast."""
+
+    FIELDS = ("kind", "target", "forced", "z", "turn", "source", "min_n", "max_n", "n_opt", "opp_hand", "next_draws")
+
+    @classmethod
+    def setUpClass(cls):
+        import json
+
+        from ml.dataset import Corpus, encode_records
+        from sim.bc_corpus import play_labelled
+
+        cls.tmp = tempfile.TemporaryDirectory()
+        records = os.path.join(cls.tmp.name, "records.jsonl")
+        with open(records, "w", encoding="utf-8") as f:
+            for i, source in enumerate(("heuristic", "random", "random", "heuristic", "random")):
+                decks = ("fignor", "igor") if i % 2 == 0 else ("igor", "fignor")
+                rec = play_labelled(GameConfig(decks=decks, seed=200 + i, max_turns=40), source, 200 + i)
+                rec["index"] = i
+                f.write(json.dumps(rec) + "\n")
+        shard = os.path.join(cls.tmp.name, "encoded", "s0")
+        encode_records(records, shard)
+        cls.corpus = Corpus([shard])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def _batch(self, device):
+        batch, tg = self.corpus.batch(np.arange(min(self.corpus.size, 600)))
+        batch = batch.to(device)
+        for f in self.FIELDS:
+            setattr(tg, f, getattr(tg, f).to(device))
+        return batch, tg
+
+    def test_vectorized_multi_select_losses_match_per_row_references(self):
+        from torch.nn import functional as F
+
+        from ml.bc_train import K_ORDER, MultiPrep
+        from ml.model import KeyForgeNet
+
+        torch.manual_seed(0)
+        net = KeyForgeNet(_net_cfg()).eval()
+        batch, tg = self._batch(torch.device("cpu"))
+        out = net.encode_state(batch)
+        prep = MultiPrep(tg, 1024, torch.device("cpu"))
+        self.assertTrue(prep.rows and prep.spans and prep.s_rows, "the corpus needs multi-select decisions")
+        n_opt, kinds = tg.n_opt.tolist(), tg.kind.tolist()
+
+        loss, _ = prep.enumerate_loss(net, out)
+        scores = net.subset_scores(out, prep.c_rows, prep.c_members, prep.c_ordered)
+        ref = torch.full((len(prep.spans), max(n for _b, _s, n, _t, _c in prep.spans)), float("-inf"))
+        targets = torch.empty(len(prep.spans), dtype=torch.int64)
+        for r, (_b, start, n, t, _c) in enumerate(prep.spans):
+            ref[r, :n] = scores[start : start + n]
+            targets[r] = t
+        self.assertTrue(torch.allclose(loss, F.cross_entropy(ref, targets)))
+
+        K = out.e_opt.shape[1]
+        _rows, prefix, legal = prep.sequential_tensors(K)
+        for i in range(len(prep.s_rows)):
+            self.assertEqual(sorted(prefix[i].nonzero().flatten().tolist()), sorted(prep.s_prefix[i]))
+            self.assertEqual(sorted(legal[i].nonzero().flatten().tolist()), sorted(K if l == -1 else l for l in prep.s_legal[i]))
+
+        loss = prep.topk_loss(net, out, n_opt, kinds)
+        logits = net.topk_logits(out)
+        total, count = 0.0, 0
+        for b in prep.rows:
+            n, s, key = n_opt[b], logits[b, : n_opt[b]], prep.keys[b]
+            if kinds[b] == K_ORDER:
+                ss = s[torch.tensor(list(key), dtype=torch.int64)]
+                total = total + sum(torch.logsumexp(ss[t:], 0) - ss[t] for t in range(len(key)))
+            else:
+                y = torch.zeros(n)
+                if key:
+                    y[list(key)] = 1.0
+                total = total + F.binary_cross_entropy_with_logits(s, y, reduction="sum")
+            count += n
+        self.assertTrue(torch.allclose(loss, total / count, rtol=1e-5, atol=1e-6))
+
+    def test_a_training_step_runs_under_bf16_autocast(self):
+        if not torch.cuda.is_available():
+            self.skipTest("no GPU")
+        from ml.bc_train import DEFAULT_WEIGHTS, compute_losses
+        from ml.model import KeyForgeNet, amp_dtype
+
+        device = torch.device("cuda")
+        torch.manual_seed(0)
+        net = KeyForgeNet(_net_cfg()).to(device)
+        opt = torch.optim.AdamW(net.parameters(), lr=1e-3)
+        batch, tg = self._batch(device)
+        before = [p.detach().clone() for p in net.parameters()]
+        with torch.autocast("cuda", dtype=amp_dtype("bf16", device)):
+            total, losses, _o, _p = compute_losses(net, batch, tg, weights=dict(DEFAULT_WEIGHTS), policy_head="pointer", cap=1024,
+                                                   heads=tuple(DEFAULT_WEIGHTS))
+        self.assertTrue(torch.isfinite(total))
+        self.assertTrue({"enumerate", "sequential", "topk"} <= set(losses))
+        total.backward()
+        opt.step()
+        self.assertTrue(any(not torch.equal(a, p.detach()) for a, p in zip(before, net.parameters())))
+
+    def test_the_learner_trains_under_bf16_autocast(self):
+        if not torch.cuda.is_available():
+            self.skipTest("no GPU")
+        from agent.selfplay import Actor, SelfPlaySettings
+        from bots.inference_client import InProcessInferenceClient
+        from ml.infer_server import TorchModel
+        from ml.model import KeyForgeNet, amp_dtype
+        from ml.selfplay_train import Buffer, losses_for
+
+        torch.manual_seed(0)
+        net = KeyForgeNet(_net_cfg())
+        settings = SelfPlaySettings(mode="search", leaf="student", sims_full=6, sims_small=3, full_fraction=0.5, concurrency=2,
+                                    max_turns=20, leaves_in_flight=2)
+        records = []
+        Actor(InProcessInferenceClient(TorchModel(net, "cpu")), settings, run_seed=2).play(range(4), records.append)
+        buf = Buffer(10_000, 100)
+        for r in records:
+            buf.add(r)
+        positions = buf.sample(200, random.Random(0))
+        device = torch.device("cuda")
+        net = net.to(device).train()
+        with torch.autocast("cuda", dtype=amp_dtype("bf16", device)):
+            total, L, _ = losses_for(net, positions, device, {"policy": 1, "value": 1, "belief": 0.25, "oracle": 0.25}, "search",
+                                     True, random.Random(1))
+        self.assertTrue(torch.isfinite(total))
+        if any(p["kind"] in ("CHOOSE_CARDS", "ORDER_EFFECTS") and p["target"] is not None and not p["value_only"] and p["candidates"]
+               for p in positions):
+            self.assertIn("multi", L)  # the padded multi-select path ran under bf16
+        total.backward()
+
+    def test_unknown_precision_is_an_error(self):
+        from ml.model import amp_dtype
+
+        self.assertIsNone(amp_dtype("fp32", "cuda"))
+        self.assertIsNone(amp_dtype("bf16", "cpu"))
+        with self.assertRaises(ValueError):
+            amp_dtype("fp8", "cuda")
+
+
 if __name__ == "__main__":
     unittest.main()
