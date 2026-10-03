@@ -74,41 +74,52 @@ def entity_block(batch: Batch) -> torch.Tensor:
     return torch.cat([zone, flags, batch.inplay, batch.selected.unsqueeze(-1), reserved], dim=-1)
 
 
-def collate(items: Sequence[Encoded], device: Optional[torch.device] = None) -> Batch:
+def collate(
+    items: Sequence[Encoded], device: Optional[torch.device] = None, *, rows: Optional[int] = None, width: Optional[int] = None,
+) -> Batch:
+    """One `Batch` from encoded observations, built with whole-array NumPy
+    operations (no per-item tensor writes). `rows`/`width` pad it to that
+    many rows and options -- the inference server's CUDA-graph shapes. A
+    padded row is card 0 everywhere with no options; nothing reads it."""
     B = len(items)
-    card_ids = torch.from_numpy(
-        np.frombuffer(b"".join(e.card_ids.tobytes() for e in items), dtype=np.int16).reshape(B, N).astype(np.int64)
-    )
-    zones = torch.from_numpy(np.frombuffer(b"".join(e.zones for e in items), dtype=np.uint8).reshape(B, N).astype(np.int64))
-    flags = torch.from_numpy(np.frombuffer(b"".join(e.flags for e in items), dtype=np.uint8).reshape(B, N).copy())
-    globals_ = torch.from_numpy(np.frombuffer(b"".join(e.globals.tobytes() for e in items), dtype=np.float32).reshape(B, G).copy())
+    R = rows or B
+    n_opts = np.fromiter((e.n_options for e in items), dtype=np.int64, count=B)
+    K = width or max(int(n_opts.max()) if B else 0, 1)
 
-    inplay = torch.zeros(B * N, P)
-    counts = [len(e.inplay_index) for e in items]
-    if sum(counts):
-        rows = torch.from_numpy(np.frombuffer(b"".join(e.inplay.tobytes() for e in items), dtype=np.float32).reshape(-1, P).copy())
+    card_ids = np.zeros((R, N), np.int64)
+    card_ids[:B] = np.frombuffer(b"".join(e.card_ids.tobytes() for e in items), dtype=np.int16).reshape(B, N)
+    zones = np.zeros((R, N), np.int64)
+    zones[:B] = np.frombuffer(b"".join(e.zones for e in items), dtype=np.uint8).reshape(B, N)
+    flags = np.zeros((R, N), np.uint8)
+    flags[:B] = np.frombuffer(b"".join(e.flags for e in items), dtype=np.uint8).reshape(B, N)
+    globals_ = np.zeros((R, G), np.float32)
+    globals_[:B] = np.frombuffer(b"".join(e.globals.tobytes() for e in items), dtype=np.float32).reshape(B, G)
+
+    inplay = np.zeros((R * N, P), np.float32)
+    counts = np.fromiter((len(e.inplay_index) for e in items), dtype=np.int64, count=B)
+    if counts.sum():
         idx = np.frombuffer(b"".join(e.inplay_index for e in items), dtype=np.uint8).astype(np.int64)
-        base = np.repeat(np.arange(B, dtype=np.int64) * N, counts)
-        inplay.index_copy_(0, torch.from_numpy(idx + base), rows)
-    inplay = inplay.view(B, N, P)
+        inplay[idx + np.repeat(np.arange(B, dtype=np.int64) * N, counts)] = np.frombuffer(
+            b"".join(e.inplay.tobytes() for e in items), dtype=np.float32).reshape(-1, P)
 
-    selected = torch.zeros(B, N)
-    for b, e in enumerate(items):
-        if e.selected is not None:
-            selected[b] = torch.from_numpy(np.frombuffer(e.selected, dtype=np.uint8).astype(np.float32))
+    selected = np.zeros((R, N), np.float32)
+    with_sel = [b for b, e in enumerate(items) if e.selected is not None]
+    if with_sel:
+        selected[with_sel] = np.frombuffer(b"".join(items[b].selected for b in with_sel), dtype=np.uint8).reshape(-1, N)
 
-    n_opts = [e.n_options for e in items]
-    K = max(max(n_opts), 1)
-    options = torch.zeros(B, K, O)
-    pointers = torch.full((B, K), -1, dtype=torch.int64)
-    mask = torch.zeros(B, K, dtype=torch.bool)
-    for b, e in enumerate(items):
-        k = n_opts[b]
-        if k:
-            options[b, :k] = torch.from_numpy(np.frombuffer(e.options.tobytes(), dtype=np.float32).reshape(k, O).copy())
-            pointers[b, :k] = torch.from_numpy(np.frombuffer(e.pointers.tobytes(), dtype=np.int8).astype(np.int64))
-            mask[b, :k] = True
-    batch = Batch(card_ids, zones, flags, inplay, selected, globals_, options, pointers, mask)
+    options = np.zeros((R, K, O), np.float32)
+    pointers = np.full((R, K), -1, np.int64)
+    mask = np.zeros((R, K), bool)
+    total = int(n_opts.sum())
+    if total:
+        offered = [e for e in items if e.n_options]
+        b_of = np.repeat(np.arange(B), n_opts)
+        k_of = np.arange(total) - np.repeat(np.cumsum(n_opts) - n_opts, n_opts)
+        options[b_of, k_of] = np.frombuffer(b"".join(e.options.tobytes() for e in offered), dtype=np.float32).reshape(-1, O)
+        pointers[b_of, k_of] = np.frombuffer(b"".join(e.pointers.tobytes() for e in offered), dtype=np.int8)
+        mask[b_of, k_of] = True
+    t = torch.from_numpy
+    batch = Batch(t(card_ids), t(zones), t(flags), t(inplay).view(R, N, P), t(selected), t(globals_), t(options), t(pointers), t(mask))
     return batch.to(device) if device is not None else batch
 
 

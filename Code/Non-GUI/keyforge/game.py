@@ -573,11 +573,16 @@ class Game:
 
         card_remap: Dict[int, Card] = {}
         new._cards_by_id = {}
+        linked = []  # only cards referencing other cards need relinking (a few of 72)
         for iid, old_card in self._cards_by_id.items():
             new_card = _copy_card(old_card)
             card_remap[id(old_card)] = new_card
             new._cards_by_id[iid] = new_card
-        for new_card in new._cards_by_id.values():
+            t = old_card.type_object
+            if (old_card.purged_by is not None or old_card.redirect_fight_damage_to is not None or old_card.under_cards
+                    or getattr(t, "upgrades", None) or getattr(t, "host", None) is not None):
+                linked.append(new_card)
+        for new_card in linked:
             _relink_card(new_card, card_remap)
 
         new.players = {pid: _copy_player(p, card_remap) for pid, p in self.players.items()}
@@ -596,7 +601,9 @@ class Game:
         }
 
         new.choice_log = list(self.choice_log)
-        new.choice_record = [list(e) if isinstance(e, list) else e for e in self.choice_record]
+        # Shallow: a recorded choice is never changed once appended (both
+        # games only ever append), so the copy can share the entries.
+        new.choice_record = list(self.choice_record)
 
         if self.is_over:
             new._driver = iter(())

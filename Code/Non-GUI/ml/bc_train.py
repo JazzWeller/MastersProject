@@ -43,7 +43,7 @@ from keyforge.infoset import PL_HAND, ZONE
 from .checkpoints import CheckpointStore, save_model
 from .dataset import KINDS, MULTI_KINDS, Corpus, Targets
 from .encode import Batch
-from .model import KeyForgeNet, TrunkOut, amp_dtype, candidates_tensor, param_count
+from .model import KeyForgeNet, TrunkOut, amp_dtype, candidates_tensor, compile_trunk, param_count
 
 K_CARDS = KINDS.index(DecisionKind.CHOOSE_CARDS)
 K_ORDER = KINDS.index(DecisionKind.ORDER_EFFECTS)
@@ -427,6 +427,7 @@ def train(
                             fused=torch.device(device).type == "cuda")
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=total_steps, eta_min=float(bc["lr_min"]))
     amp = amp_dtype(bc.get("precision", "fp32"), device)
+    compile_trunk(model, bc.get("compile", False), device)
     step = 0
     t0 = time.perf_counter()
     history = []

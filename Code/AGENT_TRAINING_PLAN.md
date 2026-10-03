@@ -265,6 +265,11 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
     replay fork's `state_hash` at every non-boundary decision tested.
   - **Training uses a fused AdamW:** +8% samples per second. The BC step is bound by kernel
     launches (CPU 47 ms against GPU 25 ms a step), not by syncs.
+  - **The inference server replays CUDA graphs:** the server is busy 43% of the time instead of 75%,
+    and +14% searches per second. Together with a cheaper `Game.copy`, 8 actors reach 111–121
+    searches per second.
+  - **The BC trainer and the learner compile the trunk** (`compile: true`): +22% samples per second
+    end to end, 13,506 at batch 512.
   - **G5's games-per-hour reference** should be re-measured with these defaults when self-play
     resumes.
 

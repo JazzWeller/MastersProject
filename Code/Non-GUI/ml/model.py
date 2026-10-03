@@ -246,6 +246,17 @@ def param_count(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())
 
 
+def compile_trunk(model: "KeyForgeNet", enabled: bool, device) -> None:
+    """`torch.compile`s the transformer trunk in place (state_dict keys
+    unchanged), on CUDA only. The trunk is the fixed-shape [B, 73, d] part,
+    and fusing its layer norms, activations and autocast casts cuts kernel
+    launches -- the training step is launch-bound (+18% samples/s,
+    2026-10-03). The heads take a different shape every batch and stay
+    eager. Needs a C compiler (Triton builds its launcher)."""
+    if enabled and torch.device(device).type == "cuda":
+        model.trunk.compile()
+
+
 def amp_dtype(precision: str, device) -> Optional[torch.dtype]:
     """The autocast dtype for a training `precision` setting; None means
     plain fp32. bf16 needs no gradient scaling, and applies on CUDA only.
