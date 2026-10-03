@@ -286,6 +286,12 @@ class Shard:
             raise ValueError(f"{path}: dataset version {self.meta.get('dataset_version')}, need {DATASET_VERSION} -- re-encode it")
         mode = "r" if mmap else None
         self.a = {name: np.load(os.path.join(path, name + ".npy"), mmap_mode=mode) for name in _ARRAYS}
+        if mmap:
+            # Plain-ndarray views of the same mapped memory: indexing an
+            # `np.memmap` runs Python-level __getitem__/__array_finalize__
+            # per call, ~45% of assembling a batch (and the prefetch thread
+            # holds the GIL the training step needs while it does).
+            self.a = {name: arr.view(np.ndarray) for name, arr in self.a.items()}
         self.size = int(self.meta["records"])
 
 
@@ -387,12 +393,11 @@ class Corpus:
                 flat = np.repeat(lo - np.concatenate([[0], np.cumsum(cnt)[:-1]]), cnt) + np.arange(cnt.sum())
                 opt_blocks.append(np.asarray(a["options"][flat], dtype=np.float32))
                 ptr_blocks.append(np.asarray(a["pointers"][flat]).astype(np.int64))
-                opt_rows_of.append((np.repeat(rows, cnt), np.concatenate([np.arange(c) for c in cnt])))
+                opt_rows_of.append((np.repeat(rows, cnt), np.arange(cnt.sum()) - np.repeat(np.cumsum(cnt) - cnt, cnt)))
             # chosen lists (multi-select only; tiny)
             lo, hi = a["chosen_off"][local], a["chosen_off"][local + 1]
-            for r, l0, h0 in zip(rows, lo, hi):
-                if h0 > l0:
-                    chosen[r] = [int(x) for x in a["chosen"][l0:h0]]
+            for j in np.nonzero(hi > lo)[0]:
+                chosen[rows[j]] = a["chosen"][lo[j] : hi[j]].tolist()
         cols = {}
         for name, plist in parts.items():
             first = plist[0][1]

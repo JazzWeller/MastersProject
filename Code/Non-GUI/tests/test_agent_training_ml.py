@@ -266,6 +266,51 @@ class TestInferenceAndNetAgent(unittest.TestCase):
         values = {round(v, 5) for _s, v in res}
         self.assertEqual(len(values), 1, "one state, one value")
 
+    def test_cuda_graphs_answer_like_eager_for_every_head(self):
+        """The server's captured graphs (padded shapes) against the eager
+        path: same answers within fp16 noise, for batch sizes that land in
+        different row buckets; swapping the net drops the graphs."""
+        if not torch.cuda.is_available():
+            self.skipTest("no GPU")
+        from agent.agents.requests import (
+            HEAD_BELIEF, HEAD_POLICY, HEAD_Q, HEAD_SEQUENTIAL, HEAD_SUBSET, HEAD_TOPK, HEAD_VALUE, Request,
+        )
+        from bots.heuristic_bot import HeuristicBot
+        from ml.infer_server import TorchModel
+        from ml.model import KeyForgeNet
+
+        torch.manual_seed(0)
+        net = KeyForgeNet(_net_cfg())
+        eager = TorchModel(net, "cuda", cuda_graphs=False)
+        graphed = TorchModel(net, "cuda")
+        encs = []
+        game = Game(GameConfig(decks=("fignor", "igor"), seed=5))
+        bot = HeuristicBot(seed=5)
+        while not game.is_over and len(encs) < 40:
+            d = game.pending_decision
+            encs.append(encode(build_infoset(game, d.player)))
+            game.submit(bot.decide(game.view_for(d.player), d))
+        reqs = []
+        for e in encs:
+            k = e.n_options
+            reqs += [Request(e), Request(e, HEAD_VALUE), Request(e, HEAD_Q), Request(e, HEAD_TOPK), Request(e, HEAD_BELIEF)]
+            if k >= 2:
+                reqs += [Request(e, HEAD_SUBSET, candidates=[(), (0,), (1,), (0, 1)]),
+                         Request(e, HEAD_SEQUENTIAL, prefix=[0], legal=[1, -1])]
+        for n in (3, 20, len(reqs)):
+            with self.subTest(n=n):
+                a, b = eager.predict_many(reqs[:n]), graphed.predict_many(reqs[:n])
+                for r, (sa, va), (sb, vb) in zip(reqs, a, b):
+                    self.assertEqual(len(sa), len(sb), r.head)
+                    self.assertAlmostEqual(va, vb, delta=5e-3)
+                    for x, y in zip(sa, sb):
+                        self.assertAlmostEqual(x, y, delta=2e-2 if r.head == HEAD_Q else 5e-3)
+        self.assertTrue(graphed._graphs, "the graph path ran")
+        graphed.net = KeyForgeNet(_net_cfg()).cuda().eval()  # what ReloadingTorchModel does on a promotion
+        graphed.predict_many(reqs[:3])
+        self.assertIs(graphed._graph_net, graphed.net)
+        self.assertEqual(len(graphed._graphs), 1)
+
     def test_net_agent_plays_complete_games_for_every_treatment(self):
         from agent.agents.net_agent import NetAgent
         from bots.heuristic_bot import HeuristicBot
@@ -650,6 +695,23 @@ class TestBCTrainer(unittest.TestCase):
                for p in positions):
             self.assertIn("multi", L)  # the padded multi-select path ran under bf16
         total.backward()
+
+    def test_a_compiled_trunk_keeps_the_checkpoint_and_the_outputs(self):
+        if not torch.cuda.is_available():
+            self.skipTest("no GPU")
+        from ml.model import KeyForgeNet, compile_trunk
+
+        torch.manual_seed(0)
+        eager = KeyForgeNet(_net_cfg()).cuda().eval()
+        compiled = KeyForgeNet(_net_cfg()).cuda().eval()
+        compiled.load_state_dict(eager.state_dict())
+        compile_trunk(compiled, True, "cuda")
+        self.assertEqual(list(compiled.state_dict()), list(eager.state_dict()), "checkpoint keys must not change")
+        batch, _tg = self._batch(torch.device("cuda"))
+        with torch.no_grad():
+            a, b = eager.encode_state(batch), compiled.encode_state(batch)
+        self.assertTrue(torch.allclose(a.h, b.h, atol=1e-4, rtol=1e-4))
+        self.assertTrue(torch.allclose(eager.value(a), compiled.value(b), atol=1e-4, rtol=1e-4))
 
     def test_unknown_precision_is_an_error(self):
         from ml.model import amp_dtype

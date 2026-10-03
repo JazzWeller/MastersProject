@@ -63,6 +63,7 @@ DEFAULTS: Dict[str, Any] = {
         "grad_clip": 1.0,
         "workers": 5,
         "precision": "bf16",  # fp32 | bf16 (autocast; 1.5x faster steps, measured 2026-10-02)
+        "compile": True,  # torch.compile the trunk on CUDA (+18%; needs a C compiler)
     },
     "search": {
         "regime": "within_turn",  # within_turn | full_game
@@ -94,6 +95,7 @@ DEFAULTS: Dict[str, Any] = {
         "workers": 8,
         "games_per_worker": 16,
         "precision": "bf16",  # learner: fp32 | bf16
+        "compile": True,  # learner: torch.compile the trunk on CUDA
         "playout_cap_full_fraction": 0.25,
         "playout_cap_small": 25,
         "playout_cap_full": 100,

@@ -3,8 +3,10 @@
 **Status (2026-10-02): planned.** Built so far:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
-- O9's faster training: vectorized losses, bf16 and a fused optimizer;
-- faster search forks (cached boundary snapshots and a generated card copy), ahead of Part R.
+- O9's faster training: vectorized losses, bf16, a fused optimizer, a compiled trunk and faster batch
+  assembly;
+- faster search forks (cached boundary snapshots, a cheaper copy) and CUDA graphs in the inference
+  server, ahead of Part R.
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
@@ -838,9 +840,18 @@ of CPU time against 25 ms of GPU kernels, over about 1,100 kernel launches. The 
   masked means instead of boolean gathers, losses read back a step late. This was 5–6% *slower*.
   The CPU never waited on the GPU, and the prefetch thread's Python competed with the main thread
   for the GIL.
-- **`torch.compile` of the trunk (not yet measured):** this is what cuts launches, by fusing the
-  layer norms, activations and autocast casts. Inductor needs a C compiler, and WSL has none.
-  Installing `build-essential` is the user's call.
+- **`torch.compile` of the trunk (kept; `bc.compile` / `selfplay.compile`, default on):** this fuses
+  the layer norms, activations and autocast casts. End to end in `train()`, steady state: **13,506
+  against 11,060 samples/s (+22%)**, about 20 s of one-time compile. Checkpoint keys are unchanged.
+  `build-essential` and `python3.14-dev` were installed in WSL for it (2026-10-03).
+- **Faster batch assembly (kept):** the shards are indexed as plain arrays, not `np.memmap` objects,
+  and two per-row loops are vectorized. Each batch takes 4.6 ms instead of 5.8 ms, with identical
+  output.
+- **A loader process (tried, reverted):** this ran batch assembly and `MultiPrep` in a DataLoader
+  worker, with pinned memory and a sync-free step. It was slower in every arrangement (10–12k
+  samples/s). The page-locking thread is starved of the GIL by the launch-bound step, as the prefetch
+  thread was before, and a shorter GIL switch interval didn't help. The GPU syncs in the current step
+  are what give the prefetch thread its turns.
 - **Batch 2048** amortizes launches too (14,128 samples/s), with the caveat above.
 
 **bf16 against fp32, measured (2026-10-02).** Screen 4's `reference` network was retrained in bf16:
@@ -1004,6 +1015,31 @@ waits longer:
 The default stays at 8 actors. The benchmark runs no learner, and a real run's learner needs those
 cores. The count is chosen when self-play starts, by measuring with the learner running (O10's
 deciding run).
+
+**The inference server, and a cheaper copy again (2026-10-03).** With faster actors the server
+became the limit. It was busy 75% of the time under 8 workers, at 15 ms per batch: 6 ms collating
+and the rest launching kernels. On a captured batch of real requests, the GPU worked 2 ms of a
+7.5 ms call.
+- **CUDA graphs.** The trunk, value head and policy softmax are captured once per padded shape
+  (rows up to 8…512, options up to 8…128), then replayed: 2.7 ms against 5.2 ms on 50-request
+  batches. The rarer heads run eagerly from the captured outputs. Answers match the eager path within
+  fp16 noise, at most 1e-3 on values and 4e-3 on probabilities. A swapped-in network (a promotion)
+  drops the graphs.
+- **`collate` is whole-array NumPy:** 3.4× faster, with identical output.
+- **Live, 8 workers:** server busy 43% instead of 75%, 6 ms per batch, actors wait 14% instead of
+  25%, +14% searches per second.
+- **`Game.copy` 10% cheaper:** only cards that reference other cards are relinked, and the choice
+  record is copied shallowly.
+- **Tried and dropped:**
+  - A larger young-generation GC threshold. The cyclic collector is a third of a copy in isolation,
+    but in a worker the change was within noise or worse.
+  - `torch.compile` of the server trunk, alone: 15%, superseded by the graphs.
+  - Engine and infoset micro-optimization: both profiles are flat, and v2 replaces the infoset and
+    encoder.
+
+At 8 × 16: **111–121 searches per second** over three runs, against 92.0 before and 71.5 at the
+start of the day. Repeated runs differ by up to 10%, so a single run cannot judge a change smaller
+than that.
 
 **Probes.**
 - Targeted positions where the right move depends on only one new kind of information:

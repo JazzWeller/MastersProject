@@ -27,15 +27,81 @@ from agent.features import Encoded
 from .encode import collate
 from .model import KeyForgeNet, candidates_tensor
 
+# The padded shapes the server captures CUDA graphs at: a batch's rows and
+# options are rounded up to the next of these. Larger batches run eagerly.
+GRAPH_ROWS = (8, 16, 32, 64, 128, 256, 512)
+GRAPH_WIDTHS = (8, 16, 32, 64, 128)
+
+
+def _bucket(n: int, sizes: Sequence[int]):
+    return next((s for s in sizes if n <= s), None)
+
+
+class _Graph:
+    """The trunk, value head and policy softmax, captured as one CUDA graph
+    at a fixed padded shape. A replay launches it all at once: eagerly, the
+    server spent ~4x the GPU's time issuing kernels one by one."""
+
+    def __init__(self, model: "TorchModel", rows: int, width: int, pool):
+        self.rows, self.width = rows, width
+        self.batch = collate([], model.device, rows=rows, width=width)  # the graph's input buffers
+        side = torch.cuda.Stream(model.device)
+        side.wait_stream(torch.cuda.current_stream(model.device))
+        with torch.cuda.stream(side):  # warm up (cuBLAS handles, autotuning) off the capture
+            for _ in range(2):
+                model._core(self.batch)
+        torch.cuda.current_stream(model.device).wait_stream(side)
+        self.graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(self.graph, pool=pool):
+            self.out, self.values, self.policy = model._core(self.batch)
+
+    def run(self, batch):
+        """`batch` (CPU, padded to this shape) -> the captured outputs. They
+        are overwritten by the next replay."""
+        for f in batch.__dataclass_fields__:
+            getattr(self.batch, f).copy_(getattr(batch, f), non_blocking=True)
+        self.graph.replay()
+        return self.out, self.values, self.policy
+
 
 class TorchModel:
-    def __init__(self, net: KeyForgeNet, device: str = "cuda", *, amp: bool = True):
+    def __init__(self, net: KeyForgeNet, device: str = "cuda", *, amp: bool = True, cuda_graphs: bool = True):
         if device == "cuda" and not torch.cuda.is_available():
             device = "cpu"
         self.device = torch.device(device)
         self.net = net.to(self.device).eval()
         self.amp = amp and self.device.type == "cuda"
         self.evaluations = 0
+        self.cuda_graphs = cuda_graphs and self.device.type == "cuda"
+        self._graphs: dict = {}
+        self._graph_net = None
+        self._graph_pool = None
+
+    def _core(self, batch):
+        # cache_enabled=False: a capture must not keep autocast's cached
+        # weight casts (they'd be freed under the graph).
+        with torch.autocast(self.device.type, dtype=torch.float16, enabled=self.amp, cache_enabled=False):
+            out = self.net.encode_state(batch)
+            return out, self.net.value(out).float(), torch.softmax(self.net.policy_logits(out).float(), dim=-1)
+
+    def _graph_for(self, reqs) -> "_Graph | None":
+        """The captured graph for this batch's padded shape (captured on
+        first use), or None to run eagerly. A swapped-in net drops them."""
+        if not self.cuda_graphs:
+            return None
+        rows = _bucket(len(reqs), GRAPH_ROWS)
+        width = _bucket(max(max(r.enc.n_options for r in reqs), 1), GRAPH_WIDTHS)
+        if rows is None or width is None:
+            return None
+        if self._graph_net is not self.net:
+            self._graphs.clear()
+            self._graph_net = self.net
+        g = self._graphs.get((rows, width))
+        if g is None:
+            if self._graph_pool is None:
+                self._graph_pool = torch.cuda.graph_pool_handle()
+            g = self._graphs[(rows, width)] = _Graph(self, rows, width, self._graph_pool)
+        return g
 
     def __call__(self, request):
         return self.predict_many([request])[0]
@@ -51,17 +117,25 @@ class TorchModel:
             return []
         reqs = [r if isinstance(r, Request) else Request(enc=r) for r in requests]
         self.evaluations += len(reqs)
-        batch = collate([r.enc for r in reqs], self.device)
         by_head = {}
         for i, r in enumerate(reqs):
             by_head.setdefault(r.head, []).append(i)
         on_device = {}
+        graph = self._graph_for(reqs)
         with torch.autocast(self.device.type, dtype=torch.float16, enabled=self.amp):
-            out = self.net.encode_state(batch)
-            values_t = self.net.value(out).float()
+            if graph is not None:
+                out, values_t, policy_t = graph.run(collate([r.enc for r in reqs], rows=graph.rows, width=graph.width))
+                batch = graph.batch  # padded; every head below indexes real rows only
+            else:
+                batch = collate([r.enc for r in reqs], self.device)
+                out = self.net.encode_state(batch)
+                values_t = self.net.value(out).float()
+                policy_t = None
             for head, idxs in by_head.items():
                 sel = torch.tensor(idxs, device=self.device)
-                if head in (HEAD_POLICY, HEAD_FIXED, HEAD_TOPK, HEAD_Q):
+                if head == HEAD_POLICY and policy_t is not None:
+                    on_device[head] = policy_t[sel]
+                elif head in (HEAD_POLICY, HEAD_FIXED, HEAD_TOPK, HEAD_Q):
                     fn = {
                         HEAD_POLICY: lambda o: self.net.policy_logits(o),
                         HEAD_FIXED: lambda o: self.net.fixed_logits(o, batch),

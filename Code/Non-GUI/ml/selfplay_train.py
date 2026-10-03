@@ -62,7 +62,7 @@ from keyforge.infoset import ZONE
 
 from .checkpoints import CheckpointStore, load_model, save_model
 from .encode import Batch, collate
-from .model import KeyForgeNet, amp_dtype, candidates_tensor
+from .model import KeyForgeNet, amp_dtype, candidates_tensor, compile_trunk
 from .selfplay_gate import GATE_SPRT, gate_verdict  # noqa: F401 -- re-exported (tests, tools)
 
 OPP_UNSEEN = ZONE["opp_unseen"]
@@ -395,6 +395,7 @@ def main():
     if opt_state is not None and opt_state.get("state"):
         opt.load_state_dict({"state": opt_state["state"], "param_groups": opt_state["param_groups"]})
     amp = amp_dtype(sp.get("precision", "fp32"), device)
+    compile_trunk(model, sp.get("compile", False), device)
     positions_per_game = 200.0  # ~140 non-forced decisions + half as many value-only records
     total_steps = max(1, int(budget * positions_per_game / sp["positions_per_step"]))
     sched = cosine_schedule(opt, total_steps, float(sp["lr_min"]), step, float(sp["lr"]))
