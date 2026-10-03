@@ -92,8 +92,7 @@ entities exist but *what is known about where they are*, which is a per-entity f
 
 ### Scope boundary
 
-**Out of scope:** the generator-to-explicit-stack engine refactor (interface plan scope boundary
-stands), and any Phase 2/3 card work.
+**Out of scope:** any Phase 2/3 card work.
 
 **In scope as options:** every arm in M5, M6 and M8.
 
@@ -245,14 +244,13 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
     (a fallback recorded as a target with no candidates) and the search-free `NetAgent`; both
     handled.
   - **Monitor:** reads gauges/losses from the newest record that has them, flags a silent learner.
+  - **Throughput:** ~900 games/hour from five actors, against the plan's 1,500. This is
+    unconfirmed (35 minutes, with the learner stalled), but a sign that G5 may flag.
 
 ### Next
 
-A smoke run first (`configs/smoke_selfplay.json`): the out-of-process gate, periodic learner state
-and child supervision above are unit-tested but haven't run end to end. Then a first valid
-self-play run under a new run id (within-turn arm, warm-started from the Tier 0 network) to measure games/hour at the two-hour mark (G5) before committing to Tier 2 or 3. The
-aborted run measured ~900 games/hour from five actors against the plan's 1,500 -- unconfirmed (35
-minutes, with the learner stalled), but a sign G5 may flag.
+**Self-play is on hold** (decided 2026-09-30). There is no smoke run and no self-play run until
+everything in `Code/AGENT_OBSERVATION_PLAN.md` is complete. Work follows that plan's Sequencing.
 
 ---
 
