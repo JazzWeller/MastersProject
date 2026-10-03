@@ -115,6 +115,10 @@ def main():
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--g1-seeds", type=int, default=2000)
     parser.add_argument("--ablation-epochs", type=int, default=None, help="default: the config's epochs")
+    parser.add_argument("--ablations", default=None, help="comma list of Screen 4 variants to run (default: all of them)")
+    parser.add_argument("--data", default=None,
+                        help="an existing encoded corpus to train on, instead of the config's own (e.g. after an engine "
+                             "source change moved the rules hash, and so the corpus directory, without changing play)")
     parser.add_argument("--generalization-games", type=int, default=6000)
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
@@ -133,7 +137,12 @@ def main():
             json.dump(report, f, indent=2, sort_keys=True)
         write_markdown(run, report)
 
-    data_dir = stage_data(cfg, workers) if ("data" in stages or not os.path.isdir(corpus_dir(cfg) + "/encoded")) else corpus_dir(cfg) + "/encoded"
+    if args.data:
+        data_dir = data_root.resolve(args.data)
+    elif "data" in stages or not os.path.isdir(corpus_dir(cfg) + "/encoded"):
+        data_dir = stage_data(cfg, workers)
+    else:
+        data_dir = corpus_dir(cfg) + "/encoded"
     corpus = Corpus.from_dir(data_dir)
     report["corpus"] = {"dir": data_dir, "positions": corpus.size}
     run.journal("screens_data_ready", game_index=0, positions=corpus.size, dir=data_dir)
@@ -157,7 +166,12 @@ def main():
 
     if "ablations" in stages:
         report.setdefault("ablations", {})
-        for name, over in ABLATIONS.items():
+        names = args.ablations.split(",") if args.ablations else list(ABLATIONS)
+        unknown = [n for n in names if n not in ABLATIONS]
+        if unknown:
+            raise SystemExit(f"unknown ablations {unknown}; choose from {sorted(ABLATIONS)}")
+        for name in names:
+            over = ABLATIONS[name]
             if name in report["ablations"]:
                 continue
             acfg = config_mod._deep_merge(cfg, over)

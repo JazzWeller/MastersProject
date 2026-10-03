@@ -828,6 +828,27 @@ retrained at the same precision as the v2 rungs, which is cheap now, so precisio
 "what does seeing more buy". Batch 2048 changes the optimization, so it's an option to validate with
 a retuned learning rate, not a new default.
 
+**bf16 against fp32, measured (2026-10-02).** Screen 4's `reference` network was retrained in bf16:
+one epoch, the same seed, data order and corpus (run `tier0-bf16`):
+```
+tools.run_screens --stages ablations --ablations reference --ablation-epochs 1 --data <Tier 0 corpus>
+```
+
+| Metric | fp32 (Tier 0) | bf16 |
+|---|---|---|
+| CHOOSE_ACTION top-1 | 0.9101 | 0.9091 |
+| CHOOSE_HOUSE top-1 | 0.9375 | 0.9377 |
+| CHOOSE_CARDS: enumerate / sequential / top-k | 0.8631 / 0.8521 / 0.8556 | 0.8575 / 0.8545 / 0.8578 |
+| Value log-loss (constant: 0.6931) | 0.4928 | 0.4929 |
+| Wall time (train + evaluation) | ~1,500–2,000 s | 779 s |
+
+- **Every difference sits inside the spread of Tier 0's one-epoch fp32 variants.** CHOOSE_ACTION
+  ranges 0.9049–0.9121 across them, enumerate 0.8578–0.8639, and value log-loss 0.4928–0.4961.
+- **Enumerate's −0.56 points looks like noise.** The two other multi-select heads, trained on the
+  same targets, moved up instead.
+- **bf16 is accepted as equivalent.** This rests on one run per precision. A second seed would
+  tighten the comparison if it's ever needed.
+
 **Acceptance.** A round trip through the shards is identical to live encoding, and Tier 0b's wall
 time and memory are recorded.
 
