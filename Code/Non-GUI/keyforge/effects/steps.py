@@ -120,7 +120,9 @@ def draw(game, player, n: int, source=None) -> bool:
         player.hand.add(card)
         drawn_iids.append(card.instance_id)
     if drawn_iids:
-        game.log.add("draw", player=player.id, n=len(drawn_iids), iids=drawn_iids)
+        # Drawing is public, and so is how many; which cards is the drawer's
+        # alone (Agent Observation Plan, Milestone O0).
+        game.log.add("draw", private={"iids": (player.id,)}, player=player.id, n=len(drawn_iids), iids=drawn_iids)
     if source is not None and len(drawn_iids) < n:
         why = f"{{pos:{player.id}}} deck and discard pile are both empty"
         if drawn_iids:
