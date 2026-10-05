@@ -6,13 +6,14 @@ import dataclasses
 import itertools
 import math
 import random
-import types
+
 from typing import Any, Dict, List, Optional, Tuple
 
 from .actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, UseOmni
 from .cards.card import ActionType, ArtifactType, Card, CreatureType, TypeObject, UpgradeType
 from .cards.decks import build_deck
 from .config import GameConfig
+from .copying import Remapper
 from .decision import Decision
 from .effects import steps
 from .effects.effect_object import ActiveEffectList, DurationEffect, InsteadEffect, ModifierEffect, TriggerEffect, resolve_cleanup
@@ -47,45 +48,13 @@ class _PlayGate:
 # --------------------------------------------- Game.copy() (Milestone E2) ----
 # Hand-written, not `copy.deepcopy`: deepcopy treats functions as atomic
 # (shared by reference, never copied), so a deepcopied game's
-# DurationEffect.value/TriggerEffect.handler/etc. would still close over
-# the ORIGINAL game's Card objects wherever that closure captured one --
-# and empirically (across hundreds of games' worth of active effects, every
-# house), a Card is the ONLY kind of object any such closure ever captures
-# in this codebase. `_rebind_closure` fixes exactly that, generically,
-# rather than requiring every card file to avoid closures entirely (the
-# six `_end_of_turn_cleanups` sites still moved to plain data, since a
-# *pending* cleanup has no `game.active_effects` entry of its own to visit
-# and rebind post hoc).
-
-
-def _make_cell(value):
-    return (lambda: value).__closure__[0]
-
-
-def _rebind_closure(fn, card_remap: Dict[int, Card]):
-    """`fn`, or a function behaviorally identical to it, except any `Card`
-    in its closure that's a key in `card_remap` (by `id()` of the OLD card)
-    is replaced with the corresponding new one. Plain data (True, an int, a
-    House, ...) and closures that capture nothing pass through unchanged."""
-    if fn is None or not isinstance(fn, types.FunctionType) or fn.__closure__ is None:
-        return fn
-    new_cells = []
-    changed = False
-    for cell in fn.__closure__:
-        try:
-            value = cell.cell_contents
-        except ValueError:  # pragma: no cover -- an empty cell (a function referencing itself); never seen here
-            new_cells.append(cell)
-            continue
-        if isinstance(value, Card) and id(value) in card_remap:
-            value = card_remap[id(value)]
-            changed = True
-        new_cells.append(_make_cell(value))
-    if not changed:
-        return fn
-    new_fn = types.FunctionType(fn.__code__, fn.__globals__, fn.__name__, fn.__defaults__, tuple(new_cells))
-    new_fn.__kwdefaults__ = fn.__kwdefaults__
-    return new_fn
+# DurationEffect.value/TriggerEffect.handler/etc. would still close over the
+# ORIGINAL game's objects. The data below is copied by hand, for speed;
+# everything whose shape isn't fixed -- closures in lasting effects, the
+# locals of suspended frames (Part R), the pending decision -- goes through
+# one `copying.Remapper`, seeded with the copy's own cards, players and
+# effects, so that a closure, a frame and the decision that share an object
+# still share its copy.
 
 
 def _copy_type_object(old: TypeObject) -> TypeObject:
@@ -188,33 +157,40 @@ def _copy_player(old, card_remap: Dict[int, Card]) -> "Player":
     return new
 
 
-def _copy_active_effects(old: ActiveEffectList, card_remap: Dict[int, Card]) -> ActiveEffectList:
-    def remapped_source(e):
-        return card_remap[id(e.source_card)] if e.source_card is not None else None
+def _copy_active_effects(old: ActiveEffectList, remapper) -> ActiveEffectList:
+    """A new list of new effect objects, each registered in the remapper's
+    memo (a frame or a card may hold one), with every value, condition and
+    handler remapped (a closure's cells point into the copy)."""
+    memo = remapper.memo
+    remap = remapper.remap
+
+    def source(e):
+        return memo[id(e.source_card)] if e.source_card is not None else None
 
     new = ActiveEffectList()
     for e in old.duration_effects:
-        new.add(DurationEffect(
-            source_card=remapped_source(e), controller=e.controller, remaining_duration=e.remaining_duration,
+        ne = DurationEffect(
+            source_card=source(e), controller=e.controller, remaining_duration=e.remaining_duration,
             player_affected=e.player_affected, variable=e.variable, op=e.op,
-            value=_rebind_closure(e.value, card_remap) if callable(e.value) else e.value,
-            conditional=_rebind_closure(e.conditional, card_remap),
-        ))
+            value=remap(e.value), conditional=remap(e.conditional),
+        )
+        memo[id(e)] = ne
+        new.add(ne)
     for e in old.trigger_effects:
-        new.add(TriggerEffect(
-            source_card=remapped_source(e), controller=e.controller, event=e.event,
-            handler=_rebind_closure(e.handler, card_remap), remaining_duration=e.remaining_duration,
-        ))
+        ne = TriggerEffect(
+            source_card=source(e), controller=e.controller, event=e.event,
+            handler=remap(e.handler), remaining_duration=e.remaining_duration,
+        )
+        memo[id(e)] = ne
+        new.add(ne)
     for e in old.instead_effects:
-        new.add(InsteadEffect(
-            source_card=remapped_source(e), controller=e.controller, kind=e.kind,
-            handler=_rebind_closure(e.handler, card_remap),
-        ))
+        ne = InsteadEffect(source_card=source(e), controller=e.controller, kind=e.kind, handler=remap(e.handler))
+        memo[id(e)] = ne
+        new.add(ne)
     for e in old.modifier_effects:
-        new.add(ModifierEffect(
-            source_card=remapped_source(e), controller=e.controller, kind=e.kind,
-            handler=_rebind_closure(e.handler, card_remap),
-        ))
+        ne = ModifierEffect(source_card=source(e), controller=e.controller, kind=e.kind, handler=remap(e.handler))
+        memo[id(e)] = ne
+        new.add(ne)
     return new
 
 
@@ -441,7 +417,7 @@ class Game:
         The resulting fork is the same every way (all are exact before the
         resample).
         """
-        if backend == "copy" or (backend == "auto" and (self.is_over or (self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS))):
+        if backend == "copy" or (backend == "auto" and self.copy_anywhere):
             fork = self.copy()
         elif backend == "auto":
             fork = self._fork_from_snapshot()
@@ -549,32 +525,41 @@ class Game:
             self.submit_index(encoded)
         return self
 
-    def copy(self) -> "Game":
-        """An independent snapshot of this game (Milestone E2's snapshot-
-        copy backend) -- exact and PRIVILEGED, the fast analog of `fork()`.
-        See this module's `_copy_card`/`_copy_player`/`_copy_active_effects`/
-        `_rebind_closure` for how; the short version: hand-written, not
-        `copy.deepcopy` (which treats functions as atomic/shared by
-        reference, so a deepcopied game's effect handlers would still close
-        over THIS game's cards, not the copy's own).
+    @property
+    def copy_anywhere(self) -> bool:
+        """Whether `copy()` is valid at the current decision: always in
+        compiled execution (the resolution stack is data, Part R), only at a
+        boundary decision in native execution (a suspended generator can't be
+        copied)."""
+        if self.is_over:
+            return True
+        if self.execution == "compiled":
+            return self._driver.machine.copyable
+        return self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS
 
-        ONLY VALID AT A BOUNDARY DECISION (`enums.BOUNDARY_KINDS`) -- raises
-        otherwise. Not-a-boundary means part of the "generator stack" (a
-        card effect mid-resolution, Step 1's key-forge payment) is
-        suspended state this can't reconstruct the way an OS-level fork
-        (Milestone E1) or a full replay (`fork()`, valid at ANY decision)
-        does. `is_over` is the other valid case (nothing left to resume)."""
-        if not self.is_over and (self.pending_decision is None or self.pending_decision.kind not in BOUNDARY_KINDS):
+    def copy(self) -> "Game":
+        """An independent snapshot of this game -- exact and PRIVILEGED, the
+        fast analog of `fork()`. Hand-written, not `copy.deepcopy` (which
+        treats functions as atomic, so a deepcopied game's effect handlers
+        would still close over THIS game's cards): see `_copy_card`,
+        `_copy_player`, `_copy_active_effects` and `copying.Remapper`.
+
+        In compiled execution (Part R, R6) this is valid at EVERY decision:
+        the resolution stack's frames are copied with their locals remapped
+        into the copy. In native execution it is only valid at a boundary
+        decision (`enums.BOUNDARY_KINDS`) and raises elsewhere: part of the
+        state is a suspended generator, which only a replay (`fork()`, valid
+        at any decision) or an OS-level fork can reproduce. `is_over` is
+        valid in both."""
+        if not self.copy_anywhere:
             kind = self.pending_decision.kind.name if self.pending_decision is not None else None
+            if self.execution == "compiled":
+                raise ValueError("Game.copy(): code that isn't compiled is suspended (a NativeFrame) -- use fork() instead")
             raise ValueError(
                 f"Game.copy() is only valid at a boundary decision "
                 f"({', '.join(k.name for k in BOUNDARY_KINDS)}) or a finished game, not {kind} -- use fork() instead"
             )
 
-        if self.execution == "compiled" and not self.is_over:
-            # Until frames are copied (Part R, R6), a compiled game copies by
-            # replaying its record: exact, and valid at any decision.
-            return self.fork()
         new = Game.__new__(Game)
         new.config = self.config
         new.execution = self.execution
@@ -589,12 +574,15 @@ class Game:
         new._player_houses_cache = dict(self._player_houses_cache)
         new._fork_snapshot = None  # a branch builds its own if it is ever forked
 
-        card_remap: Dict[int, Card] = {}
+        # Keyed by id() of the OLD object: the cards here, then everything
+        # else the remapper is seeded with -- one memo for the whole copy.
+        card_remap: Dict[int, Any] = {}
         new._cards_by_id = {}
         linked = []  # only cards referencing other cards need relinking (a few of 72)
         for iid, old_card in self._cards_by_id.items():
             new_card = _copy_card(old_card)
             card_remap[id(old_card)] = new_card
+            card_remap[id(old_card.type_object)] = new_card.type_object
             new._cards_by_id[iid] = new_card
             t = old_card.type_object
             if (old_card.purged_by is not None or old_card.redirect_fight_damage_to is not None or old_card.under_cards
@@ -610,7 +598,17 @@ class Game:
         for kind_, events in self.log.by_kind.items():
             new.log.by_kind[kind_] = list(events)
 
-        new.active_effects = _copy_active_effects(self.active_effects, card_remap)
+        memo = card_remap
+        memo[id(self)] = new
+        for pid, p in self.players.items():
+            memo[id(p)] = new.players[pid]
+        remapper = Remapper(self, new, memo)
+        new.active_effects = _copy_active_effects(self.active_effects, remapper)
+        remapper.seed_effects()
+        for old_card in self._cards_by_id.values():
+            # Ember Imp keeps a reference to its own registered effect
+            if old_card._ember_imp_effect is not None:
+                memo[id(old_card)]._ember_imp_effect = remapper.remap(old_card._ember_imp_effect)
         new._end_of_turn_cleanups = list(self._end_of_turn_cleanups)
         new._redirected_hits = [card_remap.get(id(c), c) for c in self._redirected_hits]
         new._temp_control = {
@@ -626,6 +624,11 @@ class Game:
         if self.is_over:
             new._driver = iter(())
             new.pending_decision = None
+        elif self.execution == "compiled":
+            machine = vm.Machine()
+            machine.stack = [remapper.frame(fr) for fr in self._driver.machine.stack]
+            new._driver = vm.MachineDriver(machine)
+            new.pending_decision = remapper.remap(self.pending_decision)
         else:
             new.pending_decision = self.pending_decision  # _resume dispatches on .kind alone; replaced below
             new._driver = new._resume()

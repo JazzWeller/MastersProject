@@ -12,20 +12,23 @@ supported subset, and emits one routine per function into
 `keyforge/compiled/<module>.py`. Card effects keep being written as
 generators; this is the second way the same source runs.
 
-**How a routine works.** Its suspension points become numbered `pc` values
-and its code is split into blocks at them. Code between two suspension
-points is the original code, run natively. Control flow that contains a
-suspension (`if`, `while`, `for`, `try/finally`) is lowered into jumps
-between blocks; everything else is left as it was. The function's locals
-live in the frame (`Frame.L`, a fixed slot order): a routine loads them on
-entry and stores them when it suspends.
+**How a routine works.** It keeps the function's own `if`, `while`, `for`
+and `try` statements, and its code between suspension points is the
+original code, run natively. Each suspension point gets a resume id;
+`_pc == 0` means running normally, and a resumed frame finds its way back to
+the point it suspended at through guards on the way (see
+`FunctionCompiler`). The function's locals live in the frame (`Frame.L`, a
+fixed slot order) only while it is suspended.
 
-- `x = yield Decision(...)` returns `(SUSPEND, decision)`; the choice
-  arrives as `_sent` in the next block, which assigns it.
-- `x = yield from f(...)` evaluates `f` and its arguments, in Python's own
-  order, and returns `(CALL, f, args, kwargs)`; the callee's return value
-  arrives as `_sent`.
-- `return v` returns `(RETURN, v)`.
+- `x = yield Decision(...)` saves the locals and returns a `Suspended`
+  holding the decision; the choice comes back as `_sent` when the frame is
+  resumed.
+- `x = yield from f(...)` calls `_kf_step(f)` -- `f`'s routine, or a runner
+  for code that isn't compiled -- with the original arguments, inline. If it
+  returns a value, the routine carries on with it; if it returns a
+  `Suspended`, something under it is waiting on a decision, so the routine
+  saves its locals, adds its own frame and returns the same `Suspended`.
+- `return v` returns `v`.
 - A `for` loop that suspends keeps its sequence and index in the frame and
   reads a list live, by index, exactly as Python's list iterator does.
 - Variables a nested function or lambda captures are cells, as CPython makes
@@ -60,7 +63,6 @@ import copy
 import hashlib
 import os
 import sys
-from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -83,7 +85,6 @@ MODULES = (
     "effects/named/untamed.py",
 )
 
-CALL, SUSPEND, RETURN = 1, 2, 3
 
 
 class CompileError(Exception):
@@ -232,40 +233,26 @@ def nested_functions(func) -> List[ast.AST]:
     return sorted(found, key=lambda n: (n.lineno, n.col_offset))
 
 
-# ---------------------------------------------------------------- blocks ----
+# -------------------------------------------------------------- emission ----
 
-
-@dataclass
-class Term:
-    kind: str  # goto / branch / suspend / call / return / end_finally
-    target: Optional[int] = None
-    other: Optional[int] = None
-    test: Optional[ast.expr] = None
-    value: Optional[ast.expr] = None
-    func: Optional[ast.expr] = None
-    args: Optional[List[ast.expr]] = None
-    kwargs: Optional[List[ast.keyword]] = None
-    line: int = 0
-
-
-@dataclass
-class Block:
-    bid: int
-    line: int
-    stmts: List[ast.stmt] = field(default_factory=list)
-    term: Optional[Term] = None
-
-
-@dataclass
-class _Loop:
-    head: int
-    end: int
+_SUSPENDING = (ast.Yield, ast.YieldFrom)
 
 
 class FunctionCompiler:
     """Compiles one generator function (`func`, its AST) into a routine's
-    source text. `freevars`: names it closes over from enclosing
-    functions (the routine gets the closure's cells)."""
+    source text. `freevars`: names it closes over from enclosing functions
+    (the routine gets the closure's cells).
+
+    **Structured emission.** The routine keeps the function's own `if`,
+    `while`, `for` and `try` statements. Its suspension points get resume ids
+    1..n in source order, so the ids inside any one statement form a
+    contiguous range. `_pc == 0` means "running normally"; a resumed frame
+    starts with `_pc` at the id it suspended at, and the code finds its way
+    back there: every run of plain statements that comes before a suspension
+    point is guarded by `if not _pc:` (skipped while resuming), and every
+    compound statement on the way in is entered when `_pc` falls in its
+    range. Reaching the suspension point sets `_pc` back to 0. Running
+    normally, a guard costs one test; there is no dispatch."""
 
     def __init__(self, where: str, func: ast.FunctionDef, qualname: str, freevars: Sequence[str]):
         self.where = where
@@ -283,13 +270,19 @@ class FunctionCompiler:
         self.celled = set(self.cellvars) | set(self.freevars)
         self.nested = nested
         self.nested_index = {(n.lineno, n.col_offset): i for i, n in enumerate(nested)}
-        self.blocks: List[Block] = []
         self.temps: List[str] = []
-        self.loop_stack: List[_Loop] = []
-        self.try_depth = 0
+        self.for_temps: Dict[int, Tuple[str, str]] = {}
         self.has_try = False
-        self.cur = self.new_block(func.lineno)
         self._check_subset()
+        body = func.body
+        if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+            body = body[1:]  # the docstring
+        self.body = self._normalize(body, in_try=False, in_loop=False)
+        self.ids: Dict[int, int] = {}  # id(statement) -> resume id
+        self.ranges: Dict[int, Tuple[int, int]] = {}  # id(compound statement) -> (lo, hi)
+        self.line_of_pc: Dict[int, int] = {}
+        self.exc_points: List[int] = []  # resume ids inside a try region
+        self._number(self.body, in_try=False)
 
     # ------------------------------------------------------------ subset ----
 
@@ -315,7 +308,7 @@ class FunctionCompiler:
                 self.err(n, "assignment expressions are not supported")
             if isinstance(n, _COMPS):
                 for m in ast.walk(n):
-                    if isinstance(m, (ast.Yield, ast.YieldFrom)):
+                    if isinstance(m, _SUSPENDING):
                         self.err(n, "a yield inside a comprehension is not supported")
                     if isinstance(m, (ast.Lambda, ast.FunctionDef)):
                         self.err(n, "a nested function inside a comprehension is not supported")
@@ -326,32 +319,86 @@ class FunctionCompiler:
                 if any(isinstance(x, ast.Starred) for x in v.args) or any(k.arg is None for k in v.keywords):
                     self.err(n, "yield from f(*args/**kwargs) is not supported")
 
-    # ------------------------------------------------------------ blocks ----
-
-    def new_block(self, line: int) -> Block:
-        b = Block(len(self.blocks), line)
-        self.blocks.append(b)
-        return b
-
     def temp(self, kind: str) -> str:
         name = f"_kf{kind}{len(self.temps)}"
         self.temps.append(name)
         return name
 
-    def end(self, term: Term, nxt: Optional[Block] = None):
-        if self.cur.term is None:
-            self.cur.term = term
-        if nxt is not None:
-            self.cur = nxt
+    @staticmethod
+    def _suspension(s: ast.stmt):
+        """The yield node if `s` is a suspension statement of the subset."""
+        if isinstance(s, (ast.Expr, ast.Assign, ast.AugAssign, ast.Return)) and isinstance(s.value, _SUSPENDING):
+            return s.value
+        return None
 
-    def goto(self, target: Block, line: int):
-        self.end(Term("goto", target=target.bid, line=line))
-
-    # --------------------------------------------------------- lowering ----
+    def _normalize(self, stmts: List[ast.stmt], *, in_try: bool, in_loop: bool) -> List[ast.stmt]:
+        """A copy of `stmts` with `if (yield ...)` hoisted into a temporary,
+        and everything outside the subset rejected."""
+        out: List[ast.stmt] = []
+        for s in stmts:
+            if not has_own_yield(s):
+                if in_try and self._returns_inside(s):
+                    self.err(s, "return inside a suspending try/finally is not supported")
+                if in_try and self._breaks_out(s):
+                    self.err(s, "break/continue out of a suspending try/finally is not supported")
+                out.append(s)
+                continue
+            y = self._suspension(s)
+            if y is not None:
+                if isinstance(y, ast.Yield) and y.value is not None and has_own_yield(y.value):
+                    self.err(s, "a nested yield is not supported")
+                if isinstance(y, ast.YieldFrom) and any(has_own_yield(x) for x in [y.value.func] + y.value.args + [k.value for k in y.value.keywords]):
+                    self.err(s, "a nested yield is not supported")
+                if isinstance(s, ast.AugAssign) and not isinstance(s.target, ast.Name):
+                    self.err(s, "augmented assignment of a yield to anything but a local is not supported")
+                if isinstance(s, ast.Assign) and any(has_own_yield(t) for t in s.targets):
+                    self.err(s, "a yield inside an assignment target is not supported")
+                if isinstance(s, ast.Return) and in_try:
+                    self.err(s, "return inside a suspending try/finally is not supported")
+                out.append(s)
+            elif isinstance(s, ast.If):
+                test = s.test
+                if isinstance(test, _SUSPENDING):
+                    t = self.temp("t")
+                    out.append(ast.copy_location(ast.Assign(targets=[ast.Name(t, ast.Store())], value=test), s))
+                    test = ast.Name(t, ast.Load())
+                elif has_own_yield(test):
+                    self.err(s, "a yield inside an if test must be the whole test")
+                out.append(ast.copy_location(ast.If(test=test, body=self._normalize(s.body, in_try=in_try, in_loop=in_loop),
+                                                    orelse=self._normalize(s.orelse, in_try=in_try, in_loop=in_loop)), s))
+            elif isinstance(s, ast.While):
+                if s.orelse:
+                    self.err(s, "while/else is not supported")
+                if has_own_yield(s.test):
+                    self.err(s, "a yield inside a while test is not supported")
+                out.append(ast.copy_location(ast.While(test=s.test, body=self._normalize(s.body, in_try=False, in_loop=True), orelse=[]), s))
+            elif isinstance(s, ast.For):
+                if s.orelse:
+                    self.err(s, "for/else is not supported")
+                if has_own_yield(s.iter) or has_own_yield(s.target):
+                    self.err(s, "a yield inside a for header is not supported")
+                node = ast.copy_location(ast.For(target=s.target, iter=s.iter, body=self._normalize(s.body, in_try=False, in_loop=True),
+                                                 orelse=[], type_comment=None), s)
+                # the loop's sequence and index live in the frame
+                self.for_temps[id(node)] = (self.temp("s"), self.temp("i"))
+                out.append(node)
+            elif isinstance(s, ast.Try):
+                if s.handlers or s.orelse:
+                    self.err(s, "only try/finally is supported around a suspension")
+                if any(has_own_yield(x) for x in s.finalbody):
+                    self.err(s, "a suspension inside a finally block is not supported")
+                if any(self._breaks_out(x) for x in s.body):
+                    self.err(s, "break/continue out of a suspending try/finally is not supported")
+                self.has_try = True
+                out.append(ast.copy_location(ast.Try(body=self._normalize(s.body, in_try=True, in_loop=in_loop), handlers=[], orelse=[],
+                                                     finalbody=s.finalbody), s))
+            else:
+                self.err(s, f"a suspension inside a {type(s).__name__} statement is not supported")
+        return out
 
     def _breaks_out(self, stmt) -> bool:
         """Whether `stmt` contains a break/continue that belongs to a loop
-        outside it (one being lowered)."""
+        outside it."""
 
         def visit(n, in_loop):
             if isinstance(n, _SCOPES):
@@ -359,7 +406,7 @@ class FunctionCompiler:
             if isinstance(n, (ast.Break, ast.Continue)) and not in_loop:
                 return True
             if isinstance(n, (ast.For, ast.While)):
-                return any(visit(c, True) for c in n.body + n.orelse) or visit(getattr(n, "iter", None) or n.test, in_loop)
+                return any(visit(c, True) for c in n.body + n.orelse)
             return any(visit(c, in_loop) for c in ast.iter_child_nodes(n))
 
         return visit(stmt, False)
@@ -369,160 +416,49 @@ class FunctionCompiler:
             return False  # a nested function's return is its own
         return isinstance(stmt, ast.Return) or any(isinstance(n, ast.Return) for n in iter_own(stmt))
 
-    def needs_lowering(self, stmt) -> bool:
-        if has_own_yield(stmt):
-            return True
-        if self.loop_stack and self._breaks_out(stmt):
-            return True
-        if self.try_depth and self._returns_inside(stmt):
-            self.err(stmt, "return inside a suspending try/finally is not supported")
-        return False
-
-    def compile_body(self, stmts: List[ast.stmt]):
+    def _number(self, stmts: List[ast.stmt], *, in_try: bool) -> Optional[Tuple[int, int]]:
+        lo = hi = None
         for s in stmts:
-            if self.cur.term is not None:
-                # unreachable code after a return/break/continue: its own block
-                self.cur = self.new_block(s.lineno)
-            self.compile_stmt(s)
-
-    def compile_stmt(self, s: ast.stmt):
-        if not self.needs_lowering(s):
-            self.cur.stmts.append(s)
-            return
-        line = s.lineno
-        if isinstance(s, ast.Expr) and isinstance(s.value, (ast.Yield, ast.YieldFrom)):
-            self._suspend(s.value, None, line)
-        elif isinstance(s, ast.Assign) and isinstance(s.value, (ast.Yield, ast.YieldFrom)):
-            self._suspend(s.value, s.targets, line)
-        elif isinstance(s, ast.AugAssign) and isinstance(s.value, (ast.Yield, ast.YieldFrom)):
-            # `x += yield ...` on a plain local only: the callee can't touch
-            # a local, so applying the operator after the call is exact.
-            if not isinstance(s.target, ast.Name):
-                self.err(s, "augmented assignment of a yield to anything but a local is not supported")
-            resume = self._suspend(s.value, None, line)
-            resume.stmts.append(ast.AugAssign(target=s.target, op=s.op, value=ast.Name("_sent", ast.Load()), lineno=line))
-        elif isinstance(s, ast.Return) and isinstance(s.value, (ast.Yield, ast.YieldFrom)):
-            resume = self._suspend(s.value, None, line)
-            resume.stmts.append(ast.Return(value=ast.Name("_sent", ast.Load())))
-            self.cur.term = Term("return_stmt", line=line)
-        elif isinstance(s, ast.If):
-            test = s.test
-            if isinstance(test, (ast.Yield, ast.YieldFrom)):
-                t = self.temp("t")
-                self._suspend(test, [ast.Name(t, ast.Store())], line)
-                test = ast.Name(t, ast.Load())
-            elif has_own_yield(test):
-                self.err(s, "a yield inside an if test must be the whole test")
-            then_b = self.new_block(s.body[0].lineno)
-            else_b = self.new_block(s.orelse[0].lineno if s.orelse else line)
-            after = self.new_block(line)
-            self.end(Term("branch", target=then_b.bid, other=else_b.bid, test=test, line=line))
-            self.cur = then_b
-            self.compile_body(s.body)
-            self.goto(after, line)
-            self.cur = else_b
-            self.compile_body(s.orelse)
-            self.goto(after, line)
-            self.cur = after
-        elif isinstance(s, ast.While):
-            if s.orelse:
-                self.err(s, "while/else is not supported")
-            if has_own_yield(s.test):
-                self.err(s, "a yield inside a while test is not supported")
-            head = self.new_block(line)
-            body = self.new_block(s.body[0].lineno)
-            after = self.new_block(line)
-            self.goto(head, line)
-            self.cur = head
-            self.end(Term("branch", target=body.bid, other=after.bid, test=s.test, line=line))
-            self.cur = body
-            self.loop_stack.append(_Loop(head.bid, after.bid))
-            self.compile_body(s.body)
-            self.loop_stack.pop()
-            self.goto(head, line)
-            self.cur = after
-        elif isinstance(s, ast.For):
-            if s.orelse:
-                self.err(s, "for/else is not supported")
-            if has_own_yield(s.iter):
-                self.err(s, "a yield inside a for iterable is not supported")
-            seq, idx = self.temp("s"), self.temp("i")
-            self.cur.stmts.append(ast.Assign(targets=[ast.Name(seq, ast.Store())],
-                                             value=ast.Call(ast.Name("_kf_seq", ast.Load()), [s.iter], []), lineno=line))
-            self.cur.stmts.append(ast.Assign(targets=[ast.Name(idx, ast.Store())], value=ast.Constant(0), lineno=line))
-            head = self.new_block(line)
-            body = self.new_block(s.body[0].lineno)
-            after = self.new_block(line)
-            self.goto(head, line)
-            self.cur = head
-            test = ast.Compare(ast.Name(idx, ast.Load()), [ast.Lt()],
-                               [ast.Call(ast.Name("len", ast.Load()), [ast.Name(seq, ast.Load())], [])])
-            self.end(Term("branch", target=body.bid, other=after.bid, test=test, line=line))
-            self.cur = body
-            body.stmts.append(ast.Assign(targets=[s.target], value=ast.Subscript(ast.Name(seq, ast.Load()), ast.Name(idx, ast.Load()), ast.Load()), lineno=line))
-            body.stmts.append(ast.AugAssign(target=ast.Name(idx, ast.Store()), op=ast.Add(), value=ast.Constant(1), lineno=line))
-            self.loop_stack.append(_Loop(head.bid, after.bid))
-            self.compile_body(s.body)
-            self.loop_stack.pop()
-            self.goto(head, line)
-            self.cur = after
-        elif isinstance(s, ast.Try):
-            if s.handlers or s.orelse:
-                self.err(s, "only try/finally is supported around a suspension")
-            if any(has_own_yield(x) for x in s.finalbody):
-                self.err(s, "a suspension inside a finally block is not supported")
-            if any(self._breaks_out(x) for x in s.body):
-                self.err(s, "break/continue out of a suspending try/finally is not supported")
-            fin = self.new_block(s.finalbody[0].lineno)
-            after = self.new_block(line)
-            self.has_try = True
-            self.cur.stmts.append(_parse_stmt(f"F.handlers = [{fin.bid}] if F.handlers is None else F.handlers + [{fin.bid}]", line))
-            self.try_depth += 1
-            self.compile_body(s.body)
-            self.try_depth -= 1
-            if self.cur.term is None:
-                self.cur.stmts.append(_parse_stmt("F.handlers.pop()", line))
-            self.goto(fin, line)
-            self.cur = fin
-            self.compile_body(s.finalbody)
-            self.end(Term("end_finally", target=after.bid, line=line))
-            self.cur = after
-        elif isinstance(s, (ast.Break, ast.Continue)):
-            loop = self.loop_stack[-1]
-            self.end(Term("goto", target=loop.end if isinstance(s, ast.Break) else loop.head, line=line))
-        elif self.loop_stack and self._breaks_out(s) and not has_own_yield(s):
-            self.err(s, f"break/continue inside a {type(s).__name__} that isn't lowered")
-        else:
-            self.err(s, f"a suspension inside a {type(s).__name__} statement is not supported")
-
-    def _suspend(self, y, targets: Optional[List[ast.expr]], line: int) -> Block:
-        """Ends the current block at yield `y`; returns the resume block,
-        which starts by assigning `_sent` to `targets`."""
-        resume = self.new_block(line)
-        if isinstance(y, ast.YieldFrom):
-            call = y.value
-            self.end(Term("call", target=resume.bid, func=call.func, args=call.args, kwargs=call.keywords, line=line))
-        else:
-            if y.value is not None and has_own_yield(y.value):
-                self.err(y, "a nested yield is not supported")
-            self.end(Term("suspend", target=resume.bid, value=y.value, line=line))
-        self.cur = resume
-        if targets:
-            resume.stmts.append(ast.Assign(targets=targets, value=ast.Name("_sent", ast.Load()), lineno=line))
-        return resume
+            r = None
+            if self._suspension(s) is not None:
+                k = len(self.ids) + 1
+                self.ids[id(s)] = k
+                self.line_of_pc[k] = s.lineno
+                if in_try:
+                    self.exc_points.append(k)
+                r = (k, k)
+            elif isinstance(s, ast.If):
+                a = self._number(s.body, in_try=in_try)
+                b = self._number(s.orelse, in_try=in_try)
+                r = _join(a, b)
+            elif isinstance(s, (ast.While, ast.For)):
+                r = self._number(s.body, in_try=in_try)
+            elif isinstance(s, ast.Try):
+                r = self._number(s.body, in_try=True)
+            if r is not None:
+                self.ranges[id(s)] = r
+                lo = r[0] if lo is None else lo
+                hi = r[1]
+        return None if lo is None else (lo, hi)
 
     # ------------------------------------------------------------- emit ----
 
     def compile(self) -> "CompiledRoutine":
-        self.compile_body(self.func.body)
-        if self.cur.term is None:
-            self.cur.term = Term("return", value=None, line=getattr(self.func, "end_lineno", self.func.lineno))
-        self.slots = self.params + self.locals + [f"_kfc_{n}" for n in self.cellvars if n not in self.params]
-        # a celled parameter keeps its own slot name; it holds the cell
         self.slots = [f"_kfc_{n}" if n in self.cellvars else n for n in self.params] + \
                      [f"_kfc_{n}" if n in self.cellvars else n for n in self.locals] + \
                      [f"_kfc_{n}" for n in self.freevars] + self.temps
+        if self.has_try:
+            # an exception being delivered to this frame by the machine
+            self.slots.append("_kfxe")
         return CompiledRoutine(self)
+
+
+def _join(a, b):
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return (min(a[0], b[0]), max(a[1], b[1]))
 
 
 def _parse_stmt(src: str, line: int) -> ast.stmt:
@@ -534,8 +470,8 @@ def _parse_stmt(src: str, line: int) -> ast.stmt:
 
 class _Rewriter(ast.NodeTransformer):
     """Within one routine's own code: a celled variable `x` becomes
-    `_kfc_x.cell_contents`; `return v` becomes `return (RETURN, v)`; a
-    nested function or lambda is rebuilt from its original code object."""
+    `_kfc_x.cell_contents`, and a nested function or lambda is rebuilt from
+    its original code object."""
 
     def __init__(self, fc: FunctionCompiler):
         self.fc = fc
@@ -566,10 +502,6 @@ class _Rewriter(ast.NodeTransformer):
         return node
 
     visit_ListComp = visit_SetComp = visit_DictComp = visit_GeneratorExp = _comp
-
-    def visit_Return(self, node: ast.Return):
-        value = self.visit(node.value) if node.value is not None else ast.Constant(None)
-        return ast.copy_location(ast.Return(ast.Tuple([ast.Constant(RETURN), value], ast.Load())), node)
 
     def _make_fn(self, node):
         i = self.fc.nested_index[(node.lineno, node.col_offset)]
@@ -603,105 +535,203 @@ class CompiledRoutine:
         self.rid = f"{fc.where[:-3].replace('/', '.')}:{fc.qualname}"
         safe = fc.qualname.replace(".<locals>.", "__").replace(".", "_").replace("<", "").replace(">", "")
         self.name = safe
+        self.rw = _Rewriter(fc)
+        self.save = f"[{', '.join(fc.slots)}]"
+
+    # ------------------------------------------------------------ pieces ----
+
+    def code(self, node) -> List[str]:
+        n2 = self.rw.visit(copy.deepcopy(node))
+        ast.fix_missing_locations(n2)
+        return ast.unparse(n2).splitlines()
+
+    def expr(self, node) -> str:
+        n2 = self.rw.visit(copy.deepcopy(node))
+        ast.fix_missing_locations(n2)
+        return ast.unparse(n2)
+
+    def signature(self) -> str:
+        """The original parameters, each with a placeholder default (the
+        loader installs the original's own defaults; a resumed frame passes
+        none), then `_kfF` (the frame being resumed, None for a fresh call),
+        `_sent` (what it was waiting for) and, for a nested function,
+        `_kf_closure` (the cells it closes over)."""
+        a = self.fc.func.args
+        params = [f"{p.arg}=_kf_U" for p in a.args]
+        params.append("*")
+        params += [f"{p.arg}=_kf_U" for p in a.kwonlyargs]
+        params += ["_kfF=None", "_sent=None", "_kf_closure=None"]
+        return ", ".join(params)
+
+    def _suspend_here(self, k: int, what: str) -> List[str]:
+        """Suspends at resume id `k` with `what` (a `Suspended`): a fresh
+        call makes its frame and adds it to the suspension's frames; a
+        resumed frame updates its own."""
+        return ["if _kfF is None:", f"    _kfF = _kf_Frame(_kfR, {self.save})", f"    _kfF.pc = {k}",
+                f"    {what}.frames.append(_kfF)", "else:", f"    _kfF.L = {self.save}", f"    _kfF.pc = {k}",
+                f"return {what}"]
+
+    def _consume(self, s: ast.stmt) -> List[str]:
+        """The rest of suspension statement `s`, once its value is `_sent`."""
+        sent = ast.Name("_sent", ast.Load())
+        if isinstance(s, ast.Expr):
+            return []
+        if isinstance(s, ast.Assign):
+            return self.code(ast.Assign(targets=s.targets, value=sent, lineno=s.lineno))
+        if isinstance(s, ast.AugAssign):
+            return self.code(ast.AugAssign(target=s.target, op=s.op, value=sent, lineno=s.lineno))
+        return self.code(ast.Return(value=sent, lineno=s.lineno))
+
+    # -------------------------------------------------------- statements ----
+
+    def emit_list(self, stmts: List[ast.stmt], ind: str) -> List[str]:
+        fc = self.fc
+        out: List[str] = []
+        ranges = [fc.ranges.get(id(s)) for s in stmts]
+        last = max((i for i, r in enumerate(ranges) if r is not None), default=-1)
+        group: List[ast.stmt] = []
+
+        def flush(guard: bool):
+            if not group:
+                return
+            lines = [ln for st in group for ln in self.code(st)]
+            if guard:
+                out.append(ind + "if not _pc:")
+                out.extend(ind + "    " + ln for ln in lines)
+            else:
+                out.extend(ind + ln for ln in lines)
+            group.clear()
+
+        for i, (s, r) in enumerate(zip(stmts, ranges)):
+            if r is None:
+                group.append(s)
+                continue
+            flush(True)
+            out.extend(self.emit_stmt(s, r, ind))
+        flush(False)  # after the last suspension point nothing is skipped
+        if not out:
+            out.append(ind + "pass")
+        return out
+
+    def emit_stmt(self, s: ast.stmt, r: Tuple[int, int], ind: str) -> List[str]:
+        fc = self.fc
+        i2 = ind + "    "
+        out: List[str] = []
+        k = fc.ids.get(id(s))
+        if k is not None:
+            y = s.value
+            out.append(f"{ind}if not _pc:")
+            if isinstance(y, ast.YieldFrom):
+                # the callee, with the ORIGINAL arguments: `_kf_step(f)` is
+                # its routine (or a native runner), called as `f` would be
+                call = y.value
+                callee = ast.Call(ast.Call(ast.Name("_kf_step", ast.Load()), [call.func], []), call.args, call.keywords)
+                out.append(f"{i2}_sent = {self.expr(callee)}")
+                out.append(f"{i2}if type(_sent) is _kf_S:")
+                out.extend(i2 + "    " + ln for ln in self._suspend_here(k, "_sent"))
+                out.extend(i2 + ln for ln in self._consume(s))
+            else:
+                value = self.expr(y.value) if y.value is not None else "None"
+                out.append(f"{i2}_kfd = _kf_S({value})")
+                out.extend(i2 + ln for ln in self._suspend_here(k, "_kfd"))
+            out.append(f"{ind}elif _pc == {k}:")
+            out.append(f"{i2}_pc = 0")
+            if k in fc.exc_points:
+                out.append(f"{i2}if _kfxe is not None:  # an exception from below, delivered by the machine")
+                out.append(f"{i2}    _kfe = _kfxe")
+                out.append(f"{i2}    _kfxe = None")
+                out.append(f"{i2}    raise _kfe")
+            out.extend(i2 + ln for ln in self._consume(s))
+            return out
+        if isinstance(s, ast.If):
+            rb = _range_of(s.body, fc)
+            re_ = _range_of(s.orelse, fc)
+            c1 = f"not _pc and ({self.expr(s.test)})"
+            if rb is not None:
+                c1 = f"({c1}) or {_in(rb)}"
+            out.append(f"{ind}if {c1}:")
+            out.extend(self.emit_list(s.body, i2))
+            if s.orelse:
+                c2 = "not _pc" + (f" or {_in(re_)}" if re_ is not None else "")
+                out.append(f"{ind}elif {c2}:")
+                out.extend(self.emit_list(s.orelse, i2))
+            return out
+        if isinstance(s, ast.While):
+            out.append(f"{ind}while (not _pc and ({self.expr(s.test)})) or {_in(r)}:")
+            out.extend(self.emit_list(s.body, i2))
+            return out
+        if isinstance(s, ast.For):
+            seq, idx = fc.for_temps[id(s)]
+            out.append(f"{ind}if not _pc:")
+            out.append(f"{i2}{seq} = _kf_seq({self.expr(s.iter)})")
+            out.append(f"{i2}{idx} = 0")
+            out.append(f"{ind}while (not _pc and {idx} < len({seq})) or {_in(r)}:")
+            out.append(f"{i2}if not _pc:")
+            target = self.code(ast.Assign(targets=[s.target], value=ast.Subscript(ast.Name(seq, ast.Load()), ast.Name(idx, ast.Load()), ast.Load()), lineno=s.lineno))
+            out.extend(i2 + "    " + ln for ln in target)
+            out.append(f"{i2}    {idx} += 1")
+            out.extend(self.emit_list(s.body, i2))
+            return out
+        if isinstance(s, ast.Try):
+            fin = [ln for st in s.finalbody for ln in self.code(st)]
+            out.append(f"{ind}if not _pc or {_in(r)}:")
+            out.append(f"{i2}try:")
+            out.extend(self.emit_list(s.body, i2 + "    "))
+            out.append(f"{i2}except BaseException:")
+            out.extend(i2 + "    " + ln for ln in fin)
+            out.append(f"{i2}    raise")
+            out.extend(i2 + ln for ln in fin)
+            return out
+        raise AssertionError(type(s).__name__)
+
+    # ----------------------------------------------------------- routine ----
 
     def source(self) -> str:
         fc = self.fc
-        rw = _Rewriter(fc)
         slots = fc.slots
-        load = f"({', '.join(slots)},) = F.L" if slots else "pass"
-        save = f"F.L = [{', '.join(slots)}]"
         out: List[str] = []
-        out.append(f"def _kfr_{self.name}(F, _sent, _kfN):")
+        # The factory closes the routine over its own constants: the nested
+        # code objects it rebuilds functions from, and its Routine.
+        out.append(f"def _kfmk_{self.name}(_kfN, _kfR):")
+        out.append(f"  def _kfr_{self.name}({self.signature()}):")
         out.append(f"    # {fc.where}:{fc.func.lineno} {fc.qualname}")
-        body_indent = "    "
+        out.append("    if _kfF is None:  # a fresh call: Python bound the arguments")
+        fresh = [n for n in slots if n not in fc.params and not n.startswith("_kfc_") and n != "_kfxe"]
+        if fresh:
+            out.append(f"        {' = '.join(fresh)} = _kf_U")
+        for n in fc.cellvars:
+            out.append(f"        _kfc_{n} = _kf_cell({n})" if n in fc.params else f"        _kfc_{n} = _kf_cell()")
+        for i, n in enumerate(fc.freevars):
+            out.append(f"        _kfc_{n} = _kf_closure[{i}]")
         if fc.has_try:
-            out.append("    try:")
-            body_indent = "        "
-        out.append(f"{body_indent}{load}")
-        out.append(f"{body_indent}_pc = F.pc")
-        out.append(f"{body_indent}while True:")
-        for k, b in enumerate(fc.blocks):
-            kw = "if" if k == 0 else "elif"
-            out.append(f"{body_indent}    {kw} _pc == {b.bid}:  # line {b.line}")
-            ind = body_indent + "        "
-            lines: List[str] = []
-            for s in b.stmts:
-                s2 = rw.visit(copy.deepcopy(s))
-                ast.fix_missing_locations(s2)
-                lines.extend(ast.unparse(s2).splitlines())
-            lines.extend(self._term(b.term, rw, save))
-            for ln in lines:
-                out.append(ind + ln)
-        if fc.has_try:
-            out.append("    except BaseException:")
-            out.append(f"        {save}")
-            out.append("        raise")
+            out.append("        _kfxe = None")
+        out.append("        _pc = 0")
+        out.append("    else:  # resuming a suspended frame")
+        out.append(f"        ({', '.join(slots)},) = _kfF.L" if slots else "        pass")
+        out.append("        _pc = _kfF.pc")
+        out.extend(self.emit_list(fc.body, "    "))
+        out.append("    return None")
+        out.append(f"  return _kfr_{self.name}")
         return "\n".join(out) + "\n"
-
-    def _expr(self, rw, e) -> str:
-        e2 = rw.visit(copy.deepcopy(e))
-        ast.fix_missing_locations(e2)
-        return ast.unparse(e2)
-
-    def _term(self, t: Term, rw, save: str) -> List[str]:
-        if t.kind == "goto":
-            return [f"_pc = {t.target}", "continue"]
-        if t.kind == "branch":
-            return [f"_pc = {t.target} if {self._expr(rw, t.test)} else {t.other}", "continue"]
-        if t.kind == "return":
-            return [f"return ({RETURN}, None)"]
-        if t.kind == "return_stmt":
-            return []  # the block already ends with its own (rewritten) return
-        if t.kind == "suspend":
-            value = self._expr(rw, t.value) if t.value is not None else "None"
-            return [f"_kfd = {value}", save, f"F.pc = {t.target}", f"return ({SUSPEND}, _kfd)"]
-        if t.kind == "call":
-            f = self._expr(rw, t.func)
-            args = ", ".join(self._expr(rw, a) for a in t.args)
-            args = f"({args},)" if t.args else "()"
-            if t.kwargs:
-                kwargs = "{" + ", ".join(f"{k.arg!r}: {self._expr(rw, k.value)}" for k in t.kwargs) + "}"
-            else:
-                kwargs = "None"
-            return [f"_kff = {f}", f"_kfa = {args}", f"_kfk = {kwargs}", save, f"F.pc = {t.target}",
-                    f"return ({CALL}, _kff, _kfa, _kfk)"]
-        if t.kind == "end_finally":
-            return ["if F.exc is not None:", "    _kfe = F.exc", "    F.exc = None", "    raise _kfe",
-                    f"_pc = {t.target}", "continue"]
-        raise AssertionError(t.kind)
-
-    def binder_source(self) -> str:
-        """`_kfb_<name>(<the original signature, placeholder defaults>)`:
-        returns the frame's initial locals."""
-        fc = self.fc
-        a = fc.func.args
-        params = []
-        n_pos = len(a.args)
-        n_def = len(a.defaults)
-        for i, p in enumerate(a.args):
-            params.append(p.arg + ("=_kf_U" if i >= n_pos - n_def else ""))
-        if a.kwonlyargs:
-            params.append("*")
-            for p, d in zip(a.kwonlyargs, a.kw_defaults):
-                params.append(p.arg + ("=_kf_U" if d is not None else ""))
-        values = []
-        for s in fc.slots:
-            if s.startswith("_kfc_"):
-                name = s[len("_kfc_"):]
-                values.append(f"_kf_cell({name})" if name in fc.params else ("_kf_cell()" if name in fc.cellvars else "_kf_U"))
-            elif s in fc.params:
-                values.append(s)
-            else:
-                values.append("_kf_U")
-        return f"def _kfb_{self.name}({', '.join(params)}):\n    return [{', '.join(values)}]\n"
 
     def entry(self) -> str:
         fc = self.fc
-        line_of_pc = {b.bid: b.line for b in fc.blocks}
-        freevars = tuple((fc.slots.index(f"_kfc_{n}"), n) for n in fc.freevars)
         nested = tuple((getattr(n, "name", "<lambda>"), n.lineno) for n in fc.nested)
-        return (f"    ({self.fc.qualname!r}, {fc.func.lineno}, _kfr_{self.name}, _kfb_{self.name}, "
-                f"{tuple(fc.slots)!r}, {freevars!r}, {nested!r}, {line_of_pc!r}),")
+        exc = (fc.slots.index("_kfxe"), tuple(fc.exc_points)) if fc.has_try else None
+        return (f"    ({self.fc.qualname!r}, {fc.func.lineno}, _kfmk_{self.name}, {tuple(fc.slots)!r}, "
+                f"{tuple(fc.freevars)!r}, {nested!r}, {fc.line_of_pc!r}, {exc!r}),")
+
+
+def _range_of(stmts: List[ast.stmt], fc: FunctionCompiler) -> Optional[Tuple[int, int]]:
+    r = None
+    for s in stmts:
+        r = _join(r, fc.ranges.get(id(s)))
+    return r
+
+
+def _in(r: Tuple[int, int]) -> str:
+    lo, hi = r
+    return f"_pc == {lo}" if lo == hi else f"{lo} <= _pc <= {hi}"
 
 
 # --------------------------------------------------------------- modules ----
@@ -751,7 +781,8 @@ def compile_source(raw: bytes, rel: str) -> Tuple[str, List[str]]:
         f'"""Generated by tools/compile_engine.py from keyforge/{rel} -- do not edit.',
         "",
         "Each pausing function of the source, as a routine for keyforge/vm.py's Machine:",
-        "`_kfr_*` runs it from a frame's pc, `_kfb_*` binds a call into a frame's locals.",
+        "`_kfmk_*` makes a routine: called with the original arguments it runs a fresh call;",
+        "called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.",
         '"""',
         "",
         "# fmt: off",
@@ -771,11 +802,11 @@ def compile_source(raw: bytes, rel: str) -> Tuple[str, List[str]]:
         cr = fc.compile()
         parts.append("")
         parts.append(cr.source())
-        parts.append(cr.binder_source())
         entries.append(cr.entry())
         names.append(qual)
     parts.append("")
-    parts.append("# (qualname, first line, step, binder, slots, freevar slots, nested code (name, line), line of each pc)")
+    parts.append("# (qualname, first line, routine factory, slots, free variables, nested code (name, line),")
+    parts.append("#  line of each resume id, (exception slot, resume ids inside a try region) or None)")
     parts.append("ROUTINES = [")
     parts.extend(entries)
     parts.append("]")

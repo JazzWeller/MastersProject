@@ -122,12 +122,16 @@ def _own_yields(func):
     return out
 
 
+# The machine itself (Part R) and its generated routines: not rules code.
+NOT_RULES = ("vm.py", "compiled")
+
+
 def scan(root: str = REF_DIR) -> List[dict]:
     routines = []
     for dirpath, dirs, files in os.walk(root):
-        dirs[:] = sorted(d for d in dirs if d != "__pycache__")
+        dirs[:] = sorted(d for d in dirs if d != "__pycache__" and d not in NOT_RULES)
         for name in sorted(files):
-            if not name.endswith(".py"):
+            if not name.endswith(".py") or name in NOT_RULES:
                 continue
             path = os.path.join(dirpath, name)
             rel = os.path.relpath(path, root).replace(os.sep, "/")

@@ -14,33 +14,54 @@ engine can run it two ways (`Game(config, execution=...)`):
   it can be copied at any decision, serialized, hashed and shown to a
   network.
 
-A routine is called as `routine(frame, sent)` and returns one of:
+A routine is ONE function with two ways in:
 
-- `(SUSPEND, decision)`: a player has to decide; the choice comes back as
-  `sent` when the machine is resumed;
-- `(CALL, f, args, kwargs)`: `yield from f(*args, **kwargs)` -- the machine
-  pushes a frame for `f` (a compiled routine if `f` has one, otherwise a
-  `NativeFrame` around the generator `f` returns) and delivers its return
-  value as `sent` when it finishes;
-- `(RETURN, value)`: the routine is done.
+- called with the original function's own arguments (Python binds them,
+  with the original defaults), it runs a fresh call from the top;
+- called as `step(_kfF=frame, _sent=value)` it resumes a suspended frame:
+  its locals and `pc` come from the frame, and `value` is what it was
+  waiting for.
 
-Exceptions propagate down the stack; a frame inside a `try/finally` region
-runs its finally block first, as a generator would.
+Either way it returns the function's return value when it is done, or a
+`Suspended` when a player has to decide. `yield from f(*args)` runs
+**inline**: the routine calls `step_of(f)(*args)` on the Python stack.
+Nothing reaches the machine unless something suspends: then each routine on
+the way out that has no frame yet makes one (saving its locals and `pc`) and
+adds it to `Suspended.frames`, top first, and the machine pushes them. A
+call that finishes without suspending -- most of them -- costs one extra
+Python call (`step_of`). The machine's stack at a decision is exactly the
+chain of routines waiting on it.
+
+Exceptions propagate as Python exceptions. A routine inside a `try/finally`
+region runs its finally block as Python itself does; a frame already on the
+machine's stack, waiting inside a try region, has the exception raised where
+it waits (`Machine._unwind`), and a native generator gets it thrown in.
 
 `NativeFrame` is the adapter that lets code that isn't compiled run inside
 the machine unchanged (Part R, R2): a stack holding one can't be copied
-(`Machine.copyable`), and `Game.copy()` falls back to replay for it.
+(`Machine.copyable`).
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 import types
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-CALL = 1
-SUSPEND = 2
-RETURN = 3
+class Suspended:
+    """What a routine returns instead of a value when a player has to
+    decide: the decision, and the frames that suspended on the way out to
+    the machine, top first (None for a frame the machine resumed itself)."""
+
+    __slots__ = ("decision", "frames")
+
+    def __init__(self, decision, frames=None):
+        self.decision = decision
+        self.frames = [] if frames is None else frames
+
+    def __repr__(self):
+        return f"<Suspended on {self.decision!r}>"
 
 EXECUTION_MODES = ("native", "compiled")
 
@@ -72,59 +93,64 @@ UNBOUND = _Unbound()
 
 
 class Routine:
-    """A compiled pausing function: its step function and how to bind a
-    call's arguments into a new frame's locals.
+    """A compiled pausing function (see the module docstring for how its
+    function `step` is called).
 
-    - `step(frame, sent)` runs the routine from `frame.pc`.
-    - `binder(*args, **kwargs)` returns the initial locals list, built with
-      the original function's own signature (so Python binds the call
-      exactly as it would have), with the original's defaults installed.
-    - `freevars`: `(slot, name)` for each free variable of a nested
-      function: its slot holds the closure's own cell.
+    - `local_names`: its frame's slots, in order.
+    - `freevars`: a nested function's free variables; a fresh call gets its
+      closure's cells (`_kf_closure`), in this order.
+    - `exc_slot`, `exc_points`: for a routine with `try/finally`, the slot
+      an exception is delivered through and the resume ids inside a try
+      region (else None and empty).
+    - `dynamic`: a nested function, whose defaults and closure come from the
+      function object being called.
+    - `line_of_pc`: the source line each `pc` resumes at.
     """
 
-    __slots__ = ("rid", "qualname", "module", "step", "binder", "dynamic_defaults", "freevars", "local_names",
-                 "code", "line_of_pc", "ops_of_pc")
+    __slots__ = ("rid", "qualname", "module", "step", "dynamic", "freevars", "local_names", "code", "line_of_pc",
+                 "exc_slot", "exc_points", "ops_of_pc", "n_positional")
 
-    def __init__(self, rid: str, qualname: str, module: str, step: Callable, binder: Callable, *, dynamic_defaults: bool,
-                 freevars: Tuple[Tuple[int, str], ...], local_names: Tuple[str, ...], code, line_of_pc: Dict[int, int],
-                 ops_of_pc: Optional[Dict[int, tuple]] = None):
+    def __init__(self, rid: str, qualname: str, module: str, step: Callable, *, dynamic: bool,
+                 freevars: Tuple[str, ...], local_names: Tuple[str, ...], code, line_of_pc: Dict[int, int],
+                 exc_slot: Optional[int], exc_points: frozenset, n_positional: int, ops_of_pc: Optional[Dict[int, tuple]] = None):
         self.rid = rid
         self.qualname = qualname
         self.module = module
         self.step = step
-        self.binder = binder
-        self.dynamic_defaults = dynamic_defaults
+        self.dynamic = dynamic
         self.freevars = freevars
         self.local_names = local_names
         self.code = code
         self.line_of_pc = line_of_pc
+        self.exc_slot = exc_slot
+        self.exc_points = exc_points
+        self.n_positional = n_positional
         self.ops_of_pc = ops_of_pc or {}
 
     def __repr__(self):
         return f"<Routine {self.rid}>"
 
 
-# code object of the ORIGINAL generator function -> its Routine. Filled by
-# `load_compiled()`; the machine looks a callee up here by `__code__`.
-ROUTINES: Dict[types.CodeType, Routine] = {}
+# id() of the code object of the ORIGINAL generator function -> its Routine.
+# Filled by `load_compiled()`; the machine looks a callee up here by
+# `id(callee.__code__)`. By id, not by the code object itself: CPython
+# doesn't cache a code object's hash, and hashing one walks its bytecode and
+# constants -- that alone made every call several times dearer. The Routine
+# holds its code object, so the id stays valid.
+ROUTINES: Dict[int, Routine] = {}
 ROUTINES_BY_ID: Dict[str, Routine] = {}
 
 
 class Frame:
     """One routine's suspended activation: `pc` is where it resumes, `L` its
-    locals in the routine's fixed slot order, `handlers` the finally blocks
-    it is inside (innermost last), `exc` an exception in flight through one
-    of them."""
+    locals in the routine's slot order."""
 
-    __slots__ = ("routine", "pc", "L", "handlers", "exc")
+    __slots__ = ("routine", "pc", "L")
 
     def __init__(self, routine: Routine, L: list):
         self.routine = routine
         self.pc = 0
         self.L = L
-        self.handlers: Optional[List[int]] = None
-        self.exc: Optional[BaseException] = None
 
     def __repr__(self):
         return f"<Frame {self.routine.rid} pc={self.pc}>"
@@ -134,145 +160,200 @@ class NativeFrame:
     """A live generator (or any iterator) inside the machine: code that
     isn't compiled, run exactly as `yield from` would run it."""
 
-    __slots__ = ("gen", "started")
+    __slots__ = ("gen",)
 
     def __init__(self, gen):
         self.gen = gen
-        self.started = False
 
     def step(self, sent):
+        """The generator's return value, or a `Suspended` (with no frames:
+        this frame is on the stack already)."""
         gen = self.gen
         try:
-            if not self.started:
-                self.started = True
-                value = next(gen)
-            elif sent is None:
-                value = next(gen)
-            else:
-                value = gen.send(sent)  # as `yield from` does: an iterator without send() raises
+            # as `yield from` does: an iterator without send() can only be
+            # sent None
+            value = next(gen) if sent is None else gen.send(sent)
         except StopIteration as stop:
-            return RETURN, stop.value
-        return SUSPEND, value
+            return stop.value
+        return Suspended(value, None)
 
     def throw(self, exc):
-        try:
-            value = self.gen.throw(exc) if hasattr(self.gen, "throw") else None
-        except StopIteration as stop:
-            return RETURN, stop.value
-        if value is None and not hasattr(self.gen, "throw"):
+        if not hasattr(self.gen, "throw"):
             raise exc
-        return SUSPEND, value
+        try:
+            value = self.gen.throw(exc)
+        except StopIteration as stop:
+            return stop.value
+        return Suspended(value, None)
 
     def __repr__(self):
         return f"<NativeFrame {getattr(self.gen, '__qualname__', type(self.gen).__name__)}>"
 
 
-def _routine_for(f) -> Tuple[Optional[Routine], Any, tuple]:
-    """`(routine, function, leading args)` for a callee: a bound method's
-    `self` becomes the first argument."""
-    if type(f) is types.MethodType:
-        func = f.__func__
-        code = getattr(func, "__code__", None)
-        if code is not None:
-            r = ROUTINES.get(code)
-            if r is not None:
-                return r, func, (f.__self__,)
-        return None, f, ()
-    code = getattr(f, "__code__", None)
-    if code is not None:
-        r = ROUTINES.get(code)
+class _NativeCall:
+    """`step_of(f)` for an `f` that isn't compiled: calls it, runs the
+    generator (or iterable) it returns until it suspends or ends."""
+
+    __slots__ = ("f",)
+
+    def __init__(self, f):
+        self.f = f
+
+    def __call__(self, *args, **kwargs):
+        gen = iter(self.f(*args, **kwargs))
+        try:
+            value = next(gen)
+        except StopIteration as stop:
+            return stop.value
+        return Suspended(value, [NativeFrame(gen)])
+
+
+_MethodType = types.MethodType
+_FunctionType = types.FunctionType
+
+
+# The original function object of every compiled module-level function and
+# method -> its routine's step: what `step_of` returns for it (bound to
+# `self` for a method). Keyed by the function itself (hashed by identity, so
+# a lookup is cheap); filled by the loader.
+STEPS: Dict[Any, Callable] = {}
+
+# The attribute a nested function (a closure, e.g. a card hook made by a
+# factory) caches its own step under: its routine bound to its closure.
+STEP_ATTR = "__kf_step__"
+
+_ENABLED = True
+
+
+@contextlib.contextmanager
+def disabled():
+    """For tests of the adapter: inside, no routine is registered, so every
+    call runs as native code in a `NativeFrame`."""
+    global _ENABLED
+    load_compiled()
+    saved_r, saved_s = dict(ROUTINES), dict(STEPS)
+    ROUTINES.clear()
+    STEPS.clear()
+    _ENABLED = False
+    try:
+        yield
+    finally:
+        _ENABLED = True
+        ROUTINES.update(saved_r)
+        STEPS.update(saved_s)
+
+
+def step_of(f):
+    """What `yield from f(...)` calls, with `f`'s own arguments: `f`'s
+    routine (bound to its `self` for a method), or a runner for code that
+    isn't compiled."""
+    if type(f) is _MethodType:
+        s = STEPS.get(f.__func__)
+        if s is not None:
+            return _MethodType(s, f.__self__)
+        return _NativeCall(f)
+    s = STEPS.get(f)
+    if s is not None:
+        return s
+    d = getattr(f, "__dict__", None)
+    if d is not None and _ENABLED:
+        s = d.get(STEP_ATTR)
+        if s is not None:
+            return s
+        r = ROUTINES.get(id(getattr(f, "__code__", None)))
         if r is not None:
-            return r, f, ()
-    return None, f, ()
+            s = _dynamic_step(r, f)
+            d[STEP_ATTR] = s
+            return s
+    return _NativeCall(f)
 
 
-def new_frame(f, args: tuple, kwargs: Optional[dict]):
-    """The frame `yield from f(*args, **kwargs)` runs in."""
-    routine, func, lead = _routine_for(f)
-    if routine is None:
-        return NativeFrame(iter(f(*args, **kwargs) if kwargs else f(*args)))
-    binder = routine.binder
-    if routine.dynamic_defaults:
-        binder.__defaults__ = func.__defaults__
-        binder.__kwdefaults__ = func.__kwdefaults__
-    if lead:
-        args = lead + args
-    L = binder(*args, **kwargs) if kwargs else binder(*args)
-    if routine.freevars:
-        closure = func.__closure__
-        names = func.__code__.co_freevars
-        for slot, name in routine.freevars:
-            L[slot] = closure[names.index(name)]
-    return Frame(routine, L)
+def _dynamic_step(r: Routine, func):
+    """A nested function's routine, with that function's own closure (and
+    defaults, if it has any)."""
+    import functools
+
+    step = r.step
+    if func.__defaults__ or func.__kwdefaults__:
+        defaults = (UNBOUND,) * (r.n_positional - len(func.__defaults__ or ())) + tuple(func.__defaults__ or ())
+        step = _FunctionType(step.__code__, step.__globals__, step.__name__, defaults, step.__closure__)
+        kw = dict(r.step.__kwdefaults__)
+        kw.update(func.__kwdefaults__ or {})
+        step.__kwdefaults__ = kw
+    return functools.partial(step, _kf_closure=func.__closure__)
 
 
 class Machine:
     """The resolution stack of one game (or match): frames, bottom to top.
-    `run(sent)` resumes the top frame with `sent` and runs until a frame
-    suspends on a decision, which it returns; when the bottom frame
-    returns, `done` is set and `result` holds its value."""
+    `run(sent)` resumes the top frame with `sent` and runs until something
+    suspends on a decision, which it returns; when the bottom frame returns,
+    `done` is set and `result` holds its value."""
 
-    __slots__ = ("stack", "done", "result")
+    __slots__ = ("stack", "done", "result", "_start")
 
-    def __init__(self, root=None):
-        self.stack: List[Any] = [] if root is None else [root]
+    def __init__(self):
+        self.stack: List[Any] = []
         self.done = False
         self.result = None
+        self._start = None
 
     @classmethod
     def calling(cls, f, *args, **kwargs) -> "Machine":
-        return cls(new_frame(f, args, kwargs or None))
+        """A machine whose first `run()` calls `f(*args, **kwargs)`."""
+        m = cls()
+        m._start = (f, args, kwargs)
+        return m
 
     @property
     def copyable(self) -> bool:
-        return not any(type(fr) is NativeFrame for fr in self.stack)
+        return self._start is None and not any(type(fr) is not Frame for fr in self.stack)
 
     def run(self, sent=None):
         stack = self.stack
+        if self._start is not None:
+            f, args, kwargs = self._start
+            self._start = None
+            out = step_of(f)(*args, **kwargs)
+            if type(out) is Suspended:
+                stack.extend(reversed(out.frames))
+                return out.decision
+            self.done = True
+            self.result = out
+            return None
         while stack:
             fr = stack[-1]
             try:
-                if type(fr) is Frame:
-                    out = fr.routine.step(fr, sent)
-                else:
-                    out = fr.step(sent)
+                out = fr.routine.step(_kfF=fr, _sent=sent) if type(fr) is Frame else fr.step(sent)
             except BaseException as exc:  # noqa: BLE001 -- re-raised once every finally has run
                 out = self._unwind(exc)
-            op = out[0]
-            if op == SUSPEND:
-                return out[1]
-            if op == CALL:
-                stack.append(new_frame(out[1], out[2], out[3]))
-                sent = None
-                continue
+            if type(out) is Suspended:
+                if out.frames:
+                    stack.extend(reversed(out.frames))
+                return out.decision
             stack.pop()
-            sent = out[1]
+            sent = out
         self.done = True
         self.result = sent
         return None
 
     def _unwind(self, exc: BaseException):
-        """Propagates `exc` from the top frame down: the first frame inside
-        a finally region resumes in its finally block (which re-raises when
-        it ends); a native generator gets it thrown in. Re-raises if no
-        frame handles it."""
+        """Propagates `exc` from the top frame (which has already run its own
+        finally blocks) down the stack: a frame waiting inside a try region
+        has it raised where it waits, which runs its finally block and
+        re-raises; a native generator gets it thrown in, and may handle it.
+        Re-raises once no frame is left."""
         stack = self.stack
         stack.pop()
         while stack:
             fr = stack[-1]
-            if type(fr) is Frame:
-                if fr.handlers:
-                    fr.pc = fr.handlers.pop()
-                    fr.exc = exc
-                    try:
-                        return fr.routine.step(fr, None)
-                    except BaseException as again:  # noqa: BLE001
-                        exc = again
-                        stack.pop()
-                        continue
-                stack.pop()
-                continue
             try:
+                if type(fr) is Frame:
+                    r = fr.routine
+                    if fr.pc not in r.exc_points:
+                        stack.pop()  # not inside a try region: nothing to run
+                        continue
+                    fr.L[r.exc_slot] = exc
+                    return r.step(_kfF=fr, _sent=None)
                 return fr.throw(exc)
             except BaseException as again:  # noqa: BLE001
                 exc = again
@@ -336,6 +417,9 @@ def as_sequence(x):
 
 
 SUPPORT = {
+    "_kf_step": step_of,
+    "_kf_S": Suspended,
+    "_kf_Frame": Frame,
     "_kf_U": UNBOUND,
     "_kf_cell": types.CellType,
     "_kf_fn": make_function,

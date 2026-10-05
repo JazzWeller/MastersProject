@@ -3,7 +3,7 @@ Part R) -- one module per engine module with generator functions, checked
 into git. Don't edit them: change the source and recompile.
 
 `load_all()` registers every routine in `keyforge.vm.ROUTINES`, keyed by the
-ORIGINAL generator function's code object, after checking that each
+id of the ORIGINAL generator function's code object, after checking that each
 generated module was made from the source as it is now. A routine's step and
 binder functions are rebuilt to run in the source module's own globals, so
 they see exactly the names the original code sees.
@@ -98,21 +98,35 @@ def register(entries, target, src_name: str) -> List[vm.Routine]:
     for k, v in vm.SUPPORT.items():
         g.setdefault(k, v)
     out = []
-    for qualname, line, step, binder, slots, freevars, nested, line_of_pc in entries:
+    for qualname, line, factory, slots, freevars, nested, line_of_pc, exc in entries:
         code = _resolve(target, qualname, line)
+        if tuple(freevars) != code.co_freevars:
+            raise StaleCompiledModule(f"{src_name}:{qualname}: free variables {freevars} != {code.co_freevars}")
         dynamic = ".<locals>." in qualname
-        nested_codes = _nested_codes(code, nested)
-        step_fn = types.FunctionType(step.__code__, g, step.__name__, (nested_codes,))
+        n_pos = code.co_argcount
+        rid = f"{src_name}:{qualname}"
+        routine = vm.Routine(rid, qualname, src_name, None, dynamic=dynamic, freevars=tuple(freevars),
+                             local_names=tuple(slots), code=code, line_of_pc=dict(line_of_pc),
+                             exc_slot=exc[0] if exc else None, exc_points=frozenset(exc[1]) if exc else frozenset(),
+                             n_positional=n_pos)
+        # the factory runs in the source module's globals, so the routine does
+        make = types.FunctionType(factory.__code__, g, factory.__name__)
+        step = make(_nested_codes(code, nested), routine)
         if dynamic:
-            binder_fn = types.FunctionType(binder.__code__, g, binder.__name__, binder.__defaults__)
+            orig_defaults, orig_kw = None, None
         else:
             orig = _function_of(target, qualname)
-            binder_fn = types.FunctionType(binder.__code__, g, binder.__name__, orig.__defaults__)
-            binder_fn.__kwdefaults__ = orig.__kwdefaults__
-        rid = f"{src_name}:{qualname}"
-        routine = vm.Routine(rid, qualname, src_name, step_fn, binder_fn, dynamic_defaults=dynamic, freevars=tuple(freevars),
-                             local_names=tuple(slots), code=code, line_of_pc=dict(line_of_pc))
-        vm.ROUTINES[code] = routine
+            orig_defaults, orig_kw = orig.__defaults__, orig.__kwdefaults__
+        n_def = len(orig_defaults or ())
+        step.__defaults__ = (vm.UNBOUND,) * (n_pos - n_def) + tuple(orig_defaults or ())
+        kwonly = code.co_varnames[n_pos : n_pos + code.co_kwonlyargcount]
+        kw = {k: (orig_kw or {}).get(k, vm.UNBOUND) for k in kwonly}
+        kw.update({"_kfF": None, "_sent": None, "_kf_closure": None})
+        step.__kwdefaults__ = kw
+        routine.step = step
+        if not dynamic:
+            vm.STEPS[orig] = step
+        vm.ROUTINES[id(code)] = routine
         vm.ROUTINES_BY_ID[rid] = routine
         out.append(routine)
     return out

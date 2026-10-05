@@ -226,7 +226,9 @@ class TestConstructs(unittest.TestCase):
         # `native_helper` and `returns_list` must stay native: they test
         # calls into code that isn't compiled
         for name in ("native_helper",):
-            vm.ROUTINES.pop(getattr(cls.mod, name).__code__, None)
+            fn = getattr(cls.mod, name)
+            vm.ROUTINES.pop(id(fn.__code__), None)
+            vm.STEPS.pop(fn, None)
 
     def both(self, name, *args):
         fn = getattr(self.mod, name)
@@ -351,10 +353,7 @@ class TestNativeFrameAdapter(unittest.TestCase):
     def test_a_game_on_the_machine_with_no_routines_is_identical(self):
         from tools import diff_engines
 
-        vm.load_compiled()
-        saved = dict(vm.ROUTINES)
-        try:
-            vm.ROUTINES.clear()
+        with vm.disabled():
             a, b = diff_engines.Engine("keyforge@compiled"), diff_engines.Engine("keyforge")
             for spec in diff_engines.golden_specs()[:6]:
                 diff_engines.play(a, b, spec)
@@ -364,8 +363,6 @@ class TestNativeFrameAdapter(unittest.TestCase):
             g = Game(GameConfig(seed=3), execution="compiled")
             self.assertTrue(all(type(f) is vm.NativeFrame for f in g._driver.machine.stack))
             self.assertFalse(g._driver.machine.copyable)
-        finally:
-            vm.ROUTINES.update(saved)
 
 
 if __name__ == "__main__":
