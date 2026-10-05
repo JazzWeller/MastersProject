@@ -116,6 +116,36 @@ class Engine:
         return state
 
 
+def approximate(state):
+    """A canonical state in the frozen reference's approximations, for
+    comparing an exact-hash engine with it (Part R, R1 made the hash exact):
+    a callable is `"<callable>"`, an effect's handler isn't hashed, a
+    condition is only whether there is one, and pending cleanups are
+    counted."""
+
+    def walk(x):
+        if isinstance(x, dict):
+            if "__fn__" in x or "__method__" in x or "__callable__" in x:
+                return "<callable>"
+            return {k: walk(v) for k, v in x.items()}
+        if isinstance(x, list):
+            return [walk(v) for v in x]
+        return x
+
+    out = walk(state)
+    eff = out.get("active_effects")
+    if isinstance(eff, dict):
+        for kind in ("trigger", "instead", "modifier"):
+            for e in eff.get(kind, []):
+                e.pop("handler", None)
+        for e in eff.get("duration", []):
+            if not isinstance(e.get("conditional"), bool):
+                e["conditional"] = e.get("conditional") is not None
+    if isinstance(out.get("pending_cleanups"), list):
+        out["pending_cleanups"] = len(out["pending_cleanups"])
+    return out
+
+
 def _game_of(obj):
     """The `Game` a handle is currently playing: itself, or a match's
     current game."""
@@ -168,6 +198,8 @@ class Lockstep:
             self.fail("game choice record", ga.choice_record[-3:], gb.choice_record[-3:])
         if full:
             sa, sb = self.a.state(ga), self.b.state(gb)
+            if self.a.package != self.b.package:
+                sa, sb = approximate(sa), approximate(sb)
             if sa != sb:
                 for k in sa:
                     if sa.get(k) != sb.get(k):
