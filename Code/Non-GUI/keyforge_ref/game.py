@@ -23,7 +23,6 @@ from .player import Player
 from .replay import decode_choice, encode_choice, replay
 from .state_hash import compute_state_hash
 from .view import build_view
-from . import vm
 from .zones import Deck
 
 
@@ -219,14 +218,8 @@ def _copy_active_effects(old: ActiveEffectList, card_remap: Dict[int, Card]) -> 
 
 
 class Game:
-    def __init__(self, config: GameConfig, execution: Optional[str] = None):
+    def __init__(self, config: GameConfig):
         self.config = config
-        # How the rules run (Agent Observation Plan, Part R; keyforge/vm.py):
-        # "native" generators, or "compiled" routines on an explicit stack.
-        # Same source, same game -- the differential test holds them to it.
-        self.execution = execution or vm.default_execution()
-        if self.execution not in vm.EXECUTION_MODES:
-            raise ValueError(f"execution must be one of {vm.EXECUTION_MODES}, not {self.execution!r}")
         # Per-game, assigned in deck-build order (see `_setup`): same seed
         # -> same instance ids, in any process, in any fork (Milestone A).
         # Replaces the old module-level counter in cards/card.py, whose
@@ -281,15 +274,9 @@ class Game:
         # instead of replaying the whole record. Never handed out, only
         # copied; valid because `choice_record` only ever grows.
         self._fork_snapshot: Optional[Tuple[int, "Game"]] = None
-        self._driver = self._new_driver()
+        self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
-
-    def _new_driver(self):
-        if self.execution == "compiled":
-            vm.load_compiled()
-            return vm.MachineDriver(vm.Machine.calling(self._run))
-        return self._run()
 
     # ---------------------------------------------------------- driver ----
 
@@ -409,7 +396,7 @@ class Game:
         `choice_record` reproduces a game byte-for-byte (Milestone A), so
         this is just that. PRIVILEGED -- a normal agent handed this could
         search its own future draws and the opponent's true hand."""
-        return replay(self.config, self.choice_record, execution=self.execution)
+        return replay(self.config, self.choice_record)
 
     def fork_determinized(
         self, viewer: int, rng: random.Random, resample: Resample = Resample.ALL, *, backend: str = "replay",
@@ -476,14 +463,14 @@ class Game:
         replays from a fresh `Game` and takes the first one on the way."""
         record = self.choice_record
         start, base = self._fork_snapshot if self._fork_snapshot is not None else (0, None)
-        world = base.copy() if base is not None else Game(self.config, execution=self.execution)
+        world = base.copy() if base is not None else Game(self.config)
         latest = None
         for i in range(start, len(record)):
             if world.pending_decision.kind in BOUNDARY_KINDS:
                 latest = i
             world.submit_index(record[i])
         if latest is not None and (base is None or latest > start):
-            snapshot = base.copy() if base is not None else Game(self.config, execution=self.execution)
+            snapshot = base.copy() if base is not None else Game(self.config)
             self._fork_snapshot = (latest, snapshot.apply(record[start:latest]))
         return world
 
@@ -571,13 +558,8 @@ class Game:
                 f"({', '.join(k.name for k in BOUNDARY_KINDS)}) or a finished game, not {kind} -- use fork() instead"
             )
 
-        if self.execution == "compiled" and not self.is_over:
-            # Until frames are copied (Part R, R6), a compiled game copies by
-            # replaying its record: exact, and valid at any decision.
-            return self.fork()
         new = Game.__new__(Game)
         new.config = self.config
-        new.execution = self.execution
         new._instance_counter = self._instance_counter  # never advances past _setup; safe to share
         new._rng_counters = dict(self._rng_counters)
         new.active_player_id = self.active_player_id

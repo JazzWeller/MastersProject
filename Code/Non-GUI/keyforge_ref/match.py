@@ -36,7 +36,6 @@ from .game import Game
 from .keyed_random import derive_rng
 from .replay import encode_choice
 from .version import check_version_stamp, version_stamp
-from . import vm
 
 MAX_BID = 24
 FORMATS = ("archon", "reversal", "adaptive")
@@ -89,11 +88,8 @@ class MatchView:
 
 
 class Match:
-    def __init__(self, config: MatchConfig, execution: Optional[str] = None):
+    def __init__(self, config: MatchConfig):
         self.config = config
-        # Part R's execution mode (keyforge/vm.py), for the match's own
-        # decisions and every game it plays.
-        self.execution = execution or vm.default_execution()
         self.format = config.format
         self.decks = config.decks
         self.games: List[GameRecord] = []
@@ -113,11 +109,7 @@ class Match:
         # every match-level and per-game decision in order: with the
         # match's seed, this reproduces the whole match. See `match_replay`.
         self.choice_record: list = []
-        if self.execution == "compiled":
-            vm.load_compiled()
-            self._driver = vm.MachineDriver(vm.Machine.calling(self._run))
-        else:
-            self._driver = self._run()
+        self._driver = self._run()
         self.pending_decision: Optional[Decision] = None
         self._prime()
 
@@ -173,7 +165,7 @@ class Match:
         D). PRIVILEGED, for the same reason `Game.fork()` is: it carries
         the true hidden state and RNG future of whichever game is
         currently in progress, if any."""
-        return match_replay(self.config, self.choice_record, execution=self.execution)
+        return match_replay(self.config, self.choice_record)
 
     def _next_game_seed(self) -> int:
         """Keyed on this match's own seed plus how many games have already
@@ -259,7 +251,7 @@ class Match:
             max_turns=self.config.max_turns,
             starting_chains=starting_chains,
         )
-        game = Game(game_config, execution=self.execution)
+        game = Game(game_config)
         self.current_game = game
         while not game.is_over:
             choice = yield game.pending_decision
@@ -350,11 +342,11 @@ def match_decode_choice(decision: Decision, encoded) -> Any:
     return decode_choice(decision, encoded)
 
 
-def match_replay(config: MatchConfig, record: List[Any], upto: Optional[int] = None, *, execution: Optional[str] = None) -> Match:
+def match_replay(config: MatchConfig, record: List[Any], upto: Optional[int] = None) -> Match:
     """A fresh Match advanced through the first `upto` recorded choices (all
     of them if None). Raises ValueError if the record doesn't fit -- e.g. it
     was made by a different engine version, or a different match format."""
-    match = Match(config, execution=execution)
+    match = Match(config)
     steps = record if upto is None else record[:upto]
     for n, encoded in enumerate(steps):
         if match.is_over or match.pending_decision is None:
