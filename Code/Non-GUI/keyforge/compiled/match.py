@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_Match__run(_kfN, _kfR):
-  def _kfr_Match__run(self=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__run(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:191 Match._run
     if _kfF is None:  # a fresh call: Python bound the arguments
         g = seat_decks = _kf_U
@@ -61,7 +61,7 @@ def _kfmk_Match__run(_kfN, _kfR):
 
 
 def _kfmk_Match__run_adaptive(_kfN, _kfR):
-  def _kfr_Match__run_adaptive(self=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__run_adaptive(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:203 Match._run_adaptive
     if _kfF is None:  # a fresh call: Python bound the arguments
         amount = bid_deck = bid_owner = g1 = g2 = g3 = loser_pid = next_first = other_deck = seat_decks = starting_chains = winner_pid = _kf_U
@@ -183,7 +183,7 @@ def _kfmk_Match__run_adaptive(_kfN, _kfR):
 
 
 def _kfmk_Match__play_game(_kfN, _kfR):
-  def _kfr_Match__play_game(self=_kf_U, decks=_kf_U, first_player=_kf_U, starting_chains=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__play_game(self=_kf_U, decks=_kf_U, first_player=_kf_U, starting_chains=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:254 Match._play_game
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = game = game_config = record = result = _kf_U
@@ -220,7 +220,7 @@ def _kfmk_Match__play_game(_kfN, _kfR):
 
 
 def _kfmk_Match__choose_first_player(_kfN, _kfR):
-  def _kfr_Match__choose_first_player(self=_kf_U, pid=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__choose_first_player(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:281 Match._choose_first_player
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
@@ -247,7 +247,7 @@ def _kfmk_Match__choose_first_player(_kfN, _kfR):
 
 
 def _kfmk_Match__run_bid(_kfN, _kfR):
-  def _kfr_Match__run_bid(self=_kf_U, owner_pid=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__run_bid(self=_kf_U, owner_pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:289 Match._run_bid
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = current_bid = current_bidder = opponent_pid = options = prompt = standing = turn = winner_pid = _kf_U

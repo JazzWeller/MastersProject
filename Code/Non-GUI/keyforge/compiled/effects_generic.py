@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_gain_n__effect(_kfN, _kfR):
-  def _kfr_gain_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_gain_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:24 gain_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -44,7 +44,7 @@ def _kfmk_gain_n__effect(_kfN, _kfR):
 
 
 def _kfmk_opponent_gain_n__effect(_kfN, _kfR):
-  def _kfr_opponent_gain_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_opponent_gain_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:33 opponent_gain_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -72,7 +72,7 @@ def _kfmk_opponent_gain_n__effect(_kfN, _kfR):
 
 
 def _kfmk_lose_n__effect(_kfN, _kfR):
-  def _kfr_lose_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lose_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:42 lose_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -100,7 +100,7 @@ def _kfmk_lose_n__effect(_kfN, _kfR):
 
 
 def _kfmk_steal_n__effect(_kfN, _kfR):
-  def _kfr_steal_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_steal_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:51 steal_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -128,7 +128,7 @@ def _kfmk_steal_n__effect(_kfN, _kfR):
 
 
 def _kfmk_archive_n__effect(_kfN, _kfR):
-  def _kfr_archive_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_archive_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:60 archive_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = i = options = player = what = _kfs0 = _kfi1 = _kf_U
@@ -140,7 +140,7 @@ def _kfmk_archive_n__effect(_kfN, _kfR):
     if not _pc:
         player = controller_of(game, card)
     if not _pc:
-        _kfs0 = _kf_seq(range(_kfc_n.cell_contents))
+        _kfs0 = range(_kfc_n.cell_contents)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or _pc == 1:
         if not _pc:
@@ -153,7 +153,7 @@ def _kfmk_archive_n__effect(_kfN, _kfR):
                 break
             options = player.hand.cards()
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'Archive a card ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'Archive a card ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'Archive a card ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, options, player, what, _kfc_n, _kfs0, _kfi1])
@@ -173,7 +173,7 @@ def _kfmk_archive_n__effect(_kfN, _kfR):
 
 
 def _kfmk_draw_n__effect(_kfN, _kfR):
-  def _kfr_draw_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_draw_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:78 draw_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -201,7 +201,7 @@ def _kfmk_draw_n__effect(_kfN, _kfR):
 
 
 def _kfmk_heal_self_n__effect(_kfN, _kfR):
-  def _kfr_heal_self_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_heal_self_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:87 heal_self_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -229,7 +229,7 @@ def _kfmk_heal_self_n__effect(_kfN, _kfR):
 
 
 def _kfmk_capture_n__effect(_kfN, _kfR):
-  def _kfr_capture_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_capture_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:96 capture_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -257,7 +257,7 @@ def _kfmk_capture_n__effect(_kfN, _kfR):
 
 
 def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
-  def _kfr_deal_damage_to_chosen__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_deal_damage_to_chosen__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:105 deal_damage_to_chosen.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = hit = kind = options = player = _kf_U
@@ -275,7 +275,7 @@ def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
             steps.shortfall(game, card, f'deals no damage: there are no {kind} in play', 'No creature to damage')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_n.cell_contents} damage ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY))
+        _sent = (_kfgm_choose_cards(game, player.id, f'Deal {_kfc_n.cell_contents} damage ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_n.cell_contents} damage ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, hit, kind, options, player, _kfc_n, _kfc_targets])
@@ -292,7 +292,7 @@ def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
     if not _pc:
         hit = steps.deal_damage(game, choice[0], _kfc_n.cell_contents)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([hit] if hit is not None else [])
+        _sent = (_kfgm_check_destroyed(game, [hit] if hit is not None else []) if type(game) is _kfGame else _kf_step(game.check_destroyed)([hit] if hit is not None else []))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, hit, kind, options, player, _kfc_n, _kfc_targets])
@@ -309,7 +309,7 @@ def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
 
 
 def _kfmk_move_aember_to_card__effect(_kfN, _kfR):
-  def _kfr_move_aember_to_card__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_move_aember_to_card__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:129 move_aember_to_card.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         amount = player = _kf_U
@@ -345,7 +345,7 @@ def _kfmk_move_aember_to_card__effect(_kfN, _kfR):
 
 
 def _kfmk_reveal_from_hand(_kfN, _kfR):
-  def _kfr_reveal_from_hand(game=_kf_U, player=_kf_U, predicate=_kf_U, prompt=_kf_U, source_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_reveal_from_hand(game=_kf_U, player=_kf_U, predicate=_kf_U, prompt=_kf_U, source_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:144 reveal_from_hand
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -358,7 +358,7 @@ def _kfmk_reveal_from_hand(_kfN, _kfR):
         if not options:
             return []
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, prompt, options, 0, len(options), source_card=source_card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY, optional=True)
+        _sent = (_kfgm_choose_cards(game, player.id, prompt, options, 0, len(options), source_card=source_card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, prompt, options, 0, len(options), source_card=source_card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, player, predicate, prompt, source_card, choice, options])
@@ -380,7 +380,7 @@ def _kfmk_reveal_from_hand(_kfN, _kfR):
 
 
 def _kfmk_choose_most_powerful(_kfN, _kfR):
-  def _kfr_choose_most_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_choose_most_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:162 choose_most_powerful
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = max_power = tied = _kf_U
@@ -396,7 +396,7 @@ def _kfmk_choose_most_powerful(_kfN, _kfR):
         if len(tied) == 1:
             return tied[0]
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.SPARE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.SPARE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.SPARE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, pid, creatures, prompt, source_card, choice, max_power, tied])
@@ -416,7 +416,7 @@ def _kfmk_choose_most_powerful(_kfN, _kfR):
 
 
 def _kfmk_choose_least_powerful(_kfN, _kfR):
-  def _kfr_choose_least_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_choose_least_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:180 choose_least_powerful
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = min_power = tied = _kf_U
@@ -432,7 +432,7 @@ def _kfmk_choose_least_powerful(_kfN, _kfR):
         if len(tied) == 1:
             return tied[0]
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.DESTROY, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.DESTROY, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.DESTROY, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, pid, creatures, prompt, source_card, choice, min_power, tied])
@@ -452,7 +452,7 @@ def _kfmk_choose_least_powerful(_kfN, _kfR):
 
 
 def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
-  def _kfr_deal_damage_to_chosen_with_splash__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_deal_damage_to_chosen_with_splash__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:200 deal_damage_to_chosen_with_splash.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = hits = kind = n = neighbors = options = player = target = _kf_U
@@ -471,7 +471,7 @@ def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
             steps.shortfall(game, card, f'deals no damage: there are no {kind} in play', 'No creature to damage')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_main.cell_contents} damage with {_kfc_splash.cell_contents} splash ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY))
+        _sent = (_kfgm_choose_cards(game, player.id, f'Deal {_kfc_main.cell_contents} damage with {_kfc_splash.cell_contents} splash ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_main.cell_contents} damage with {_kfc_splash.cell_contents} splash ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, hits, kind, n, neighbors, options, player, target, _kfc_main, _kfc_splash, _kfc_targets])
@@ -493,7 +493,7 @@ def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
         for n in neighbors:
             hits.append(steps.deal_damage(game, n, _kfc_splash.cell_contents))
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([c for c in hits if c is not None])
+        _sent = (_kfgm_check_destroyed(game, [c for c in hits if c is not None]) if type(game) is _kfGame else _kf_step(game.check_destroyed)([c for c in hits if c is not None]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, hits, kind, n, neighbors, options, player, target, _kfc_main, _kfc_splash, _kfc_targets])
@@ -510,7 +510,7 @@ def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
 
 
 def _kfmk_duration_effect__effect(_kfN, _kfR):
-  def _kfr_duration_effect__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_duration_effect__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:228 duration_effect.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         controller = player_affected = targets = _kf_U

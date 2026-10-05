@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_ammonia_clouds(_kfN, _kfR):
-  def _kfr_ammonia_clouds(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_ammonia_clouds(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:15 ammonia_clouds
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -29,7 +29,7 @@ def _kfmk_ammonia_clouds(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 3)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, t, targets])
@@ -46,7 +46,7 @@ def _kfmk_ammonia_clouds(_kfN, _kfR):
 
 
 def _kfmk_battle_fleet(_kfN, _kfR):
-  def _kfr_battle_fleet(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_battle_fleet(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:22 battle_fleet
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = revealed = _kf_U
@@ -77,7 +77,7 @@ def _kfmk_battle_fleet(_kfN, _kfR):
 
 
 def _kfmk_deep_probe(_kfN, _kfR):
-  def _kfr_deep_probe(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_deep_probe(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:31 deep_probe
     if _kfF is None:  # a fresh call: Python bound the arguments
         chosen = opponent = player = t = targets = _kfs0 = _kfi1 = _kf_U
@@ -89,7 +89,7 @@ def _kfmk_deep_probe(_kfN, _kfR):
         player = controller_of(game, card)
         opponent = opponent_of(game, card)
     if not _pc:
-        _sent = _kf_step(game.choose_house)(player.id, f'{card.name}: choose a house', list(House))
+        _sent = (_kfgm_choose_house(game, player.id, f'{card.name}: choose a house', list(House)) if type(game) is _kfGame else _kf_step(game.choose_house)(player.id, f'{card.name}: choose a house', list(House)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, chosen, opponent, player, t, targets, _kfs0, _kfi1])
@@ -131,7 +131,7 @@ def _kfmk_deep_probe(_kfN, _kfR):
 
 
 def _kfmk_emp_blast(_kfN, _kfR):
-  def _kfr_emp_blast(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_emp_blast(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:41 emp_blast
     if _kfF is None:  # a fresh call: Python bound the arguments
         artifacts = stun_targets = t = _kf_U
@@ -145,7 +145,7 @@ def _kfmk_emp_blast(_kfN, _kfR):
             steps.stun(game, t)
         artifacts = list(game.players[1].play_area.artifacts) + list(game.players[2].play_area.artifacts)
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(artifacts)
+        _sent = (_kfgm_destroy_cards(game, artifacts) if type(game) is _kfGame else _kf_step(game.destroy_cards)(artifacts))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, artifacts, stun_targets, t])
@@ -162,7 +162,7 @@ def _kfmk_emp_blast(_kfN, _kfR):
 
 
 def _kfmk_hypnotic_command(_kfN, _kfR):
-  def _kfr_hypnotic_command(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_hypnotic_command(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:49 hypnotic_command
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = i = n = opponent = options = player = _kfs0 = _kfi1 = _kf_U
@@ -178,7 +178,7 @@ def _kfmk_hypnotic_command(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: no friendly Mars creature or no enemy creature', 'Nothing to capture')
             return
     if not _pc:
-        _kfs0 = _kf_seq(range(n))
+        _kfs0 = range(n)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or _pc == 1:
         if not _pc:
@@ -189,7 +189,7 @@ def _kfmk_hypnotic_command(_kfN, _kfR):
             if not options:
                 break
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to capture 1Æ from its own side ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose an enemy creature to capture 1Æ from its own side ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to capture 1Æ from its own side ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, n, opponent, options, player, _kfs0, _kfi1])
@@ -209,7 +209,7 @@ def _kfmk_hypnotic_command(_kfN, _kfR):
 
 
 def _kfmk_irradiated_aember(_kfN, _kfR):
-  def _kfr_irradiated_aember(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_irradiated_aember(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:67 irradiated_aember
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = t = targets = _kf_U
@@ -226,7 +226,7 @@ def _kfmk_irradiated_aember(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 3)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, opponent, t, targets])
@@ -243,7 +243,7 @@ def _kfmk_irradiated_aember(_kfN, _kfR):
 
 
 def _kfmk_key_abduction(_kfN, _kfR):
-  def _kfr_key_abduction(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_key_abduction(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:78 key_abduction
     if _kfF is None:  # a fresh call: Python bound the arguments
         do_it = modifier = player = t = targets = _kf_U
@@ -257,7 +257,7 @@ def _kfmk_key_abduction(_kfN, _kfR):
         for t in targets:
             steps.return_to_hand(game, t)
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: forge a key at +9Æ current cost, reduced by 1Æ per card in hand?', source_card=card, intent=DecisionIntent.OPTIONAL_COST)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: forge a key at +9Æ current cost, reduced by 1Æ per card in hand?', source_card=card, intent=DecisionIntent.OPTIONAL_COST) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: forge a key at +9Æ current cost, reduced by 1Æ per card in hand?', source_card=card, intent=DecisionIntent.OPTIONAL_COST))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, do_it, modifier, player, t, targets])
@@ -276,7 +276,7 @@ def _kfmk_key_abduction(_kfN, _kfR):
             return
         modifier = 9 - len(player.hand)
     if not _pc:
-        _sent = _kf_step(game.forge_key)(player.id, cost_modifier=modifier, source=card)
+        _sent = (_kfgm_forge_key(game, player.id, cost_modifier=modifier, source=card) if type(game) is _kfGame else _kf_step(game.forge_key)(player.id, cost_modifier=modifier, source=card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, do_it, modifier, player, t, targets])
@@ -293,7 +293,7 @@ def _kfmk_key_abduction(_kfN, _kfR):
 
 
 def _kfmk_martian_hounds(_kfN, _kfR):
-  def _kfr_martian_hounds(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_martian_hounds(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:97 martian_hounds
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = damaged = options = target = _kf_U
@@ -307,7 +307,7 @@ def _kfmk_martian_hounds(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, damaged, options, target])
@@ -329,7 +329,7 @@ def _kfmk_martian_hounds(_kfN, _kfR):
 
 
 def _kfmk_martians_make_bad_allies(_kfN, _kfR):
-  def _kfr_martians_make_bad_allies(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_martians_make_bad_allies(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:111 martians_make_bad_allies
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = player = t = targets = _kf_U
@@ -366,7 +366,7 @@ def _kfmk_martians_make_bad_allies(_kfN, _kfR):
 
 
 def _kfmk_mass_abduction(_kfN, _kfR):
-  def _kfr_mass_abduction(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mass_abduction(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:126 mass_abduction
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = choice = opponent = options = player = _kf_U
@@ -382,7 +382,7 @@ def _kfmk_mass_abduction(_kfN, _kfR):
             steps.shortfall(game, card, 'archives nothing: there is no damaged enemy creature in play', 'No damaged enemy creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose up to 3 damaged enemy creatures to archive', options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY, optional=True)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose up to 3 damaged enemy creatures to archive', options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose up to 3 damaged enemy creatures to archive', options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, choice, opponent, options, player])
@@ -403,7 +403,7 @@ def _kfmk_mass_abduction(_kfN, _kfR):
 
 
 def _kfmk_mating_season(_kfN, _kfR):
-  def _kfr_mating_season(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mating_season(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:141 mating_season
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = n = owner = per_player = pid = t = targets = _kf_U
@@ -444,7 +444,7 @@ def _kfmk_mating_season(_kfN, _kfR):
 
 
 def _kfmk_mothership_support(_kfN, _kfR):
-  def _kfr_mothership_support(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mothership_support(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:160 mothership_support
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = i = n = options = player = _kfs0 = _kfi1 = _kf_U
@@ -459,7 +459,7 @@ def _kfmk_mothership_support(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no friendly ready Mars creature', 'No ready Mars creature')
             return
     if not _pc:
-        _kfs0 = _kf_seq(range(n))
+        _kfs0 = range(n)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or 1 <= _pc <= 2:
         if not _pc:
@@ -470,7 +470,7 @@ def _kfmk_mothership_support(_kfN, _kfR):
             if not options:
                 break
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 2 damage to a creature ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: deal 2 damage to a creature ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 2 damage to a creature ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, n, options, player, _kfs0, _kfi1])
@@ -487,7 +487,7 @@ def _kfmk_mothership_support(_kfN, _kfR):
         if not _pc:
             steps.deal_damage(game, choice[0], 2)
         if not _pc:
-            _sent = _kf_step(game.check_destroyed)(choice)
+            _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, n, options, player, _kfs0, _kfi1])
@@ -504,7 +504,7 @@ def _kfmk_mothership_support(_kfN, _kfR):
 
 
 def _kfmk_orbital_bombardment(_kfN, _kfR):
-  def _kfr_orbital_bombardment(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_orbital_bombardment(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:178 orbital_bombardment
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = i = options = player = revealed = _kfs0 = _kfi1 = _kf_U
@@ -530,7 +530,7 @@ def _kfmk_orbital_bombardment(_kfN, _kfR):
         _pc = 0
         revealed = _sent
     if not _pc:
-        _kfs0 = _kf_seq(range(len(revealed)))
+        _kfs0 = range(len(revealed))
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or 2 <= _pc <= 3:
         if not _pc:
@@ -541,7 +541,7 @@ def _kfmk_orbital_bombardment(_kfN, _kfR):
             if not options:
                 break
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 2 damage to a creature ({i + 1}/{len(revealed)})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: deal 2 damage to a creature ({i + 1}/{len(revealed)})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 2 damage to a creature ({i + 1}/{len(revealed)})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, options, player, revealed, _kfs0, _kfi1])
@@ -558,7 +558,7 @@ def _kfmk_orbital_bombardment(_kfN, _kfR):
         if not _pc:
             steps.deal_damage(game, choice[0], 2)
         if not _pc:
-            _sent = _kf_step(game.check_destroyed)(choice)
+            _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, options, player, revealed, _kfs0, _kfi1])
@@ -575,7 +575,7 @@ def _kfmk_orbital_bombardment(_kfN, _kfR):
 
 
 def _kfmk_phosphorus_stars(_kfN, _kfR):
-  def _kfr_phosphorus_stars(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_phosphorus_stars(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:196 phosphorus_stars
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = t = targets = _kf_U
@@ -607,7 +607,7 @@ def _kfmk_phosphorus_stars(_kfN, _kfR):
 
 
 def _kfmk_psychic_network(_kfN, _kfR):
-  def _kfr_psychic_network(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_psychic_network(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:206 psychic_network
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = player = _kf_U
@@ -637,7 +637,7 @@ def _kfmk_psychic_network(_kfN, _kfR):
 
 
 def _kfmk_sample_collection(_kfN, _kfR):
-  def _kfr_sample_collection(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sample_collection(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:214 sample_collection
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = i = n = opponent = options = player = _kfs0 = _kfi1 = _kf_U
@@ -653,7 +653,7 @@ def _kfmk_sample_collection(_kfN, _kfR):
             steps.shortfall(game, card, 'archives nothing: your opponent has forged no keys, or has no creature in play', 'Nothing to archive')
             return
     if not _pc:
-        _kfs0 = _kf_seq(range(n))
+        _kfs0 = range(n)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or _pc == 1:
         if not _pc:
@@ -664,7 +664,7 @@ def _kfmk_sample_collection(_kfN, _kfR):
             if not options:
                 break
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to archive ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose an enemy creature to archive ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to archive ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, n, opponent, options, player, _kfs0, _kfi1])
@@ -684,7 +684,7 @@ def _kfmk_sample_collection(_kfN, _kfR):
 
 
 def _kfmk_shatter_storm(_kfN, _kfR):
-  def _kfr_shatter_storm(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_shatter_storm(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:232 shatter_storm
     if _kfF is None:  # a fresh call: Python bound the arguments
         lost = opponent = player = _kf_U
@@ -718,7 +718,7 @@ def _kfmk_shatter_storm(_kfN, _kfR):
 
 
 def _kfmk_soft_landing(_kfN, _kfR):
-  def _kfr_soft_landing(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_soft_landing(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:244 soft_landing
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
@@ -747,7 +747,7 @@ def _kfmk_soft_landing(_kfN, _kfR):
 
 
 def _kfmk_squawker(_kfN, _kfR):
-  def _kfr_squawker(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_squawker(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:251 squawker
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = mars_ready_targets = mode = modes = non_mars_targets = player = _kf_U
@@ -768,7 +768,7 @@ def _kfmk_squawker(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: no exhausted friendly Mars creature and no non-Mars creature', 'Nothing to do')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_mode)(player.id, f'{card.name}: choose one', modes, source_card=card)
+        _sent = (_kfgm_choose_mode(game, player.id, f'{card.name}: choose one', modes, source_card=card) if type(game) is _kfGame else _kf_step(game.choose_mode)(player.id, f'{card.name}: choose one', modes, source_card=card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, mars_ready_targets, mode, modes, non_mars_targets, player])
@@ -784,7 +784,7 @@ def _kfmk_squawker(_kfN, _kfR):
         mode = _sent
     if (not _pc and (mode == 'Ready a Mars creature')) or _pc == 2:
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a Mars creature to ready', mars_ready_targets, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a Mars creature to ready', mars_ready_targets, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a Mars creature to ready', mars_ready_targets, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, mars_ready_targets, mode, modes, non_mars_targets, player])
@@ -801,7 +801,7 @@ def _kfmk_squawker(_kfN, _kfR):
         steps.ready(game, choice[0])
     elif not _pc or _pc == 3:
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a non-Mars creature to stun', non_mars_targets, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a non-Mars creature to stun', non_mars_targets, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a non-Mars creature to stun', non_mars_targets, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, mars_ready_targets, mode, modes, non_mars_targets, player])
@@ -821,7 +821,7 @@ def _kfmk_squawker(_kfN, _kfR):
 
 
 def _kfmk_total_recall(_kfN, _kfR):
-  def _kfr_total_recall(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_total_recall(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:278 total_recall
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = ready_count = _kf_U
@@ -853,7 +853,7 @@ def _kfmk_total_recall(_kfN, _kfR):
 
 
 def _kfmk_combat_pheromones(_kfN, _kfR):
-  def _kfr_combat_pheromones(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_combat_pheromones(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:290 combat_pheromones
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = _kf_U
@@ -885,7 +885,7 @@ def _kfmk_combat_pheromones(_kfN, _kfR):
 
 
 def _kfmk_commpod(_kfN, _kfR):
-  def _kfr_commpod(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_commpod(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:305 commpod
     if _kfF is None:  # a fresh call: Python bound the arguments
         _ = choice = do_it = options = player = revealed = _kfs0 = _kfi1 = _kf_U
@@ -911,7 +911,7 @@ def _kfmk_commpod(_kfN, _kfR):
         _pc = 0
         revealed = _sent
     if not _pc:
-        _kfs0 = _kf_seq(range(len(revealed)))
+        _kfs0 = range(len(revealed))
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or 2 <= _pc <= 3:
         if not _pc:
@@ -922,7 +922,7 @@ def _kfmk_commpod(_kfN, _kfR):
             if not options:
                 break
         if not _pc:
-            _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: ready a Mars creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+            _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: ready a Mars creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: ready a Mars creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, _, choice, do_it, options, player, revealed, _kfs0, _kfi1])
@@ -940,7 +940,7 @@ def _kfmk_commpod(_kfN, _kfR):
             if not do_it:
                 continue
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a Mars creature to ready', options, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a Mars creature to ready', options, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a Mars creature to ready', options, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, _, choice, do_it, options, player, revealed, _kfs0, _kfi1])
@@ -960,7 +960,7 @@ def _kfmk_commpod(_kfN, _kfR):
 
 
 def _kfmk_crystal_hive_register__handler(_kfN, _kfR):
-  def _kfr_crystal_hive_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_crystal_hive_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:328 crystal_hive_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -988,7 +988,7 @@ def _kfmk_crystal_hive_register__handler(_kfN, _kfR):
 
 
 def _kfmk_crystal_hive(_kfN, _kfR):
-  def _kfr_crystal_hive(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_crystal_hive(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:336 crystal_hive
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1015,7 +1015,7 @@ def _kfmk_crystal_hive(_kfN, _kfR):
 
 
 def _kfmk_custom_virus(_kfN, _kfR):
-  def _kfr_custom_virus(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_custom_virus(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:342 custom_virus
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = creature_options = do_it = player = purged_card = targets = _kf_U
@@ -1043,7 +1043,7 @@ def _kfmk_custom_virus(_kfN, _kfR):
         if not creature_options:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: purge a creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: purge a creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: purge a creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creature_options, do_it, player, purged_card, targets])
@@ -1061,7 +1061,7 @@ def _kfmk_custom_virus(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to purge from your hand', creature_options, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a creature to purge from your hand', creature_options, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to purge from your hand', creature_options, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creature_options, do_it, player, purged_card, targets])
@@ -1080,7 +1080,7 @@ def _kfmk_custom_virus(_kfN, _kfR):
         steps.purge(game, purged_card)
         targets = [c for c in game.all_creatures('any', card) if set(c.tags) & set(purged_card.tags)]
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creature_options, do_it, player, purged_card, targets])
@@ -1097,7 +1097,7 @@ def _kfmk_custom_virus(_kfN, _kfR):
 
 
 def _kfmk_feeding_pit(_kfN, _kfR):
-  def _kfr_feeding_pit(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_feeding_pit(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:363 feeding_pit
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kft0 = _kf_U
@@ -1112,7 +1112,7 @@ def _kfmk_feeding_pit(_kfN, _kfR):
             steps.shortfall(game, card, 'discards nothing: your hand has no creature', 'No creature in hand')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to discard', options, 1, 1, source_card=card, intent=DecisionIntent.DISCARD, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a creature to discard', options, 1, 1, source_card=card, intent=DecisionIntent.DISCARD, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to discard', options, 1, 1, source_card=card, intent=DecisionIntent.DISCARD, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player, _kft0])
@@ -1148,7 +1148,7 @@ def _kfmk_feeding_pit(_kfN, _kfR):
 
 
 def _kfmk_invasion_portal(_kfN, _kfR):
-  def _kfr_invasion_portal(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_invasion_portal(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:377 invasion_portal
     if _kfF is None:  # a fresh call: Python bound the arguments
         discarded = found = player = top = _kf_U
@@ -1194,7 +1194,7 @@ def _kfmk_invasion_portal(_kfN, _kfR):
 
 
 def _kfmk_incubation_chamber(_kfN, _kfR):
-  def _kfr_incubation_chamber(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_incubation_chamber(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:401 incubation_chamber
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = do_it = options = player = target = _kf_U
@@ -1208,7 +1208,7 @@ def _kfmk_incubation_chamber(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: reveal a Mars creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: reveal a Mars creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: reveal a Mars creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, player, target])
@@ -1226,7 +1226,7 @@ def _kfmk_incubation_chamber(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a Mars creature to reveal and archive', options, 1, 1, source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a Mars creature to reveal and archive', options, 1, 1, source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a Mars creature to reveal and archive', options, 1, 1, source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, player, target])
@@ -1248,7 +1248,7 @@ def _kfmk_incubation_chamber(_kfN, _kfR):
 
 
 def _kfmk_mothergun(_kfN, _kfR):
-  def _kfr_mothergun(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mothergun(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:421 mothergun
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = revealed = _kf_U
@@ -1279,7 +1279,7 @@ def _kfmk_mothergun(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player, revealed])
@@ -1296,7 +1296,7 @@ def _kfmk_mothergun(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(game, choice[0], len(revealed))
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player, revealed])
@@ -1313,7 +1313,7 @@ def _kfmk_mothergun(_kfN, _kfR):
 
 
 def _kfmk_sniffer_action(_kfN, _kfR):
-  def _kfr_sniffer_action(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sniffer_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:446 sniffer_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1341,7 +1341,7 @@ def _kfmk_sniffer_action(_kfN, _kfR):
 
 
 def _kfmk_swap_widget(_kfN, _kfR):
-  def _kfr_swap_widget(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_swap_widget(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:453 swap_widget
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = choice2 = hand_options = player = ready_mars = returning = _kf_U
@@ -1356,7 +1356,7 @@ def _kfmk_swap_widget(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no ready friendly Mars creature', 'No ready Mars creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a ready friendly Mars creature to return', ready_mars, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a ready friendly Mars creature to return', ready_mars, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a ready friendly Mars creature to return', ready_mars, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, choice2, hand_options, player, ready_mars, returning])
@@ -1379,7 +1379,7 @@ def _kfmk_swap_widget(_kfN, _kfR):
             steps.shortfall(game, card, 'puts nothing into play: your hand has no differently-named Mars creature', 'No replacement')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a differently-named Mars creature to put into play', hand_options, 1, 1, source_card=card, intent=DecisionIntent.PLAY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a differently-named Mars creature to put into play', hand_options, 1, 1, source_card=card, intent=DecisionIntent.PLAY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a differently-named Mars creature to put into play', hand_options, 1, 1, source_card=card, intent=DecisionIntent.PLAY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, choice2, hand_options, player, ready_mars, returning])
@@ -1399,7 +1399,7 @@ def _kfmk_swap_widget(_kfN, _kfR):
 
 
 def _kfmk_blypyp_after_reap(_kfN, _kfR):
-  def _kfr_blypyp_after_reap(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_blypyp_after_reap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:482 blypyp_after_reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
@@ -1428,7 +1428,7 @@ def _kfmk_blypyp_after_reap(_kfN, _kfR):
 
 
 def _kfmk_chuff_ape_after(_kfN, _kfR):
-  def _kfr_chuff_ape_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_chuff_ape_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:493 chuff_ape_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = do_it = options = player = sacrificed = _kf_U
@@ -1442,7 +1442,7 @@ def _kfmk_chuff_ape_after(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: sacrifice another friendly creature to fully heal {card.name}?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: sacrifice another friendly creature to fully heal {card.name}?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: sacrifice another friendly creature to fully heal {card.name}?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, player, sacrificed])
@@ -1460,7 +1460,7 @@ def _kfmk_chuff_ape_after(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to sacrifice', options, 1, 1, source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to sacrifice', options, 1, 1, source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to sacrifice', options, 1, 1, source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, player, sacrificed])
@@ -1496,7 +1496,7 @@ def _kfmk_chuff_ape_after(_kfN, _kfR):
 
 
 def _kfmk_grabber_jammer_after(_kfN, _kfR):
-  def _kfr_grabber_jammer_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_grabber_jammer_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:529 grabber_jammer_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1523,7 +1523,7 @@ def _kfmk_grabber_jammer_after(_kfN, _kfR):
 
 
 def _kfmk_grommid_on_destroyed_fighting(_kfN, _kfR):
-  def _kfr_grommid_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_grommid_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:539 grommid_on_destroyed_fighting
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1550,7 +1550,7 @@ def _kfmk_grommid_on_destroyed_fighting(_kfN, _kfR):
 
 
 def _kfmk_john_smyth_after(_kfN, _kfR):
-  def _kfr_john_smyth_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_john_smyth_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:545 john_smyth_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kf_U
@@ -1565,7 +1565,7 @@ def _kfmk_john_smyth_after(_kfN, _kfR):
             steps.shortfall(game, card, 'readies nothing: there is no non-Agent friendly Mars creature', 'No non-Agent Mars creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a non-Agent Mars creature to ready', options, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a non-Agent Mars creature to ready', options, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a non-Agent Mars creature to ready', options, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player])
@@ -1585,7 +1585,7 @@ def _kfmk_john_smyth_after(_kfN, _kfR):
 
 
 def _kfmk_mindwarper_action(_kfN, _kfR):
-  def _kfr_mindwarper_action(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mindwarper_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:558 mindwarper_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = options = _kf_U
@@ -1600,7 +1600,7 @@ def _kfmk_mindwarper_action(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no enemy creature in play', 'No enemy creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, options])
@@ -1620,7 +1620,7 @@ def _kfmk_mindwarper_action(_kfN, _kfR):
 
 
 def _kfmk_phylyx_the_disintegrator_action(_kfN, _kfR):
-  def _kfr_phylyx_the_disintegrator_action(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_phylyx_the_disintegrator_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:571 phylyx_the_disintegrator_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = opponent = player = _kf_U
@@ -1651,7 +1651,7 @@ def _kfmk_phylyx_the_disintegrator_action(_kfN, _kfR):
 
 
 def _kfmk_qyxxlyx_plague_master_after(_kfN, _kfR):
-  def _kfr_qyxxlyx_plague_master_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_qyxxlyx_plague_master_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:580 qyxxlyx_plague_master_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -1667,7 +1667,7 @@ def _kfmk_qyxxlyx_plague_master_after(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 3, ignore_armor=True)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, t, targets])
@@ -1684,7 +1684,7 @@ def _kfmk_qyxxlyx_plague_master_after(_kfN, _kfR):
 
 
 def _kfmk_tunk_register__handler(_kfN, _kfR):
-  def _kfr_tunk_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_tunk_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:591 tunk_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         played = _kf_U
@@ -1715,7 +1715,7 @@ def _kfmk_tunk_register__handler(_kfN, _kfR):
 
 
 def _kfmk_ulyq_megamouth_after(_kfN, _kfR):
-  def _kfr_ulyq_megamouth_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_ulyq_megamouth_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:601 ulyq_megamouth_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kf_U
@@ -1733,7 +1733,7 @@ def _kfmk_ulyq_megamouth_after(_kfN, _kfR):
                 steps.shortfall(game, card, 'does nothing: there is no friendly non-Mars creature in play', 'No non-Mars creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly non-Mars creature to use', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly non-Mars creature to use', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly non-Mars creature to use', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player])
@@ -1748,7 +1748,7 @@ def _kfmk_ulyq_megamouth_after(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.use_creature_ability)(choice[0])
+        _sent = (_kfgm_use_creature_ability(game, choice[0]) if type(game) is _kfGame else _kf_step(game.use_creature_ability)(choice[0]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player])
@@ -1765,7 +1765,7 @@ def _kfmk_ulyq_megamouth_after(_kfN, _kfR):
 
 
 def _kfmk_uxlyx_the_zookeeper_after(_kfN, _kfR):
-  def _kfr_uxlyx_the_zookeeper_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_uxlyx_the_zookeeper_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:623 uxlyx_the_zookeeper_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = options = player = _kf_U
@@ -1781,7 +1781,7 @@ def _kfmk_uxlyx_the_zookeeper_after(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no enemy creature in play', 'No enemy creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to archive', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose an enemy creature to archive', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to archive', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, options, player])
@@ -1801,7 +1801,7 @@ def _kfmk_uxlyx_the_zookeeper_after(_kfN, _kfR):
 
 
 def _kfmk_vezyma_thinkdrone_after(_kfN, _kfR):
-  def _kfr_vezyma_thinkdrone_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_vezyma_thinkdrone_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:637 vezyma_thinkdrone_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = do_it = options = player = target = _kf_U
@@ -1815,7 +1815,7 @@ def _kfmk_vezyma_thinkdrone_after(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: archive a friendly creature or artifact from play?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: archive a friendly creature or artifact from play?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: archive a friendly creature or artifact from play?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, options, player, target])
@@ -1833,7 +1833,7 @@ def _kfmk_vezyma_thinkdrone_after(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly card to archive', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly card to archive', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly card to archive', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, options, player, target])
@@ -1859,7 +1859,7 @@ def _kfmk_vezyma_thinkdrone_after(_kfN, _kfR):
 
 
 def _kfmk_yxili_marauder_play(_kfN, _kfR):
-  def _kfr_yxili_marauder_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_yxili_marauder_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:670 yxili_marauder_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = player = _kf_U
@@ -1892,7 +1892,7 @@ def _kfmk_yxili_marauder_play(_kfN, _kfR):
 
 
 def _kfmk_yxilo_bolter_after(_kfN, _kfR):
-  def _kfr_yxilo_bolter_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_yxilo_bolter_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:681 yxilo_bolter_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = hit = options = _kf_U
@@ -1906,7 +1906,7 @@ def _kfmk_yxilo_bolter_after(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, hit, options])
@@ -1927,7 +1927,7 @@ def _kfmk_yxilo_bolter_after(_kfN, _kfR):
         if hit.type_object.damage >= game.get_power(hit):
             hit.destined_zone = 'purged'
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([hit])
+        _sent = (_kfgm_check_destroyed(game, [hit]) if type(game) is _kfGame else _kf_step(game.check_destroyed)([hit]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, hit, options])
@@ -1944,7 +1944,7 @@ def _kfmk_yxilo_bolter_after(_kfN, _kfR):
 
 
 def _kfmk_zorg_before_fight(_kfN, _kfR):
-  def _kfr_zorg_before_fight(game=_kf_U, card=_kf_U, target=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_zorg_before_fight(game=_kf_U, card=_kf_U, target=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:709 zorg_before_fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = n = neighbors = _kf_U
@@ -1976,7 +1976,7 @@ def _kfmk_zorg_before_fight(_kfN, _kfR):
 
 
 def _kfmk_zyzzix_the_many_after(_kfN, _kfR):
-  def _kfr_zyzzix_the_many_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_zyzzix_the_many_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:719 zyzzix_the_many_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = do_it = options = player = target = _kf_U
@@ -1990,7 +1990,7 @@ def _kfmk_zyzzix_the_many_after(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: reveal a creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: reveal a creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: reveal a creature from your hand?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, player, target])
@@ -2008,7 +2008,7 @@ def _kfmk_zyzzix_the_many_after(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to reveal', options, 1, 1, source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a creature to reveal', options, 1, 1, source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to reveal', options, 1, 1, source_card=card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, player, target])
@@ -2031,7 +2031,7 @@ def _kfmk_zyzzix_the_many_after(_kfN, _kfR):
 
 
 def _kfmk__biomatrix_backup_effect(_kfN, _kfR):
-  def _kfr__biomatrix_backup_effect(game=_kf_U, host_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__biomatrix_backup_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:741 _biomatrix_backup_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -2058,7 +2058,7 @@ def _kfmk__biomatrix_backup_effect(_kfN, _kfR):
 
 
 def _kfmk_brain_stem_antenna_register__handler(_kfN, _kfR):
-  def _kfr_brain_stem_antenna_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_brain_stem_antenna_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:769 brain_stem_antenna_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         played = player = _kf_U
@@ -2093,7 +2093,7 @@ def _kfmk_brain_stem_antenna_register__handler(_kfN, _kfR):
 
 
 def _kfmk__red_planet_ray_gun_effect(_kfN, _kfR):
-  def _kfr__red_planet_ray_gun_effect(game=_kf_U, host_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__red_planet_ray_gun_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/mars.py:789 _red_planet_ray_gun_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = hit = n = options = _kf_U
@@ -2107,7 +2107,7 @@ def _kfmk__red_planet_ray_gun_effect(_kfN, _kfR):
             steps.shortfall(game, host_card, 'deals no damage: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(host_card.controller, f'{host_card.name}: choose a creature', options, 1, 1, source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, host_card.controller, f'{host_card.name}: choose a creature', options, 1, 1, source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(host_card.controller, f'{host_card.name}: choose a creature', options, 1, 1, source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, host_card, choice, hit, n, options])
@@ -2125,7 +2125,7 @@ def _kfmk__red_planet_ray_gun_effect(_kfN, _kfR):
         n = sum((1 for c in game.all_creatures('any', host_card) if game.get_effective_house(c) == House.MARS))
         hit = steps.deal_damage(game, choice[0], n)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([hit] if hit is not None else [])
+        _sent = (_kfgm_check_destroyed(game, [hit] if hit is not None else []) if type(game) is _kfGame else _kf_step(game.check_destroyed)([hit] if hit is not None else []))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, host_card, choice, hit, n, options])

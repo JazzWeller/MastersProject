@@ -12,12 +12,15 @@ _instance_counter = itertools.count(1)
 
 
 class TypeObject:
-    """Base for the per-type behaviour object attached to a Card."""
+    """Base for the per-type behaviour object attached to a Card. It keeps
+    no reference back to its card: nothing read one, and the back reference
+    made every card a reference cycle, so a discarded game (a search's
+    every simulation) could only be freed by the cyclic collector."""
 
-    __slots__ = ("card",)
+    __slots__ = ()
 
     def __init__(self):
-        self.card: Optional["Card"] = None
+        pass
 
 
 class ActionType(TypeObject):
@@ -134,7 +137,6 @@ class Card:
             self.type_object = UpgradeType()
         else:
             self.type_object = ActionType()
-        self.type_object.card = self
 
         # Elusive/Skirmish/Taunt/Poison/Versatile are computed from
         # `game.get_keywords(card)` (printed + upgrade-granted), not stored

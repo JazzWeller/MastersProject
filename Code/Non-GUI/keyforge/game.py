@@ -57,58 +57,52 @@ class _PlayGate:
 # still share its copy.
 
 
-def _copy_type_object(old: TypeObject) -> TypeObject:
-    """A fresh `TypeObject`, `card` left `None` -- the caller sets it once
-    the new `Card` it belongs to exists (a `Card` and its `type_object`
-    are constructed together, but that back-reference is only meaningful
-    once both new objects exist)."""
-    if isinstance(old, CreatureType):
-        new = CreatureType.__new__(CreatureType)
-        new.base_power = old.base_power
-        new.base_armor = old.base_armor
-        new.damage = old.damage
-        new.armor_used_this_turn = old.armor_used_this_turn
-        new.upgrades = list(old.upgrades)  # Card refs fixed up in _relink_card
-    elif isinstance(old, UpgradeType):
-        new = UpgradeType.__new__(UpgradeType)
-        new.host = old.host  # Card ref fixed up in _relink_card
-    elif isinstance(old, ArtifactType):
-        new = ArtifactType.__new__(ArtifactType)
-    else:
-        new = ActionType.__new__(ActionType)
-    new.card = None
-    return new
-
-
-def _make_slot_copier(slots):
-    """`copy(old, new)`: `new.<slot> = old.<slot>` for each of `slots`,
-    compiled as straight-line attribute assignments -- about twice as fast
-    as a getattr/setattr loop over the names, and `Game.copy()` runs it for
-    every card on every search simulation."""
-    src = "def copy(old, new):\n" + "".join(f"    new.{s} = old.{s}\n" for s in slots)
-    namespace: dict = {}
+def _make_card_copier():
+    """`_copy_card(old)`, generated as one straight-line function: every
+    `Card` slot assigned in turn, the type object rebuilt by its exact class
+    (no subclasses exist), the two per-card lists copied. `Game.copy()`
+    runs it for every card on every search simulation, and three Python
+    calls per card (the old slot copier, type-object copier and wrapper)
+    were a third of its cost."""
+    slots = [s for s in Card.__slots__ if s not in ("type_object", "extra_triggers", "under_cards")]
+    creature = "".join(f"        nt.{s} = t.{s}\n" for s in CreatureType.__slots__ if s != "upgrades")
+    src = (
+        "def _copy_card(old):\n"
+        "    new = _new(Card)\n"
+        + "".join(f"    new.{s} = old.{s}\n" for s in slots)
+        + "    t = old.type_object\n"
+        "    tt = type(t)\n"
+        "    if tt is CreatureType:\n"
+        "        nt = _new(CreatureType)\n"
+        + creature
+        + "        nt.upgrades = t.upgrades[:]  # Card refs fixed up in _relink_card\n"
+        "    elif tt is UpgradeType:\n"
+        "        nt = _new(UpgradeType)\n"
+        "        nt.host = t.host  # Card ref fixed up in _relink_card\n"
+        "    elif tt is ArtifactType:\n"
+        "        nt = _new(ArtifactType)\n"
+        "    else:\n"
+        "        nt = _new(ActionType)\n"
+        "    new.type_object = nt\n"
+        "    new.extra_triggers = {k: v[:] for k, v in old.extra_triggers.items()}\n"
+        "    new.under_cards = old.under_cards[:]\n"
+        "    return new\n"
+    )
+    namespace = {"_new": object.__new__, "Card": Card, "CreatureType": CreatureType, "UpgradeType": UpgradeType,
+                 "ArtifactType": ArtifactType, "ActionType": ActionType}
     exec(src, namespace)
-    return namespace["copy"]
-
-
-# Every `Card` slot except the three `_copy_card` rebuilds itself.
-_copy_card_slots = _make_slot_copier([s for s in Card.__slots__ if s not in ("type_object", "extra_triggers", "under_cards")])
-
-
-def _copy_card(old: Card) -> Card:
-    """A fresh `Card` with the same instance_id and every current field
+    fn = namespace["_copy_card"]
+    fn.__doc__ = """A fresh `Card` with the same instance_id and every current field
     value, sharing `card_def` (immutable, printed-card data). Cross-card
     references (`type_object.upgrades`/`.host`, `purged_by`,
-    `redirect_fight_damage_to`, `under_cards`) still point at the OLD
-    game's cards until `_relink_card` runs -- deferred because the card
-    they need to point at instead might not exist yet during this pass."""
-    new = Card.__new__(Card)
-    _copy_card_slots(old, new)
-    new.type_object = _copy_type_object(old.type_object)
-    new.type_object.card = new
-    new.extra_triggers = {k: list(v) for k, v in old.extra_triggers.items()}
-    new.under_cards = list(old.under_cards)
-    return new
+    `redirect_fight_damage_to`, `under_cards`) still point at the OLD game's
+    cards until `_relink_card` runs -- deferred because the card they need
+    to point at instead might not exist yet during this pass."""
+    return fn
+
+
+assert set(CreatureType.__slots__) == {"base_power", "base_armor", "damage", "armor_used_this_turn", "upgrades"}
+_copy_card = _make_card_copier()
 
 
 def _relink_card(new_card: Card, card_remap: Dict[int, Card]) -> None:
@@ -264,7 +258,9 @@ class Game:
     def _new_driver(self):
         if self.execution == "compiled":
             vm.load_compiled()
-            return vm.MachineDriver(vm.Machine.calling(self._run))
+            self._machine = vm.Machine.calling(self._run)
+            return vm.MachineDriver(self._machine)
+        self._machine = None
         return self._run()
 
     # ---------------------------------------------------------- driver ----
@@ -283,6 +279,20 @@ class Game:
             raise ValueError(f"Invalid choice {choice!r} for decision {self.pending_decision}")
         self.choice_log.append(choice)
         self.choice_record.append(encode_choice(self.pending_decision, choice))
+        self._advance(choice)
+
+    def _advance(self, choice) -> None:
+        """Delivers `choice` to the suspended rules and runs them to the
+        next decision (or the end)."""
+        m = self._machine
+        if m is not None:  # compiled: the machine directly, no driver layer
+            decision = m.run(choice)
+            if m.done:
+                self.is_over = True
+                self.pending_decision = None
+            else:
+                self.pending_decision = decision
+            return
         try:
             self.pending_decision = self._driver.send(choice)
         except StopIteration:
@@ -312,11 +322,7 @@ class Game:
         # here is usually an element of the CALLER's own record/list, and
         # `choice_record` must never alias it.
         self.choice_record.append(list(encoded) if isinstance(encoded, list) else encoded)
-        try:
-            self.pending_decision = self._driver.send(choice)
-        except StopIteration:
-            self.is_over = True
-            self.pending_decision = None
+        self._advance(choice)
 
     def view_for(self, pid: int):
         return build_view(self, pid)
@@ -525,6 +531,19 @@ class Game:
             self.submit_index(encoded)
         return self
 
+    def release(self) -> None:
+        """Declares that this game will not be played any further (a
+        search's world, once its simulation is backed up): drops the driver
+        that holds the game in a reference cycle, so the whole game is freed
+        as soon as the last reference goes, instead of waiting for the
+        cyclic garbage collector -- which was a third of what a search paid
+        per copy. Its state stays readable; `submit` raises."""
+        self._driver = None
+        self._machine = None
+        self._fork_snapshot = None
+        self.pending_decision = None
+        self.is_over = True
+
     @property
     def copy_anywhere(self) -> bool:
         """Whether `copy()` is valid at the current decision: always in
@@ -534,7 +553,7 @@ class Game:
         if self.is_over:
             return True
         if self.execution == "compiled":
-            return self._driver.machine.copyable
+            return self._machine.copyable
         return self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS
 
     def copy(self) -> "Game":
@@ -621,12 +640,14 @@ class Game:
         # games only ever append), so the copy can share the entries.
         new.choice_record = list(self.choice_record)
 
+        new._machine = None
         if self.is_over:
             new._driver = iter(())
             new.pending_decision = None
         elif self.execution == "compiled":
             machine = vm.Machine()
-            machine.stack = [remapper.frame(fr) for fr in self._driver.machine.stack]
+            machine.stack = [remapper.frame(fr) for fr in self._machine.stack]
+            new._machine = machine
             new._driver = vm.MachineDriver(machine)
             new.pending_decision = remapper.remap(self.pending_decision)
         else:

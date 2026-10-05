@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_bait_and_switch(_kfN, _kfR):
-  def _kfr_bait_and_switch(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_bait_and_switch(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:11 bait_and_switch
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = player = _kf_U
@@ -51,7 +51,7 @@ def _kfmk_bait_and_switch(_kfN, _kfR):
 
 
 def _kfmk_booby_trap(_kfN, _kfR):
-  def _kfr_booby_trap(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_booby_trap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:34 booby_trap
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = neighbor = non_flank = owner_area = target = _kf_U
@@ -65,7 +65,7 @@ def _kfmk_booby_trap(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: every creature in play is on a flank', 'No non-flank creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, 'Booby Trap: choose a non-flank creature', non_flank, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, 'Booby Trap: choose a non-flank creature', non_flank, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, 'Booby Trap: choose a non-flank creature', non_flank, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, neighbor, non_flank, owner_area, target])
@@ -86,7 +86,7 @@ def _kfmk_booby_trap(_kfN, _kfR):
         for neighbor in owner_area.neighbors(target):
             steps.deal_damage(game, neighbor, 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([target] + owner_area.neighbors(target))
+        _sent = (_kfgm_check_destroyed(game, [target] + owner_area.neighbors(target)) if type(game) is _kfGame else _kf_step(game.check_destroyed)([target] + owner_area.neighbors(target)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, neighbor, non_flank, owner_area, target])
@@ -103,7 +103,7 @@ def _kfmk_booby_trap(_kfN, _kfR):
 
 
 def _kfmk_duskrunner_effect(_kfN, _kfR):
-  def _kfr_duskrunner_effect(game=_kf_U, host_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_duskrunner_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:68 duskrunner_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         controller = _kf_U
@@ -132,7 +132,7 @@ def _kfmk_duskrunner_effect(_kfN, _kfR):
 
 
 def _kfmk_ghostly_hand(_kfN, _kfR):
-  def _kfr_ghostly_hand(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_ghostly_hand(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:75 ghostly_hand
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = _kf_U
@@ -164,7 +164,7 @@ def _kfmk_ghostly_hand(_kfN, _kfR):
 
 
 def _kfmk_lights_out(_kfN, _kfR):
-  def _kfr_lights_out(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lights_out(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:85 lights_out
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = choice = n = opponent = options = _kf_U
@@ -182,7 +182,7 @@ def _kfmk_lights_out(_kfN, _kfR):
         if n < 2:
             steps.shortfall(game, card, 'returns only 1 creature: it was the only enemy creature in play', 'Only 1 enemy creature')
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f"Lights Out: return {n} enemy creature{('s' if n != 1 else '')}", options, n, n, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f"Lights Out: return {n} enemy creature{('s' if n != 1 else '')}", options, n, n, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f"Lights Out: return {n} enemy creature{('s' if n != 1 else '')}", options, n, n, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, choice, n, opponent, options])
@@ -203,7 +203,7 @@ def _kfmk_lights_out(_kfN, _kfR):
 
 
 def _kfmk_nerve_blast(_kfN, _kfR):
-  def _kfr_nerve_blast(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_nerve_blast(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:103 nerve_blast
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = ok = opponent = player = targets = _kf_U
@@ -223,7 +223,7 @@ def _kfmk_nerve_blast(_kfN, _kfR):
             steps.shortfall(game, card, 'steals 1 but deals no damage: there are no creatures in play', 'No creature to damage')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Nerve Blast: deal 2 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Nerve Blast: deal 2 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Nerve Blast: deal 2 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, ok, opponent, player, targets])
@@ -240,7 +240,7 @@ def _kfmk_nerve_blast(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(game, choice[0], 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, ok, opponent, player, targets])
@@ -257,7 +257,7 @@ def _kfmk_nerve_blast(_kfN, _kfR):
 
 
 def _kfmk_noddy_action(_kfN, _kfR):
-  def _kfr_noddy_action(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_noddy_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:122 noddy_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -284,7 +284,7 @@ def _kfmk_noddy_action(_kfN, _kfR):
 
 
 def _kfmk_old_bruno_play(_kfN, _kfR):
-  def _kfr_old_bruno_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_old_bruno_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:128 old_bruno_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -311,7 +311,7 @@ def _kfmk_old_bruno_play(_kfN, _kfR):
 
 
 def _kfmk_one_last_job(_kfN, _kfR):
-  def _kfr_one_last_job(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_one_last_job(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:134 one_last_job
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = n = player = targets = _kf_U
@@ -348,7 +348,7 @@ def _kfmk_one_last_job(_kfN, _kfR):
 
 
 def _kfmk_oubliette(_kfN, _kfR):
-  def _kfr_oubliette(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_oubliette(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:149 oubliette
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = targets = _kf_U
@@ -362,7 +362,7 @@ def _kfmk_oubliette(_kfN, _kfR):
             steps.shortfall(game, card, 'purges nothing: no creature in play has power 3 or less', 'No creature with power 3 or less')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, 'Oubliette: purge a creature (power <= 3)', targets, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, 'Oubliette: purge a creature (power <= 3)', targets, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, 'Oubliette: purge a creature (power <= 3)', targets, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, targets])
@@ -382,7 +382,7 @@ def _kfmk_oubliette(_kfN, _kfR):
 
 
 def _kfmk_pawn_sacrifice(_kfN, _kfR):
-  def _kfr_pawn_sacrifice(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_pawn_sacrifice(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:161 pawn_sacrifice
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = ok = options = player = remaining_targets = t = targets = victim = _kf_U
@@ -397,7 +397,7 @@ def _kfmk_pawn_sacrifice(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no friendly creature to sacrifice', 'Nothing to sacrifice')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Pawn Sacrifice: sacrifice a friendly creature', options, 1, 1, source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Pawn Sacrifice: sacrifice a friendly creature', options, 1, 1, source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Pawn Sacrifice: sacrifice a friendly creature', options, 1, 1, source_card=card, intent=DecisionIntent.SACRIFICE, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, ok, options, player, remaining_targets, t, targets, victim])
@@ -440,7 +440,7 @@ def _kfmk_pawn_sacrifice(_kfN, _kfR):
         targets = remaining_targets
     elif not _pc or _pc == 3:
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, 'Pawn Sacrifice: choose 2 different creatures', remaining_targets, 2, 2, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+            _sent = (_kfgm_choose_cards(game, player.id, 'Pawn Sacrifice: choose 2 different creatures', remaining_targets, 2, 2, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Pawn Sacrifice: choose 2 different creatures', remaining_targets, 2, 2, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, ok, options, player, remaining_targets, t, targets, victim])
@@ -458,7 +458,7 @@ def _kfmk_pawn_sacrifice(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 3)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, ok, options, player, remaining_targets, t, targets, victim])
@@ -475,7 +475,7 @@ def _kfmk_pawn_sacrifice(_kfN, _kfR):
 
 
 def _kfmk_relentless_whispers(_kfN, _kfR):
-  def _kfr_relentless_whispers(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_relentless_whispers(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:192 relentless_whispers
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = destroyed = player = target = targets = _kf_U
@@ -490,7 +490,7 @@ def _kfmk_relentless_whispers(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there are no creatures in play', 'No creature to damage')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Relentless Whispers: deal 2 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Relentless Whispers: deal 2 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Relentless Whispers: deal 2 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, target, targets])
@@ -508,7 +508,7 @@ def _kfmk_relentless_whispers(_kfN, _kfR):
         target = choice[0]
         steps.deal_damage(game, target, 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([target])
+        _sent = (_kfgm_check_destroyed(game, [target]) if type(game) is _kfGame else _kf_step(game.check_destroyed)([target]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, target, targets])
@@ -529,7 +529,7 @@ def _kfmk_relentless_whispers(_kfN, _kfR):
 
 
 def _kfmk_silvertooth_play(_kfN, _kfR):
-  def _kfr_silvertooth_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_silvertooth_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:209 silvertooth_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -556,7 +556,7 @@ def _kfmk_silvertooth_play(_kfN, _kfR):
 
 
 def _kfmk_subtle_maul(_kfN, _kfR):
-  def _kfr_subtle_maul(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_subtle_maul(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:215 subtle_maul
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -581,7 +581,7 @@ def _kfmk_subtle_maul(_kfN, _kfR):
 
 
 def _kfmk_too_much_to_protect(_kfN, _kfR):
-  def _kfr_too_much_to_protect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_too_much_to_protect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:219 too_much_to_protect
     if _kfF is None:  # a fresh call: Python bound the arguments
         amount = opponent = _kf_U
@@ -613,7 +613,7 @@ def _kfmk_too_much_to_protect(_kfN, _kfR):
 
 
 def _kfmk_urchin_play(_kfN, _kfR):
-  def _kfr_urchin_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_urchin_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:229 urchin_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -640,7 +640,7 @@ def _kfmk_urchin_play(_kfN, _kfR):
 
 
 def _kfmk_bad_penny_destroyed(_kfN, _kfR):
-  def _kfr_bad_penny_destroyed(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_bad_penny_destroyed(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:235 bad_penny_destroyed
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -667,7 +667,7 @@ def _kfmk_bad_penny_destroyed(_kfN, _kfR):
 
 
 def _kfmk_finishing_blow(_kfN, _kfR):
-  def _kfr_finishing_blow(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_finishing_blow(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:243 finishing_blow
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = destroyed = player = targets = _kf_U
@@ -682,7 +682,7 @@ def _kfmk_finishing_blow(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: no creature in play is damaged', 'No damaged creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Finishing Blow: destroy a damaged creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Finishing Blow: destroy a damaged creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Finishing Blow: destroy a damaged creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, targets])
@@ -697,7 +697,7 @@ def _kfmk_finishing_blow(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(choice)
+        _sent = (_kfgm_destroy_cards(game, choice) if type(game) is _kfGame else _kf_step(game.destroy_cards)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, targets])
@@ -718,7 +718,7 @@ def _kfmk_finishing_blow(_kfN, _kfR):
 
 
 def _kfmk_imperial_traitor(_kfN, _kfR):
-  def _kfr_imperial_traitor(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_imperial_traitor(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:258 imperial_traitor
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = player = targets = _kf_U
@@ -735,7 +735,7 @@ def _kfmk_imperial_traitor(_kfN, _kfR):
             steps.shortfall(game, card, f'purges nothing: {{pos:{opponent.id}}} hand has no Sanctum card', 'No Sanctum card in hand')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, "Imperial Traitor: you may purge a Sanctum card from the opponent's hand", targets, 0, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ENEMY, optional=True)
+        _sent = (_kfgm_choose_cards(game, player.id, "Imperial Traitor: you may purge a Sanctum card from the opponent's hand", targets, 0, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ENEMY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, "Imperial Traitor: you may purge a Sanctum card from the opponent's hand", targets, 0, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ENEMY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, player, targets])
@@ -756,7 +756,7 @@ def _kfmk_imperial_traitor(_kfN, _kfR):
 
 
 def _kfmk_key_of_darkness(_kfN, _kfR):
-  def _kfr_key_of_darkness(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_key_of_darkness(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:274 key_of_darkness
     if _kfF is None:  # a fresh call: Python bound the arguments
         modifier = opponent = _kf_U
@@ -768,7 +768,7 @@ def _kfmk_key_of_darkness(_kfN, _kfR):
         opponent = opponent_of(game, card)
         modifier = 2 if opponent.aember == 0 else 6
     if not _pc:
-        _sent = _kf_step(game.forge_key)(card.controller, cost_modifier=modifier, source=card)
+        _sent = (_kfgm_forge_key(game, card.controller, cost_modifier=modifier, source=card) if type(game) is _kfGame else _kf_step(game.forge_key)(card.controller, cost_modifier=modifier, source=card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, modifier, opponent])
@@ -785,7 +785,7 @@ def _kfmk_key_of_darkness(_kfN, _kfR):
 
 
 def _kfmk_poison_wave(_kfN, _kfR):
-  def _kfr_poison_wave(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_poison_wave(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:280 poison_wave
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = targets = _kf_U
@@ -801,7 +801,7 @@ def _kfmk_poison_wave(_kfN, _kfR):
         for c in targets:
             steps.deal_damage(game, c, 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, targets])
@@ -818,7 +818,7 @@ def _kfmk_poison_wave(_kfN, _kfR):
 
 
 def _kfmk_routine_job(_kfN, _kfR):
-  def _kfr_routine_job(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_routine_job(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:290 routine_job
     if _kfF is None:  # a fresh call: Python bound the arguments
         copies_in_discard = opponent = player = _kf_U
@@ -849,7 +849,7 @@ def _kfmk_routine_job(_kfN, _kfR):
 
 
 def _kfmk_treasure_map(_kfN, _kfR):
-  def _kfr_treasure_map(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_treasure_map(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:299 treasure_map
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
@@ -883,7 +883,7 @@ def _kfmk_treasure_map(_kfN, _kfR):
 
 
 def _kfmk__evasion_sigil_handler(_kfN, _kfR):
-  def _kfr__evasion_sigil_handler(game=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__evasion_sigil_handler(game=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:323 _evasion_sigil_handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         attacker = controller = top = _kf_U
@@ -919,7 +919,7 @@ def _kfmk__evasion_sigil_handler(_kfN, _kfR):
 
 
 def _kfmk_longfused_mines(_kfN, _kfR):
-  def _kfr_longfused_mines(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_longfused_mines(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:337 longfused_mines
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = opponent = targets = _kf_U
@@ -950,7 +950,7 @@ def _kfmk_longfused_mines(_kfN, _kfR):
         for c in targets:
             steps.deal_damage(game, c, 3)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, opponent, targets])
@@ -967,7 +967,7 @@ def _kfmk_longfused_mines(_kfN, _kfR):
 
 
 def _kfmk_masterplan_play(_kfN, _kfR):
-  def _kfr_masterplan_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_masterplan_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:349 masterplan_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = choice = options = player = _kf_U
@@ -982,7 +982,7 @@ def _kfmk_masterplan_play(_kfN, _kfR):
             steps.shortfall(game, card, f'has no card to place beneath it: {{pos:{player.id}}} hand is empty', 'Hand is empty')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Masterplan: put a card from your hand facedown beneath it', options, 1, 1, source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Masterplan: put a card from your hand facedown beneath it', options, 1, 1, source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Masterplan: put a card from your hand facedown beneath it', options, 1, 1, source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, choice, options, player])
@@ -1005,7 +1005,7 @@ def _kfmk_masterplan_play(_kfN, _kfR):
 
 
 def _kfmk_masterplan_omni(_kfN, _kfR):
-  def _kfr_masterplan_omni(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_masterplan_omni(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:369 masterplan_omni
     if _kfF is None:  # a fresh call: Python bound the arguments
         ok = player = to_play = _kf_U
@@ -1021,7 +1021,7 @@ def _kfmk_masterplan_omni(_kfN, _kfR):
         if not _pc:
             to_play = card.under_cards.pop(0)
         if not _pc:
-            _sent = _kf_step(game._play_card)(player.id, to_play, from_deck_top=True)
+            _sent = (_kfgm__play_card(game, player.id, to_play, from_deck_top=True) if type(game) is _kfGame else _kf_step(game._play_card)(player.id, to_play, from_deck_top=True))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, ok, player, to_play])
@@ -1056,7 +1056,7 @@ def _kfmk_masterplan_omni(_kfN, _kfR):
 
 
 def _kfmk_seeker_needle(_kfN, _kfR):
-  def _kfr_seeker_needle(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_seeker_needle(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:382 seeker_needle
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = destroyed = player = target = targets = _kf_U
@@ -1071,7 +1071,7 @@ def _kfmk_seeker_needle(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there are no creatures in play', 'No creature to damage')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 1 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: deal 1 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 1 damage', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, target, targets])
@@ -1089,7 +1089,7 @@ def _kfmk_seeker_needle(_kfN, _kfR):
         target = choice[0]
         steps.deal_damage(game, target, 1)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([target])
+        _sent = (_kfgm_check_destroyed(game, [target]) if type(game) is _kfGame else _kf_step(game.check_destroyed)([target]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, target, targets])
@@ -1110,7 +1110,7 @@ def _kfmk_seeker_needle(_kfN, _kfR):
 
 
 def _kfmk_skeleton_key(_kfN, _kfR):
-  def _kfr_skeleton_key(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_skeleton_key(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:402 skeleton_key
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = targets = _kf_U
@@ -1125,7 +1125,7 @@ def _kfmk_skeleton_key(_kfN, _kfR):
             steps.shortfall(game, card, 'captures nothing: there is no friendly creature in play', 'No friendly creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Skeleton Key: choose a friendly creature to capture 1Æ', targets, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Skeleton Key: choose a friendly creature to capture 1Æ', targets, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Skeleton Key: choose a friendly creature to capture 1Æ', targets, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, player, targets])
@@ -1145,7 +1145,7 @@ def _kfmk_skeleton_key(_kfN, _kfR):
 
 
 def _kfmk_special_delivery(_kfN, _kfR):
-  def _kfr_special_delivery(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_special_delivery(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:415 special_delivery
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = destroyed = player = target = targets = _kf_U
@@ -1174,7 +1174,7 @@ def _kfmk_special_delivery(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there are no flank creatures in play', 'No flank creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Special Delivery: deal 3 damage to a flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Special Delivery: deal 3 damage to a flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Special Delivery: deal 3 damage to a flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, target, targets])
@@ -1192,7 +1192,7 @@ def _kfmk_special_delivery(_kfN, _kfR):
         target = choice[0]
         steps.deal_damage(game, target, 3)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([target])
+        _sent = (_kfgm_check_destroyed(game, [target]) if type(game) is _kfGame else _kf_step(game.check_destroyed)([target]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, destroyed, player, target, targets])
@@ -1213,7 +1213,7 @@ def _kfmk_special_delivery(_kfN, _kfR):
 
 
 def _kfmk_the_sting_action(_kfN, _kfR):
-  def _kfr_the_sting_action(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_the_sting_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:442 the_sting_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1238,7 +1238,7 @@ def _kfmk_the_sting_action(_kfN, _kfR):
 
 
 def _kfmk_bulleteye(_kfN, _kfR):
-  def _kfr_bulleteye(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_bulleteye(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:446 bulleteye
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = targets = _kf_U
@@ -1253,7 +1253,7 @@ def _kfmk_bulleteye(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: there are no flank creatures in play', 'No flank creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Bulleteye: destroy a flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Bulleteye: destroy a flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Bulleteye: destroy a flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, player, targets])
@@ -1268,7 +1268,7 @@ def _kfmk_bulleteye(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(choice)
+        _sent = (_kfgm_destroy_cards(game, choice) if type(game) is _kfGame else _kf_step(game.destroy_cards)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, player, targets])
@@ -1285,7 +1285,7 @@ def _kfmk_bulleteye(_kfN, _kfR):
 
 
 def _kfmk__carlo_phantom_handler__handler(_kfN, _kfR):
-  def _kfr__carlo_phantom_handler__handler(game=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__carlo_phantom_handler__handler(game=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:464 _carlo_phantom_handler.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_carlo_card = _kf_closure[0]
@@ -1314,7 +1314,7 @@ def _kfmk__carlo_phantom_handler__handler(_kfN, _kfR):
 
 
 def _kfmk_deipno_spymaster(_kfN, _kfR):
-  def _kfr_deipno_spymaster(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_deipno_spymaster(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:472 deipno_spymaster
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = may_use = options = player = target = _kf_U
@@ -1329,7 +1329,7 @@ def _kfmk_deipno_spymaster(_kfN, _kfR):
             steps.shortfall(game, card, 'chooses nothing: there are no friendly creatures in play', 'No friendly creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Deipno Spymaster: choose a friendly creature', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Deipno Spymaster: choose a friendly creature', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Deipno Spymaster: choose a friendly creature', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, may_use, options, player, target])
@@ -1349,7 +1349,7 @@ def _kfmk_deipno_spymaster(_kfN, _kfR):
             steps.shortfall(game, card, f"can't use {target.name}: it is already exhausted", f'{target.name} is exhausted')
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'Deipno Spymaster: use {target.name} this turn?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'Deipno Spymaster: use {target.name} this turn?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'Deipno Spymaster: use {target.name} this turn?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, may_use, options, player, target])
@@ -1382,7 +1382,7 @@ def _kfmk_deipno_spymaster(_kfN, _kfR):
 
 
 def _kfmk_faygin(_kfN, _kfR):
-  def _kfr_faygin(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_faygin(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:494 faygin
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = in_play = options = player = target = _kf_U
@@ -1398,7 +1398,7 @@ def _kfmk_faygin(_kfN, _kfR):
             steps.shortfall(game, card, 'returns nothing: there is no Urchin in play or in your discard pile', 'No Urchin')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, "Faygin: return an Urchin to its owner's hand", options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, player.id, "Faygin: return an Urchin to its owner's hand", options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, "Faygin: return an Urchin to its owner's hand", options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, in_play, options, player, target])
@@ -1424,7 +1424,7 @@ def _kfmk_faygin(_kfN, _kfR):
 
 
 def _kfmk_magda_the_rat_play(_kfN, _kfR):
-  def _kfr_magda_the_rat_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_magda_the_rat_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:519 magda_the_rat_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1451,7 +1451,7 @@ def _kfmk_magda_the_rat_play(_kfN, _kfR):
 
 
 def _kfmk_nexus(_kfN, _kfR):
-  def _kfr_nexus(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_nexus(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:529 nexus
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = player = targets = _kf_U
@@ -1467,7 +1467,7 @@ def _kfmk_nexus(_kfN, _kfR):
             steps.shortfall(game, card, 'uses nothing: the opponent has no usable artifact in play', 'No usable enemy artifact')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, "Nexus: use an opponent's artifact as if it were yours", targets, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, player.id, "Nexus: use an opponent's artifact as if it were yours", targets, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, "Nexus: use an opponent's artifact as if it were yours", targets, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, player, targets])
@@ -1482,7 +1482,7 @@ def _kfmk_nexus(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.use_artifact_ability)(choice[0], player.id)
+        _sent = (_kfgm_use_artifact_ability(game, choice[0], player.id) if type(game) is _kfGame else _kf_step(game.use_artifact_ability)(choice[0], player.id))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, player, targets])
@@ -1499,7 +1499,7 @@ def _kfmk_nexus(_kfN, _kfR):
 
 
 def _kfmk_selwyn_the_fence(_kfN, _kfR):
-  def _kfr_selwyn_the_fence(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_selwyn_the_fence(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:546 selwyn_the_fence
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = source_card = sources = _kf_U
@@ -1514,7 +1514,7 @@ def _kfmk_selwyn_the_fence(_kfN, _kfR):
             steps.shortfall(game, card, 'moves nothing: none of your cards have Æmber on them', 'No Æmber on your cards')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Selwyn the Fence: move 1Æ from one of your cards to your pool', sources, 1, 1, source_card=card, intent=DecisionIntent.DRAIN, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Selwyn the Fence: move 1Æ from one of your cards to your pool', sources, 1, 1, source_card=card, intent=DecisionIntent.DRAIN, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Selwyn the Fence: move 1Æ from one of your cards to your pool', sources, 1, 1, source_card=card, intent=DecisionIntent.DRAIN, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, player, source_card, sources])
@@ -1540,7 +1540,7 @@ def _kfmk_selwyn_the_fence(_kfN, _kfR):
 
 
 def _kfmk_smiling_ruth(_kfN, _kfR):
-  def _kfr_smiling_ruth(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_smiling_ruth(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:582 smiling_ruth
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = player = targets = _kf_U
@@ -1559,7 +1559,7 @@ def _kfmk_smiling_ruth(_kfN, _kfR):
             steps.shortfall(game, card, 'takes control of nothing: the opponent has no flank creature', 'No enemy flank creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Smiling Ruth: take control of an enemy flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Smiling Ruth: take control of an enemy flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Smiling Ruth: take control of an enemy flank creature', targets, 1, 1, source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, player, targets])
@@ -1574,7 +1574,7 @@ def _kfmk_smiling_ruth(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.take_control)(choice[0], player.id)
+        _sent = (_kfgm_take_control(game, choice[0], player.id) if type(game) is _kfGame else _kf_step(game.take_control)(choice[0], player.id))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, player, targets])
@@ -1591,7 +1591,7 @@ def _kfmk_smiling_ruth(_kfN, _kfR):
 
 
 def _kfmk_sneklifter(_kfN, _kfR):
-  def _kfr_sneklifter(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sneklifter(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:599 sneklifter
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = player = target = targets = _kf_U
@@ -1607,7 +1607,7 @@ def _kfmk_sneklifter(_kfN, _kfR):
             steps.shortfall(game, card, 'takes control of nothing: the opponent has no artifact in play', 'No enemy artifact')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, 'Sneklifter: take control of an enemy artifact', targets, 1, 1, source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, player.id, 'Sneklifter: take control of an enemy artifact', targets, 1, 1, source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, 'Sneklifter: take control of an enemy artifact', targets, 1, 1, source_card=card, intent=DecisionIntent.TAKE_CONTROL, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, player, target, targets])
@@ -1624,7 +1624,7 @@ def _kfmk_sneklifter(_kfN, _kfR):
     if not _pc:
         target = choice[0]
     if not _pc:
-        _sent = _kf_step(game.take_control)(target, player.id)
+        _sent = (_kfgm_take_control(game, target, player.id) if type(game) is _kfGame else _kf_step(game.take_control)(target, player.id))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, player, target, targets])
@@ -1643,7 +1643,7 @@ def _kfmk_sneklifter(_kfN, _kfR):
 
 
 def _kfmk__silent_dagger_effect(_kfN, _kfR):
-  def _kfr__silent_dagger_effect(game=_kf_U, host_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__silent_dagger_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/shadows.py:628 _silent_dagger_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = targets = _kf_U
@@ -1657,7 +1657,7 @@ def _kfmk__silent_dagger_effect(_kfN, _kfR):
             steps.shortfall(game, host_card, 'deals no damage: there are no flank creatures in play', 'No flank creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(host_card.controller, 'Silent Dagger: deal 4 damage to a flank creature', targets, 1, 1, source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, host_card.controller, 'Silent Dagger: deal 4 damage to a flank creature', targets, 1, 1, source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(host_card.controller, 'Silent Dagger: deal 4 damage to a flank creature', targets, 1, 1, source_card=host_card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, host_card, choice, targets])
@@ -1674,7 +1674,7 @@ def _kfmk__silent_dagger_effect(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(game, choice[0], 4)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, host_card, choice, targets])

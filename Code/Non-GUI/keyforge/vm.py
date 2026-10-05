@@ -225,6 +225,15 @@ STEP_ATTR = "__kf_step__"
 _ENABLED = True
 
 
+# Every module's globals the loader injected the support names into: what
+# `disabled()` switches the direct Game calls off in.
+INJECTED: List[dict] = []
+
+
+class _NotAGame:
+    """Stands in for `Game` in the direct-call check while disabled."""
+
+
 @contextlib.contextmanager
 def disabled():
     """For tests of the adapter: inside, no routine is registered, so every
@@ -232,8 +241,11 @@ def disabled():
     global _ENABLED
     load_compiled()
     saved_r, saved_s = dict(ROUTINES), dict(STEPS)
+    saved_g = [g.get("_kfGame") for g in INJECTED]
     ROUTINES.clear()
     STEPS.clear()
+    for g in INJECTED:
+        g["_kfGame"] = _NotAGame
     _ENABLED = False
     try:
         yield
@@ -241,6 +253,8 @@ def disabled():
         _ENABLED = True
         ROUTINES.update(saved_r)
         STEPS.update(saved_s)
+        for g, v in zip(INJECTED, saved_g):
+            g["_kfGame"] = v
 
 
 def step_of(f):
@@ -275,7 +289,7 @@ def _dynamic_step(r: Routine, func):
 
     step = r.step
     if func.__defaults__ or func.__kwdefaults__:
-        defaults = (UNBOUND,) * (r.n_positional - len(func.__defaults__ or ())) + tuple(func.__defaults__ or ())
+        defaults = (UNBOUND,) * (r.n_positional - len(func.__defaults__ or ())) + tuple(func.__defaults__ or ()) + (None, None)
         step = _FunctionType(step.__code__, step.__globals__, step.__name__, defaults, step.__closure__)
         kw = dict(r.step.__kwdefaults__)
         kw.update(func.__kwdefaults__ or {})

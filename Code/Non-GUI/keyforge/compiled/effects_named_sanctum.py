@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_begone(_kfN, _kfR):
-  def _kfr_begone(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_begone(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:15 begone
     if _kfF is None:  # a fresh call: Python bound the arguments
         mode = player = targets = _kf_U
@@ -27,7 +27,7 @@ def _kfmk_begone(_kfN, _kfR):
     if not _pc:
         player = controller_of(game, card)
     if not _pc:
-        _sent = _kf_step(game.choose_mode)(player.id, f'{card.name}: choose one', ['Destroy each Dis creature', 'Gain 1Æ'], source_card=card)
+        _sent = (_kfgm_choose_mode(game, player.id, f'{card.name}: choose one', ['Destroy each Dis creature', 'Gain 1Æ'], source_card=card) if type(game) is _kfGame else _kf_step(game.choose_mode)(player.id, f'{card.name}: choose one', ['Destroy each Dis creature', 'Gain 1Æ'], source_card=card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, mode, player, targets])
@@ -50,7 +50,7 @@ def _kfmk_begone(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: there is no Dis creature in play', 'No Dis creature')
             return
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, mode, player, targets])
@@ -67,7 +67,7 @@ def _kfmk_begone(_kfN, _kfR):
 
 
 def _kfmk_blinding_light(_kfN, _kfR):
-  def _kfr_blinding_light(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_blinding_light(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:30 blinding_light
     if _kfF is None:  # a fresh call: Python bound the arguments
         chosen = player = t = targets = _kf_U
@@ -78,7 +78,7 @@ def _kfmk_blinding_light(_kfN, _kfR):
     if not _pc:
         player = controller_of(game, card)
     if not _pc:
-        _sent = _kf_step(game.choose_house)(player.id, f'{card.name}: choose a house', list(House))
+        _sent = (_kfgm_choose_house(game, player.id, f'{card.name}: choose a house', list(House)) if type(game) is _kfGame else _kf_step(game.choose_house)(player.id, f'{card.name}: choose a house', list(House)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, chosen, player, t, targets])
@@ -103,7 +103,7 @@ def _kfmk_blinding_light(_kfN, _kfR):
 
 
 def _kfmk_charge(_kfN, _kfR):
-  def _kfr_charge(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_charge(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:41 charge
     if _kfF is None:  # a fresh call: Python bound the arguments
         handler = _kf_U
@@ -135,7 +135,7 @@ def _kfmk_charge(_kfN, _kfR):
 
 
 def _kfmk_charge__handler(_kfN, _kfR):
-  def _kfr_charge__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_charge__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:44 charge.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -152,7 +152,7 @@ def _kfmk_charge__handler(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(g.choose_cards)(_kfc_player.cell_contents.id, f'{_kfc_card.cell_contents.name}: deal 2 damage to an enemy creature', options, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(g, _kfc_player.cell_contents.id, f'{_kfc_card.cell_contents.name}: deal 2 damage to an enemy creature', options, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY) if type(g) is _kfGame else _kf_step(g.choose_cards)(_kfc_player.cell_contents.id, f'{_kfc_card.cell_contents.name}: deal 2 damage to an enemy creature', options, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, choice, options, _kfc_card, _kfc_player])
@@ -169,7 +169,7 @@ def _kfmk_charge__handler(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(g, choice[0], 2)
     if not _pc:
-        _sent = _kf_step(g.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(g, choice) if type(g) is _kfGame else _kf_step(g.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, choice, options, _kfc_card, _kfc_player])
@@ -186,7 +186,7 @@ def _kfmk_charge__handler(_kfN, _kfR):
 
 
 def _kfmk_cleansing_wave(_kfN, _kfR):
-  def _kfr_cleansing_wave(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_cleansing_wave(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:62 cleansing_wave
     if _kfF is None:  # a fresh call: Python bound the arguments
         healed_count = player = t = targets = _kf_U
@@ -223,7 +223,7 @@ def _kfmk_cleansing_wave(_kfN, _kfR):
 
 
 def _kfmk_clear_mind(_kfN, _kfR):
-  def _kfr_clear_mind(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_clear_mind(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:77 clear_mind
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = _kf_U
@@ -253,7 +253,7 @@ def _kfmk_clear_mind(_kfN, _kfR):
 
 
 def _kfmk_doorstep_to_heaven(_kfN, _kfR):
-  def _kfr_doorstep_to_heaven(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_doorstep_to_heaven(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:85 doorstep_to_heaven
     if _kfF is None:  # a fresh call: Python bound the arguments
         lost = p = _kf_U
@@ -285,7 +285,7 @@ def _kfmk_doorstep_to_heaven(_kfN, _kfR):
 
 
 def _kfmk_glorious_few(_kfN, _kfR):
-  def _kfr_glorious_few(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_glorious_few(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:95 glorious_few
     if _kfF is None:  # a fresh call: Python bound the arguments
         excess = opponent = player = _kf_U
@@ -319,7 +319,7 @@ def _kfmk_glorious_few(_kfN, _kfR):
 
 
 def _kfmk_honorable_claim(_kfN, _kfR):
-  def _kfr_honorable_claim(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_honorable_claim(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:107 honorable_claim
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = t = targets = _kf_U
@@ -353,7 +353,7 @@ def _kfmk_honorable_claim(_kfN, _kfR):
 
 
 def _kfmk_inspiration(_kfN, _kfR):
-  def _kfr_inspiration(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_inspiration(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:119 inspiration
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = creatures = player = target = _kf_U
@@ -368,7 +368,7 @@ def _kfmk_inspiration(_kfN, _kfR):
             steps.shortfall(game, card, 'has no friendly creature to ready and use', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and use', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to ready and use', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and use', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creatures, player, target])
@@ -386,7 +386,7 @@ def _kfmk_inspiration(_kfN, _kfR):
         target = choice[0]
         steps.ready(game, target)
     if not _pc:
-        _sent = _kf_step(game.use_creature_ability)(target)
+        _sent = (_kfgm_use_creature_ability(game, target) if type(game) is _kfGame else _kf_step(game.use_creature_ability)(target))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creatures, player, target])
@@ -403,7 +403,7 @@ def _kfmk_inspiration(_kfN, _kfR):
 
 
 def _kfmk_mighty_lance(_kfN, _kfR):
-  def _kfr_mighty_lance(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mighty_lance(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:134 mighty_lance
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = hit_neighbor = nchoice = neighbors = options = target = _kf_U
@@ -417,7 +417,7 @@ def _kfmk_mighty_lance(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, hit_neighbor, nchoice, neighbors, options, target])
@@ -442,7 +442,7 @@ def _kfmk_mighty_lance(_kfN, _kfR):
     elif not _pc or _pc == 2:
         if (not _pc and (len(neighbors) > 1)) or _pc == 2:
             if not _pc:
-                _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a neighbor to also deal 3 damage to', neighbors, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+                _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a neighbor to also deal 3 damage to', neighbors, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a neighbor to also deal 3 damage to', neighbors, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
                 if type(_sent) is _kf_S:
                     if _kfF is None:
                         _kfF = _kf_Frame(_kfR, [game, card, area, choice, hit_neighbor, nchoice, neighbors, options, target])
@@ -461,7 +461,7 @@ def _kfmk_mighty_lance(_kfN, _kfR):
         if hit_neighbor is not None:
             steps.deal_damage(game, hit_neighbor, 3)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([target] + ([hit_neighbor] if hit_neighbor else []))
+        _sent = (_kfgm_check_destroyed(game, [target] + ([hit_neighbor] if hit_neighbor else [])) if type(game) is _kfGame else _kf_step(game.check_destroyed)([target] + ([hit_neighbor] if hit_neighbor else [])))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, hit_neighbor, nchoice, neighbors, options, target])
@@ -478,7 +478,7 @@ def _kfmk_mighty_lance(_kfN, _kfR):
 
 
 def _kfmk_oath_of_poverty(_kfN, _kfR):
-  def _kfr_oath_of_poverty(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_oath_of_poverty(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:161 oath_of_poverty
     if _kfF is None:  # a fresh call: Python bound the arguments
         a = area = destroyed = player = targets = _kf_U
@@ -520,7 +520,7 @@ def _kfmk_oath_of_poverty(_kfN, _kfR):
 
 
 def _kfmk_one_stood_against_many(_kfN, _kfR):
-  def _kfr_one_stood_against_many(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_one_stood_against_many(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:181 one_stood_against_many
     if _kfF is None:  # a fresh call: Python bound the arguments
         _ = choice = creatures = fighter = fought_ids = player = target = _kfs0 = _kfi1 = _kf_U
@@ -535,7 +535,7 @@ def _kfmk_one_stood_against_many(_kfN, _kfR):
             steps.shortfall(game, card, 'has no friendly creature to ready and fight with', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight 3 times', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to ready and fight 3 times', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight 3 times', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, _, choice, creatures, fighter, fought_ids, player, target, _kfs0, _kfi1])
@@ -553,7 +553,7 @@ def _kfmk_one_stood_against_many(_kfN, _kfR):
         fighter = choice[0]
         fought_ids = set()
     if not _pc:
-        _kfs0 = _kf_seq(range(3))
+        _kfs0 = range(3)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or _pc == 2:
         if not _pc:
@@ -563,7 +563,7 @@ def _kfmk_one_stood_against_many(_kfN, _kfR):
             if not game.legal_fight_targets(fighter, exclude=frozenset(fought_ids)):
                 break
         if not _pc:
-            _sent = _kf_step(game.ready_and_fight)(fighter, exclude=frozenset(fought_ids))
+            _sent = (_kfgm_ready_and_fight(game, fighter, exclude=frozenset(fought_ids)) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(fighter, exclude=frozenset(fought_ids)))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, _, choice, creatures, fighter, fought_ids, player, target, _kfs0, _kfi1])
@@ -585,7 +585,7 @@ def _kfmk_one_stood_against_many(_kfN, _kfR):
 
 
 def _kfmk_radiant_truth(_kfN, _kfR):
-  def _kfr_radiant_truth(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_radiant_truth(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:202 radiant_truth
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = t = targets = _kf_U
@@ -619,7 +619,7 @@ def _kfmk_radiant_truth(_kfN, _kfR):
 
 
 def _kfmk_take_hostages(_kfN, _kfR):
-  def _kfr_take_hostages(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_take_hostages(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:214 take_hostages
     if _kfF is None:  # a fresh call: Python bound the arguments
         handler = _kf_U
@@ -649,7 +649,7 @@ def _kfmk_take_hostages(_kfN, _kfR):
 
 
 def _kfmk_take_hostages__handler(_kfN, _kfR):
-  def _kfr_take_hostages__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_take_hostages__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:215 take_hostages.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -678,7 +678,7 @@ def _kfmk_take_hostages__handler(_kfN, _kfR):
 
 
 def _kfmk_terms_of_redress(_kfN, _kfR):
-  def _kfr_terms_of_redress(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_terms_of_redress(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:226 terms_of_redress
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = creatures = player = _kf_U
@@ -693,7 +693,7 @@ def _kfmk_terms_of_redress(_kfN, _kfR):
             steps.shortfall(game, card, 'captures nothing: there is no friendly creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to capture 2Æ', creatures, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to capture 2Æ', creatures, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to capture 2Æ', creatures, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creatures, player])
@@ -713,7 +713,7 @@ def _kfmk_terms_of_redress(_kfN, _kfR):
 
 
 def _kfmk_the_harder_they_come(_kfN, _kfR):
-  def _kfr_the_harder_they_come(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_the_harder_they_come(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:239 the_harder_they_come
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -727,7 +727,7 @@ def _kfmk_the_harder_they_come(_kfN, _kfR):
             steps.shortfall(game, card, 'purges nothing: no creature has power 5 or higher', 'No high-power creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to purge', options, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to purge', options, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to purge', options, 1, 1, source_card=card, intent=DecisionIntent.PURGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -747,7 +747,7 @@ def _kfmk_the_harder_they_come(_kfN, _kfR):
 
 
 def _kfmk_the_spirits_way(_kfN, _kfR):
-  def _kfr_the_spirits_way(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_the_spirits_way(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:251 the_spirits_way
     if _kfF is None:  # a fresh call: Python bound the arguments
         targets = _kf_U
@@ -761,7 +761,7 @@ def _kfmk_the_spirits_way(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: no creature has power 3 or higher', 'No high-power creature')
             return
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, targets])
@@ -778,7 +778,7 @@ def _kfmk_the_spirits_way(_kfN, _kfR):
 
 
 def _kfmk_epic_quest_play(_kfN, _kfR):
-  def _kfr_epic_quest_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_epic_quest_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:261 epic_quest_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = t = targets = _kf_U
@@ -815,7 +815,7 @@ def _kfmk_epic_quest_play(_kfN, _kfR):
 
 
 def _kfmk_epic_quest_omni(_kfN, _kfR):
-  def _kfr_epic_quest_omni(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_epic_quest_omni(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:276 epic_quest_omni
     if _kfF is None:  # a fresh call: Python bound the arguments
         name_to_house = player = sanctum_played = _kf_U
@@ -844,7 +844,7 @@ def _kfmk_epic_quest_omni(_kfN, _kfR):
     elif _pc == 1:
         _pc = 0
     if not _pc:
-        _sent = _kf_step(game.forge_key)(player.id, cost_modifier=-999, source=card)
+        _sent = (_kfgm_forge_key(game, player.id, cost_modifier=-999, source=card) if type(game) is _kfGame else _kf_step(game.forge_key)(player.id, cost_modifier=-999, source=card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, name_to_house, player, sanctum_played])
@@ -861,7 +861,7 @@ def _kfmk_epic_quest_omni(_kfN, _kfR):
 
 
 def _kfmk_gorm_of_omm(_kfN, _kfR):
-  def _kfr_gorm_of_omm(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_gorm_of_omm(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:291 gorm_of_omm
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = options = owner = target = _kf_U
@@ -888,7 +888,7 @@ def _kfmk_gorm_of_omm(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: there is no artifact in play', 'No artifact')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an artifact to destroy', options, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose an artifact to destroy', options, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an artifact to destroy', options, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, options, owner, target])
@@ -915,7 +915,7 @@ def _kfmk_gorm_of_omm(_kfN, _kfR):
 
 
 def _kfmk_hallowed_blaster(_kfN, _kfR):
-  def _kfr_hallowed_blaster(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_hallowed_blaster(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:311 hallowed_blaster
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -929,7 +929,7 @@ def _kfmk_hallowed_blaster(_kfN, _kfR):
             steps.shortfall(game, card, 'heals nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to heal 3 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to heal 3 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to heal 3 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -949,7 +949,7 @@ def _kfmk_hallowed_blaster(_kfN, _kfR):
 
 
 def _kfmk_potion_of_invulnerability(_kfN, _kfR):
-  def _kfr_potion_of_invulnerability(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_potion_of_invulnerability(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:323 potion_of_invulnerability
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
@@ -978,7 +978,7 @@ def _kfmk_potion_of_invulnerability(_kfN, _kfR):
 
 
 def _kfmk_sigil_of_brotherhood(_kfN, _kfR):
-  def _kfr_sigil_of_brotherhood(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sigil_of_brotherhood(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:342 sigil_of_brotherhood
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = _kf_U
@@ -1010,7 +1010,7 @@ def _kfmk_sigil_of_brotherhood(_kfN, _kfR):
 
 
 def _kfmk_whispering_reliquary(_kfN, _kfR):
-  def _kfr_whispering_reliquary(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_whispering_reliquary(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:351 whispering_reliquary
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1024,7 +1024,7 @@ def _kfmk_whispering_reliquary(_kfN, _kfR):
             steps.shortfall(game, card, 'returns nothing: there is no artifact in play', 'No artifact')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f"{card.name}: choose an artifact to return to its owner's hand", options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f"{card.name}: choose an artifact to return to its owner's hand", options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f"{card.name}: choose an artifact to return to its owner's hand", options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1044,7 +1044,7 @@ def _kfmk_whispering_reliquary(_kfN, _kfR):
 
 
 def _kfmk_commander_remiel(_kfN, _kfR):
-  def _kfr_commander_remiel(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_commander_remiel(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:375 commander_remiel
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kf_U
@@ -1059,7 +1059,7 @@ def _kfmk_commander_remiel(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no friendly non-Sanctum creature in play', 'No non-Sanctum creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly non-Sanctum creature to use', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly non-Sanctum creature to use', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly non-Sanctum creature to use', options, 1, 1, source_card=card, intent=DecisionIntent.USE_TARGET, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player])
@@ -1074,7 +1074,7 @@ def _kfmk_commander_remiel(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.use_creature_ability)(choice[0])
+        _sent = (_kfgm_use_creature_ability(game, choice[0]) if type(game) is _kfGame else _kf_step(game.use_creature_ability)(choice[0]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player])
@@ -1091,7 +1091,7 @@ def _kfmk_commander_remiel(_kfN, _kfR):
 
 
 def _kfmk_duma_the_martyr_destroyed(_kfN, _kfR):
-  def _kfr_duma_the_martyr_destroyed(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_duma_the_martyr_destroyed(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:388 duma_the_martyr_destroyed
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = _kf_U
@@ -1123,7 +1123,7 @@ def _kfmk_duma_the_martyr_destroyed(_kfN, _kfR):
 
 
 def _kfmk_francus_on_destroyed_fighting(_kfN, _kfR):
-  def _kfr_francus_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_francus_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:398 francus_on_destroyed_fighting
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1150,7 +1150,7 @@ def _kfmk_francus_on_destroyed_fighting(_kfN, _kfR):
 
 
 def _kfmk_grey_monk_after_reap(_kfN, _kfR):
-  def _kfr_grey_monk_after_reap(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_grey_monk_after_reap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:411 grey_monk_after_reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1164,7 +1164,7 @@ def _kfmk_grey_monk_after_reap(_kfN, _kfR):
             steps.shortfall(game, card, 'heals nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to heal 2 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to heal 2 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to heal 2 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1184,7 +1184,7 @@ def _kfmk_grey_monk_after_reap(_kfN, _kfR):
 
 
 def _kfmk_hayyel_the_merchant_register__handler(_kfN, _kfR):
-  def _kfr_hayyel_the_merchant_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_hayyel_the_merchant_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:424 hayyel_the_merchant_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -1213,7 +1213,7 @@ def _kfmk_hayyel_the_merchant_register__handler(_kfN, _kfR):
 
 
 def _kfmk_horseman_of_death(_kfN, _kfR):
-  def _kfr_horseman_of_death(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_horseman_of_death(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:433 horseman_of_death
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = t = targets = _kf_U
@@ -1249,7 +1249,7 @@ def _kfmk_horseman_of_death(_kfN, _kfR):
 
 
 def _kfmk_horseman_of_famine(_kfN, _kfR):
-  def _kfr_horseman_of_famine(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_horseman_of_famine(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:447 horseman_of_famine
     if _kfF is None:  # a fresh call: Python bound the arguments
         least = targets = _kf_U
@@ -1279,7 +1279,7 @@ def _kfmk_horseman_of_famine(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)([least])
+        _sent = (_kfgm_destroy_cards(game, [least]) if type(game) is _kfGame else _kf_step(game.destroy_cards)([least]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, least, targets])
@@ -1296,7 +1296,7 @@ def _kfmk_horseman_of_famine(_kfN, _kfR):
 
 
 def _kfmk_horseman_of_pestilence(_kfN, _kfR):
-  def _kfr_horseman_of_pestilence(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_horseman_of_pestilence(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:458 horseman_of_pestilence
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -1312,7 +1312,7 @@ def _kfmk_horseman_of_pestilence(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 1)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, t, targets])
@@ -1329,7 +1329,7 @@ def _kfmk_horseman_of_pestilence(_kfN, _kfR):
 
 
 def _kfmk_horseman_of_war(_kfN, _kfR):
-  def _kfr_horseman_of_war(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_horseman_of_war(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:468 horseman_of_war
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = _kf_U
@@ -1361,7 +1361,7 @@ def _kfmk_horseman_of_war(_kfN, _kfR):
 
 
 def _kfmk_jehu_the_bureaucrat_register__handler(_kfN, _kfR):
-  def _kfr_jehu_the_bureaucrat_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_jehu_the_bureaucrat_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:479 jehu_the_bureaucrat_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -1390,7 +1390,7 @@ def _kfmk_jehu_the_bureaucrat_register__handler(_kfN, _kfR):
 
 
 def _kfmk_lady_maxena_play(_kfN, _kfR):
-  def _kfr_lady_maxena_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lady_maxena_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:488 lady_maxena_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1404,7 +1404,7 @@ def _kfmk_lady_maxena_play(_kfN, _kfR):
             steps.shortfall(game, card, 'stuns nothing: there are no creatures in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1424,7 +1424,7 @@ def _kfmk_lady_maxena_play(_kfN, _kfR):
 
 
 def _kfmk_lady_maxena_action(_kfN, _kfR):
-  def _kfr_lady_maxena_action(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lady_maxena_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:500 lady_maxena_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1451,7 +1451,7 @@ def _kfmk_lady_maxena_action(_kfN, _kfR):
 
 
 def _kfmk_lord_golgotha_before_fight(_kfN, _kfR):
-  def _kfr_lord_golgotha_before_fight(game=_kf_U, card=_kf_U, target=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lord_golgotha_before_fight(game=_kf_U, card=_kf_U, target=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:506 lord_golgotha_before_fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = n = neighbors = _kf_U
@@ -1482,7 +1482,7 @@ def _kfmk_lord_golgotha_before_fight(_kfN, _kfR):
 
 
 def _kfmk_numquid_the_fair(_kfN, _kfR):
-  def _kfr_numquid_the_fair(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_numquid_the_fair(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:515 numquid_the_fair
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = options = player = _kf_U
@@ -1500,7 +1500,7 @@ def _kfmk_numquid_the_fair(_kfN, _kfR):
                 steps.shortfall(game, card, 'destroys nothing: there is no enemy creature in play', 'No enemy creature')
                 return
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to destroy', options, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ENEMY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose an enemy creature to destroy', options, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an enemy creature to destroy', options, 1, 1, source_card=card, intent=DecisionIntent.DESTROY, affects=Affects.ENEMY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, options, player])
@@ -1515,7 +1515,7 @@ def _kfmk_numquid_the_fair(_kfN, _kfR):
             _pc = 0
             choice = _sent
         if not _pc:
-            _sent = _kf_step(game.destroy_cards)(choice)
+            _sent = (_kfgm_destroy_cards(game, choice) if type(game) is _kfGame else _kf_step(game.destroy_cards)(choice))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, options, player])
@@ -1534,7 +1534,7 @@ def _kfmk_numquid_the_fair(_kfN, _kfR):
 
 
 def _kfmk_protectrix_after_reap(_kfN, _kfR):
-  def _kfr_protectrix_after_reap(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_protectrix_after_reap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:539 protectrix_after_reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = do_it = options = target = _kf_U
@@ -1547,7 +1547,7 @@ def _kfmk_protectrix_after_reap(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(card.controller, f'{card.name}: fully heal a creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, card.controller, f'{card.name}: fully heal a creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(card.controller, f'{card.name}: fully heal a creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, target])
@@ -1565,7 +1565,7 @@ def _kfmk_protectrix_after_reap(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to fully heal', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to fully heal', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to fully heal', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, do_it, options, target])
@@ -1588,7 +1588,7 @@ def _kfmk_protectrix_after_reap(_kfN, _kfR):
 
 
 def _kfmk_sanctum_guardian_after(_kfN, _kfR):
-  def _kfr_sanctum_guardian_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sanctum_guardian_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:558 sanctum_guardian_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = others = player = _kf_U
@@ -1602,7 +1602,7 @@ def _kfmk_sanctum_guardian_after(_kfN, _kfR):
         if not others:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to swap battleline positions with', others, 1, 1, source_card=card, intent=DecisionIntent.SWAP, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to swap battleline positions with', others, 1, 1, source_card=card, intent=DecisionIntent.SWAP, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to swap battleline positions with', others, 1, 1, source_card=card, intent=DecisionIntent.SWAP, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, others, player])
@@ -1623,7 +1623,7 @@ def _kfmk_sanctum_guardian_after(_kfN, _kfR):
 
 
 def _kfmk_sergeant_zakiel_play(_kfN, _kfR):
-  def _kfr_sergeant_zakiel_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sergeant_zakiel_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:571 sergeant_zakiel_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = do_it = neighbors = player = _kf_U
@@ -1638,7 +1638,7 @@ def _kfmk_sergeant_zakiel_play(_kfN, _kfR):
         if not neighbors:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: ready and fight with a neighboring creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: ready and fight with a neighboring creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: ready and fight with a neighboring creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, neighbors, player])
@@ -1656,7 +1656,7 @@ def _kfmk_sergeant_zakiel_play(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a neighboring creature', neighbors, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a neighboring creature', neighbors, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a neighboring creature', neighbors, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, neighbors, player])
@@ -1671,7 +1671,7 @@ def _kfmk_sergeant_zakiel_play(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.ready_and_fight)(choice[0])
+        _sent = (_kfgm_ready_and_fight(game, choice[0]) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(choice[0]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, neighbors, player])
@@ -1688,7 +1688,7 @@ def _kfmk_sergeant_zakiel_play(_kfN, _kfR):
 
 
 def _kfmk_gatekeeper(_kfN, _kfR):
-  def _kfr_gatekeeper(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_gatekeeper(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:600 gatekeeper
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = _kf_U
@@ -1720,7 +1720,7 @@ def _kfmk_gatekeeper(_kfN, _kfR):
 
 
 def _kfmk_veemos_lightbringer(_kfN, _kfR):
-  def _kfr_veemos_lightbringer(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_veemos_lightbringer(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/sanctum.py:614 veemos_lightbringer
     if _kfF is None:  # a fresh call: Python bound the arguments
         targets = _kf_U
@@ -1734,7 +1734,7 @@ def _kfmk_veemos_lightbringer(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: there is no elusive creature in play', 'No elusive creature')
             return
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, targets])

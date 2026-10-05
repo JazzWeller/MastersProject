@@ -97,6 +97,9 @@ def register(entries, target, src_name: str) -> List[vm.Routine]:
     g = target.__dict__
     for k, v in vm.SUPPORT.items():
         g.setdefault(k, v)
+    if not any(x is g for x in vm.INJECTED):
+        vm.INJECTED.append(g)
+    _link_game(g)
     out = []
     for qualname, line, factory, slots, freevars, nested, line_of_pc, exc in entries:
         code = _resolve(target, qualname, line)
@@ -118,14 +121,16 @@ def register(entries, target, src_name: str) -> List[vm.Routine]:
             orig = _function_of(target, qualname)
             orig_defaults, orig_kw = orig.__defaults__, orig.__kwdefaults__
         n_def = len(orig_defaults or ())
-        step.__defaults__ = (vm.UNBOUND,) * (n_pos - n_def) + tuple(orig_defaults or ())
+        step.__defaults__ = (vm.UNBOUND,) * (n_pos - n_def) + tuple(orig_defaults or ()) + (None, None)  # + _kfF, _sent
         kwonly = code.co_varnames[n_pos : n_pos + code.co_kwonlyargcount]
         kw = {k: (orig_kw or {}).get(k, vm.UNBOUND) for k in kwonly}
-        kw.update({"_kfF": None, "_sent": None, "_kf_closure": None})
+        kw["_kf_closure"] = None
         step.__kwdefaults__ = kw
         routine.step = step
         if not dynamic:
             vm.STEPS[orig] = step
+        if src_name == "game" and qualname.startswith("Game.") and qualname.count(".") == 1:
+            _GAME_STEPS[qualname[len("Game."):]] = step
         vm.ROUTINES[id(code)] = routine
         vm.ROUTINES_BY_ID[rid] = routine
         out.append(routine)
@@ -139,8 +144,25 @@ def _function_of(module, qualname: str):
     return getattr(obj, "__func__", obj)
 
 
+# Game's compiled methods by name: the direct calls (`_kfgm_<name>`) the
+# generated code makes on a Game.
+_GAME_STEPS: Dict[str, object] = {}
+
+
+def _link_game(g: dict) -> None:
+    """Gives a module's globals `_kfGame` and `_kfgm_<method>` for every
+    compiled Game method known so far."""
+    from ..game import Game
+
+    g["_kfGame"] = Game
+    for name, step in _GAME_STEPS.items():
+        g["_kfgm_" + name] = step
+
+
 def load_all() -> List[vm.Routine]:
     out = []
     for gen_name, src_name in MODULES:
         out.extend(_load(gen_name, src_name))
+    for g in vm.INJECTED:
+        _link_game(g)
     return out

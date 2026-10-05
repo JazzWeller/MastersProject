@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_anger(_kfN, _kfR):
-  def _kfr_anger(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_anger(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:15 anger
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = creatures = player = _kf_U
@@ -31,7 +31,7 @@ def _kfmk_anger(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no friendly creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight with', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to ready and fight with', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight with', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creatures, player])
@@ -46,7 +46,7 @@ def _kfmk_anger(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.ready_and_fight)(choice[0])
+        _sent = (_kfgm_ready_and_fight(game, choice[0]) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(choice[0]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creatures, player])
@@ -63,7 +63,7 @@ def _kfmk_anger(_kfN, _kfR):
 
 
 def _kfmk_barehanded(_kfN, _kfR):
-  def _kfr_barehanded(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_barehanded(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:28 barehanded
     if _kfF is None:  # a fresh call: Python bound the arguments
         a = area = artifacts = order = owner = _kf_U
@@ -79,7 +79,7 @@ def _kfmk_barehanded(_kfN, _kfR):
         order = artifacts
     if (not _pc and (len(artifacts) > 1)) or _pc == 1:
         if not _pc:
-            _sent = _kf_step(game.order_effects)(card.controller, artifacts, f"{card.name}: choose the order these go to their decks' tops", source_card=card)
+            _sent = (_kfgm_order_effects(game, card.controller, artifacts, f"{card.name}: choose the order these go to their decks' tops", source_card=card) if type(game) is _kfGame else _kf_step(game.order_effects)(card.controller, artifacts, f"{card.name}: choose the order these go to their decks' tops", source_card=card))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, a, area, artifacts, order, owner])
@@ -106,7 +106,7 @@ def _kfmk_barehanded(_kfN, _kfR):
 
 
 def _kfmk_blood_money(_kfN, _kfR):
-  def _kfr_blood_money(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_blood_money(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:49 blood_money
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = options = _kf_U
@@ -121,7 +121,7 @@ def _kfmk_blood_money(_kfN, _kfR):
             steps.shortfall(game, card, 'places nothing: there is no enemy creature in play', 'No enemy creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, opponent, options])
@@ -141,7 +141,7 @@ def _kfmk_blood_money(_kfN, _kfR):
 
 
 def _kfmk_brothers_in_battle(_kfN, _kfR):
-  def _kfr_brothers_in_battle(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_brothers_in_battle(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:62 brothers_in_battle
     if _kfF is None:  # a fresh call: Python bound the arguments
         chosen = player = _kf_U
@@ -152,7 +152,7 @@ def _kfmk_brothers_in_battle(_kfN, _kfR):
     if not _pc:
         player = controller_of(game, card)
     if not _pc:
-        _sent = _kf_step(game.choose_house)(player.id, f'{card.name}: choose a house', list(House))
+        _sent = (_kfgm_choose_house(game, player.id, f'{card.name}: choose a house', list(House)) if type(game) is _kfGame else _kf_step(game.choose_house)(player.id, f'{card.name}: choose a house', list(House)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, chosen, player])
@@ -173,7 +173,7 @@ def _kfmk_brothers_in_battle(_kfN, _kfR):
 
 
 def _kfmk_burn_the_stockpile(_kfN, _kfR):
-  def _kfr_burn_the_stockpile(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_burn_the_stockpile(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:72 burn_the_stockpile
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = _kf_U
@@ -205,7 +205,7 @@ def _kfmk_burn_the_stockpile(_kfN, _kfR):
 
 
 def _kfmk_champions_challenge(_kfN, _kfR):
-  def _kfr_champions_challenge(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_champions_challenge(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:82 champions_challenge
     if _kfF is None:  # a fresh call: Python bound the arguments
         enemy_creatures = friendly_creatures = opponent = player = survivor_enemy = survivor_friendly = _kf_U
@@ -233,7 +233,7 @@ def _kfmk_champions_challenge(_kfN, _kfR):
         _pc = 0
         survivor_enemy = _sent
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)([c for c in enemy_creatures if c is not survivor_enemy])
+        _sent = (_kfgm_destroy_cards(game, [c for c in enemy_creatures if c is not survivor_enemy]) if type(game) is _kfGame else _kf_step(game.destroy_cards)([c for c in enemy_creatures if c is not survivor_enemy]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, enemy_creatures, friendly_creatures, opponent, player, survivor_enemy, survivor_friendly])
@@ -263,7 +263,7 @@ def _kfmk_champions_challenge(_kfN, _kfR):
         _pc = 0
         survivor_friendly = _sent
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)([c for c in friendly_creatures if c is not survivor_friendly])
+        _sent = (_kfgm_destroy_cards(game, [c for c in friendly_creatures if c is not survivor_friendly]) if type(game) is _kfGame else _kf_step(game.destroy_cards)([c for c in friendly_creatures if c is not survivor_friendly]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, enemy_creatures, friendly_creatures, opponent, player, survivor_enemy, survivor_friendly])
@@ -277,7 +277,7 @@ def _kfmk_champions_challenge(_kfN, _kfR):
         _pc = 0
     if (not _pc and (survivor_friendly is not None and (not survivor_friendly.destroyed))) or _pc == 5:
         if not _pc:
-            _sent = _kf_step(game.ready_and_fight)(survivor_friendly)
+            _sent = (_kfgm_ready_and_fight(game, survivor_friendly) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(survivor_friendly))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, enemy_creatures, friendly_creatures, opponent, player, survivor_enemy, survivor_friendly])
@@ -294,7 +294,7 @@ def _kfmk_champions_challenge(_kfN, _kfR):
 
 
 def _kfmk_cowards_end(_kfN, _kfR):
-  def _kfr_cowards_end(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_cowards_end(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:104 cowards_end
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = targets = _kf_U
@@ -306,7 +306,7 @@ def _kfmk_cowards_end(_kfN, _kfR):
         player = controller_of(game, card)
         targets = [c for c in game.all_creatures('any', card) if c.type_object.damage == 0]
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, player, targets])
@@ -326,7 +326,7 @@ def _kfmk_cowards_end(_kfN, _kfR):
 
 
 def _kfmk_follow_the_leader(_kfN, _kfR):
-  def _kfr_follow_the_leader(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_follow_the_leader(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:113 follow_the_leader
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
@@ -356,7 +356,7 @@ def _kfmk_follow_the_leader(_kfN, _kfR):
 
 
 def _kfmk__grant_gain_on_enemy_destroyed_this_turn__handler(_kfN, _kfR):
-  def _kfr__grant_gain_on_enemy_destroyed_this_turn__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__grant_gain_on_enemy_destroyed_this_turn__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:125 _grant_gain_on_enemy_destroyed_this_turn.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -385,7 +385,7 @@ def _kfmk__grant_gain_on_enemy_destroyed_this_turn__handler(_kfN, _kfR):
 
 
 def _kfmk_loot_the_bodies(_kfN, _kfR):
-  def _kfr_loot_the_bodies(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_loot_the_bodies(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:134 loot_the_bodies
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -412,7 +412,7 @@ def _kfmk_loot_the_bodies(_kfN, _kfR):
 
 
 def _kfmk_take_that_smartypants(_kfN, _kfR):
-  def _kfr_take_that_smartypants(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_take_that_smartypants(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:140 take_that_smartypants
     if _kfF is None:  # a fresh call: Python bound the arguments
         a = c = logos_count = opponent = _kf_U
@@ -452,7 +452,7 @@ def _kfmk_take_that_smartypants(_kfN, _kfR):
 
 
 def _kfmk_relentless_assault(_kfN, _kfR):
-  def _kfr_relentless_assault(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_relentless_assault(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:158 relentless_assault
     if _kfF is None:  # a fresh call: Python bound the arguments
         available = choice = cont = i = player = target = used = _kfs0 = _kfi1 = _kf_U
@@ -464,7 +464,7 @@ def _kfmk_relentless_assault(_kfN, _kfR):
         player = controller_of(game, card)
         used = []
     if not _pc:
-        _kfs0 = _kf_seq(range(3))
+        _kfs0 = range(3)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or 1 <= _pc <= 3:
         if not _pc:
@@ -476,7 +476,7 @@ def _kfmk_relentless_assault(_kfN, _kfR):
                 break
         if (not _pc and (i > 0)) or _pc == 1:
             if not _pc:
-                _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: ready and fight with another creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+                _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: ready and fight with another creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: ready and fight with another creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
                 if type(_sent) is _kf_S:
                     if _kfF is None:
                         _kfF = _kf_Frame(_kfR, [game, card, available, choice, cont, i, player, target, used, _kfs0, _kfi1])
@@ -493,7 +493,7 @@ def _kfmk_relentless_assault(_kfN, _kfR):
             if not cont:
                 break
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight with', available, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to ready and fight with', available, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight with', available, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, available, choice, cont, i, player, target, used, _kfs0, _kfi1])
@@ -511,7 +511,7 @@ def _kfmk_relentless_assault(_kfN, _kfR):
             target = choice[0]
             used.append(target)
         if not _pc:
-            _sent = _kf_step(game.ready_and_fight)(target)
+            _sent = (_kfgm_ready_and_fight(game, target) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(target))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, available, choice, cont, i, player, target, used, _kfs0, _kfi1])
@@ -528,7 +528,7 @@ def _kfmk_relentless_assault(_kfN, _kfR):
 
 
 def _kfmk_smith(_kfN, _kfR):
-  def _kfr_smith(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_smith(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:181 smith
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = player = _kf_U
@@ -561,7 +561,7 @@ def _kfmk_smith(_kfN, _kfR):
 
 
 def _kfmk_sound_the_horns(_kfN, _kfR):
-  def _kfr_sound_the_horns(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sound_the_horns(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:192 sound_the_horns
     if _kfF is None:  # a fresh call: Python bound the arguments
         discarded = found = player = top = _kf_U
@@ -607,7 +607,7 @@ def _kfmk_sound_the_horns(_kfN, _kfR):
 
 
 def _kfmk_tremor(_kfN, _kfR):
-  def _kfr_tremor(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_tremor(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:216 tremor
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = n = neighbors = options = target = _kf_U
@@ -621,7 +621,7 @@ def _kfmk_tremor(_kfN, _kfR):
             steps.shortfall(game, card, 'stuns nothing: there are no creatures in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun (with its neighbors)', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to stun (with its neighbors)', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun (with its neighbors)', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, n, neighbors, options, target])
@@ -646,7 +646,7 @@ def _kfmk_tremor(_kfN, _kfR):
 
 
 def _kfmk_unguarded_camp(_kfN, _kfR):
-  def _kfr_unguarded_camp(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_unguarded_camp(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:233 unguarded_camp
     if _kfF is None:  # a fresh call: Python bound the arguments
         available = choice = excess = i = opponent = player = target = used = _kfs0 = _kfi1 = _kf_U
@@ -663,7 +663,7 @@ def _kfmk_unguarded_camp(_kfN, _kfR):
             return
         used = []
     if not _pc:
-        _kfs0 = _kf_seq(range(excess))
+        _kfs0 = range(excess)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or _pc == 1:
         if not _pc:
@@ -674,7 +674,7 @@ def _kfmk_unguarded_camp(_kfN, _kfR):
             if not available:
                 break
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to capture 1Æ ({i + 1}/{excess})', available, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to capture 1Æ ({i + 1}/{excess})', available, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to capture 1Æ ({i + 1}/{excess})', available, 1, 1, source_card=card, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, available, choice, excess, i, opponent, player, target, used, _kfs0, _kfi1])
@@ -696,7 +696,7 @@ def _kfmk_unguarded_camp(_kfN, _kfR):
 
 
 def _kfmk_warsong(_kfN, _kfR):
-  def _kfr_warsong(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_warsong(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:254 warsong
     if _kfF is None:  # a fresh call: Python bound the arguments
         handler = _kf_U
@@ -726,7 +726,7 @@ def _kfmk_warsong(_kfN, _kfR):
 
 
 def _kfmk_warsong__handler(_kfN, _kfR):
-  def _kfr_warsong__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_warsong__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:255 warsong.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -755,7 +755,7 @@ def _kfmk_warsong__handler(_kfN, _kfR):
 
 
 def _kfmk_autocannon_register__handler(_kfN, _kfR):
-  def _kfr_autocannon_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_autocannon_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:269 autocannon_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         entered = _kf_U
@@ -767,7 +767,7 @@ def _kfmk_autocannon_register__handler(_kfN, _kfR):
         entered = event['card']
         steps.deal_damage(g, entered, 1)
     if not _pc:
-        _sent = _kf_step(g.check_destroyed)([entered])
+        _sent = (_kfgm_check_destroyed(g, [entered]) if type(g) is _kfGame else _kf_step(g.check_destroyed)([entered]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, entered])
@@ -784,7 +784,7 @@ def _kfmk_autocannon_register__handler(_kfN, _kfR):
 
 
 def _kfmk_gauntlet_of_command(_kfN, _kfR):
-  def _kfr_gauntlet_of_command(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_gauntlet_of_command(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:284 gauntlet_of_command
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = creatures = player = _kf_U
@@ -799,7 +799,7 @@ def _kfmk_gauntlet_of_command(_kfN, _kfR):
             steps.shortfall(game, card, 'has no friendly creature to ready and fight with', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight with', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a friendly creature to ready and fight with', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a friendly creature to ready and fight with', creatures, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creatures, player])
@@ -814,7 +814,7 @@ def _kfmk_gauntlet_of_command(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.ready_and_fight)(choice[0])
+        _sent = (_kfgm_ready_and_fight(game, choice[0]) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(choice[0]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, creatures, player])
@@ -831,7 +831,7 @@ def _kfmk_gauntlet_of_command(_kfN, _kfR):
 
 
 def _kfmk_mighty_javelin(_kfN, _kfR):
-  def _kfr_mighty_javelin(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mighty_javelin(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:309 mighty_javelin
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -858,7 +858,7 @@ def _kfmk_mighty_javelin(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: deal 4 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: deal 4 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: deal 4 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -875,7 +875,7 @@ def _kfmk_mighty_javelin(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(game, choice[0], 4)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -892,7 +892,7 @@ def _kfmk_mighty_javelin(_kfN, _kfR):
 
 
 def _kfmk_pile_of_skulls_register__handler(_kfN, _kfR):
-  def _kfr_pile_of_skulls_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_pile_of_skulls_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:324 pile_of_skulls_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = destroyed_card = friendly = _kf_U
@@ -911,7 +911,7 @@ def _kfmk_pile_of_skulls_register__handler(_kfN, _kfR):
         if not friendly:
             return
     if not _pc:
-        _sent = _kf_step(g.choose_cards)(_kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: choose a friendly creature to capture 1Æ', friendly, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(g, _kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: choose a friendly creature to capture 1Æ', friendly, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY) if type(g) is _kfGame else _kf_step(g.choose_cards)(_kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: choose a friendly creature to capture 1Æ', friendly, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.CAPTURE, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, choice, destroyed_card, friendly, _kfc_card])
@@ -931,7 +931,7 @@ def _kfmk_pile_of_skulls_register__handler(_kfN, _kfR):
 
 
 def _kfmk_screechbomb(_kfN, _kfR):
-  def _kfr_screechbomb(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_screechbomb(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:342 screechbomb
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -957,7 +957,7 @@ def _kfmk_screechbomb(_kfN, _kfR):
 
 
 def _kfmk_the_warchest(_kfN, _kfR):
-  def _kfr_the_warchest(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_the_warchest(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:347 the_warchest
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = opponent = _kf_U
@@ -988,7 +988,7 @@ def _kfmk_the_warchest(_kfN, _kfR):
 
 
 def _kfmk_bilgum_avalanche_register__handler(_kfN, _kfR):
-  def _kfr_bilgum_avalanche_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_bilgum_avalanche_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:359 bilgum_avalanche_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -1004,7 +1004,7 @@ def _kfmk_bilgum_avalanche_register__handler(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(g, t, 2)
     if not _pc:
-        _sent = _kf_step(g.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(g, targets) if type(g) is _kfGame else _kf_step(g.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, t, targets, _kfc_card])
@@ -1021,7 +1021,7 @@ def _kfmk_bilgum_avalanche_register__handler(_kfN, _kfR):
 
 
 def _kfmk_earthshaker(_kfN, _kfR):
-  def _kfr_earthshaker(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_earthshaker(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:382 earthshaker
     if _kfF is None:  # a fresh call: Python bound the arguments
         targets = _kf_U
@@ -1035,7 +1035,7 @@ def _kfmk_earthshaker(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: no creature has power 3 or lower', 'No low-power creature')
             return
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, targets])
@@ -1052,7 +1052,7 @@ def _kfmk_earthshaker(_kfN, _kfR):
 
 
 def _kfmk_firespitter_before_fight(_kfN, _kfR):
-  def _kfr_firespitter_before_fight(game=_kf_U, card=_kf_U, target=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_firespitter_before_fight(game=_kf_U, card=_kf_U, target=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:390 firespitter_before_fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -1082,7 +1082,7 @@ def _kfmk_firespitter_before_fight(_kfN, _kfR):
 
 
 def _kfmk_ganger_chieftain_play(_kfN, _kfR):
-  def _kfr_ganger_chieftain_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_ganger_chieftain_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:398 ganger_chieftain_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = do_it = neighbors = player = _kf_U
@@ -1097,7 +1097,7 @@ def _kfmk_ganger_chieftain_play(_kfN, _kfR):
         if not neighbors:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: ready and fight with a neighboring creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: ready and fight with a neighboring creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: ready and fight with a neighboring creature?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, neighbors, player])
@@ -1115,7 +1115,7 @@ def _kfmk_ganger_chieftain_play(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a neighboring creature', neighbors, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a neighboring creature', neighbors, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a neighboring creature', neighbors, 1, 1, source_card=card, intent=DecisionIntent.READY, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, neighbors, player])
@@ -1130,7 +1130,7 @@ def _kfmk_ganger_chieftain_play(_kfN, _kfR):
         _pc = 0
         choice = _sent
     if not _pc:
-        _sent = _kf_step(game.ready_and_fight)(choice[0])
+        _sent = (_kfgm_ready_and_fight(game, choice[0]) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(choice[0]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, do_it, neighbors, player])
@@ -1147,7 +1147,7 @@ def _kfmk_ganger_chieftain_play(_kfN, _kfR):
 
 
 def _kfmk_hebe_the_huge(_kfN, _kfR):
-  def _kfr_hebe_the_huge(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_hebe_the_huge(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:417 hebe_the_huge
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -1163,7 +1163,7 @@ def _kfmk_hebe_the_huge(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, t, targets])
@@ -1180,7 +1180,7 @@ def _kfmk_hebe_the_huge(_kfN, _kfR):
 
 
 def _kfmk_kelifi_dragon_after(_kfN, _kfR):
-  def _kfr_kelifi_dragon_after(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_kelifi_dragon_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:427 kelifi_dragon_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1195,7 +1195,7 @@ def _kfmk_kelifi_dragon_after(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: deal 5 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: deal 5 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: deal 5 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1212,7 +1212,7 @@ def _kfmk_kelifi_dragon_after(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(game, choice[0], 5)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1229,7 +1229,7 @@ def _kfmk_kelifi_dragon_after(_kfN, _kfR):
 
 
 def _kfmk_krump_on_destroyed_fighting(_kfN, _kfR):
-  def _kfr_krump_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_krump_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:450 krump_on_destroyed_fighting
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1256,7 +1256,7 @@ def _kfmk_krump_on_destroyed_fighting(_kfN, _kfR):
 
 
 def _kfmk_lomir_flamefist(_kfN, _kfR):
-  def _kfr_lomir_flamefist(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lomir_flamefist(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:456 lomir_flamefist
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = _kf_U
@@ -1288,7 +1288,7 @@ def _kfmk_lomir_flamefist(_kfN, _kfR):
 
 
 def _kfmk_mugwump_on_destroyed_fighting(_kfN, _kfR):
-  def _kfr_mugwump_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mugwump_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:466 mugwump_on_destroyed_fighting
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1316,7 +1316,7 @@ def _kfmk_mugwump_on_destroyed_fighting(_kfN, _kfR):
 
 
 def _kfmk_pingle_who_annoys_register__handler(_kfN, _kfR):
-  def _kfr_pingle_who_annoys_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_pingle_who_annoys_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:474 pingle_who_annoys_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         entered = _kf_U
@@ -1331,7 +1331,7 @@ def _kfmk_pingle_who_annoys_register__handler(_kfN, _kfR):
         if not _pc:
             steps.deal_damage(g, entered, 1)
         if not _pc:
-            _sent = _kf_step(g.check_destroyed)([entered])
+            _sent = (_kfgm_check_destroyed(g, [entered]) if type(g) is _kfGame else _kf_step(g.check_destroyed)([entered]))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [g, event, entered, _kfc_card])
@@ -1348,7 +1348,7 @@ def _kfmk_pingle_who_annoys_register__handler(_kfN, _kfR):
 
 
 def _kfmk_rock_hurling_giant_register__handler(_kfN, _kfR):
-  def _kfr_rock_hurling_giant_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_rock_hurling_giant_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:484 rock_hurling_giant_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = discarded = do_it = options = _kf_U
@@ -1367,7 +1367,7 @@ def _kfmk_rock_hurling_giant_register__handler(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(g.yes_no)(_kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: deal 4 damage to a creature?', source_card=_kfc_card.cell_contents, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(g, _kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: deal 4 damage to a creature?', source_card=_kfc_card.cell_contents, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(g) is _kfGame else _kf_step(g.yes_no)(_kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: deal 4 damage to a creature?', source_card=_kfc_card.cell_contents, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, choice, discarded, do_it, options, _kfc_card])
@@ -1385,7 +1385,7 @@ def _kfmk_rock_hurling_giant_register__handler(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(g.choose_cards)(_kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: choose a creature', options, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(g, _kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: choose a creature', options, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(g) is _kfGame else _kf_step(g.choose_cards)(_kfc_card.cell_contents.controller, f'{_kfc_card.cell_contents.name}: choose a creature', options, 1, 1, source_card=_kfc_card.cell_contents, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, choice, discarded, do_it, options, _kfc_card])
@@ -1402,7 +1402,7 @@ def _kfmk_rock_hurling_giant_register__handler(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(g, choice[0], 4)
     if not _pc:
-        _sent = _kf_step(g.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(g, choice) if type(g) is _kfGame else _kf_step(g.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [g, event, choice, discarded, do_it, options, _kfc_card])
@@ -1419,7 +1419,7 @@ def _kfmk_rock_hurling_giant_register__handler(_kfN, _kfR):
 
 
 def _kfmk_rogue_ogre_register__handler(_kfN, _kfR):
-  def _kfr_rogue_ogre_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_rogue_ogre_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:510 rogue_ogre_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
@@ -1452,7 +1452,7 @@ def _kfmk_rogue_ogre_register__handler(_kfN, _kfR):
 
 
 def _kfmk_smaaash(_kfN, _kfR):
-  def _kfr_smaaash(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_smaaash(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:522 smaaash
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1466,7 +1466,7 @@ def _kfmk_smaaash(_kfN, _kfR):
             steps.shortfall(game, card, 'stuns nothing: there are no creatures in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1486,7 +1486,7 @@ def _kfmk_smaaash(_kfN, _kfR):
 
 
 def _kfmk_tireless_crocag_play(_kfN, _kfR):
-  def _kfr_tireless_crocag_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_tireless_crocag_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:534 tireless_crocag_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = _kf_U
@@ -1498,7 +1498,7 @@ def _kfmk_tireless_crocag_play(_kfN, _kfR):
         opponent = opponent_of(game, card)
     if (not _pc and (not opponent.play_area.creatures)) or _pc == 1:
         if not _pc:
-            _sent = _kf_step(game.destroy_cards)([card])
+            _sent = (_kfgm_destroy_cards(game, [card]) if type(game) is _kfGame else _kf_step(game.destroy_cards)([card]))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, opponent])
@@ -1515,7 +1515,7 @@ def _kfmk_tireless_crocag_play(_kfN, _kfR):
 
 
 def _kfmk_tireless_crocag_register__handler(_kfN, _kfR):
-  def _kfr_tireless_crocag_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_tireless_crocag_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:541 tireless_crocag_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         destroyed_card = opponent_id = _kf_U
@@ -1533,7 +1533,7 @@ def _kfmk_tireless_crocag_register__handler(_kfN, _kfR):
             return
     if (not _pc and (not g.players[opponent_id].play_area.creatures)) or _pc == 1:
         if not _pc:
-            _sent = _kf_step(g.destroy_cards)([_kfc_card.cell_contents])
+            _sent = (_kfgm_destroy_cards(g, [_kfc_card.cell_contents]) if type(g) is _kfGame else _kf_step(g.destroy_cards)([_kfc_card.cell_contents]))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [g, event, destroyed_card, opponent_id, _kfc_card])
@@ -1550,7 +1550,7 @@ def _kfmk_tireless_crocag_register__handler(_kfN, _kfR):
 
 
 def _kfmk_wardrummer(_kfN, _kfR):
-  def _kfr_wardrummer(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_wardrummer(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:554 wardrummer
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = t = targets = _kf_U
@@ -1584,7 +1584,7 @@ def _kfmk_wardrummer(_kfN, _kfR):
 
 
 def _kfmk__phoenix_heart_effect(_kfN, _kfR):
-  def _kfr__phoenix_heart_effect(game=_kf_U, host_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__phoenix_heart_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:580 _phoenix_heart_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -1598,7 +1598,7 @@ def _kfmk__phoenix_heart_effect(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 3)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, host_card, t, targets])
@@ -1615,7 +1615,7 @@ def _kfmk__phoenix_heart_effect(_kfN, _kfR):
 
 
 def _kfmk_yo_mama_mastery_play(_kfN, _kfR):
-  def _kfr_yo_mama_mastery_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_yo_mama_mastery_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/brobnar.py:588 yo_mama_mastery_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         host = _kf_U

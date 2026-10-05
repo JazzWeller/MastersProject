@@ -550,17 +550,39 @@ class CompiledRoutine:
         ast.fix_missing_locations(n2)
         return ast.unparse(n2)
 
+    def call_expr(self, call: ast.Call) -> str:
+        """`yield from f(args)` as a call of f's routine with the original
+        arguments. `x.m(args)` with `m` a compiled method of `Game` goes
+        straight to Game's routine when `x` really is a Game -- no lookup and
+        no bound methods -- and through `_kf_step` otherwise."""
+        generic = self.expr(ast.Call(ast.Call(ast.Name("_kf_step", ast.Load()), [call.func], []), call.args, call.keywords))
+        f = call.func
+        if (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.attr in GAME_ROUTINES):
+            obj = self.expr(f.value)
+            direct = self.expr(ast.Call(ast.Name(f"_kfgm_{f.attr}", ast.Load()), [f.value] + call.args, call.keywords))
+            return f"({direct} if type({obj}) is _kfGame else {generic})"
+        return generic
+
+    def seq_expr(self, it: ast.expr) -> str:
+        """What a suspending `for` loop iterates by index: the iterable itself
+        when it is visibly a list, tuple or range, else `_kf_seq(...)`."""
+        known = isinstance(it, (ast.List, ast.Tuple)) or (
+            isinstance(it, ast.Call) and isinstance(it.func, ast.Name) and it.func.id in ("list", "tuple", "range", "sorted")
+            and it.func.id not in self.fc.params and it.func.id not in self.fc.locals)
+        return self.expr(it) if known else f"_kf_seq({self.expr(it)})"
+
     def signature(self) -> str:
         """The original parameters, each with a placeholder default (the
         loader installs the original's own defaults; a resumed frame passes
-        none), then `_kfF` (the frame being resumed, None for a fresh call),
-        `_sent` (what it was waiting for) and, for a nested function,
-        `_kf_closure` (the cells it closes over)."""
+        none), then `_kfF` (the frame being resumed, None for a fresh call)
+        and `_sent` (what it was waiting for) -- positional, so a fresh call
+        fills them from the defaults tuple, not by name -- and, for a nested
+        function, `_kf_closure` (the cells it closes over)."""
         a = self.fc.func.args
         params = [f"{p.arg}=_kf_U" for p in a.args]
-        params.append("*")
+        params += ["_kfF=None", "_sent=None", "*"]
         params += [f"{p.arg}=_kf_U" for p in a.kwonlyargs]
-        params += ["_kfF=None", "_sent=None", "_kf_closure=None"]
+        params += ["_kf_closure=None"]
         return ", ".join(params)
 
     def _suspend_here(self, k: int, what: str) -> List[str]:
@@ -625,8 +647,7 @@ class CompiledRoutine:
                 # the callee, with the ORIGINAL arguments: `_kf_step(f)` is
                 # its routine (or a native runner), called as `f` would be
                 call = y.value
-                callee = ast.Call(ast.Call(ast.Name("_kf_step", ast.Load()), [call.func], []), call.args, call.keywords)
-                out.append(f"{i2}_sent = {self.expr(callee)}")
+                out.append(f"{i2}_sent = {self.call_expr(call)}")
                 out.append(f"{i2}if type(_sent) is _kf_S:")
                 out.extend(i2 + "    " + ln for ln in self._suspend_here(k, "_sent"))
                 out.extend(i2 + ln for ln in self._consume(s))
@@ -663,7 +684,7 @@ class CompiledRoutine:
         if isinstance(s, ast.For):
             seq, idx = fc.for_temps[id(s)]
             out.append(f"{ind}if not _pc:")
-            out.append(f"{i2}{seq} = _kf_seq({self.expr(s.iter)})")
+            out.append(f"{i2}{seq} = {self.seq_expr(s.iter)}")
             out.append(f"{i2}{idx} = 0")
             out.append(f"{ind}while (not _pc and {idx} < len({seq})) or {_in(r)}:")
             out.append(f"{i2}if not _pc:")
@@ -735,6 +756,20 @@ def _in(r: Tuple[int, int]) -> str:
 
 
 # --------------------------------------------------------------- modules ----
+
+
+def _game_routines() -> frozenset:
+    """The generator methods of `Game` (keyforge/game.py): the calls
+    `CompiledRoutine.call_expr` sends straight to Game's routine."""
+    with open(os.path.join(PACKAGE_DIR, "game.py"), encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == "Game":
+            return frozenset(n.name for n in node.body if isinstance(n, ast.FunctionDef) and own_yields(n))
+    return frozenset()
+
+
+GAME_ROUTINES = _game_routines()
 
 
 def _generator_functions(tree: ast.Module) -> List[Tuple[str, ast.FunctionDef, List[str]]]:

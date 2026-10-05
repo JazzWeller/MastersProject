@@ -40,10 +40,70 @@ from .log import GameLog, LogEvent
 _ATOMS = (type(None), bool, int, float, complex, str, bytes, range, type, types.ModuleType, types.BuiltinFunctionType,
           types.CodeType, CardDef, LogEvent, vm.Routine, type(vm.UNBOUND))
 _ACTIONS = (DiscardCard, Fight, PlayCard, Reap, UseAction, UseOmni)
+# Types whose values are shared, never copied: `_ATOMS`, plus each enum class
+# as it is first met.
+_ATOM_TYPES = set(_ATOMS)
 
 
 class UncopyableState(TypeError):
     pass
+
+
+def container_index(game) -> Dict[int, tuple]:
+    """id() of each of `game`'s own containers -> where it lives (a key of
+    `_RESOLVE` and its arguments). Cached on the game until it changes: a
+    search copies the same root once per simulation, and builds this once."""
+    stamp = (len(game.choice_record), len(game.log.events), id(game.pending_decision))
+    cached = game.__dict__.get("_container_index")
+    if cached is not None and cached[0] == stamp:
+        return cached[1]
+    idx: Dict[int, tuple] = {}
+    for pid, p in game.players.items():
+        idx[id(p.all_cards)] = ("all_cards", pid)
+        for attr in ("hand", "discard", "archive", "purged", "deck"):
+            z = getattr(p, attr)
+            idx[id(z)] = ("zone", pid, attr)
+            idx[id(z._cards)] = ("zone_cards", pid, attr)
+        idx[id(p.play_area)] = ("play_area", pid)
+        idx[id(p.play_area.creatures)] = ("creatures", pid)
+        idx[id(p.play_area.artifacts)] = ("artifacts", pid)
+        for attr in ("CardsPlayed", "used_this_turn", "ExtraHousePlayable", "hand_revealed_to"):
+            idx[id(getattr(p, attr))] = ("player_attr", pid, attr)
+    for iid, c in game._cards_by_id.items():
+        idx[id(c.under_cards)] = ("under", iid)
+        idx[id(c.extra_triggers)] = ("extra", iid)
+        for k, v in c.extra_triggers.items():
+            idx[id(v)] = ("extra_list", iid, k)
+        ups = getattr(c.type_object, "upgrades", None)
+        if ups is not None:
+            idx[id(ups)] = ("upgrades", iid)
+    idx[id(game.log)] = ("log",)
+    idx[id(game.log.events)] = ("log_events",)
+    for attr in ("choice_log", "choice_record", "_rng_counters", "_temp_control", "_end_of_turn_cleanups",
+                 "_redirected_hits", "_player_houses_cache", "_cards_by_id"):
+        idx[id(getattr(game, attr))] = ("game_attr", attr)
+    if game.result is not None:
+        idx[id(game.result)] = ("game_attr", "result")
+    game.__dict__["_container_index"] = (stamp, idx)
+    return idx
+
+
+_RESOLVE = {
+    "all_cards": lambda g, pid: g.players[pid].all_cards,
+    "zone": lambda g, pid, attr: getattr(g.players[pid], attr),
+    "zone_cards": lambda g, pid, attr: getattr(g.players[pid], attr)._cards,
+    "play_area": lambda g, pid: g.players[pid].play_area,
+    "creatures": lambda g, pid: g.players[pid].play_area.creatures,
+    "artifacts": lambda g, pid: g.players[pid].play_area.artifacts,
+    "player_attr": lambda g, pid, attr: getattr(g.players[pid], attr),
+    "under": lambda g, iid: g._cards_by_id[iid].under_cards,
+    "extra": lambda g, iid: g._cards_by_id[iid].extra_triggers,
+    "extra_list": lambda g, iid, k: g._cards_by_id[iid].extra_triggers[k],
+    "upgrades": lambda g, iid: g._cards_by_id[iid].type_object.upgrades,
+    "log": lambda g: g.log,
+    "log_events": lambda g: g.log.events,
+    "game_attr": lambda g, attr: getattr(g, attr),
+}
 
 
 class Remapper:
@@ -51,50 +111,19 @@ class Remapper:
         self.old = old_game
         self.new = new_game
         self.memo = memo
-        self._containers_done = False
+        self._index = None
 
-    # Engine-owned containers, paired up only once something needs one.
-    def _seed_containers(self) -> None:
-        if self._containers_done:
-            return
-        self._containers_done = True
-        memo = self.memo
-        old, new = self.old, self.new
-
-        def pair(a, b):
-            if id(a) not in memo:
-                memo[id(a)] = b
-
-        for pid, op in old.players.items():
-            np = new.players[pid]
-            pair(op.all_cards, np.all_cards)
-            for attr in ("hand", "discard", "archive", "purged"):
-                oz, nz = getattr(op, attr), getattr(np, attr)
-                pair(oz, nz)
-                pair(oz._cards, nz._cards)
-            pair(op.deck, np.deck)
-            pair(op.deck._cards, np.deck._cards)
-            pair(op.play_area, np.play_area)
-            pair(op.play_area.creatures, np.play_area.creatures)
-            pair(op.play_area.artifacts, np.play_area.artifacts)
-            for attr in ("CardsPlayed", "used_this_turn", "ExtraHousePlayable", "hand_revealed_to"):
-                pair(getattr(op, attr), getattr(np, attr))
-        for iid, oc in old._cards_by_id.items():
-            nc = new._cards_by_id[iid]
-            pair(oc.under_cards, nc.under_cards)
-            pair(oc.extra_triggers, nc.extra_triggers)
-            for k, v in oc.extra_triggers.items():
-                pair(v, nc.extra_triggers[k])
-            ups = getattr(oc.type_object, "upgrades", None)
-            if ups is not None:
-                pair(ups, nc.type_object.upgrades)
-        pair(old.log, new.log)
-        pair(old.log.events, new.log.events)
-        for attr in ("choice_log", "choice_record", "_rng_counters", "_temp_control", "_end_of_turn_cleanups",
-                     "_redirected_hits", "_player_houses_cache", "_cards_by_id"):
-            pair(getattr(old, attr), getattr(new, attr))
-        if old.result is not None and new.result is not None:
-            pair(old.result, new.result)
+    def _engine_container(self, x):
+        """The copy's counterpart of `x` if `x` is one of the old game's own
+        containers (a zone's list, a battleline, a player's dict, the log's
+        event list, ...), else None."""
+        index = self._index
+        if index is None:
+            index = self._index = container_index(self.old)
+        where = index.get(id(x))
+        if where is None:
+            return None
+        return _RESOLVE[where[0]](self.new, *where[1:])
 
     def seed_effects(self) -> None:
         """Pairs the effect lists, once the copy has them."""
@@ -107,16 +136,19 @@ class Remapper:
 
     def remap(self, x):
         t = type(x)
-        if t in _ATOMS or isinstance(x, Enum):
+        if t in _ATOM_TYPES:
+            return x
+        if isinstance(x, Enum):
+            _ATOM_TYPES.add(t)  # an enum class: its members are shared
             return x
         memo = self.memo
         hit = memo.get(id(x))
         if hit is not None:
             return hit
         if t is list:
-            self._seed_containers()
-            hit = memo.get(id(x))
+            hit = self._engine_container(x)
             if hit is not None:
+                memo[id(x)] = hit
                 return hit
             out = []
             memo[id(x)] = out
@@ -126,9 +158,9 @@ class Remapper:
             items = tuple(self.remap(v) for v in x)
             return x if all(a is b for a, b in zip(items, x)) else items
         if t is dict:
-            self._seed_containers()
-            hit = memo.get(id(x))
+            hit = self._engine_container(x)
             if hit is not None:
+                memo[id(x)] = hit
                 return hit
             out = {}
             memo[id(x)] = out
@@ -139,17 +171,17 @@ class Remapper:
             items = [self.remap(v) for v in x]
             return x if all(a is b for a, b in zip(items, x)) else frozenset(items)
         if t is set:
-            self._seed_containers()
-            hit = memo.get(id(x))
+            hit = self._engine_container(x)
             if hit is not None:
+                memo[id(x)] = hit
                 return hit
             out = set(self.remap(v) for v in x)
             memo[id(x)] = out
             return out
         if t is deque:
-            self._seed_containers()
-            hit = memo.get(id(x))
+            hit = self._engine_container(x)
             if hit is not None:
+                memo[id(x)] = hit
                 return hit
             out = deque()
             memo[id(x)] = out
@@ -196,6 +228,10 @@ class Remapper:
             out.setstate(x.getstate())
             memo[id(x)] = out
             return out
+        hit = self._engine_container(x)  # a zone, a play area, the log
+        if hit is not None:
+            memo[id(x)] = hit
+            return hit
         if isinstance(x, (Card, TypeObject, GameLog)):
             raise UncopyableState(f"{t.__name__} {x!r} is not one of this game's own objects")
         if dataclasses.is_dataclass(x) and not isinstance(x, type):
@@ -233,6 +269,15 @@ class Remapper:
         out = vm.Frame(fr.routine, [])
         self.memo[id(fr)] = out
         remap = self.remap
-        out.L = [remap(v) for v in fr.L]  # the slot list itself is the frame's own
+        memo = self.memo
+        atoms = _ATOM_TYPES
+        L = []  # the slot list itself is the frame's own
+        for v in fr.L:
+            if type(v) in atoms:
+                L.append(v)
+            else:
+                hit = memo.get(id(v))
+                L.append(hit if hit is not None else remap(v))
+        out.L = L
         out.pc = fr.pc
         return out
