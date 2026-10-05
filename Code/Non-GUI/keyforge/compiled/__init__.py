@@ -41,6 +41,12 @@ class StaleCompiledModule(RuntimeError):
     pass
 
 
+def source_digest(raw: bytes) -> str:
+    """SHA-256 of a source file, line endings normalized: a checkout with
+    CRLF endings (Windows, autocrlf) and one with LF must agree."""
+    return hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+
+
 def _resolve(module, qualname: str, line: int) -> types.CodeType:
     """The code object of the function `qualname` (first line `line`) in
     `module`: an attribute path for a top-level function or method, then a
@@ -79,7 +85,7 @@ def _load(gen_name: str, src_name: str) -> List[vm.Routine]:
     target = importlib.import_module(f"keyforge.{src_name}")
     path = os.path.join(_PACKAGE_DIR, *src_name.split(".")) + ".py"
     with open(path, "rb") as f:
-        digest = hashlib.sha256(f.read()).hexdigest()
+        digest = source_digest(f.read())
     if digest != gen.SOURCE_SHA256:
         raise StaleCompiledModule(f"keyforge/compiled/{gen_name}.py is stale for {gen.SOURCE}: run python -m tools.compile_engine")
     return register(gen.ROUTINES, target, src_name)

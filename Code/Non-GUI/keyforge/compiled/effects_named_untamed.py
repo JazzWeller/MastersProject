@@ -7,7 +7,7 @@ Each pausing function of the source, as a routine for keyforge/vm.py's Machine:
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/untamed.py'
-SOURCE_SHA256 = '3ec894ce00adafa40065ef033f3beffd1bba42dbf6d0af8ad5bbe1b53de9be4e'
+SOURCE_SHA256 = 'e15db8a951d81d8d06ca8ca7edda78d44a3dd997f2907914f6d2dcc87340dc44'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.

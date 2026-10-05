@@ -7,7 +7,7 @@ Each pausing function of the source, as a routine for keyforge/vm.py's Machine:
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/mars.py'
-SOURCE_SHA256 = 'f7b5f7411f29ae98ac621d6b65fb2d573677c1f56223b2b802067d9a4ab2b5b5'
+SOURCE_SHA256 = 'fa313b9ef3e0127cce00daa3dd9376525e87626c48105a111af7c41923b2aadc'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.

@@ -7,7 +7,7 @@ Each pausing function of the source, as a routine for keyforge/vm.py's Machine:
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/brobnar.py'
-SOURCE_SHA256 = '158b3cc0a67144100c9b7833c0704cfe69ecc5667cc821c2df35c3ce508c6422'
+SOURCE_SHA256 = 'b06cde30b12da79c3e2921765623bdf4ae984e4e93a104686689d5794e0bdacc'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.

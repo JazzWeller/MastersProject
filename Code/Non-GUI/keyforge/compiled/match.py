@@ -7,7 +7,7 @@ Each pausing function of the source, as a routine for keyforge/vm.py's Machine:
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/match.py'
-SOURCE_SHA256 = 'fc524bbdc783c7d97836f0fd0b84e99ffd2a8bfa74285b321590cd67f0f45aa4'
+SOURCE_SHA256 = '984d97dae3e3af8bbe04634932481b5a700861ad25b65672a735cb0212afdd6f'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.

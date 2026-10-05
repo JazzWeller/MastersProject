@@ -7,7 +7,7 @@ Each pausing function of the source, as a routine for keyforge/vm.py's Machine:
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/dis.py'
-SOURCE_SHA256 = '5d13ef8824372c4ce869cf37081534e5eb66a9af181396cb109c3d62ab72cdff'
+SOURCE_SHA256 = '8337b7462dd20fc7fe7686145820bff6d48562d30af64105f1ac03e783e0e6a3'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.

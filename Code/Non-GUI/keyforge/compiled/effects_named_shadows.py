@@ -7,7 +7,7 @@ Each pausing function of the source, as a routine for keyforge/vm.py's Machine:
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/shadows.py'
-SOURCE_SHA256 = 'ee566ded138c7267b546b802f75c2dc3641239b32376fb4736f5580bd15191ec'
+SOURCE_SHA256 = 'f8188bdf2f7843516c789c49f97fa33dfead3004df4cca298d6f1ed8f385c55d'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.

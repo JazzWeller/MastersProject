@@ -7,7 +7,7 @@ Each pausing function of the source, as a routine for keyforge/vm.py's Machine:
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/sanctum.py'
-SOURCE_SHA256 = '2981b894ad1a43822f620a1eafc60f9410d89a56a6112626c28f5bb755e22cc5'
+SOURCE_SHA256 = '071280b67a7edac8ba59791f6b1c57a17b13c1d05917546d95be6c10f666de87'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
