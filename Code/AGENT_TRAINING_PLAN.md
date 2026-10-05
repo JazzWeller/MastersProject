@@ -270,6 +270,19 @@ per-tier commands are in `Code/Non-GUI/README.md` ("Agents and training").
     searches per second.
   - **The BC trainer and the learner compile the trunk** (`compile: true`): +22% samples per second
     end to end, 13,506 at batch 512.
+  - **The trunk's attention calls `scaled_dot_product_attention` directly** (`ml/layers.py`,
+    `network.attention: sdpa`, the default since 2026-10-05).
+    - It computes the same function as `nn.TransformerEncoderLayer`, with the same checkpoint
+      keys. The Tier 0 checkpoint gives the same answers in either layer (max value difference
+      3e-7).
+    - Gains: +3–8% BC samples/s, +6–25% inference (70k evaluations/s at batch 512 in the M2
+      test), and +45–52% training at 400 tokens.
+    - `attention: torch` keeps the old layer.
+  - **Memory options for larger networks:** `activation_checkpointing` and `micro_batch` (gradient
+    accumulation with the whole batch's gradient), in both the BC trainer and the learner.
+    - The 8 GiB GPU then trains up to 68M parameters at 73 tokens.
+    - Each option costs 8–15% of samples/s, so both are off by default. Numbers are in the
+      observation plan, O7 "Capacity".
   - **G5's games-per-hour reference** should be re-measured with these defaults when self-play
     resumes.
 

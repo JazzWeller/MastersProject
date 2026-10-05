@@ -7,6 +7,8 @@
   assembly;
 - faster search forks (cached boundary snapshots, a cheaper copy) and CUDA graphs in the inference
   server, ahead of Part R.
+- O7's attention layer (`ml/layers.py`, now the default) and O7's memory options for larger
+  networks: activation checkpointing and gradient accumulation (`micro_batch`), 2026-10-05.
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
@@ -707,6 +709,10 @@ the turn number. There is no table, so no cap.
 
 **Attention** uses `scaled_dot_product_attention` with padding masks, and sequences are bucketed by
 length within batches.
+- The layer is built: `ml/layers.py`'s `FastEncoderLayer`, already v1's default trunk
+  (`network.attention: sdpa`, 2026-10-05). v2 adds the padding and block-causal masks to it.
+- The flash kernel takes no arbitrary mask, so a masked batch runs on cuDNN or the memory-efficient
+  kernel. This is a second reason to bucket by length: a full bucket needs no mask.
 
 **History architectures** (`model.history_arch`), all built:
 - **`joint`:** history tokens are ordinary tokens in the trunk. This is the most expressive, and
@@ -729,8 +735,40 @@ which means uncapped.
   and next card played. These targets reward using the history.
 
 **Capacity.** Re-run the M3 capacity ladder on v2 inputs, since more inputs may need more width or
-depth. Activation checkpointing and gradient accumulation are available for memory; they change the
-cost, not the model.
+depth.
+- **The ladder is 128/4, 192/6, 256/8, 384/8 and 512/12** (`d_model`/layers), crossed with the
+  history architectures.
+- **Measure it on targets that can show a difference:**
+  - value log-loss, split into mid-turn and boundary positions;
+  - agreement with a 1,000-simulation search, since BC on HeuristicBot saturates at ~0.91 for every
+    size Screen 4 tried;
+  - search win rate at equal wall time.
+- **The GPU has 8 GiB**, shared between the learner and the inference server during self-play.
+  Activation checkpointing (`activation_checkpointing`) and gradient accumulation (`micro_batch`)
+  are built (2026-10-05). They change the cost, not the model; tests hold both to the plain path's
+  losses and gradients.
+- **Measured on real BC steps at 73 tokens** (Tier 0 corpus, batch 512, bf16, compiled):
+
+  | `d_model` / layers | Params | Plain | Checkpointing | Pieces of 256 |
+  |---|---|---|---|---|
+  | 128 / 4 | 1.0M | 17.4k samples/s, 0.82 GiB | 16.0k, 0.43 GiB | — |
+  | 256 / 8 | 5.7M | 6.7k, 2.70 GiB | 5.8k, 0.97 GiB | 6.0k, 1.45 GiB |
+  | 384 / 8 | 12.6M | 4.2k, 4.05 GiB | 3.6k, 1.46 GiB | 3.9k, 2.23 GiB |
+  | 512 / 12 | 30.5M | out of memory | 1.7k, 2.38 GiB | 1.9k, 4.26 GiB |
+  | 768 / 12 | 68M | — | 0.9k, 3.76 GiB | 1.0k, 4.06 GiB (pieces of 128) |
+
+  Each option costs 8–15% of samples/s, so neither is on by default. Pieces of 128 cost the 1M
+  network 60%: every piece repeats the heads' launches and loss preparation.
+- **At 400 tokens** (trunk only, batches of 64): 256/8 trains at 1.2k samples/s in 1.7 GiB, 384/8 at
+  720, and 512/12 at 320 in 4.8 GiB.
+- **What actually sets the size is throughput, not memory.**
+  - The learner needs ~4.6k samples/s at `positions_per_step` 12 and batch 1,024, given ~200k
+    positions/hour from the actors.
+  - Inference needs ~5k evaluations/s at the actors' batch sizes, on the same GPU.
+  - At 73 tokens, 256/8 keeps up with both, and 384/8 about does. At 400 tokens nothing above 128/4
+    does unless positions are reused less (a lower replay ratio is itself an option).
+  - Beyond that: train a larger network offline and distil it into a smaller one for the actors,
+    or use the large network only at the root.
 
 **Cost estimate, to be replaced by measurement.** Assume sequences of about 400 tokens instead of 73:
 - Attention costs about 30× more, and the feed-forward layers about 5.5× more.

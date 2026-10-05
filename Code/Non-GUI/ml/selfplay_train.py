@@ -48,7 +48,7 @@ import signal
 import subprocess
 import sys
 import time
-from collections import deque
+from collections import defaultdict, deque
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -60,8 +60,10 @@ from agent.selfplay import EXIT_SHARD_BUSY, read_frames
 from agent.telemetry import Run
 from keyforge.infoset import ZONE
 
+from .accumulate import backward_accumulated, slices
 from .checkpoints import CheckpointStore, load_model, save_model
 from .encode import Batch, collate
+from .layers import set_activation_checkpointing
 from .model import KeyForgeNet, amp_dtype, candidates_tensor, compile_trunk
 from .selfplay_gate import GATE_SPRT, gate_verdict  # noqa: F401 -- re-exported (tests, tools)
 
@@ -183,6 +185,50 @@ def _hidden_counts(positions: List[dict], vocab: int, device) -> torch.Tensor:
         idx = (torch.tensor(rows, device=device), torch.tensor(cols, device=device))
         out.index_put_(idx, torch.ones(len(rows), device=device), accumulate=True)
     return out
+
+
+def loss_counts(positions: List[dict], weights: dict, mode: str) -> Dict[str, int]:
+    """Each loss's denominator in `losses_for` (the rows its mean is
+    over), without a forward pass: what `micro_batch` weights pieces by.
+    Kept in step with `losses_for` by the accumulation test."""
+    n: Dict[str, int] = defaultdict(int)
+    B = len(positions)
+    n["rows"] = n["value"] = n["oracle"] = B
+    if weights.get("distill", 0.0) > 0:
+        n["distill"] = B
+    for p in positions:
+        n["belief"] += sum(1 for z in p["enc"].zones if z == OPP_UNSEEN)
+        if p["target"] is None or p["value_only"]:
+            continue
+        if mode == "dmc":
+            n["q"] += len(p["target"])
+        elif p["kind"] in MULTI_KINDS:
+            if p["candidates"] and not any(c is None for c in p["candidates"]):
+                n["multi"] += 1
+        else:
+            n["policy"] += 1
+    return dict(n)
+
+
+def backward_step(model: KeyForgeNet, positions: List[dict], device, weights: dict, mode: str, augment: bool, rng: random.Random,
+                  micro: Optional[int], amp) -> Tuple[Dict[str, torch.Tensor], Dict[str, float]]:
+    """Forward and backward for one training batch, in pieces of at most
+    `micro` positions (ml/accumulate.py); returns the batch's (losses,
+    stats). Pieces are taken in order, so mirror augmentation draws the
+    same coin per position either way."""
+    autocast = lambda: torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None)
+    spans = slices(len(positions), micro)
+    if len(spans) == 1:
+        with autocast():
+            total, L, st = losses_for(model, positions, device, weights, mode, augment, rng)
+        total.backward()
+        return L, st
+    return backward_accumulated(
+        [positions[a:b] for a, b in spans],
+        lambda piece: loss_counts(piece, weights, mode),
+        lambda piece: losses_for(model, piece, device, weights, mode, augment, rng),
+        weights, autocast, stat_counts={"policy_entropy": "policy", "value_calibration": "value"},
+    )
 
 
 def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict, mode: str, augment: bool, rng: random.Random):
@@ -395,6 +441,7 @@ def main():
     if opt_state is not None and opt_state.get("state"):
         opt.load_state_dict({"state": opt_state["state"], "param_groups": opt_state["param_groups"]})
     amp = amp_dtype(sp.get("precision", "fp32"), device)
+    set_activation_checkpointing(model.trunk, bool(sp.get("activation_checkpointing", False)))
     compile_trunk(model, sp.get("compile", False), device)
     positions_per_game = 200.0  # ~140 non-forced decisions + half as many value-only records
     total_steps = max(1, int(budget * positions_per_game / sp["positions_per_step"]))
@@ -491,10 +538,8 @@ def main():
             if buffer.size >= int(sp["batch"]) and allowed > 0:
                 model.train()
                 positions = buffer.sample(int(sp["batch"]), rng)
-                with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
-                    total, L, st = losses_for(model, positions, device, weights, args.mode, augment, rng)
                 opt.zero_grad(set_to_none=True)
-                total.backward()
+                L, st = backward_step(model, positions, device, weights, args.mode, augment, rng, sp.get("micro_batch"), amp)
                 gn = torch.nn.utils.clip_grad_norm_(model.parameters(), float(sp["grad_clip"]))
                 opt.step()
                 sched.step()
