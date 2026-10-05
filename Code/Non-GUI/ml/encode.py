@@ -50,6 +50,10 @@ class Batch:
     def to(self, device) -> "Batch":
         return Batch(**{k: getattr(self, k).to(device, non_blocking=True) for k in self.__dataclass_fields__})
 
+    def slice(self, a: int, b: int) -> "Batch":
+        """Rows a..b (views; the option padding K is kept)."""
+        return Batch(**{k: getattr(self, k)[a:b] for k in self.__dataclass_fields__})
+
 
 def static_table_tensor() -> torch.Tensor:
     """[vocab, STATIC.width], the attribute rows looked up by card id."""

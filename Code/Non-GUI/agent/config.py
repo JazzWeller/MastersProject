@@ -48,6 +48,15 @@ DEFAULTS: Dict[str, Any] = {
         "policy_head": "pointer",  # pointer | fixed
         "multi_select": "enumerate",  # enumerate | sequential | topk
         "enumerate_cap": 1024,
+        # Layer implementation, not architecture: both compute the same
+        # function with the same parameters and checkpoint keys
+        # (ml/layers.py). sdpa calls scaled_dot_product_attention with
+        # `attention_kernel` first in priority (flash | cudnn | efficient |
+        # math | auto): +3-8% BC samples/s and +6-25% inference at 73 tokens,
+        # +45-52% training at 400 (2026-10-05). torch is the layer the
+        # Tier 0 checkpoints were trained with; they load into either.
+        "attention": "sdpa",  # sdpa | torch
+        "attention_kernel": "flash",
     },
     "bc": {
         "heuristic_games": 20000,
@@ -64,6 +73,11 @@ DEFAULTS: Dict[str, Any] = {
         "workers": 5,
         "precision": "bf16",  # fp32 | bf16 (autocast; 1.5x faster steps, measured 2026-10-02)
         "compile": True,  # torch.compile the trunk on CUDA (+18%; needs a C compiler)
+        # Memory: forward/backward in pieces of at most this many rows, with
+        # the same gradient as the whole batch (ml/accumulate.py). None = off.
+        "micro_batch": None,
+        # Memory: recompute each trunk layer in backward (needs attention=sdpa).
+        "activation_checkpointing": False,
     },
     "search": {
         "regime": "within_turn",  # within_turn | full_game
@@ -96,6 +110,8 @@ DEFAULTS: Dict[str, Any] = {
         "games_per_worker": 16,
         "precision": "bf16",  # learner: fp32 | bf16
         "compile": True,  # learner: torch.compile the trunk on CUDA
+        "micro_batch": None,  # learner: as bc.micro_batch
+        "activation_checkpointing": False,  # learner: as bc.activation_checkpointing
         "playout_cap_full_fraction": 0.25,
         "playout_cap_small": 25,
         "playout_cap_full": 100,

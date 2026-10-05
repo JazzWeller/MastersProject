@@ -311,6 +311,9 @@ class Targets:
     next_draws: torch.Tensor  # [B, 5] long, -1 padded (privileged)
     game: np.ndarray
 
+    def slice(self, a: int, b: int) -> "Targets":
+        return Targets(**{k: getattr(self, k)[a:b] for k in self.__dataclass_fields__})
+
 
 class Corpus:
     """Every record of a set of shard directories, addressed by a global

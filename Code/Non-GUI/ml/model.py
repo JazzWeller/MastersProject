@@ -2,7 +2,7 @@
 head the plan's arms need.
 
 **Trunk.** 73 tokens -- one global token plus the 72 card entities, always
-(both decklists are public) -- through pre-LN transformer layers, with no
+(both decklists are public) -- through pre-LN transformer layers (`ml/layers.py`), with no
 positional encoding: the entity set is unordered, and everything positional
 (flank, battleline index, zone) is already an explicit feature. Each entity
 enters as `[card embedding ; STATIC[card_id] ; ENTITY]`: the learned
@@ -42,6 +42,7 @@ from torch.nn import functional as F
 from agent import spec
 
 from .encode import Batch, entity_block, static_table_tensor
+from .layers import build_trunk
 
 G = spec.GLOBAL.width
 O = spec.OPTION.width
@@ -92,11 +93,13 @@ class KeyForgeNet(nn.Module):
         self.entity_norm = nn.LayerNorm(d)
         self.global_in = nn.Linear(G, d)
         self.global_norm = nn.LayerNorm(d)
-        layer = nn.TransformerEncoderLayer(
-            d, int(net_cfg["heads"]), int(net_cfg["ff"]), float(net_cfg.get("dropout", 0.0)),
-            activation="gelu", batch_first=True, norm_first=True,
+        # `attention` picks the layer implementation, not the function: both
+        # have the same parameters and state-dict keys (ml/layers.py), so a
+        # checkpoint saved before the option existed loads into the faster one.
+        self.trunk = build_trunk(
+            d, int(net_cfg["heads"]), int(net_cfg["ff"]), int(net_cfg["layers"]), float(net_cfg.get("dropout", 0.0)),
+            net_cfg.get("attention", "sdpa"), net_cfg.get("attention_kernel", "flash"),
         )
-        self.trunk = nn.TransformerEncoder(layer, int(net_cfg["layers"]), enable_nested_tensor=False)
         self.out_norm = nn.LayerNorm(d)
 
         # Options.

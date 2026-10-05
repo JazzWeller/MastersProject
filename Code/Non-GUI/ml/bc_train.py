@@ -40,9 +40,11 @@ from agent.multiselect import decode_topk, enumerate_candidates, sequential_step
 from keyforge.enums import DecisionKind
 from keyforge.infoset import PL_HAND, ZONE
 
+from .accumulate import backward_accumulated, slices
 from .checkpoints import CheckpointStore, save_model
 from .dataset import KINDS, MULTI_KINDS, Corpus, Targets
 from .encode import Batch
+from .layers import set_activation_checkpointing
 from .model import KeyForgeNet, TrunkOut, amp_dtype, candidates_tensor, compile_trunk, param_count
 
 K_CARDS = KINDS.index(DecisionKind.CHOOSE_CARDS)
@@ -190,7 +192,26 @@ class MultiPrep:
         return total / max(count, 1)
 
 
-def compute_losses(model: KeyForgeNet, batch: Batch, tg: Targets, *, weights: dict, policy_head: str, cap: int, heads: Sequence[str]):
+def loss_counts(batch: Batch, tg: Targets, prep: MultiPrep, heads: Sequence[str]) -> Dict[str, int]:
+    """Each loss's denominator in `compute_losses` (the rows its mean is
+    over), without a forward pass: what `micro_batch` weights pieces by.
+    Kept in step with `compute_losses` by the accumulation test."""
+    B = batch.size
+    n_opt = tg.n_opt.tolist()
+    n = {
+        "policy": int((~tg.forced & (tg.target >= 0)).sum()),
+        "value": B,
+        "enumerate": len(prep.spans),
+        "sequential": len(prep.s_rows),
+        "topk": sum(n_opt[b] for b in prep.rows),
+        "belief": int((batch.zones == OPP_UNSEEN).sum()),
+        "oracle": B,
+    }
+    return {k: v for k, v in n.items() if k in heads}
+
+
+def compute_losses(model: KeyForgeNet, batch: Batch, tg: Targets, *, weights: dict, policy_head: str, cap: int, heads: Sequence[str],
+                   prep: Optional[MultiPrep] = None):
     out = model.encode_state(batch)
     losses: Dict[str, torch.Tensor] = {}
     single = ~tg.forced & (tg.target >= 0)
@@ -199,7 +220,8 @@ def compute_losses(model: KeyForgeNet, batch: Batch, tg: Targets, *, weights: di
         losses["policy"] = F.cross_entropy(logits[single], tg.target[single])
     if "value" in heads:
         losses["value"] = F.mse_loss(model.value(out), tg.z)
-    prep = MultiPrep(tg, cap, batch.card_ids.device)
+    if prep is None:
+        prep = MultiPrep(tg, cap, batch.card_ids.device)
     n_opt = tg.n_opt.tolist()
     if "enumerate" in heads:
         l, _ = prep.enumerate_loss(model, out)
@@ -409,6 +431,31 @@ def _greedy_sequential(model: KeyForgeNet, out: TrunkOut, b: int, n: int, min_n:
         prefix.append(j)
 
 
+def backward_step(model: KeyForgeNet, batch: Batch, tg: Targets, *, micro: Optional[int], amp, device, weights: dict,
+                  policy_head: str, cap: int, heads: Sequence[str]) -> Dict[str, torch.Tensor]:
+    """Forward and backward for one training batch, in pieces of at most
+    `micro` rows (ml/accumulate.py); returns the batch's losses."""
+    autocast = lambda: torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None)
+    spans = slices(batch.size, micro)
+    if len(spans) == 1:
+        with autocast():
+            total, losses, _out, _prep = compute_losses(model, batch, tg, weights=weights, policy_head=policy_head, cap=cap, heads=heads)
+        total.backward()
+        return losses
+    pieces = []
+    for a, b in spans:
+        pb, pt = batch.slice(a, b), tg.slice(a, b)
+        pieces.append((pb, pt, MultiPrep(pt, cap, pb.card_ids.device)))
+
+    def loss_of(piece):
+        pb, pt, prep = piece
+        total, losses, _out, _prep = compute_losses(model, pb, pt, weights=weights, policy_head=policy_head, cap=cap, heads=heads, prep=prep)
+        return total, losses, {}
+
+    losses, _stats = backward_accumulated(pieces, lambda p: loss_counts(p[0], p[1], p[2], heads), loss_of, weights, autocast)
+    return losses
+
+
 def train(
     cfg: dict, corpus: Corpus, *, device, heads: Sequence[str] = tuple(DEFAULT_WEIGHTS), metrics=None, journal=None,
     log_every: int = 200, eval_sources: Optional[Sequence[str]] = None, train_sources: Optional[Sequence[str]] = None,
@@ -430,6 +477,7 @@ def train(
                             fused=torch.device(device).type == "cuda")
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=total_steps, eta_min=float(bc["lr_min"]))
     amp = amp_dtype(bc.get("precision", "fp32"), device)
+    set_activation_checkpointing(model.trunk, bool(bc.get("activation_checkpointing", False)))
     compile_trunk(model, bc.get("compile", False), device)
     step = 0
     t0 = time.perf_counter()
@@ -442,10 +490,9 @@ def train(
             batch = batch.to(device)
             for f in ("kind", "target", "forced", "z", "turn", "source", "min_n", "max_n", "n_opt", "opp_hand", "next_draws"):
                 setattr(tg, f, getattr(tg, f).to(device, non_blocking=True))
-            with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
-                total, losses, _out, _prep = compute_losses(model, batch, tg, weights=weights, policy_head=policy_head, cap=cap, heads=heads)
             opt.zero_grad(set_to_none=True)
-            total.backward()
+            losses = backward_step(model, batch, tg, micro=bc.get("micro_batch"), amp=amp, device=device,
+                                   weights=weights, policy_head=policy_head, cap=cap, heads=heads)
             gnorm = torch.nn.utils.clip_grad_norm_(model.parameters(), float(bc["grad_clip"]))
             opt.step()
             sched.step()
