@@ -89,7 +89,7 @@ def config_from_dict(data: Dict[str, Any]) -> GameConfig:
     )
 
 
-def replay(config: GameConfig, record: List[Any], upto: Optional[int] = None, *, execution: Optional[str] = None):
+def replay(config: GameConfig, record: List[Any], upto: Optional[int] = None):
     """A fresh Game advanced through the first `upto` recorded choices (all
     of them if None). Raises ValueError if the record doesn't fit the game,
     e.g. it was made by a different engine version.
@@ -102,7 +102,7 @@ def replay(config: GameConfig, record: List[Any], upto: Optional[int] = None, *,
     re-encoding every choice a second time here is pure waste."""
     from .game import Game  # local import: game.py imports this module
 
-    game = Game(config, execution=execution)
+    game = Game(config)
     steps = record if upto is None else record[:upto]
     for n, encoded in enumerate(steps):
         if game.is_over or game.pending_decision is None:

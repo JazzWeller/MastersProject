@@ -37,7 +37,7 @@ from torch.nn import functional as F
 
 from agent import spec
 from agent.multiselect import decode_topk, enumerate_candidates, sequential_steps
-from keyforge.enums import DecisionKind
+from keyforge.enums import BOUNDARY_KINDS, DecisionKind
 from keyforge.infoset import PL_HAND, ZONE
 
 from .accumulate import backward_accumulated, slices
@@ -299,7 +299,7 @@ def evaluate(model: KeyForgeNet, corpus: Corpus, idx: np.ndarray, *, policy_head
     model.eval()
     single_hits: Dict[str, List[int]] = defaultdict(lambda: [0, 0])
     multi_hits = {t: {"CHOOSE_CARDS": [0, 0], "ORDER_EFFECTS": [0, 0]} for t in ("enumerate", "sequential", "topk")}
-    v_pred, v_z, v_turn, v_src = [], [], [], []
+    v_pred, v_z, v_turn, v_src, v_kind = [], [], [], [], []
     b_p, b_y, b_u = [], [], []
     o_pred = []
     for batch, tg in Prefetcher(corpus.iterate(idx, batch_size, shuffle=False, device=None)):
@@ -349,6 +349,7 @@ def evaluate(model: KeyForgeNet, corpus: Corpus, idx: np.ndarray, *, policy_head
         v_z.append(tg.z.cpu().numpy())
         v_turn.append(tg.turn.cpu().numpy())
         v_src.append(tg.source.cpu().numpy())
+        v_kind.append(np.asarray(kinds))
         unseen = batch.zones == OPP_UNSEEN
         if bool(unseen.any()):
             p = torch.sigmoid(model.belief_logits(out))[unseen].float().cpu().numpy()
@@ -365,22 +366,41 @@ def evaluate(model: KeyForgeNet, corpus: Corpus, idx: np.ndarray, *, policy_head
     v_pred = np.concatenate(v_pred) if v_pred else np.zeros(0)
     v_z = np.concatenate(v_z) if v_z else np.zeros(0)
     v_turn = np.concatenate(v_turn) if v_turn else np.zeros(0)
+    v_kind = np.concatenate(v_kind) if v_kind else np.zeros(0, dtype=np.int64)
     o_pred = np.concatenate(o_pred) if o_pred else np.zeros(0)
     y = (v_z + 1) / 2
     base_p = np.full_like(y, 0.5)
-    by_turn = []
-    for lo in range(0, int(v_turn.max()) + 1 if len(v_turn) else 0, 2):
-        m = (v_turn >= lo) & (v_turn < lo + 2)
-        if m.sum() < 20:
-            continue
-        decided = m & (v_z != 0)
-        by_turn.append({
-            "turns": f"{lo}-{lo + 1}",
-            "n": int(m.sum()),
-            "logloss": round(_logloss((v_pred[m] + 1) / 2, y[m]), 4),
-            "constant_logloss": round(_logloss(base_p[m], y[m]), 4),
-            "accuracy": round(float(np.mean(np.sign(v_pred[decided]) == v_z[decided])), 4) if decided.any() else None,
-        })
+
+    def value_by_turn(mask):
+        rows = []
+        for lo in range(0, int(v_turn.max()) + 1 if len(v_turn) else 0, 2):
+            m = mask & (v_turn >= lo) & (v_turn < lo + 2)
+            if m.sum() < 20:
+                continue
+            decided = m & (v_z != 0)
+            rows.append({
+                "turns": f"{lo}-{lo + 1}",
+                "n": int(m.sum()),
+                "logloss": round(_logloss((v_pred[m] + 1) / 2, y[m]), 4),
+                "constant_logloss": round(_logloss(base_p[m], y[m]), 4),
+                "accuracy": round(float(np.mean(np.sign(v_pred[decided]) == v_z[decided])), 4) if decided.any() else None,
+            })
+        return rows
+
+    by_turn = value_by_turn(np.ones(len(v_pred), dtype=bool))
+    # Where the value is asked (Agent Observation Plan O0/O10): at a turn
+    # boundary (CHOOSE_ACTION / CHOOSE_HOUSE / TAKE_ARCHIVE, nothing
+    # resolving) and mid-turn, separately.
+    boundary_kinds = np.asarray([KINDS.index(k) for k in BOUNDARY_KINDS])
+    at_boundary = np.isin(v_kind, boundary_kinds)
+    by_position = {}
+    for name, mask in (("boundary", at_boundary), ("mid_turn", ~at_boundary)):
+        by_position[name] = {
+            "n": int(mask.sum()),
+            "logloss": round(_logloss((v_pred[mask] + 1) / 2, y[mask]), 4),
+            "constant_logloss": round(_logloss(base_p[mask], y[mask]), 4),
+            "by_turn": value_by_turn(mask),
+        }
     belief = None
     if b_p:
         p, yy, u = np.concatenate(b_p), np.concatenate(b_y), np.concatenate(b_u)
@@ -398,6 +418,7 @@ def evaluate(model: KeyForgeNet, corpus: Corpus, idx: np.ndarray, *, policy_head
             "constant_logloss": round(_logloss(base_p, y), 4),
             "mse": round(float(np.mean((v_pred - v_z) ** 2)), 4) if len(v_pred) else None,
             "by_turn": by_turn,
+            "by_position": by_position,
         },
         "oracle": {
             "logloss": round(_logloss((o_pred + 1) / 2, y), 4),

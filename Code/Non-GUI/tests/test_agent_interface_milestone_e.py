@@ -203,8 +203,11 @@ class TestGameCopy(unittest.TestCase):
         self.assertGreater(checked, 100)
 
     def test_raises_off_a_boundary(self):
+        """Native execution only: a suspended generator can't be copied. In
+        compiled execution (Part R) the same copy works -- see
+        tests/test_part_r_copy.py."""
         config = GameConfig(decks=("fignor", "igor"), seed=1, max_turns=60)
-        game = Game(config)
+        game = Game(config, execution="native")
         bots = {1: RandomBot(seed=1), 2: RandomBot(seed=2)}
         while game.pending_decision.kind in _BOUNDARY_KINDS:
             d = game.pending_decision
@@ -446,7 +449,7 @@ class TestSnapshotCopyBackend(unittest.TestCase):
 
     def test_raises_off_a_boundary_same_as_copy_itself(self):
         config = GameConfig(decks=("fignor", "igor"), seed=29, max_turns=60)
-        game = Game(config)
+        game = Game(config, execution="native")
         bots = {1: RandomBot(seed=29), 2: RandomBot(seed=30)}
         while game.pending_decision.kind in _BOUNDARY_KINDS:
             d = game.pending_decision
