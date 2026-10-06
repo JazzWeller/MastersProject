@@ -41,6 +41,13 @@ including the Adaptive chain-bid between games 2 and 3.
     its cause, and every submitted decision (privileged, like the log)
   - `projection.py` — `Game.projected(viewer)`: the journal, log and
     decisions as one player saw them; `Observation.history` is built from it
+  - `knowledge.py` — `Game.knowledge(viewer)`: where each card may be, as far
+    as that player knows (and what the opponent knows of their cards);
+    `card_knowledge` exports it per card, with the priors below
+  - `determinize.py` — worlds consistent with a player's knowledge for
+    search (`Game.fork_determinized(..., sampler=...)`: uniform,
+    constrained, chance_exact, belief), and the exact chance posterior
+    (`ChanceFilter`) behind P(hand)/P(archive)/P(deck)/P(next draw)
 - `bots/` — `Controller` interface, a seeded `RandomBot` (fuzz tests) and a
   rules-aware `HeuristicBot` (the GUI's default opponent; armor/assault/
   hazardous-aware fight evaluation, per-house scoring, sensible defaults

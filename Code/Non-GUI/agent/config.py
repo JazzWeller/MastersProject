@@ -88,6 +88,9 @@ DEFAULTS: Dict[str, Any] = {
         # true future draws (plan status, departure 4). The other two exist
         # for the hidden-information diagnostic, which sets them explicitly.
         "resample": "all",
+        # How each world is sampled (keyforge/determinize.py, observation
+        # plan O3): uniform | constrained | chance_exact | belief.
+        "determinization": "chance_exact",
         "simulations": 100,
         "c_puct": 1.5,
         "dirichlet_alpha": 0.8,

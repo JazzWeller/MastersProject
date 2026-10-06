@@ -23,6 +23,7 @@ from .enums import Affects, BOUNDARY_KINDS, CardType, DecisionIntent, DecisionKi
 from .keyed_random import derive_rng, portable_choice, portable_shuffle
 from .journal import Journal
 from .projection import projected
+from .knowledge import tracker_for
 from .log import GameLog
 from .player import Player
 from .replay import decode_choice, encode_choice, replay
@@ -376,6 +377,10 @@ class Game:
         projection.py; None: privileged). Append-only; don't change it."""
         return projected(self, viewer)
 
+    def knowledge(self, viewer: int):
+        """`viewer`'s knowledge tracker, up to date (keyforge/knowledge.py)."""
+        return tracker_for(self, viewer)
+
     def state_hash(self) -> str:
         """A canonical hash over everything that affects future play --
         zones and their order, per-card state, players, active effects,
@@ -436,6 +441,7 @@ class Game:
 
     def fork_determinized(
         self, viewer: int, rng: random.Random, resample: Resample = Resample.ALL, *, backend: str = "replay",
+        sampler: str = "uniform", weights=None, history: str = "drop",
     ) -> "Game":
         """`fork()`, then resamples what `viewer` doesn't know, then
         reseeds the fork's own future randomness from `rng`. Without the
@@ -456,6 +462,19 @@ class Game:
           rule for the non-privileged `PlayerView`.
         - `ALL`: both.
 
+        `sampler` (keyforge/determinize.py, Agent Observation Plan O3):
+        `"uniform"` (the above), `"constrained"` (uniform over the worlds
+        consistent with `viewer`'s knowledge), `"chance_exact"` (the posterior
+        when draws and shuffles are random and the opponent's choices
+        uninformative) or `"belief"` (chance_exact's support, the hand
+        weighted by `weights`: instance id -> weight).
+
+        `history`: what the opponent knew before the world began is the true
+        game's. `"drop"` (the default): inside the world, their projection
+        shows that past only as `viewer` saw it. `"relabel"`: the entries
+        `viewer` didn't see are relabelled to the world's cards, when a
+        checker confirms the result is consistent (else `"drop"`).
+
         `backend`: `"replay"` (the default, valid at any decision), `"copy"`
         (Milestone E2's snapshot copy -- ~4x cheaper mid-game, but only at a
         boundary decision; raises elsewhere), or `"auto"` (copy at a
@@ -464,15 +483,22 @@ class Game:
         The resulting fork is the same every way (all are exact before the
         resample).
         """
+        world = None
+        if sampler != "uniform":
+            # sampled here, where the viewer's knowledge is kept up to date;
+            # the fork gets it as instance ids
+            from .determinize import sample_world
+
+            world = sample_world(self, viewer, rng, resample, sampler, weights)
         if backend == "copy" or (backend == "auto" and self.copy_anywhere):
-            fork = self.copy()
+            fork = self.copy(caches=False)
         elif backend == "auto":
             fork = self._fork_from_snapshot()
         elif backend == "replay":
             fork = self.fork_by_replay()
         else:
             raise ValueError(f"fork_determinized: unknown backend {backend!r}")
-        fork._redeal(viewer, rng, resample)
+        fork._redeal(viewer, rng, resample, sampler, weights, world=world, history=history)
         # A fresh, independent seed drawn from the caller's own `rng` --
         # portability doesn't matter here (this value is never itself
         # replayed as an engine-internal draw), only that it decorrelates
@@ -533,31 +559,56 @@ class Game:
         n_hand = len(hand_cards) - len(fixed)
         n_archive = len(player.archive)
         new_hand, new_archive, new_deck = fixed + pool[:n_hand], pool[n_hand : n_hand + n_archive], pool[n_hand + n_archive :]
-        for c in list(player.hand.cards()):
-            player.hand.remove(c)
-        for c in new_hand:
-            player.hand.add(c)
-        for c in list(player.archive.cards()):
-            player.archive.remove(c)
-        for c in new_archive:
-            player.archive.add(c)
+        # (straight into the zones: a re-deal is not a game event, so it is
+        # not journaled)
+        player.hand._cards = list(new_hand)
+        player.archive._cards = list(new_archive)
         player.deck._cards = collections.deque(new_deck)
         sigma = {}
         for old, new in ((hand_cards, new_hand), (archive_cards, new_archive), (deck_cards, new_deck)):
             sigma.update({a: b for a, b in zip(old, new) if a is not b})
         return sigma
 
-    def _redeal(self, viewer: int, rng: random.Random, resample: Resample) -> None:
-        """Re-deals what `viewer` doesn't know (`resample`, see
-        `fork_determinized`), in place, and relabels what is still resolving
-        to match."""
+    def _redeal(self, viewer: int, rng: random.Random, resample: Resample, sampler: str = "uniform",
+                weights=None, world=None, history: str = "drop") -> None:
+        """Re-deals what `viewer` doesn't know (`resample`, `sampler`: see
+        `fork_determinized`), in place and unjournaled (a re-deal is not a
+        game event), and relabels what is still resolving to match."""
         sigma: Dict[Card, Card] = {}
-        if resample in (Resample.OWN_DECK, Resample.ALL):
-            sigma.update(self._resample_own_deck(viewer, rng))
-        if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
-            sigma.update(self._resample_hidden_pool(3 - viewer, viewer, rng))
+        if sampler == "uniform":
+            if resample in (Resample.OWN_DECK, Resample.ALL):
+                sigma.update(self._resample_own_deck(viewer, rng))
+            if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
+                sigma.update(self._resample_hidden_pool(3 - viewer, viewer, rng))
+        else:
+            from .determinize import apply_world, sample_world
+
+            if world is None:
+                world = sample_world(self, viewer, rng, resample, sampler, weights)
+            sigma = apply_world(self, viewer, *world)
+        # what the opponent knew before the world began is the true game's:
+        # inside the world, their projection leaves it out (O3's "drop"),
+        # unless their history can be relabelled to the world's cards
+        relabelled = False
+        if history == "relabel":
+            from .determinize import relabel_history
+
+            relabelled = relabel_history(self, viewer, {a.instance_id: b.instance_id for a, b in sigma.items()})
+        elif history != "drop":
+            raise ValueError(f"history: drop or relabel, not {history!r}")
+        if not relabelled:
+            self.__dict__["_world_cut"] = (viewer, len(self.journal.entries), len(self.log.events),
+                                           len(self.journal.decisions))
         if self.execution == "compiled" and not self.is_over:
             self._relabel(sigma)
+        # `viewer`'s projection and knowledge are the same in every world
+        # they can't tell apart (O1's sigma-invariance); no one else's are
+        for name in ("_projectors", "_trackers", "_trackers2", "_chance"):
+            cache = self.__dict__.get(name)
+            if cache:
+                for v in list(cache):
+                    if v != viewer:
+                        del cache[v]
 
     def _relabel(self, sigma: Dict[Card, Card]) -> None:
         """Applies a re-deal's sigma to what is still resolving (Part R, R7;
@@ -697,7 +748,7 @@ class Game:
             return self._machine.copyable
         return self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS
 
-    def copy(self) -> "Game":
+    def copy(self, caches: bool = True) -> "Game":
         """An independent snapshot of this game -- exact and PRIVILEGED, the
         fast analog of `fork()`. Hand-written, not `copy.deepcopy` (which
         treats functions as atomic, so a deepcopied game's effect handlers
@@ -732,6 +783,14 @@ class Game:
         new.result = dict(self.result) if self.result is not None else None
         new._elusive_suppressed = self._elusive_suppressed
         new._causes = list(self._causes)
+        # what each viewer has seen and knows (projection.py, knowledge.py):
+        # caches over the journal, carried along so a copy reads on from here
+        for name in ("_projectors", "_trackers", "_trackers2", "_chance"):
+            cache = self.__dict__.get(name) if caches else None
+            if cache:
+                new.__dict__[name] = {v: x.copy() for v, x in cache.items()}
+        if "_world_cut" in self.__dict__:
+            new.__dict__["_world_cut"] = self.__dict__["_world_cut"]
         new._player_houses_cache = dict(self._player_houses_cache)
         new._fork_snapshot = None  # a branch builds its own if it is ever forked
 

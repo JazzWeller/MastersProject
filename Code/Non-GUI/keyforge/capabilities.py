@@ -52,8 +52,10 @@ class SearchCapability(ObservationCapability):
 
     level = PrivilegeLevel.SEARCH
 
-    def fork_determinized(self, rng, resample: Resample = Resample.ALL, *, backend: str = "replay"):
-        return self._game.fork_determinized(self._viewer, rng, resample=resample, backend=backend)
+    def fork_determinized(self, rng, resample: Resample = Resample.ALL, *, backend: str = "replay",
+                          sampler: str = "uniform", weights=None):
+        return self._game.fork_determinized(self._viewer, rng, resample=resample, backend=backend, sampler=sampler,
+                                            weights=weights)
 
     @property
     def viewer(self) -> int:

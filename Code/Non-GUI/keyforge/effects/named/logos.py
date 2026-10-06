@@ -695,12 +695,15 @@ def vespilon_theorist(game, card):
     player = controller_of(game, card)
     houses = game.player_houses(player.id)
     chosen = yield from game.choose_house(player.id, "Vespilon Theorist: choose a house", houses)
-    top = player.deck.draw_top()
+    top = player.deck.peek_top()
     if top is None:
         steps.shortfall(game, card, f"reveals nothing: {{pos:{player.id}}} deck is empty", "Deck is empty")
         return
+    # revealed on top of the deck, then taken: the journal shows which card
+    # its draw moved
     game.log.add("reveal_top", player=player.id, card=top.name, iid=top.instance_id)
-    game.journal.reveal(top)
+    game.journal.reveal(top, position="top")
+    player.deck.draw_top()
     if top.house == chosen:
         player.archive.add(top)
         game.log.add("archive", player=player.id, card=top.name, iid=top.instance_id)

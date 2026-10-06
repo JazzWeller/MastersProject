@@ -71,6 +71,7 @@ class SelfPlaySettings:
     leaf: str = "student"
     rollout: str = "heuristic"
     resample: str = "all"
+    determinization: str = "chance_exact"
     quiet_leaves: bool = False
     sims_full: int = 100
     sims_small: int = 25
@@ -102,7 +103,7 @@ class SelfPlaySettings:
     def from_config(cls, cfg: dict, mode: str = "search") -> "SelfPlaySettings":
         sp, se = cfg["selfplay"], cfg["search"]
         return cls(
-            mode=mode, regime=se["regime"], leaf=se["leaf"], rollout=se["rollout"], resample=se["resample"],
+            mode=mode, regime=se["regime"], leaf=se["leaf"], rollout=se["rollout"], resample=se["resample"], determinization=se.get("determinization", "chance_exact"),
             quiet_leaves=bool(se.get("quiet_leaves", False)),
             sims_full=sp["playout_cap_full"], sims_small=sp["playout_cap_small"],
             full_fraction=sp["playout_cap_full_fraction"], temperature_moves=se["temperature_moves"],
@@ -226,8 +227,9 @@ class _Cap:
         self._game = game
         self.viewer = viewer
 
-    def fork_determinized(self, rng, resample=Resample.ALL, *, backend="replay"):
-        return self._game.fork_determinized(self.viewer, rng, resample=resample, backend=backend)
+    def fork_determinized(self, rng, resample=Resample.ALL, *, backend="replay", sampler="uniform", weights=None):
+        return self._game.fork_determinized(self.viewer, rng, resample=resample, backend=backend, sampler=sampler,
+                                            weights=weights)
 
     def infoset(self):
         return build_infoset(self._game, self.viewer)
@@ -277,6 +279,7 @@ class Actor:
         settings = SearchSettings(
             simulations=s.sims_full, c_puct=s.c_puct, dirichlet_alpha=s.dirichlet_alpha, dirichlet_eps=s.dirichlet_eps,
             root_noise=True, leaves_in_flight=s.leaves_in_flight, resample=Resample(s.resample),
+            determinization=s.determinization,
             enumerate_cap=s.enumerate_cap, reuse=False,
         )
         return Search(regime, make_evaluator(s.leaf, seed=seed), policy, settings, seed=seed)

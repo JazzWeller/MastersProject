@@ -66,8 +66,9 @@ class _Cap:
         self._game = game
         self.viewer = viewer
 
-    def fork_determinized(self, rng, resample=Resample.ALL, *, backend="replay"):
-        return self._game.fork_determinized(self.viewer, rng, resample=resample, backend=backend)
+    def fork_determinized(self, rng, resample=Resample.ALL, *, backend="replay", sampler="uniform", weights=None):
+        return self._game.fork_determinized(self.viewer, rng, resample=resample, backend=backend, sampler=sampler,
+                                            weights=weights)
 
     def infoset(self):
         return build_infoset(self._game, self.viewer)

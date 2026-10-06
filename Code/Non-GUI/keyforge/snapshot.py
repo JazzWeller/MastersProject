@@ -72,7 +72,7 @@ _NAME_OF = {c: n for n, c in _CLASSES.items()}
 _DERIVED = {ActiveEffectList: ("_duration_by_key",)}
 
 # Game attributes a snapshot leaves out: caches, rebuilt on demand.
-_GAME_SKIPPED = frozenset({"_fork_snapshot", "_container_index", "_driver", "_machine", "_projectors",
+_GAME_SKIPPED = frozenset({"_fork_snapshot", "_container_index", "_driver", "_machine", "_projectors", "_trackers", "_trackers2", "_chance",
                            # this object's own submission history, not game state (see Game.copy)
                            "choice_log"})
 
