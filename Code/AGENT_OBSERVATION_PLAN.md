@@ -83,6 +83,34 @@ below). Built before that:
   the cyclic collector. Compiled search beats native search as it was before Part R; it is ~92% of
   native search today.
 
+**O1, done** (2026-10-06).
+- **The journal** (`keyforge/journal.py`): every zone reports its moves; entries are as specified,
+  plus `reveal`, `search_reveal` and `reveal_hand`/`unreveal_hand` notes. `cause` is filled by
+  `Game._caused`, which every ability call goes through (the resolution view reads the ability kind
+  off it). Dealt cards come from a hidden `setup` zone. A peek needs no op of its own: a decision
+  offering cards from a zone hidden from the chooser is one, and the projection shows the chooser
+  those cards.
+- **Decision records** are written raw (the decision and its encoded choice) and turned into data
+  only when read, copied or snapshotted. Where each option's card was is taken from the
+  projection's own fold of the journal.
+- **Log schemas** (`log.EVENT_SCHEMAS`, 62 kinds): `draw.iids` is the drawer's; `archive`,
+  `return_to_hand` and `under_card` may be narrowed at their call sites (`SITE_RESTRICTED`). A
+  registry test scans the source for every `log.add`.
+- **The projection** (`keyforge/projection.py`, `Game.projected(viewer)`), incremental, with codes
+  public / private / revealed. `Observation.history` is built from it (`HistoryEntry.stream`:
+  log, zone, decision).
+- **Acceptance** (`tools/o1_acceptance.py`; 1,000 games per pool: Phase 1.1, Phase 2, Phase 3
+  presets and random decks; 4,000 games): completeness at every decision, σ-invariance for both
+  viewers, no over-hiding, determinism (replay, and a copy at a random decision played on). Zero
+  problems. σ found two real leaks while building: the deal showed deck order, and a decision
+  showed the chooser's hidden choice to the other player. Compiled equals native on 10,000 fuzz
+  games with journals compared.
+- **Throughput.** Bare engine (`tools/bench_engine.py`, RandomBot, no views): 27.5k → 24.4k
+  decisions/s, **−11%**, a point over the gate after optimization (pending-leave merging, bulk
+  deal, lazy decision records). About 3 of the 11 points are extra cyclic-GC work. Where views are
+  built (HeuristicBot) the engine is **5% faster** than before O1 (12.1k → 12.7k): `build_view`
+  redacted the whole log every decision to show 20 events; it now reads only the tail.
+
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
 - self-play is held until everything here is complete;

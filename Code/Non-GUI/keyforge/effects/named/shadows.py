@@ -359,6 +359,7 @@ def masterplan_play(game, card):
     c = choice[0]
     player.hand.remove(c)
     card.under_cards.append(c)
+    game.journal.enter(c, ("under", card.instance_id), "put_under")
     # Facedown: only the player who put it there knows what it is.
     game.log.add(
         "under_card", visible_to={player.id},
@@ -372,9 +373,11 @@ def masterplan_omni(game, card):
         steps.shortfall(game, card, "has no card to play: nothing is beneath it", "Nothing beneath it")
     else:
         to_play = card.under_cards.pop(0)
+        game.journal.leave(to_play, ("under", card.instance_id), "take_under")
         ok = yield from game._play_card(player.id, to_play, from_deck_top=True)
         if not ok:
             card.under_cards.insert(0, to_play)
+            game.journal.enter(to_play, ("under", card.instance_id), "put_under")
             steps.shortfall(game, card, f"can't play {to_play.name} right now; it stays beneath Masterplan", f"Can't play {to_play.name}")
     yield from steps.sacrifice(game, card)
 

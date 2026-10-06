@@ -48,6 +48,7 @@ from .cards.card_data import get_card_def
 from .config import GameConfig
 from .decision import Decision
 from .effects.effect_object import ActiveEffectList, DurationEffect, InsteadEffect, ModifierEffect, TriggerEffect
+from .journal import Journal
 from .log import GameLog, LogEvent
 from .player import Player
 from .version import ENGINE_VERSION, RULES_HASH
@@ -59,7 +60,7 @@ SNAPSHOT_VERSION = 1
 _CLASSES: Dict[str, type] = {c.__name__: c for c in (
     Card, CreatureType, UpgradeType, ArtifactType, ActionType, Player, Deck, Hand, DiscardPile, Archive, PurgedZone,
     PlayArea, ActiveEffectList, DurationEffect, TriggerEffect, InsteadEffect, ModifierEffect, GameLog, LogEvent, Decision,
-    PlayCard, DiscardCard, UseAction, UseOmni, Reap, Fight, EndTurn, GameConfig,
+    PlayCard, DiscardCard, UseAction, UseOmni, Reap, Fight, EndTurn, GameConfig, Journal,
 )}
 _CLASSES["decks.Deck"] = _decks.Deck
 _CLASSES["decks.AllianceDeck"] = _decks.AllianceDeck
@@ -71,7 +72,7 @@ _NAME_OF = {c: n for n, c in _CLASSES.items()}
 _DERIVED = {ActiveEffectList: ("_duration_by_key",)}
 
 # Game attributes a snapshot leaves out: caches, rebuilt on demand.
-_GAME_SKIPPED = frozenset({"_fork_snapshot", "_container_index", "_driver", "_machine",
+_GAME_SKIPPED = frozenset({"_fork_snapshot", "_container_index", "_driver", "_machine", "_projectors",
                            # this object's own submission history, not game state (see Game.copy)
                            "choice_log"})
 
@@ -244,6 +245,7 @@ class _Writer:
 def snapshot(game) -> bytes:
     if not game.is_over and game.execution != "compiled" and not game.copy_anywhere:
         raise SnapshotError("a native game can only be snapshot at a boundary decision (or run it compiled)")
+    game.journal.settle()  # its decision records in data form, not live decisions
     w = _Writer()
     root = w.value(game)
     doc = {"snapshot_version": SNAPSHOT_VERSION, "engine_version": ENGINE_VERSION, "rules_hash": RULES_HASH,

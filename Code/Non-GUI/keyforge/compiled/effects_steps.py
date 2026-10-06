@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/steps.py'
-SOURCE_SHA256 = '89d9244453ec6c0cae509aa60d23a44f3527b05b6e5390d933a9b3d3c04fa766'
+SOURCE_SHA256 = '2a50788ce382f325ab29016e1b6aef67576738f0f9dbe278961d4f3080ab6a5c'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.

@@ -134,6 +134,30 @@ _LOCAL_SITE_KINDS = {  # (caller routine, callee text) for calls through a local
 }
 _KERNEL_MODULES = frozenset({"game", "match", "effects.steps"})
 
+# `Game._caused` runs every ability (it notes the cause of the zone moves it
+# makes, O1); the view leaves that wrapper out and reads the ability's kind
+# off it: the hook it runs, else the routine that called it.
+_CAUSED = "Game._caused"
+_HOOK_ATTRS = (
+    ("on_play", "play"), ("on_reap", "reap"), ("on_fight", "fight"), ("on_action", "action"),
+    ("on_omni", "omni"), ("on_destroyed_fighting", "destroyed_fighting"), ("on_destroyed", "destroyed"),
+    ("on_before_fight", "before_fight"),
+)
+_CAUSED_CALLER_KINDS = {
+    "Game._fire_event": "trigger", "Game._run_play_trigger_check": "trigger",
+    "Game._use_action": "action", "Game.use_artifact_ability": "action",
+    "Game._reap": "after_reap", "Game._fight": "after_fight", "Game.destroy_cards": "destroyed",
+}
+
+
+def _caused_kind(caused, caller) -> str:
+    src, fn = _local(caused, "source"), _local(caused, "fn")
+    cdef = getattr(src, "card_def", None)
+    for attr, kind in _HOOK_ATTRS:
+        if cdef is not None and getattr(cdef, attr, None) is fn:
+            return kind
+    return _CAUSED_CALLER_KINDS.get(caller.routine.qualname if caller is not None else None, "effect")
+
 
 def _ability_kind(frame, below) -> str:
     if below is None:
@@ -177,12 +201,20 @@ def _role(slot: str) -> Optional[str]:
     return slot
 
 
+def _index(frames, frame) -> int:
+    for j, f in enumerate(frames):
+        if f is frame:
+            return j
+    raise ValueError("frame not on the stack")
+
+
 def resolution_view(game, viewer: int) -> List[Dict[str, Any]]:
     if game.is_over:
         return []
     if game.execution != "compiled":
         raise ValueError("the resolution view needs compiled execution (Part R): a native game's stack is suspended generators")
-    stack = game._machine.stack
+    full = game._machine.stack
+    stack = [f for f in full if f.routine.qualname != _CAUSED]
     enc = _Encoder(game, viewer)
     out = []
     n = len(stack)
@@ -191,9 +223,17 @@ def resolution_view(game, viewer: int) -> List[Dict[str, Any]]:
         frame = stack[i]
         below = stack[i - 1] if i > 0 else None
         r = frame.routine
-        kind = _ability_kind(frame, below)
+        j = _index(full, frame)
+        caused = full[j - 1] if j > 0 and full[j - 1].routine.qualname == _CAUSED else None
         event = None
         source = None
+        if caused is not None:
+            kind = _caused_kind(caused, below)
+            v = _local(caused, "source")
+            if isinstance(v, Card):
+                source = v
+        else:
+            kind = _ability_kind(frame, below)
         if kind == "trigger" and below is not None:
             trig = _local(below, "trig")
             event = _local(below, "event_name") if below.routine.qualname == "Game._fire_event" else getattr(trig, "event", None)

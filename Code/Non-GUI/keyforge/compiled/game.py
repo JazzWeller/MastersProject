@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/game.py'
-SOURCE_SHA256 = '117466630983c01c59c2e451f84f190e874ca931c68b67a05d32135965eee457'
+SOURCE_SHA256 = 'ef663a2d1a7499bfcaa11602165b9cb2ac5066a0f74fbb35e1d82d357d8221bf'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -17,7 +17,7 @@ _kf_U = None
 
 def _kfmk_Game_choose_cards(_kfN, _kfR):
   def _kfr_Game_choose_cards(self=_kf_U, player=_kf_U, prompt=_kf_U, options=_kf_U, min_n=_kf_U, max_n=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, intent=_kf_U, affects=_kf_U, optional=_kf_U, _kf_closure=None):
-    # game.py:795 Game.choose_cards
+    # game.py:826 Game.choose_cards
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -50,7 +50,7 @@ def _kfmk_Game_choose_cards(_kfN, _kfR):
 
 def _kfmk_Game_choose_house(_kfN, _kfR):
   def _kfr_Game_choose_house(self=_kf_U, player=_kf_U, prompt=_kf_U, houses=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:809 Game.choose_house
+    # game.py:840 Game.choose_house
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -83,7 +83,7 @@ def _kfmk_Game_choose_house(_kfN, _kfR):
 
 def _kfmk_Game_yes_no(_kfN, _kfR):
   def _kfr_Game_yes_no(self=_kf_U, player=_kf_U, prompt=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, intent=_kf_U, optional=_kf_U, _kf_closure=None):
-    # game.py:818 Game.yes_no
+    # game.py:849 Game.yes_no
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -110,7 +110,7 @@ def _kfmk_Game_yes_no(_kfN, _kfR):
 
 def _kfmk_Game_order_effects(_kfN, _kfR):
   def _kfr_Game_order_effects(self=_kf_U, player=_kf_U, items=_kf_U, prompt=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, _kf_closure=None):
-    # game.py:825 Game.order_effects
+    # game.py:856 Game.order_effects
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -141,7 +141,7 @@ def _kfmk_Game_order_effects(_kfN, _kfR):
 
 def _kfmk_Game_choose_number(_kfN, _kfR):
   def _kfr_Game_choose_number(self=_kf_U, player=_kf_U, prompt=_kf_U, numbers=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, _kf_closure=None):
-    # game.py:835 Game.choose_number
+    # game.py:866 Game.choose_number
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -174,7 +174,7 @@ def _kfmk_Game_choose_number(_kfN, _kfR):
 
 def _kfmk_Game_choose_mode(_kfN, _kfR):
   def _kfr_Game_choose_mode(self=_kf_U, player=_kf_U, prompt=_kf_U, modes=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, _kf_closure=None):
-    # game.py:847 Game.choose_mode
+    # game.py:878 Game.choose_mode
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -207,7 +207,7 @@ def _kfmk_Game_choose_mode(_kfN, _kfR):
 
 def _kfmk_Game__setup(_kfN, _kfR):
   def _kfr_Game__setup(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1002 Game._setup
+    # game.py:1033 Game._setup
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = card = cards = deck_name = first = p1_deck_name = p2_deck_name = pid = second = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -224,7 +224,7 @@ def _kfmk_Game__setup(_kfN, _kfR):
             self._player_houses_cache[pid] = sorted({c.house for c in cards}, key=_kf_fn(_kfN[0], globals(), None, None, {}))
             for c in cards:
                 self._cards_by_id[c.instance_id] = c
-            self.players[pid].deck = Deck(cards)
+            self.players[pid].deck.put_all(cards, op='deal')
             self.players[pid].deck.shuffle(self.event_rng('deck_shuffle', pid))
             if self.config.starting_chains:
                 self.players[pid].chains = self.config.starting_chains.get(pid, 0)
@@ -262,7 +262,7 @@ def _kfmk_Game__setup(_kfN, _kfR):
 
 def _kfmk_Game__maybe_mulligan(_kfN, _kfR):
   def _kfr_Game__maybe_mulligan(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1041 Game._maybe_mulligan
+    # game.py:1072 Game._maybe_mulligan
     if _kfF is None:  # a fresh call: Python bound the arguments
         cards = choice = n = player = _kf_U
         _pc = 0
@@ -297,7 +297,7 @@ def _kfmk_Game__maybe_mulligan(_kfN, _kfR):
 
 def _kfmk_Game__run(_kfN, _kfR):
   def _kfr_Game__run(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1126 Game._run
+    # game.py:1157 Game._run
     if _kfF is None:  # a fresh call: Python bound the arguments
         over = _kf_U
         _pc = 0
@@ -351,7 +351,7 @@ def _kfmk_Game__run(_kfN, _kfR):
 
 def _kfmk_Game__take_turn(_kfN, _kfR):
   def _kfr_Game__take_turn(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1141 Game._take_turn
+    # game.py:1172 Game._take_turn
     if _kfF is None:  # a fresh call: Python bound the arguments
         cost = player = source = _kf_U
         _pc = 0
@@ -404,7 +404,7 @@ def _kfmk_Game__take_turn(_kfN, _kfR):
 
 def _kfmk_Game__take_turn_from_house(_kfN, _kfR):
   def _kfr_Game__take_turn_from_house(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1165 Game._take_turn_from_house
+    # game.py:1196 Game._take_turn_from_house
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -444,7 +444,7 @@ def _kfmk_Game__take_turn_from_house(_kfN, _kfR):
 
 def _kfmk_Game__take_turn_from_archive(_kfN, _kfR):
   def _kfr_Game__take_turn_from_archive(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1175 Game._take_turn_from_archive
+    # game.py:1206 Game._take_turn_from_archive
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = take = _kf_U
         _pc = 0
@@ -497,7 +497,7 @@ def _kfmk_Game__take_turn_from_archive(_kfN, _kfR):
 
 def _kfmk_Game__take_turn_action_loop(_kfN, _kfR):
   def _kfr_Game__take_turn_action_loop(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1198 Game._take_turn_action_loop
+    # game.py:1229 Game._take_turn_action_loop
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kf_U
         _pc = 0
@@ -561,7 +561,7 @@ def _kfmk_Game__take_turn_action_loop(_kfN, _kfR):
 
 def _kfmk_Game__resume(_kfN, _kfR):
   def _kfr_Game__resume(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1219 Game._resume
+    # game.py:1250 Game._resume
     if _kfF is None:  # a fresh call: Python bound the arguments
         kind = over = pid = _kf_U
         _pc = 0
@@ -656,7 +656,7 @@ def _kfmk_Game__resume(_kfN, _kfR):
 
 def _kfmk_Game__choose_house_step(_kfN, _kfR):
   def _kfr_Game__choose_house_step(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1250 Game._choose_house_step
+    # game.py:1281 Game._choose_house_step
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = cannot = forced = house = options = player = _kf_U
         _pc = 0
@@ -713,12 +713,12 @@ def _kfmk_Game__choose_house_step(_kfN, _kfR):
 
 def _kfmk_Game__cleanup_turn(_kfN, _kfR):
   def _kfr_Game__cleanup_turn(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1279 Game._cleanup_turn
+    # game.py:1311 Game._cleanup_turn
     if _kfF is None:  # a fresh call: Python bound the arguments
-        c = cleanups = iid = operation = p = player = _kf_U
+        c = cleanups = iid = operation = p = player = viewer = _kf_U
         _pc = 0
     else:  # resuming a suspended frame
-        (self, pid, c, cleanups, iid, operation, p, player,) = _kfF.L
+        (self, pid, c, cleanups, iid, operation, p, player, viewer,) = _kfF.L
         _pc = _kfF.pc
     if not _pc:
         player = self.players[pid]
@@ -726,11 +726,11 @@ def _kfmk_Game__cleanup_turn(_kfN, _kfR):
         _sent = (_kfgm__fire_event(self, 'end_of_turn', {'player': pid}) if type(self) is _kfGame else _kf_step(self._fire_event)('end_of_turn', {'player': pid}))
         if type(_sent) is _kf_S:
             if _kfF is None:
-                _kfF = _kf_Frame(_kfR, [self, pid, c, cleanups, iid, operation, p, player])
+                _kfF = _kf_Frame(_kfR, [self, pid, c, cleanups, iid, operation, p, player, viewer])
                 _kfF.pc = 1
                 _sent.frames.append(_kfF)
             else:
-                _kfF.L = [self, pid, c, cleanups, iid, operation, p, player]
+                _kfF.L = [self, pid, c, cleanups, iid, operation, p, player, viewer]
                 _kfF.pc = 1
             return _sent
     elif _pc == 1:
@@ -742,6 +742,8 @@ def _kfmk_Game__cleanup_turn(_kfN, _kfR):
     for p in self.players.values():
         for c in p.play_area.creatures:
             c.type_object.armor_used_this_turn = 0
+        for viewer in sorted(p.hand_revealed_to):
+            self.journal.reveal_hand(p.id, viewer, revealed=False)
         p.hand_revealed_to.clear()
     player.reset_turn_counters()
     self.active_effects.end_of_turn_tick()
@@ -754,7 +756,7 @@ def _kfmk_Game__cleanup_turn(_kfN, _kfR):
 
 def _kfmk_Game__pay_forge_cost(_kfN, _kfR):
   def _kfr_Game__pay_forge_cost(self=_kf_U, pid=_kf_U, cost=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1315 Game._pay_forge_cost
+    # game.py:1349 Game._pay_forge_cost
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = order = player = remaining = shortfall_amt = sources = take = _kf_U
         _pc = 0
@@ -805,7 +807,7 @@ def _kfmk_Game__pay_forge_cost(_kfN, _kfR):
 
 def _kfmk_Game__pay_and_forge_key(_kfN, _kfR):
   def _kfr_Game__pay_and_forge_key(self=_kf_U, pid=_kf_U, cost=_kf_U, source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1356 Game._pay_and_forge_key
+    # game.py:1390 Game._pay_and_forge_key
     if _kfF is None:  # a fresh call: Python bound the arguments
         ok = player = _kf_U
         _pc = 0
@@ -855,7 +857,7 @@ def _kfmk_Game__pay_and_forge_key(_kfN, _kfR):
 
 def _kfmk_Game_forge_key(_kfN, _kfR):
   def _kfr_Game_forge_key(self=_kf_U, pid=_kf_U, cost_modifier=_kf_U, source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1373 Game.forge_key
+    # game.py:1407 Game.forge_key
     if _kfF is None:  # a fresh call: Python bound the arguments
         cost = ok = player = _kf_U
         _pc = 0
@@ -889,7 +891,7 @@ def _kfmk_Game_forge_key(_kfN, _kfR):
 
 def _kfmk_Game__resolve_action(_kfN, _kfR):
   def _kfr_Game__resolve_action(self=_kf_U, pid=_kf_U, action=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1674 Game._resolve_action
+    # game.py:1708 Game._resolve_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -990,7 +992,7 @@ def _kfmk_Game__resolve_action(_kfN, _kfR):
 
 def _kfmk_Game__discard_card(_kfN, _kfR):
   def _kfr_Game__discard_card(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1688 Game._discard_card
+    # game.py:1722 Game._discard_card
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
         _pc = 0
@@ -1022,7 +1024,7 @@ def _kfmk_Game__discard_card(_kfN, _kfR):
 
 def _kfmk_Game__choose_flank(_kfN, _kfR):
   def _kfr_Game__choose_flank(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1698 Game._choose_flank
+    # game.py:1732 Game._choose_flank
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = _kf_U
         _pc = 0
@@ -1053,7 +1055,7 @@ def _kfmk_Game__choose_flank(_kfN, _kfR):
 
 def _kfmk_Game__play_card(_kfN, _kfR):
   def _kfr_Game__play_card(self=_kf_U, pid=_kf_U, card=_kf_U, from_deck_top=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1717 Game._play_card
+    # game.py:1751 Game._play_card
     if _kfF is None:  # a fresh call: Python bound the arguments
         amount = cdef = choice = enters_ready = first_creature_this_turn = flank = host = house = player = receiver_pid = targets = toll = _kf_U
         _pc = 0
@@ -1216,6 +1218,7 @@ def _kfmk_Game__play_card(_kfN, _kfR):
                 if not _pc:
                     card.type_object.host = host
                     host.type_object.upgrades.append(card)
+                    self.journal.enter(card, ('attached', host.instance_id), 'attach')
                     if cdef.register_passive:
                         cdef.register_passive(self, card)
                 if (not _pc and (cdef.on_play is not None)) or _pc == 6:
@@ -1287,7 +1290,7 @@ def _kfmk_Game__play_card(_kfN, _kfR):
 
 def _kfmk_Game__play_resolution(_kfN, _kfR):
   def _kfr_Game__play_resolution(self=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1860 Game._play_resolution
+    # game.py:1895 Game._play_resolution
     if _kfF is None:  # a fresh call: Python bound the arguments
         order = pre_existing = step_name = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1324,7 +1327,7 @@ def _kfmk_Game__play_resolution(_kfN, _kfR):
         if (not _pc and (step_name == 'effect')) or _pc == 2:
             if (not _pc and (card.card_def.on_play is not None)) or _pc == 2:
                 if not _pc:
-                    _sent = _kf_step(card.card_def.on_play)(self, card)
+                    _sent = (_kfgm__caused(self, card, card.card_def.on_play, card) if type(self) is _kfGame else _kf_step(self._caused)(card, card.card_def.on_play, card))
                     if type(_sent) is _kf_S:
                         if _kfF is None:
                             _kfF = _kf_Frame(_kfR, [self, card, order, pre_existing, step_name, _kfs0, _kfi1])
@@ -1356,7 +1359,7 @@ def _kfmk_Game__play_resolution(_kfN, _kfR):
 
 def _kfmk_Game__run_play_trigger_check(_kfN, _kfR):
   def _kfr_Game__run_play_trigger_check(self=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1884 Game._run_play_trigger_check
+    # game.py:1919 Game._run_play_trigger_check
     if _kfF is None:  # a fresh call: Python bound the arguments
         event_player = ordered = trig = triggers = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1394,7 +1397,7 @@ def _kfmk_Game__run_play_trigger_check(_kfN, _kfR):
             trig = _kfs0[_kfi1]
             _kfi1 += 1
         if not _pc:
-            _sent = _kf_step(trig.handler)(self, {'player': event_player, 'card': card})
+            _sent = (_kfgm__caused(self, trig.source_card, trig.handler, {'player': event_player, 'card': card}) if type(self) is _kfGame else _kf_step(self._caused)(trig.source_card, trig.handler, {'player': event_player, 'card': card}))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [self, card, event_player, ordered, trig, triggers, _kfs0, _kfi1])
@@ -1412,7 +1415,7 @@ def _kfmk_Game__run_play_trigger_check(_kfN, _kfR):
 
 def _kfmk_Game_play_card_from_deck_top(_kfN, _kfR):
   def _kfr_Game_play_card_from_deck_top(self=_kf_U, player=_kf_U, top_card=_kf_U, ignore_house=_kf_U, source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1902 Game.play_card_from_deck_top
+    # game.py:1937 Game.play_card_from_deck_top
     if _kfF is None:  # a fresh call: Python bound the arguments
         ok = reason = _kf_U
         _pc = 0
@@ -1447,7 +1450,7 @@ def _kfmk_Game_play_card_from_deck_top(_kfN, _kfR):
 
 def _kfmk_Game__use_action(_kfN, _kfR):
   def _kfr_Game__use_action(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1967 Game._use_action
+    # game.py:2002 Game._use_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         effect = player = _kf_U
         _pc = 0
@@ -1465,7 +1468,7 @@ def _kfmk_Game__use_action(_kfN, _kfR):
         self.log.add('use_action', player=pid, card=card.name, iid=card.instance_id)
         effect = card.card_def.on_action or card.granted_action
     if not _pc:
-        _sent = _kf_step(effect)(self, card)
+        _sent = (_kfgm__caused(self, card, effect, card) if type(self) is _kfGame else _kf_step(self._caused)(card, effect, card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [self, pid, card, effect, player])
@@ -1497,7 +1500,7 @@ def _kfmk_Game__use_action(_kfN, _kfR):
 
 def _kfmk_Game__use_omni(_kfN, _kfR):
   def _kfr_Game__use_omni(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1981 Game._use_omni
+    # game.py:2016 Game._use_omni
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
         _pc = 0
@@ -1514,7 +1517,7 @@ def _kfmk_Game__use_omni(_kfN, _kfR):
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
         self.log.add('use_omni', player=pid, card=card.name, iid=card.instance_id)
     if not _pc:
-        _sent = _kf_step(card.card_def.on_omni)(self, card)
+        _sent = (_kfgm__caused(self, card, card.card_def.on_omni, card) if type(self) is _kfGame else _kf_step(self._caused)(card, card.card_def.on_omni, card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [self, pid, card, player])
@@ -1546,7 +1549,7 @@ def _kfmk_Game__use_omni(_kfN, _kfR):
 
 def _kfmk_Game__reap(_kfN, _kfR):
   def _kfr_Game__reap(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1994 Game._reap
+    # game.py:2029 Game._reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         cdef = extra = player = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1582,7 +1585,7 @@ def _kfmk_Game__reap(_kfN, _kfR):
         cdef = card.card_def
     if (not _pc and (cdef.on_reap is not None)) or _pc == 2:
         if not _pc:
-            _sent = _kf_step(cdef.on_reap)(self, card)
+            _sent = (_kfgm__caused(self, card, cdef.on_reap, card) if type(self) is _kfGame else _kf_step(self._caused)(card, cdef.on_reap, card))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [self, pid, card, cdef, extra, player, _kfs0, _kfi1])
@@ -1602,7 +1605,7 @@ def _kfmk_Game__reap(_kfN, _kfR):
             extra = _kfs0[_kfi1]
             _kfi1 += 1
         if not _pc:
-            _sent = _kf_step(extra)(self, card)
+            _sent = (_kfgm__caused(self, card, extra, card) if type(self) is _kfGame else _kf_step(self._caused)(card, extra, card))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [self, pid, card, cdef, extra, player, _kfs0, _kfi1])
@@ -1620,7 +1623,7 @@ def _kfmk_Game__reap(_kfN, _kfR):
 
 def _kfmk_Game__fight(_kfN, _kfR):
   def _kfr_Game__fight(self=_kf_U, pid=_kf_U, attacker=_kf_U, exclude=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2013 Game._fight
+    # game.py:2048 Game._fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         assault_n = attack_power = attacker_keywords = before = c = cdef = choice = destroyed = dmg_target = extra = hazardous_n = hit = hits = player = skip_fight = survivor = target = target_keywords = targets = victim = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1707,7 +1710,7 @@ def _kfmk_Game__fight(_kfN, _kfR):
             return target
     if (not _pc and (attacker.card_def.on_before_fight is not None)) or 5 <= _pc <= 6:
         if not _pc:
-            _sent = _kf_step(attacker.card_def.on_before_fight)(self, attacker, target)
+            _sent = (_kfgm__caused(self, attacker, attacker.card_def.on_before_fight, attacker, target) if type(self) is _kfGame else _kf_step(self._caused)(attacker, attacker.card_def.on_before_fight, attacker, target))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [self, pid, attacker, exclude, assault_n, attack_power, attacker_keywords, before, c, cdef, choice, destroyed, dmg_target, extra, hazardous_n, hit, hits, player, skip_fight, survivor, target, target_keywords, targets, victim, _kfs0, _kfi1])
@@ -1830,7 +1833,7 @@ def _kfmk_Game__fight(_kfN, _kfR):
                 survivor, victim = (attacker, target)
         if (not _pc and (survivor is not None and survivor.card_def.on_destroyed_fighting is not None)) or _pc == 10:
             if not _pc:
-                _sent = _kf_step(survivor.card_def.on_destroyed_fighting)(self, survivor, victim)
+                _sent = (_kfgm__caused(self, survivor, survivor.card_def.on_destroyed_fighting, survivor, victim) if type(self) is _kfGame else _kf_step(self._caused)(survivor, survivor.card_def.on_destroyed_fighting, survivor, victim))
                 if type(_sent) is _kf_S:
                     if _kfF is None:
                         _kfF = _kf_Frame(_kfR, [self, pid, attacker, exclude, assault_n, attack_power, attacker_keywords, before, c, cdef, choice, destroyed, dmg_target, extra, hazardous_n, hit, hits, player, skip_fight, survivor, target, target_keywords, targets, victim, _kfs0, _kfi1])
@@ -1848,7 +1851,7 @@ def _kfmk_Game__fight(_kfN, _kfR):
         cdef = attacker.card_def
     if (not _pc and (cdef.on_fight is not None)) or _pc == 11:
         if not _pc:
-            _sent = _kf_step(cdef.on_fight)(self, attacker)
+            _sent = (_kfgm__caused(self, attacker, cdef.on_fight, attacker) if type(self) is _kfGame else _kf_step(self._caused)(attacker, cdef.on_fight, attacker))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [self, pid, attacker, exclude, assault_n, attack_power, attacker_keywords, before, c, cdef, choice, destroyed, dmg_target, extra, hazardous_n, hit, hits, player, skip_fight, survivor, target, target_keywords, targets, victim, _kfs0, _kfi1])
@@ -1868,7 +1871,7 @@ def _kfmk_Game__fight(_kfN, _kfR):
             extra = _kfs0[_kfi1]
             _kfi1 += 1
         if not _pc:
-            _sent = _kf_step(extra)(self, attacker)
+            _sent = (_kfgm__caused(self, attacker, extra, attacker) if type(self) is _kfGame else _kf_step(self._caused)(attacker, extra, attacker))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [self, pid, attacker, exclude, assault_n, attack_power, attacker_keywords, before, c, cdef, choice, destroyed, dmg_target, extra, hazardous_n, hit, hits, player, skip_fight, survivor, target, target_keywords, targets, victim, _kfs0, _kfi1])
@@ -1887,7 +1890,7 @@ def _kfmk_Game__fight(_kfN, _kfR):
 
 def _kfmk_Game_use_creature_ability(_kfN, _kfR):
   def _kfr_Game_use_creature_ability(self=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2170 Game.use_creature_ability
+    # game.py:2205 Game.use_creature_ability
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = kind = only_fight = options = pid = player = _kf_U
         _pc = 0
@@ -1996,7 +1999,7 @@ def _kfmk_Game_use_creature_ability(_kfN, _kfR):
 
 def _kfmk_Game_ready_and_fight(_kfN, _kfR):
   def _kfr_Game_ready_and_fight(self=_kf_U, card=_kf_U, exclude=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2209 Game.ready_and_fight
+    # game.py:2244 Game.ready_and_fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         pid = player = _kf_U
         _pc = 0
@@ -2031,7 +2034,7 @@ def _kfmk_Game_ready_and_fight(_kfN, _kfR):
 
 def _kfmk_Game_check_destroyed(_kfN, _kfR):
   def _kfr_Game_check_destroyed(self=_kf_U, cards=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2229 Game.check_destroyed
+    # game.py:2264 Game.check_destroyed
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = destroyed = to_destroy = _kf_U
         _pc = 0
@@ -2072,7 +2075,7 @@ def _kfmk_Game_check_destroyed(_kfN, _kfR):
 
 def _kfmk_Game_destroy_cards(_kfN, _kfR):
   def _kfr_Game_destroy_cards(self=_kf_U, cards=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2299 Game.destroy_cards
+    # game.py:2335 Game.destroy_cards
     if _kfF is None:  # a fresh call: Python bound the arguments
         _ = also_destroyed = batch = c = e = extra = insteads = intercepted = item = ordered = survivors = to_resolve = _kfs0 = _kfi1 = _kfs2 = _kfi3 = _kf_U
         _pc = 0
@@ -2133,7 +2136,7 @@ def _kfmk_Game_destroy_cards(_kfN, _kfR):
             if not _pc:
                 _, c, extra = item
             if not _pc:
-                _sent = _kf_step(extra)(self, c)
+                _sent = (_kfgm__caused(self, c, extra, c) if type(self) is _kfGame else _kf_step(self._caused)(c, extra, c))
                 if type(_sent) is _kf_S:
                     if _kfF is None:
                         _kfF = _kf_Frame(_kfR, [self, cards, _, also_destroyed, batch, c, e, extra, insteads, intercepted, item, ordered, survivors, to_resolve, _kfs0, _kfi1, _kfs2, _kfi3])
@@ -2147,7 +2150,7 @@ def _kfmk_Game_destroy_cards(_kfN, _kfR):
                 _pc = 0
         elif not _pc or _pc == 3:
             if not _pc:
-                _sent = _kf_step(item.card_def.on_destroyed)(self, item)
+                _sent = (_kfgm__caused(self, item, item.card_def.on_destroyed, item) if type(self) is _kfGame else _kf_step(self._caused)(item, item.card_def.on_destroyed, item))
                 if type(_sent) is _kf_S:
                     if _kfF is None:
                         _kfF = _kf_Frame(_kfR, [self, cards, _, also_destroyed, batch, c, e, extra, insteads, intercepted, item, ordered, survivors, to_resolve, _kfs0, _kfi1, _kfs2, _kfi3])
@@ -2189,9 +2192,66 @@ def _kfmk_Game_destroy_cards(_kfN, _kfR):
   return _kfr_Game_destroy_cards
 
 
+def _kfmk_Game__caused(_kfN, _kfR):
+  def _kfr_Game__caused(self=_kf_U, source=_kf_U, fn=_kf_U, a=_kf_U, b=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
+    # game.py:2399 Game._caused
+    if _kfF is None:  # a fresh call: Python bound the arguments
+        _kfxe = None
+        _pc = 0
+    else:  # resuming a suspended frame
+        (self, source, fn, a, b, _kfxe,) = _kfF.L
+        _pc = _kfF.pc
+    if not _pc:
+        self._causes.append(source.instance_id if source is not None else None)
+    if not _pc or 1 <= _pc <= 2:
+        try:
+            if (not _pc and (b is None)) or _pc == 1:
+                if not _pc:
+                    _sent = _kf_step(fn)(self, a)
+                    if type(_sent) is _kf_S:
+                        if _kfF is None:
+                            _kfF = _kf_Frame(_kfR, [self, source, fn, a, b, _kfxe])
+                            _kfF.pc = 1
+                            _sent.frames.append(_kfF)
+                        else:
+                            _kfF.L = [self, source, fn, a, b, _kfxe]
+                            _kfF.pc = 1
+                        return _sent
+                elif _pc == 1:
+                    _pc = 0
+                    if _kfxe is not None:  # an exception from below, delivered by the machine
+                        _kfe = _kfxe
+                        _kfxe = None
+                        raise _kfe
+            elif not _pc or _pc == 2:
+                if not _pc:
+                    _sent = _kf_step(fn)(self, a, b)
+                    if type(_sent) is _kf_S:
+                        if _kfF is None:
+                            _kfF = _kf_Frame(_kfR, [self, source, fn, a, b, _kfxe])
+                            _kfF.pc = 2
+                            _sent.frames.append(_kfF)
+                        else:
+                            _kfF.L = [self, source, fn, a, b, _kfxe]
+                            _kfF.pc = 2
+                        return _sent
+                elif _pc == 2:
+                    _pc = 0
+                    if _kfxe is not None:  # an exception from below, delivered by the machine
+                        _kfe = _kfxe
+                        _kfxe = None
+                        raise _kfe
+        except BaseException:
+            self._causes.pop()
+            raise
+        self._causes.pop()
+    return None
+  return _kfr_Game__caused
+
+
 def _kfmk_Game__fire_event(_kfN, _kfR):
   def _kfr_Game__fire_event(self=_kf_U, event_name=_kf_U, event_data=_kf_U, exclude_sources=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2363 Game._fire_event
+    # game.py:2414 Game._fire_event
     if _kfF is None:  # a fresh call: Python bound the arguments
         ordered = trig = triggers = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -2230,7 +2290,7 @@ def _kfmk_Game__fire_event(_kfN, _kfR):
             trig = _kfs0[_kfi1]
             _kfi1 += 1
         if not _pc:
-            _sent = _kf_step(trig.handler)(self, event_data)
+            _sent = (_kfgm__caused(self, trig.source_card, trig.handler, event_data) if type(self) is _kfGame else _kf_step(self._caused)(trig.source_card, trig.handler, event_data))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [self, event_name, event_data, exclude_sources, ordered, trig, triggers, _kfs0, _kfi1])
@@ -2248,7 +2308,7 @@ def _kfmk_Game__fire_event(_kfN, _kfR):
 
 def _kfmk_Game_take_control(_kfN, _kfR):
   def _kfr_Game_take_control(self=_kf_U, card=_kf_U, new_pid=_kf_U, until_source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2488 Game.take_control
+    # game.py:2541 Game.take_control
     if _kfF is None:  # a fresh call: Python bound the arguments
         flank = new_area = old_area = old_pid = _kf_U
         _pc = 0
@@ -2298,7 +2358,7 @@ def _kfmk_Game_take_control(_kfN, _kfR):
 
 def _kfmk_Game_use_artifact_ability(_kfN, _kfR):
   def _kfr_Game_use_artifact_ability(self=_kf_U, card=_kf_U, as_pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2522 Game.use_artifact_ability
+    # game.py:2575 Game.use_artifact_ability
     if _kfF is None:  # a fresh call: Python bound the arguments
         ability = as_player = is_omni = original_controller = toll = _kf_U
         _kfxe = None
@@ -2326,7 +2386,7 @@ def _kfmk_Game_use_artifact_ability(_kfN, _kfR):
     if not _pc or _pc == 1:
         try:
             if not _pc:
-                _sent = _kf_step(ability)(self, card)
+                _sent = (_kfgm__caused(self, card, ability, card) if type(self) is _kfGame else _kf_step(self._caused)(card, ability, card))
                 if type(_sent) is _kf_S:
                     if _kfF is None:
                         _kfF = _kf_Frame(_kfR, [self, card, as_pid, ability, as_player, is_omni, original_controller, toll, _kfxe])
@@ -2368,41 +2428,42 @@ def _kfmk_Game_use_artifact_ability(_kfN, _kfR):
 #  line of each resume id, (exception slot, resume ids inside a try region) or None,
 #  what each resume id waits on, the operations still reachable from each resume id)
 ROUTINES = [
-    ('Game.choose_cards', 795, _kfmk_Game_choose_cards, ('self', 'player', 'prompt', 'options', 'min_n', 'max_n', 'source_card', 'intent', 'affects', 'optional', 'choice'), (), (), {1: 803}, None, {1: 'decision'}, {1: ()}),
-    ('Game.choose_house', 809, _kfmk_Game_choose_house, ('self', 'player', 'prompt', 'houses', 'choice'), (), (), {1: 815}, None, {1: 'decision'}, {1: ()}),
-    ('Game.yes_no', 818, _kfmk_Game_yes_no, ('self', 'player', 'prompt', 'source_card', 'intent', 'optional', 'choice'), (), (), {1: 819}, None, {1: 'decision'}, {1: ()}),
-    ('Game.order_effects', 825, _kfmk_Game_order_effects, ('self', 'player', 'items', 'prompt', 'source_card', 'choice'), (), (), {1: 829}, None, {1: 'decision'}, {1: ()}),
-    ('Game.choose_number', 835, _kfmk_Game_choose_number, ('self', 'player', 'prompt', 'numbers', 'source_card', 'choice'), (), (), {1: 841}, None, {1: 'decision'}, {1: ()}),
-    ('Game.choose_mode', 847, _kfmk_Game_choose_mode, ('self', 'player', 'prompt', 'modes', 'source_card', 'choice'), (), (), {1: 853}, None, {1: 'decision'}, {1: ()}),
-    ('Game._setup', 1002, _kfmk_Game__setup, ('self', 'c', 'card', 'cards', 'deck_name', 'first', 'p1_deck_name', 'p2_deck_name', 'pid', 'second', '_kfs0', '_kfi1'), (), (('<lambda>', 1009),), {1: 1025}, None, {1: 'self._maybe_mulligan'}, {1: (('loop', 1024), ('pause', 'self._maybe_mulligan', ('?',), ()))}),
-    ('Game._maybe_mulligan', 1041, _kfmk_Game__maybe_mulligan, ('self', 'pid', 'cards', 'choice', 'n', 'player'), (), (), {1: 1043}, None, {1: 'decision'}, {1: (('step', 'self.event_rng', ('reshuffle', '?'), ()), ('step', 'steps.draw', ('?', '?', '?'), ()))}),
-    ('Game._run', 1126, _kfmk_Game__run, ('self', 'over'), (), (), {1: 1127, 2: 1133}, None, {1: 'self._setup', 2: 'self._take_turn'}, {1: (('step', 'self._apply_setup_script', (), ()), ('pause', 'self._take_turn', ('?',), ())), 2: (('loop', 1131), ('pause', 'self._take_turn', ('?',), ()))}),
-    ('Game._take_turn', 1141, _kfmk_Game__take_turn, ('self', 'pid', 'cost', 'player', 'source'), (), (), {1: 1156, 2: 1163}, None, {1: 'self._pay_and_forge_key', 2: 'self._take_turn_from_house'}, {1: (('pause', 'self._take_turn_from_house', ('?',), ()),), 2: ()}),
-    ('Game._take_turn_from_house', 1165, _kfmk_Game__take_turn_from_house, ('self', 'pid'), (), (), {1: 1172, 2: 1173}, None, {1: 'self._choose_house_step', 2: 'self._take_turn_from_archive'}, {1: (('pause', 'self._take_turn_from_archive', ('?',), ()),), 2: ()}),
-    ('Game._take_turn_from_archive', 1175, _kfmk_Game__take_turn_from_archive, ('self', 'pid', 'c', 'player', 'take'), (), (), {1: 1181, 2: 1196}, None, {1: 'decision', 2: 'self._take_turn_action_loop'}, {1: (('pause', 'self._take_turn_action_loop', ('?',), ()),), 2: ()}),
-    ('Game._take_turn_action_loop', 1198, _kfmk_Game__take_turn_action_loop, ('self', 'pid', 'choice', 'options', 'player'), (), (), {1: 1206, 2: 1209, 3: 1214}, None, {1: 'decision', 2: 'self._resolve_action', 3: 'self._cleanup_turn'}, {1: (('pause', 'self._resolve_action', ('?', '?'), ()), ('loop', 1204), ('step', 'self._legal_actions', ('?',), ()), ('decision', 'yield', (), ()), ('pause', 'self._resolve_action', ('?', '?'), ()), ('pause', 'self._cleanup_turn', ('?',), ()), ('step', 'self._draw_step', ('?',), ())), 2: (('loop', 1204), ('step', 'self._legal_actions', ('?',), ()), ('decision', 'yield', (), ()), ('pause', 'self._resolve_action', ('?', '?'), ()), ('pause', 'self._cleanup_turn', ('?',), ()), ('step', 'self._draw_step', ('?',), ())), 3: (('step', 'self._draw_step', ('?',), ()),)}),
-    ('Game._resume', 1219, _kfmk_Game__resume, ('self', 'kind', 'over', 'pid'), (), (), {1: 1231, 2: 1233, 3: 1235, 4: 1246}, None, {1: 'self._take_turn_from_house', 2: 'self._take_turn_from_archive', 3: 'self._take_turn_action_loop', 4: 'self._take_turn'}, {1: (('pause', 'self._take_turn', ('?',), ()),), 2: (('pause', 'self._take_turn', ('?',), ()),), 3: (('pause', 'self._take_turn', ('?',), ()),), 4: (('loop', 1240), ('pause', 'self._take_turn', ('?',), ()))}),
-    ('Game._choose_house_step', 1250, _kfmk_Game__choose_house_step, ('self', 'pid', 'c', 'cannot', 'forced', 'house', 'options', 'player'), (), (), {1: 1261, 2: 1267}, None, {1: 'decision', 2: 'self._fire_event'}, {1: (('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._fire_event', ('house_chosen', '?'), ())), 2: ()}),
-    ('Game._cleanup_turn', 1279, _kfmk_Game__cleanup_turn, ('self', 'pid', 'c', 'cleanups', 'iid', 'operation', 'p', 'player'), (), (), {1: 1281}, None, {1: 'self._fire_event'}, {1: ()}),
-    ('Game._pay_forge_cost', 1315, _kfmk_Game__pay_forge_cost, ('self', 'pid', 'cost', 'c', 'order', 'player', 'remaining', 'shortfall_amt', 'sources', 'take'), (), (), {1: 1329}, None, {1: 'self.order_effects'}, {1: (('step', 'self._credit_forge_payment', ('?', '?'), ()),)}),
-    ('Game._pay_and_forge_key', 1356, _kfmk_Game__pay_and_forge_key, ('self', 'pid', 'cost', 'source', 'ok', 'player'), (), (), {1: 1359, 2: 1368}, None, {1: 'self._pay_forge_cost', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('key_forged', '?'), ()),), 2: ()}),
-    ('Game.forge_key', 1373, _kfmk_Game_forge_key, ('self', 'pid', 'cost_modifier', 'source', 'cost', 'ok', 'player'), (), (), {1: 1382}, None, {1: 'self._pay_and_forge_key'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', 'Not enough Æmber'), ()),)}),
-    ('Game._resolve_action', 1674, _kfmk_Game__resolve_action, ('self', 'pid', 'action'), (), (), {1: 1676, 2: 1678, 3: 1680, 4: 1682, 5: 1684, 6: 1686}, None, {1: 'self._play_card', 2: 'self._discard_card', 3: 'self._use_action', 4: 'self._use_omni', 5: 'self._reap', 6: 'self._fight'}, {1: (), 2: (), 3: (), 4: (), 5: (), 6: ()}),
-    ('Game._discard_card', 1688, _kfmk_Game__discard_card, ('self', 'pid', 'card', 'player'), (), (), {1: 1694}, None, {1: 'self._fire_event'}, {1: ()}),
-    ('Game._choose_flank', 1698, _kfmk_Game__choose_flank, ('self', 'pid', 'choice', 'player'), (), (), {1: 1702}, None, {1: 'decision'}, {1: ()}),
-    ('Game._play_card', 1717, _kfmk_Game__play_card, ('self', 'pid', 'card', 'from_deck_top', 'amount', 'cdef', 'choice', 'enters_ready', 'first_creature_this_turn', 'flank', 'host', 'house', 'player', 'receiver_pid', 'targets', 'toll'), (), (), {1: 1756, 2: 1759, 3: 1815, 4: 1816, 5: 1828, 6: 1842, 7: 1845, 8: 1849, 9: 1857}, None, {1: 'self._choose_flank', 2: 'self.choose_cards', 3: 'self._fire_event', 4: 'self._play_resolution', 5: 'self._play_resolution', 6: 'cdef.on_play', 7: 'self._run_play_trigger_check', 8: 'self._play_resolution', 9: 'self._fire_event'}, {1: (('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._fire_event', ('creature_entered_play', '?'), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('pause', 'cdef.on_play', ('?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self._card_is_somewhere', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 2: (('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._fire_event', ('creature_entered_play', '?'), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('pause', 'cdef.on_play', ('?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self._card_is_somewhere', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 3: (('pause', 'self._play_resolution', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 4: (('pause', 'self._fire_event', ('any_card_played', '?'), ()),), 5: (('pause', 'self._fire_event', ('any_card_played', '?'), ()),), 6: (('pause', 'self._run_play_trigger_check', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 7: (('pause', 'self._fire_event', ('any_card_played', '?'), ()),), 8: (('step', 'self._card_is_somewhere', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 9: ()}),
-    ('Game._play_resolution', 1860, _kfmk_Game__play_resolution, ('self', 'card', 'order', 'pre_existing', 'step_name', '_kfs0', '_kfi1'), (), (), {1: 1872, 2: 1880, 3: 1882}, None, {1: 'self.order_effects', 2: 'card.card_def.on_play', 3: 'self._run_play_trigger_check'}, {1: (('pause', 'card.card_def.on_play', ('?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ())), 2: (('loop', 1877), ('pause', 'card.card_def.on_play', ('?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ())), 3: (('loop', 1877), ('pause', 'card.card_def.on_play', ('?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ()))}),
-    ('Game._run_play_trigger_check', 1884, _kfmk_Game__run_play_trigger_check, ('self', 'card', 'event_player', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 1894, 2: 1900}, None, {1: 'self.order_effects', 2: 'trig.handler'}, {1: (('pause', 'trig.handler', ('?', '?'), ()),), 2: (('loop', 1899), ('pause', 'trig.handler', ('?', '?'), ()))}),
-    ('Game.play_card_from_deck_top', 1902, _kfmk_Game_play_card_from_deck_top, ('self', 'player', 'top_card', 'ignore_house', 'source', 'ok', 'reason'), (), (), {1: 1905}, None, {1: 'self._play_card'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', '?'), ()),)}),
-    ('Game._use_action', 1967, _kfmk_Game__use_action, ('self', 'pid', 'card', 'effect', 'player'), (), (), {1: 1977, 2: 1979}, None, {1: 'effect', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('artifact_used', '?'), ()),), 2: ()}),
-    ('Game._use_omni', 1981, _kfmk_Game__use_omni, ('self', 'pid', 'card', 'player'), (), (), {1: 1990, 2: 1992}, None, {1: 'card.card_def.on_omni', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('artifact_used', '?'), ()),), 2: ()}),
-    ('Game._reap', 1994, _kfmk_Game__reap, ('self', 'pid', 'card', 'cdef', 'extra', 'player', '_kfs0', '_kfi1'), (), (), {1: 2006, 2: 2009, 3: 2011}, None, {1: 'self._fire_event', 2: 'cdef.on_reap', 3: 'extra'}, {1: (('pause', 'cdef.on_reap', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 2: (('pause', 'extra', ('?', '?'), ()),), 3: (('loop', 2010), ('pause', 'extra', ('?', '?'), ()))}),
-    ('Game._fight', 2013, _kfmk_Game__fight, ('self', 'pid', 'attacker', 'exclude', 'assault_n', 'attack_power', 'attacker_keywords', 'before', 'c', 'cdef', 'choice', 'destroyed', 'dmg_target', 'extra', 'hazardous_n', 'hit', 'hits', 'player', 'skip_fight', 'survivor', 'target', 'target_keywords', 'targets', 'victim', '_kfs0', '_kfi1'), (), (), {1: 2037, 2: 2044, 3: 2059, 4: 2061, 5: 2071, 6: 2072, 7: 2081, 8: 2090, 9: 2141, 10: 2158, 11: 2165, 12: 2167}, None, {1: 'self._fire_event', 2: 'self.choose_cards', 3: 'self._fire_event', 4: 'self.check_destroyed', 5: 'attacker.card_def.on_before_fight', 6: 'self.check_destroyed', 7: 'self.check_destroyed', 8: 'self.check_destroyed', 9: 'self.check_destroyed', 10: 'survivor.card_def.on_destroyed_fighting', 11: 'cdef.on_fight', 12: 'extra'}, {1: (('step', 'self.legal_fight_targets', ('?', '?'), ()), ('pause', 'self.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.FIGHT_TARGET'), ('affects', 'Affects.ENEMY'))), ('pause', 'self._fire_event', ('fight_resolved', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'attacker.card_def.on_before_fight', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 2: (('pause', 'self._fire_event', ('fight_resolved', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'attacker.card_def.on_before_fight', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 3: (('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'attacker.card_def.on_before_fight', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 4: (('pause', 'attacker.card_def.on_before_fight', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 5: (('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 6: (('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 7: (('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 8: (('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 9: (('pause', 'survivor.card_def.on_destroyed_fighting', ('?', '?', '?'), ()), ('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 10: (('pause', 'cdef.on_fight', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 11: (('pause', 'extra', ('?', '?'), ()),), 12: (('loop', 2166), ('pause', 'extra', ('?', '?'), ()))}),
-    ('Game.use_creature_ability', 2170, _kfmk_Game_use_creature_ability, ('self', 'card', 'choice', 'kind', 'only_fight', 'options', 'pid', 'player'), (), (), {1: 2182, 2: 2195, 3: 2203, 4: 2205, 5: 2207}, None, {1: 'self._reap', 2: 'self.choose_cards', 3: 'self._reap', 4: 'self._fight', 5: 'self._use_action'}, {1: (('step', 'self.legal_fight_targets', ('?',), ()), ('pause', 'self.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.MODE'), ('affects', 'Affects.NONE'))), ('pause', 'self._reap', ('?', '?'), ()), ('pause', 'self._fight', ('?', '?'), ()), ('pause', 'self._use_action', ('?', '?'), ())), 2: (('pause', 'self._reap', ('?', '?'), ()), ('pause', 'self._fight', ('?', '?'), ()), ('pause', 'self._use_action', ('?', '?'), ())), 3: (), 4: (), 5: ()}),
-    ('Game.ready_and_fight', 2209, _kfmk_Game_ready_and_fight, ('self', 'card', 'exclude', 'pid', 'player'), (), (), {1: 2225}, None, {1: 'self._fight'}, {1: ()}),
-    ('Game.check_destroyed', 2229, _kfmk_Game_check_destroyed, ('self', 'cards', 'c', 'destroyed', 'to_destroy'), (), (), {1: 2244}, None, {1: 'self.destroy_cards'}, {1: ()}),
-    ('Game.destroy_cards', 2299, _kfmk_Game_destroy_cards, ('self', 'cards', '_', 'also_destroyed', 'batch', 'c', 'e', 'extra', 'insteads', 'intercepted', 'item', 'ordered', 'survivors', 'to_resolve', '_kfs0', '_kfi1', '_kfs2', '_kfi3'), (), (), {1: 2339, 2: 2347, 3: 2349, 4: 2358}, None, {1: 'self.order_effects', 2: 'extra', 3: 'item.card_def.on_destroyed', 4: 'self._fire_event'}, {1: (('pause', 'extra', ('?', '?'), ()), ('pause', 'item.card_def.on_destroyed', ('?', '?'), ()), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ())), 2: (('loop', 2344), ('pause', 'extra', ('?', '?'), ()), ('pause', 'item.card_def.on_destroyed', ('?', '?'), ()), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ())), 3: (('loop', 2344), ('pause', 'extra', ('?', '?'), ()), ('pause', 'item.card_def.on_destroyed', ('?', '?'), ()), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ())), 4: (('loop', 2356), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ()))}),
-    ('Game._fire_event', 2363, _kfmk_Game__fire_event, ('self', 'event_name', 'event_data', 'exclude_sources', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 2374, 2: 2378}, None, {1: 'self.order_effects', 2: 'trig.handler'}, {1: (('pause', 'trig.handler', ('?', '?'), ()),), 2: (('loop', 2377), ('pause', 'trig.handler', ('?', '?'), ()))}),
-    ('Game.take_control', 2488, _kfmk_Game_take_control, ('self', 'card', 'new_pid', 'until_source', 'flank', 'new_area', 'old_area', 'old_pid'), (), (), {1: 2507}, None, {1: 'self._choose_flank'}, {1: ()}),
-    ('Game.use_artifact_ability', 2522, _kfmk_Game_use_artifact_ability, ('self', 'card', 'as_pid', 'ability', 'as_player', 'is_omni', 'original_controller', 'toll', '_kfxe'), (), (), {1: 2557, 2: 2561}, (8, (1,)), {1: 'ability', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('artifact_used', '?'), ()),), 2: ()}),
+    ('Game.choose_cards', 826, _kfmk_Game_choose_cards, ('self', 'player', 'prompt', 'options', 'min_n', 'max_n', 'source_card', 'intent', 'affects', 'optional', 'choice'), (), (), {1: 834}, None, {1: 'decision'}, {1: ()}),
+    ('Game.choose_house', 840, _kfmk_Game_choose_house, ('self', 'player', 'prompt', 'houses', 'choice'), (), (), {1: 846}, None, {1: 'decision'}, {1: ()}),
+    ('Game.yes_no', 849, _kfmk_Game_yes_no, ('self', 'player', 'prompt', 'source_card', 'intent', 'optional', 'choice'), (), (), {1: 850}, None, {1: 'decision'}, {1: ()}),
+    ('Game.order_effects', 856, _kfmk_Game_order_effects, ('self', 'player', 'items', 'prompt', 'source_card', 'choice'), (), (), {1: 860}, None, {1: 'decision'}, {1: ()}),
+    ('Game.choose_number', 866, _kfmk_Game_choose_number, ('self', 'player', 'prompt', 'numbers', 'source_card', 'choice'), (), (), {1: 872}, None, {1: 'decision'}, {1: ()}),
+    ('Game.choose_mode', 878, _kfmk_Game_choose_mode, ('self', 'player', 'prompt', 'modes', 'source_card', 'choice'), (), (), {1: 884}, None, {1: 'decision'}, {1: ()}),
+    ('Game._setup', 1033, _kfmk_Game__setup, ('self', 'c', 'card', 'cards', 'deck_name', 'first', 'p1_deck_name', 'p2_deck_name', 'pid', 'second', '_kfs0', '_kfi1'), (), (('<lambda>', 1040),), {1: 1056}, None, {1: 'self._maybe_mulligan'}, {1: (('loop', 1055), ('pause', 'self._maybe_mulligan', ('?',), ()))}),
+    ('Game._maybe_mulligan', 1072, _kfmk_Game__maybe_mulligan, ('self', 'pid', 'cards', 'choice', 'n', 'player'), (), (), {1: 1074}, None, {1: 'decision'}, {1: (('step', 'self.event_rng', ('reshuffle', '?'), ()), ('step', 'steps.draw', ('?', '?', '?'), ()))}),
+    ('Game._run', 1157, _kfmk_Game__run, ('self', 'over'), (), (), {1: 1158, 2: 1164}, None, {1: 'self._setup', 2: 'self._take_turn'}, {1: (('step', 'self._apply_setup_script', (), ()), ('pause', 'self._take_turn', ('?',), ())), 2: (('loop', 1162), ('pause', 'self._take_turn', ('?',), ()))}),
+    ('Game._take_turn', 1172, _kfmk_Game__take_turn, ('self', 'pid', 'cost', 'player', 'source'), (), (), {1: 1187, 2: 1194}, None, {1: 'self._pay_and_forge_key', 2: 'self._take_turn_from_house'}, {1: (('pause', 'self._take_turn_from_house', ('?',), ()),), 2: ()}),
+    ('Game._take_turn_from_house', 1196, _kfmk_Game__take_turn_from_house, ('self', 'pid'), (), (), {1: 1203, 2: 1204}, None, {1: 'self._choose_house_step', 2: 'self._take_turn_from_archive'}, {1: (('pause', 'self._take_turn_from_archive', ('?',), ()),), 2: ()}),
+    ('Game._take_turn_from_archive', 1206, _kfmk_Game__take_turn_from_archive, ('self', 'pid', 'c', 'player', 'take'), (), (), {1: 1212, 2: 1227}, None, {1: 'decision', 2: 'self._take_turn_action_loop'}, {1: (('pause', 'self._take_turn_action_loop', ('?',), ()),), 2: ()}),
+    ('Game._take_turn_action_loop', 1229, _kfmk_Game__take_turn_action_loop, ('self', 'pid', 'choice', 'options', 'player'), (), (), {1: 1237, 2: 1240, 3: 1245}, None, {1: 'decision', 2: 'self._resolve_action', 3: 'self._cleanup_turn'}, {1: (('pause', 'self._resolve_action', ('?', '?'), ()), ('loop', 1235), ('step', 'self._legal_actions', ('?',), ()), ('decision', 'yield', (), ()), ('pause', 'self._resolve_action', ('?', '?'), ()), ('pause', 'self._cleanup_turn', ('?',), ()), ('step', 'self._draw_step', ('?',), ())), 2: (('loop', 1235), ('step', 'self._legal_actions', ('?',), ()), ('decision', 'yield', (), ()), ('pause', 'self._resolve_action', ('?', '?'), ()), ('pause', 'self._cleanup_turn', ('?',), ()), ('step', 'self._draw_step', ('?',), ())), 3: (('step', 'self._draw_step', ('?',), ()),)}),
+    ('Game._resume', 1250, _kfmk_Game__resume, ('self', 'kind', 'over', 'pid'), (), (), {1: 1262, 2: 1264, 3: 1266, 4: 1277}, None, {1: 'self._take_turn_from_house', 2: 'self._take_turn_from_archive', 3: 'self._take_turn_action_loop', 4: 'self._take_turn'}, {1: (('pause', 'self._take_turn', ('?',), ()),), 2: (('pause', 'self._take_turn', ('?',), ()),), 3: (('pause', 'self._take_turn', ('?',), ()),), 4: (('loop', 1271), ('pause', 'self._take_turn', ('?',), ()))}),
+    ('Game._choose_house_step', 1281, _kfmk_Game__choose_house_step, ('self', 'pid', 'c', 'cannot', 'forced', 'house', 'options', 'player'), (), (), {1: 1292, 2: 1298}, None, {1: 'decision', 2: 'self._fire_event'}, {1: (('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._fire_event', ('house_chosen', '?'), ())), 2: ()}),
+    ('Game._cleanup_turn', 1311, _kfmk_Game__cleanup_turn, ('self', 'pid', 'c', 'cleanups', 'iid', 'operation', 'p', 'player', 'viewer'), (), (), {1: 1313}, None, {1: 'self._fire_event'}, {1: ()}),
+    ('Game._pay_forge_cost', 1349, _kfmk_Game__pay_forge_cost, ('self', 'pid', 'cost', 'c', 'order', 'player', 'remaining', 'shortfall_amt', 'sources', 'take'), (), (), {1: 1363}, None, {1: 'self.order_effects'}, {1: (('step', 'self._credit_forge_payment', ('?', '?'), ()),)}),
+    ('Game._pay_and_forge_key', 1390, _kfmk_Game__pay_and_forge_key, ('self', 'pid', 'cost', 'source', 'ok', 'player'), (), (), {1: 1393, 2: 1402}, None, {1: 'self._pay_forge_cost', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('key_forged', '?'), ()),), 2: ()}),
+    ('Game.forge_key', 1407, _kfmk_Game_forge_key, ('self', 'pid', 'cost_modifier', 'source', 'cost', 'ok', 'player'), (), (), {1: 1416}, None, {1: 'self._pay_and_forge_key'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', 'Not enough Æmber'), ()),)}),
+    ('Game._resolve_action', 1708, _kfmk_Game__resolve_action, ('self', 'pid', 'action'), (), (), {1: 1710, 2: 1712, 3: 1714, 4: 1716, 5: 1718, 6: 1720}, None, {1: 'self._play_card', 2: 'self._discard_card', 3: 'self._use_action', 4: 'self._use_omni', 5: 'self._reap', 6: 'self._fight'}, {1: (), 2: (), 3: (), 4: (), 5: (), 6: ()}),
+    ('Game._discard_card', 1722, _kfmk_Game__discard_card, ('self', 'pid', 'card', 'player'), (), (), {1: 1728}, None, {1: 'self._fire_event'}, {1: ()}),
+    ('Game._choose_flank', 1732, _kfmk_Game__choose_flank, ('self', 'pid', 'choice', 'player'), (), (), {1: 1736}, None, {1: 'decision'}, {1: ()}),
+    ('Game._play_card', 1751, _kfmk_Game__play_card, ('self', 'pid', 'card', 'from_deck_top', 'amount', 'cdef', 'choice', 'enters_ready', 'first_creature_this_turn', 'flank', 'host', 'house', 'player', 'receiver_pid', 'targets', 'toll'), (), (), {1: 1790, 2: 1793, 3: 1849, 4: 1850, 5: 1862, 6: 1877, 7: 1880, 8: 1884, 9: 1892}, None, {1: 'self._choose_flank', 2: 'self.choose_cards', 3: 'self._fire_event', 4: 'self._play_resolution', 5: 'self._play_resolution', 6: 'cdef.on_play', 7: 'self._run_play_trigger_check', 8: 'self._play_resolution', 9: 'self._fire_event'}, {1: (('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._fire_event', ('creature_entered_play', '?'), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('pause', 'cdef.on_play', ('?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self._card_is_somewhere', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 2: (('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._fire_event', ('creature_entered_play', '?'), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self.get_effective_house', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('pause', 'cdef.on_play', ('?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ()), ('pause', 'self._play_resolution', ('?',), ()), ('step', 'self._card_is_somewhere', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 3: (('pause', 'self._play_resolution', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 4: (('pause', 'self._fire_event', ('any_card_played', '?'), ()),), 5: (('pause', 'self._fire_event', ('any_card_played', '?'), ()),), 6: (('pause', 'self._run_play_trigger_check', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 7: (('pause', 'self._fire_event', ('any_card_played', '?'), ()),), 8: (('step', 'self._card_is_somewhere', ('?',), ()), ('pause', 'self._fire_event', ('any_card_played', '?'), ())), 9: ()}),
+    ('Game._play_resolution', 1895, _kfmk_Game__play_resolution, ('self', 'card', 'order', 'pre_existing', 'step_name', '_kfs0', '_kfi1'), (), (), {1: 1907, 2: 1915, 3: 1917}, None, {1: 'self.order_effects', 2: 'self._caused', 3: 'self._run_play_trigger_check'}, {1: (('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ())), 2: (('loop', 1912), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ())), 3: (('loop', 1912), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._run_play_trigger_check', ('?',), ()))}),
+    ('Game._run_play_trigger_check', 1919, _kfmk_Game__run_play_trigger_check, ('self', 'card', 'event_player', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 1929, 2: 1935}, None, {1: 'self.order_effects', 2: 'self._caused'}, {1: (('pause', 'self._caused', ('?', '?', '?'), ()),), 2: (('loop', 1934), ('pause', 'self._caused', ('?', '?', '?'), ()))}),
+    ('Game.play_card_from_deck_top', 1937, _kfmk_Game_play_card_from_deck_top, ('self', 'player', 'top_card', 'ignore_house', 'source', 'ok', 'reason'), (), (), {1: 1940}, None, {1: 'self._play_card'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', '?'), ()),)}),
+    ('Game._use_action', 2002, _kfmk_Game__use_action, ('self', 'pid', 'card', 'effect', 'player'), (), (), {1: 2012, 2: 2014}, None, {1: 'self._caused', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('artifact_used', '?'), ()),), 2: ()}),
+    ('Game._use_omni', 2016, _kfmk_Game__use_omni, ('self', 'pid', 'card', 'player'), (), (), {1: 2025, 2: 2027}, None, {1: 'self._caused', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('artifact_used', '?'), ()),), 2: ()}),
+    ('Game._reap', 2029, _kfmk_Game__reap, ('self', 'pid', 'card', 'cdef', 'extra', 'player', '_kfs0', '_kfi1'), (), (), {1: 2041, 2: 2044, 3: 2046}, None, {1: 'self._fire_event', 2: 'self._caused', 3: 'self._caused'}, {1: (('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 2: (('pause', 'self._caused', ('?', '?', '?'), ()),), 3: (('loop', 2045), ('pause', 'self._caused', ('?', '?', '?'), ()))}),
+    ('Game._fight', 2048, _kfmk_Game__fight, ('self', 'pid', 'attacker', 'exclude', 'assault_n', 'attack_power', 'attacker_keywords', 'before', 'c', 'cdef', 'choice', 'destroyed', 'dmg_target', 'extra', 'hazardous_n', 'hit', 'hits', 'player', 'skip_fight', 'survivor', 'target', 'target_keywords', 'targets', 'victim', '_kfs0', '_kfi1'), (), (), {1: 2072, 2: 2079, 3: 2094, 4: 2096, 5: 2106, 6: 2107, 7: 2116, 8: 2125, 9: 2176, 10: 2193, 11: 2200, 12: 2202}, None, {1: 'self._fire_event', 2: 'self.choose_cards', 3: 'self._fire_event', 4: 'self.check_destroyed', 5: 'self._caused', 6: 'self.check_destroyed', 7: 'self.check_destroyed', 8: 'self.check_destroyed', 9: 'self.check_destroyed', 10: 'self._caused', 11: 'self._caused', 12: 'self._caused'}, {1: (('step', 'self.legal_fight_targets', ('?', '?'), ()), ('pause', 'self.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.FIGHT_TARGET'), ('affects', 'Affects.ENEMY'))), ('pause', 'self._fire_event', ('fight_resolved', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 2: (('pause', 'self._fire_event', ('fight_resolved', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 3: (('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 4: (('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 5: (('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.all_creatures', ('any', '?'), ()), ('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 6: (('step', 'self.get_assault', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 7: (('step', 'self.get_hazardous', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 8: (('step', 'self.get_keywords', ('?',), ()), ('step', 'self.get_keywords', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', 'is elusive: the first time it is attacked each turn, no damage is dealt by either creature', 'Elusive: no damage'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_power', ('?',), ()), ('step', 'self.get_fight_damage_bonus', ('?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'self.get_power', ('?',), ()), ('pause', 'self.check_destroyed', ('?',), ()), ('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 9: (('pause', 'self._caused', ('?', '?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 10: (('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ())), 11: (('pause', 'self._caused', ('?', '?', '?'), ()),), 12: (('loop', 2201), ('pause', 'self._caused', ('?', '?', '?'), ()))}),
+    ('Game.use_creature_ability', 2205, _kfmk_Game_use_creature_ability, ('self', 'card', 'choice', 'kind', 'only_fight', 'options', 'pid', 'player'), (), (), {1: 2217, 2: 2230, 3: 2238, 4: 2240, 5: 2242}, None, {1: 'self._reap', 2: 'self.choose_cards', 3: 'self._reap', 4: 'self._fight', 5: 'self._use_action'}, {1: (('step', 'self.legal_fight_targets', ('?',), ()), ('pause', 'self.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.MODE'), ('affects', 'Affects.NONE'))), ('pause', 'self._reap', ('?', '?'), ()), ('pause', 'self._fight', ('?', '?'), ()), ('pause', 'self._use_action', ('?', '?'), ())), 2: (('pause', 'self._reap', ('?', '?'), ()), ('pause', 'self._fight', ('?', '?'), ()), ('pause', 'self._use_action', ('?', '?'), ())), 3: (), 4: (), 5: ()}),
+    ('Game.ready_and_fight', 2244, _kfmk_Game_ready_and_fight, ('self', 'card', 'exclude', 'pid', 'player'), (), (), {1: 2260}, None, {1: 'self._fight'}, {1: ()}),
+    ('Game.check_destroyed', 2264, _kfmk_Game_check_destroyed, ('self', 'cards', 'c', 'destroyed', 'to_destroy'), (), (), {1: 2279}, None, {1: 'self.destroy_cards'}, {1: ()}),
+    ('Game.destroy_cards', 2335, _kfmk_Game_destroy_cards, ('self', 'cards', '_', 'also_destroyed', 'batch', 'c', 'e', 'extra', 'insteads', 'intercepted', 'item', 'ordered', 'survivors', 'to_resolve', '_kfs0', '_kfi1', '_kfs2', '_kfi3'), (), (), {1: 2375, 2: 2383, 3: 2385, 4: 2394}, None, {1: 'self.order_effects', 2: 'self._caused', 3: 'self._caused', 4: 'self._fire_event'}, {1: (('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ())), 2: (('loop', 2380), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ())), 3: (('loop', 2380), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._caused', ('?', '?', '?'), ()), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ())), 4: (('loop', 2392), ('pause', 'self._fire_event', ('creature_destroyed', '?'), (('exclude_sources', '?'),)), ('step', 'self._move_destroyed_card', ('?',), ()))}),
+    ('Game._caused', 2399, _kfmk_Game__caused, ('self', 'source', 'fn', 'a', 'b', '_kfxe'), (), (), {1: 2408, 2: 2410}, (5, (1, 2)), {1: 'fn', 2: 'fn'}, {1: (), 2: ()}),
+    ('Game._fire_event', 2414, _kfmk_Game__fire_event, ('self', 'event_name', 'event_data', 'exclude_sources', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 2425, 2: 2429}, None, {1: 'self.order_effects', 2: 'self._caused'}, {1: (('pause', 'self._caused', ('?', '?', '?'), ()),), 2: (('loop', 2428), ('pause', 'self._caused', ('?', '?', '?'), ()))}),
+    ('Game.take_control', 2541, _kfmk_Game_take_control, ('self', 'card', 'new_pid', 'until_source', 'flank', 'new_area', 'old_area', 'old_pid'), (), (), {1: 2560}, None, {1: 'self._choose_flank'}, {1: ()}),
+    ('Game.use_artifact_ability', 2575, _kfmk_Game_use_artifact_ability, ('self', 'card', 'as_pid', 'ability', 'as_player', 'is_omni', 'original_controller', 'toll', '_kfxe'), (), (), {1: 2610, 2: 2614}, (8, (1,)), {1: 'self._caused', 2: 'self._fire_event'}, {1: (('pause', 'self._fire_event', ('artifact_used', '?'), ()),), 2: ()}),
 ]

@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/mars.py'
-SOURCE_SHA256 = 'fa313b9ef3e0127cce00daa3dd9376525e87626c48105a111af7c41923b2aadc'
+SOURCE_SHA256 = 'ca6acc1b516df0c1d014bdb98d9ea17eb6eedf1f3403f92e2f87964136e8a6c8'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -1242,6 +1242,7 @@ def _kfmk_incubation_chamber(_kfN, _kfR):
         choice = _sent
     target = choice[0]
     game.log.add('reveal', player=player.id, cards=[target.name], iids=[target.instance_id])
+    game.journal.reveal(target)
     steps.archive_card(game, player, target)
     return None
   return _kfr_incubation_chamber
@@ -1249,7 +1250,7 @@ def _kfmk_incubation_chamber(_kfN, _kfR):
 
 def _kfmk_mothergun(_kfN, _kfR):
   def _kfr_mothergun(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:421 mothergun
+    # effects/named/mars.py:422 mothergun
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = revealed = _kf_U
         _pc = 0
@@ -1314,7 +1315,7 @@ def _kfmk_mothergun(_kfN, _kfR):
 
 def _kfmk_sniffer_action(_kfN, _kfR):
   def _kfr_sniffer_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:446 sniffer_action
+    # effects/named/mars.py:447 sniffer_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -1342,7 +1343,7 @@ def _kfmk_sniffer_action(_kfN, _kfR):
 
 def _kfmk_swap_widget(_kfN, _kfR):
   def _kfr_swap_widget(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:453 swap_widget
+    # effects/named/mars.py:454 swap_widget
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = choice2 = hand_options = player = ready_mars = returning = _kf_U
         _pc = 0
@@ -1400,7 +1401,7 @@ def _kfmk_swap_widget(_kfN, _kfR):
 
 def _kfmk_blypyp_after_reap(_kfN, _kfR):
   def _kfr_blypyp_after_reap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:482 blypyp_after_reap
+    # effects/named/mars.py:483 blypyp_after_reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
         _pc = 0
@@ -1429,7 +1430,7 @@ def _kfmk_blypyp_after_reap(_kfN, _kfR):
 
 def _kfmk_chuff_ape_after(_kfN, _kfR):
   def _kfr_chuff_ape_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:493 chuff_ape_after
+    # effects/named/mars.py:494 chuff_ape_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = do_it = options = player = sacrificed = _kf_U
         _pc = 0
@@ -1497,7 +1498,7 @@ def _kfmk_chuff_ape_after(_kfN, _kfR):
 
 def _kfmk_grabber_jammer_after(_kfN, _kfR):
   def _kfr_grabber_jammer_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:529 grabber_jammer_after
+    # effects/named/mars.py:530 grabber_jammer_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -1524,7 +1525,7 @@ def _kfmk_grabber_jammer_after(_kfN, _kfR):
 
 def _kfmk_grommid_on_destroyed_fighting(_kfN, _kfR):
   def _kfr_grommid_on_destroyed_fighting(game=_kf_U, survivor=_kf_U, victim=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:539 grommid_on_destroyed_fighting
+    # effects/named/mars.py:540 grommid_on_destroyed_fighting
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -1551,7 +1552,7 @@ def _kfmk_grommid_on_destroyed_fighting(_kfN, _kfR):
 
 def _kfmk_john_smyth_after(_kfN, _kfR):
   def _kfr_john_smyth_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:545 john_smyth_after
+    # effects/named/mars.py:546 john_smyth_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kf_U
         _pc = 0
@@ -1586,7 +1587,7 @@ def _kfmk_john_smyth_after(_kfN, _kfR):
 
 def _kfmk_mindwarper_action(_kfN, _kfR):
   def _kfr_mindwarper_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:558 mindwarper_action
+    # effects/named/mars.py:559 mindwarper_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = options = _kf_U
         _pc = 0
@@ -1621,7 +1622,7 @@ def _kfmk_mindwarper_action(_kfN, _kfR):
 
 def _kfmk_phylyx_the_disintegrator_action(_kfN, _kfR):
   def _kfr_phylyx_the_disintegrator_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:571 phylyx_the_disintegrator_action
+    # effects/named/mars.py:572 phylyx_the_disintegrator_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = opponent = player = _kf_U
         _pc = 0
@@ -1652,7 +1653,7 @@ def _kfmk_phylyx_the_disintegrator_action(_kfN, _kfR):
 
 def _kfmk_qyxxlyx_plague_master_after(_kfN, _kfR):
   def _kfr_qyxxlyx_plague_master_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:580 qyxxlyx_plague_master_after
+    # effects/named/mars.py:581 qyxxlyx_plague_master_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
         _pc = 0
@@ -1685,7 +1686,7 @@ def _kfmk_qyxxlyx_plague_master_after(_kfN, _kfR):
 
 def _kfmk_tunk_register__handler(_kfN, _kfR):
   def _kfr_tunk_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:591 tunk_register.<locals>.handler
+    # effects/named/mars.py:592 tunk_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         played = _kf_U
         _kfc_card = _kf_closure[0]
@@ -1716,7 +1717,7 @@ def _kfmk_tunk_register__handler(_kfN, _kfR):
 
 def _kfmk_ulyq_megamouth_after(_kfN, _kfR):
   def _kfr_ulyq_megamouth_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:601 ulyq_megamouth_after
+    # effects/named/mars.py:602 ulyq_megamouth_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kf_U
         _pc = 0
@@ -1766,7 +1767,7 @@ def _kfmk_ulyq_megamouth_after(_kfN, _kfR):
 
 def _kfmk_uxlyx_the_zookeeper_after(_kfN, _kfR):
   def _kfr_uxlyx_the_zookeeper_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:623 uxlyx_the_zookeeper_after
+    # effects/named/mars.py:624 uxlyx_the_zookeeper_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = options = player = _kf_U
         _pc = 0
@@ -1802,7 +1803,7 @@ def _kfmk_uxlyx_the_zookeeper_after(_kfN, _kfR):
 
 def _kfmk_vezyma_thinkdrone_after(_kfN, _kfR):
   def _kfr_vezyma_thinkdrone_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:637 vezyma_thinkdrone_after
+    # effects/named/mars.py:638 vezyma_thinkdrone_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = do_it = options = player = target = _kf_U
         _pc = 0
@@ -1860,7 +1861,7 @@ def _kfmk_vezyma_thinkdrone_after(_kfN, _kfR):
 
 def _kfmk_yxili_marauder_play(_kfN, _kfR):
   def _kfr_yxili_marauder_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:670 yxili_marauder_play
+    # effects/named/mars.py:671 yxili_marauder_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = player = _kf_U
         _pc = 0
@@ -1893,7 +1894,7 @@ def _kfmk_yxili_marauder_play(_kfN, _kfR):
 
 def _kfmk_yxilo_bolter_after(_kfN, _kfR):
   def _kfr_yxilo_bolter_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:681 yxilo_bolter_after
+    # effects/named/mars.py:682 yxilo_bolter_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = hit = options = _kf_U
         _pc = 0
@@ -1945,7 +1946,7 @@ def _kfmk_yxilo_bolter_after(_kfN, _kfR):
 
 def _kfmk_zorg_before_fight(_kfN, _kfR):
   def _kfr_zorg_before_fight(game=_kf_U, card=_kf_U, target=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:709 zorg_before_fight
+    # effects/named/mars.py:710 zorg_before_fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = n = neighbors = _kf_U
         _pc = 0
@@ -1977,7 +1978,7 @@ def _kfmk_zorg_before_fight(_kfN, _kfR):
 
 def _kfmk_zyzzix_the_many_after(_kfN, _kfR):
   def _kfr_zyzzix_the_many_after(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:719 zyzzix_the_many_after
+    # effects/named/mars.py:720 zyzzix_the_many_after
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = do_it = options = player = target = _kf_U
         _pc = 0
@@ -2024,6 +2025,7 @@ def _kfmk_zyzzix_the_many_after(_kfN, _kfR):
         choice = _sent
     target = choice[0]
     game.log.add('reveal', player=player.id, cards=[target.name], iids=[target.instance_id])
+    game.journal.reveal(target)
     steps.archive_card(game, player, target)
     card.power_counters += 3
     return None
@@ -2032,7 +2034,7 @@ def _kfmk_zyzzix_the_many_after(_kfN, _kfR):
 
 def _kfmk__biomatrix_backup_effect(_kfN, _kfR):
   def _kfr__biomatrix_backup_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:741 _biomatrix_backup_effect
+    # effects/named/mars.py:743 _biomatrix_backup_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -2059,7 +2061,7 @@ def _kfmk__biomatrix_backup_effect(_kfN, _kfR):
 
 def _kfmk_brain_stem_antenna_register__handler(_kfN, _kfR):
   def _kfr_brain_stem_antenna_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:769 brain_stem_antenna_register.<locals>.handler
+    # effects/named/mars.py:771 brain_stem_antenna_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         played = player = _kf_U
         _kfc_host = _kf_closure[0]
@@ -2094,7 +2096,7 @@ def _kfmk_brain_stem_antenna_register__handler(_kfN, _kfR):
 
 def _kfmk__red_planet_ray_gun_effect(_kfN, _kfR):
   def _kfr__red_planet_ray_gun_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/mars.py:789 _red_planet_ray_gun_effect
+    # effects/named/mars.py:791 _red_planet_ray_gun_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = hit = n = options = _kf_U
         _pc = 0
@@ -2173,26 +2175,26 @@ ROUTINES = [
     ('feeding_pit', 363, _kfmk_feeding_pit, ('game', 'card', 'choice', 'options', 'player', '_kft0'), (), (), {1: 369, 2: 373}, None, {1: 'game.choose_cards', 2: 'steps.discard_from_hand'}, {1: (('pause', 'steps.discard_from_hand', ('?', '?', '?'), ()), ('step', 'steps.gain', ('?', '?', 1), ())), 2: (('step', 'steps.gain', ('?', '?', 1), ()),)}),
     ('invasion_portal', 377, _kfmk_invasion_portal, ('game', 'card', 'discarded', 'found', 'player', 'top'), (), (), {1: 398}, None, {1: 'decision'}, {1: ()}),
     ('incubation_chamber', 401, _kfmk_incubation_chamber, ('game', 'card', 'choice', 'do_it', 'options', 'player', 'target'), (), (), {1: 406, 2: 412}, None, {1: 'game.yes_no', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.REVEAL'), ('affects', 'Affects.FRIENDLY'))), ('step', 'steps.archive_card', ('?', '?', '?'), ())), 2: (('step', 'steps.archive_card', ('?', '?', '?'), ()),)}),
-    ('mothergun', 421, _kfmk_mothergun, ('game', 'card', 'choice', 'options', 'player', 'revealed'), (), (('<lambda>', 424),), {1: 423, 2: 431, 3: 436}, None, {1: 'reveal_from_hand', 2: 'game.choose_cards', 3: 'game.check_destroyed'}, {1: (('step', 'game.all_creatures', ('any', '?'), ()), ('step', 'steps.shortfall', ('?', '?', 'deals no damage: there is no creature in play', 'No creature'), ()), ('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DAMAGE'), ('affects', 'Affects.ANY'))), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: (('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 3: ()}),
-    ('sniffer_action', 446, _kfmk_sniffer_action, ('game', 'card'), (), (), {1: 450}, None, {1: 'decision'}, {1: ()}),
-    ('swap_widget', 453, _kfmk_swap_widget, ('game', 'card', 'choice', 'choice2', 'hand_options', 'player', 'ready_mars', 'returning'), (), (), {1: 459, 2: 473}, None, {1: 'game.choose_cards', 2: 'game.choose_cards'}, {1: (('step', 'steps.return_to_hand', ('?', '?'), ()), ('step', 'steps.shortfall', ('?', '?', 'puts nothing into play: your hand has no differently-named Mars creature', 'No replacement'), ()), ('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.PLAY'), ('affects', 'Affects.FRIENDLY'))), ('step', 'game.put_creature_into_play_from_hand', ('?', '?'), (('ready', True),))), 2: (('step', 'game.put_creature_into_play_from_hand', ('?', '?'), (('ready', True),)),)}),
-    ('blypyp_after_reap', 482, _kfmk_blypyp_after_reap, ('game', 'card', 'player'), (), (), {1: 486}, None, {1: 'decision'}, {1: ()}),
-    ('chuff_ape_after', 493, _kfmk_chuff_ape_after, ('game', 'card', 'choice', 'do_it', 'options', 'player', 'sacrificed'), (), (), {1: 498, 2: 504, 3: 508}, None, {1: 'game.yes_no', 2: 'game.choose_cards', 3: 'steps.sacrifice'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.SACRIFICE'), ('affects', 'Affects.FRIENDLY'))), ('pause', 'steps.sacrifice', ('?', '?'), ()), ('step', 'steps.fully_heal', ('?', '?'), ())), 2: (('pause', 'steps.sacrifice', ('?', '?'), ()), ('step', 'steps.fully_heal', ('?', '?'), ())), 3: (('step', 'steps.fully_heal', ('?', '?'), ()),)}),
-    ('grabber_jammer_after', 529, _kfmk_grabber_jammer_after, ('game', 'card'), (), (), {1: 532}, None, {1: 'decision'}, {1: ()}),
-    ('grommid_on_destroyed_fighting', 539, _kfmk_grommid_on_destroyed_fighting, ('game', 'survivor', 'victim'), (), (), {1: 542}, None, {1: 'decision'}, {1: ()}),
-    ('john_smyth_after', 545, _kfmk_john_smyth_after, ('game', 'card', 'choice', 'options', 'player'), (), (), {1: 551}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.ready', ('?', '?'), ()),)}),
-    ('mindwarper_action', 558, _kfmk_mindwarper_action, ('game', 'card', 'choice', 'opponent', 'options'), (), (), {1: 564}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.capture_from_own_side', ('?', '?', 1), ()),)}),
-    ('phylyx_the_disintegrator_action', 571, _kfmk_phylyx_the_disintegrator_action, ('game', 'card', 'n', 'opponent', 'player'), (), (), {1: 577}, None, {1: 'decision'}, {1: ()}),
-    ('qyxxlyx_plague_master_after', 580, _kfmk_qyxxlyx_plague_master_after, ('game', 'card', 't', 'targets'), (), (), {1: 587}, None, {1: 'game.check_destroyed'}, {1: ()}),
-    ('tunk_register.<locals>.handler', 591, _kfmk_tunk_register__handler, ('g', 'event', 'played', '_kfc_card'), ('card',), (), {1: 596}, None, {1: 'decision'}, {1: ()}),
-    ('ulyq_megamouth_after', 601, _kfmk_ulyq_megamouth_after, ('game', 'card', 'choice', 'options', 'player'), (), (), {1: 616, 2: 620}, None, {1: 'game.choose_cards', 2: 'game.use_creature_ability'}, {1: (('pause', 'game.use_creature_ability', ('?',), ()),), 2: ()}),
-    ('uxlyx_the_zookeeper_after', 623, _kfmk_uxlyx_the_zookeeper_after, ('game', 'card', 'choice', 'opponent', 'options', 'player'), (), (), {1: 630}, None, {1: 'game.choose_cards'}, {1: (('step', 'game.archive_from_play', ('?', '?'), (('return_to_owner_after', True),)),)}),
-    ('vezyma_thinkdrone_after', 637, _kfmk_vezyma_thinkdrone_after, ('game', 'card', 'area', 'choice', 'do_it', 'options', 'player', 'target'), (), (), {1: 644, 2: 650}, None, {1: 'game.yes_no', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.ARCHIVE'), ('affects', 'Affects.FRIENDLY'))), ('step', 'game.find_play_area', ('?',), ()), ('step', 'game.leave_play', ('?',), ())), 2: (('step', 'game.find_play_area', ('?',), ()), ('step', 'game.leave_play', ('?',), ()))}),
-    ('yxili_marauder_play', 670, _kfmk_yxili_marauder_play, ('game', 'card', 'n', 'player'), (), (), {1: 678}, None, {1: 'decision'}, {1: ()}),
-    ('yxilo_bolter_after', 681, _kfmk_yxilo_bolter_after, ('game', 'card', 'choice', 'hit', 'options'), (), (), {1: 686, 2: 698}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 2), ()), ('step', 'game.get_power', ('?',), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
-    ('zorg_before_fight', 709, _kfmk_zorg_before_fight, ('game', 'card', 'target', 'area', 'n', 'neighbors'), (), (), {1: 716}, None, {1: 'decision'}, {1: ()}),
-    ('zyzzix_the_many_after', 719, _kfmk_zyzzix_the_many_after, ('game', 'card', 'choice', 'do_it', 'options', 'player', 'target'), (), (), {1: 724, 2: 729}, None, {1: 'game.yes_no', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.REVEAL'), ('affects', 'Affects.FRIENDLY'))), ('step', 'steps.archive_card', ('?', '?', '?'), ())), 2: (('step', 'steps.archive_card', ('?', '?', '?'), ()),)}),
-    ('_biomatrix_backup_effect', 741, _kfmk__biomatrix_backup_effect, ('game', 'host_card'), (), (), {1: 744}, None, {1: 'decision'}, {1: ()}),
-    ('brain_stem_antenna_register.<locals>.handler', 769, _kfmk_brain_stem_antenna_register__handler, ('g', 'event', 'played', 'player', '_kfc_host'), ('host',), (), {1: 780}, None, {1: 'decision'}, {1: ()}),
-    ('_red_planet_ray_gun_effect', 789, _kfmk__red_planet_ray_gun_effect, ('game', 'host_card', 'choice', 'hit', 'n', 'options'), (), (), {1: 794, 2: 803}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'game.all_creatures', ('any', '?'), ()), ('step', 'game.get_effective_house', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('mothergun', 422, _kfmk_mothergun, ('game', 'card', 'choice', 'options', 'player', 'revealed'), (), (('<lambda>', 425),), {1: 424, 2: 432, 3: 437}, None, {1: 'reveal_from_hand', 2: 'game.choose_cards', 3: 'game.check_destroyed'}, {1: (('step', 'game.all_creatures', ('any', '?'), ()), ('step', 'steps.shortfall', ('?', '?', 'deals no damage: there is no creature in play', 'No creature'), ()), ('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DAMAGE'), ('affects', 'Affects.ANY'))), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: (('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 3: ()}),
+    ('sniffer_action', 447, _kfmk_sniffer_action, ('game', 'card'), (), (), {1: 451}, None, {1: 'decision'}, {1: ()}),
+    ('swap_widget', 454, _kfmk_swap_widget, ('game', 'card', 'choice', 'choice2', 'hand_options', 'player', 'ready_mars', 'returning'), (), (), {1: 460, 2: 474}, None, {1: 'game.choose_cards', 2: 'game.choose_cards'}, {1: (('step', 'steps.return_to_hand', ('?', '?'), ()), ('step', 'steps.shortfall', ('?', '?', 'puts nothing into play: your hand has no differently-named Mars creature', 'No replacement'), ()), ('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.PLAY'), ('affects', 'Affects.FRIENDLY'))), ('step', 'game.put_creature_into_play_from_hand', ('?', '?'), (('ready', True),))), 2: (('step', 'game.put_creature_into_play_from_hand', ('?', '?'), (('ready', True),)),)}),
+    ('blypyp_after_reap', 483, _kfmk_blypyp_after_reap, ('game', 'card', 'player'), (), (), {1: 487}, None, {1: 'decision'}, {1: ()}),
+    ('chuff_ape_after', 494, _kfmk_chuff_ape_after, ('game', 'card', 'choice', 'do_it', 'options', 'player', 'sacrificed'), (), (), {1: 499, 2: 505, 3: 509}, None, {1: 'game.yes_no', 2: 'game.choose_cards', 3: 'steps.sacrifice'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.SACRIFICE'), ('affects', 'Affects.FRIENDLY'))), ('pause', 'steps.sacrifice', ('?', '?'), ()), ('step', 'steps.fully_heal', ('?', '?'), ())), 2: (('pause', 'steps.sacrifice', ('?', '?'), ()), ('step', 'steps.fully_heal', ('?', '?'), ())), 3: (('step', 'steps.fully_heal', ('?', '?'), ()),)}),
+    ('grabber_jammer_after', 530, _kfmk_grabber_jammer_after, ('game', 'card'), (), (), {1: 533}, None, {1: 'decision'}, {1: ()}),
+    ('grommid_on_destroyed_fighting', 540, _kfmk_grommid_on_destroyed_fighting, ('game', 'survivor', 'victim'), (), (), {1: 543}, None, {1: 'decision'}, {1: ()}),
+    ('john_smyth_after', 546, _kfmk_john_smyth_after, ('game', 'card', 'choice', 'options', 'player'), (), (), {1: 552}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.ready', ('?', '?'), ()),)}),
+    ('mindwarper_action', 559, _kfmk_mindwarper_action, ('game', 'card', 'choice', 'opponent', 'options'), (), (), {1: 565}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.capture_from_own_side', ('?', '?', 1), ()),)}),
+    ('phylyx_the_disintegrator_action', 572, _kfmk_phylyx_the_disintegrator_action, ('game', 'card', 'n', 'opponent', 'player'), (), (), {1: 578}, None, {1: 'decision'}, {1: ()}),
+    ('qyxxlyx_plague_master_after', 581, _kfmk_qyxxlyx_plague_master_after, ('game', 'card', 't', 'targets'), (), (), {1: 588}, None, {1: 'game.check_destroyed'}, {1: ()}),
+    ('tunk_register.<locals>.handler', 592, _kfmk_tunk_register__handler, ('g', 'event', 'played', '_kfc_card'), ('card',), (), {1: 597}, None, {1: 'decision'}, {1: ()}),
+    ('ulyq_megamouth_after', 602, _kfmk_ulyq_megamouth_after, ('game', 'card', 'choice', 'options', 'player'), (), (), {1: 617, 2: 621}, None, {1: 'game.choose_cards', 2: 'game.use_creature_ability'}, {1: (('pause', 'game.use_creature_ability', ('?',), ()),), 2: ()}),
+    ('uxlyx_the_zookeeper_after', 624, _kfmk_uxlyx_the_zookeeper_after, ('game', 'card', 'choice', 'opponent', 'options', 'player'), (), (), {1: 631}, None, {1: 'game.choose_cards'}, {1: (('step', 'game.archive_from_play', ('?', '?'), (('return_to_owner_after', True),)),)}),
+    ('vezyma_thinkdrone_after', 638, _kfmk_vezyma_thinkdrone_after, ('game', 'card', 'area', 'choice', 'do_it', 'options', 'player', 'target'), (), (), {1: 645, 2: 651}, None, {1: 'game.yes_no', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.ARCHIVE'), ('affects', 'Affects.FRIENDLY'))), ('step', 'game.find_play_area', ('?',), ()), ('step', 'game.leave_play', ('?',), ())), 2: (('step', 'game.find_play_area', ('?',), ()), ('step', 'game.leave_play', ('?',), ()))}),
+    ('yxili_marauder_play', 671, _kfmk_yxili_marauder_play, ('game', 'card', 'n', 'player'), (), (), {1: 679}, None, {1: 'decision'}, {1: ()}),
+    ('yxilo_bolter_after', 682, _kfmk_yxilo_bolter_after, ('game', 'card', 'choice', 'hit', 'options'), (), (), {1: 687, 2: 699}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 2), ()), ('step', 'game.get_power', ('?',), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('zorg_before_fight', 710, _kfmk_zorg_before_fight, ('game', 'card', 'target', 'area', 'n', 'neighbors'), (), (), {1: 717}, None, {1: 'decision'}, {1: ()}),
+    ('zyzzix_the_many_after', 720, _kfmk_zyzzix_the_many_after, ('game', 'card', 'choice', 'do_it', 'options', 'player', 'target'), (), (), {1: 725, 2: 730}, None, {1: 'game.yes_no', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.REVEAL'), ('affects', 'Affects.FRIENDLY'))), ('step', 'steps.archive_card', ('?', '?', '?'), ())), 2: (('step', 'steps.archive_card', ('?', '?', '?'), ()),)}),
+    ('_biomatrix_backup_effect', 743, _kfmk__biomatrix_backup_effect, ('game', 'host_card'), (), (), {1: 746}, None, {1: 'decision'}, {1: ()}),
+    ('brain_stem_antenna_register.<locals>.handler', 771, _kfmk_brain_stem_antenna_register__handler, ('g', 'event', 'played', 'player', '_kfc_host'), ('host',), (), {1: 782}, None, {1: 'decision'}, {1: ()}),
+    ('_red_planet_ray_gun_effect', 791, _kfmk__red_planet_ray_gun_effect, ('game', 'host_card', 'choice', 'hit', 'n', 'options'), (), (), {1: 796, 2: 805}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'game.all_creatures', ('any', '?'), ()), ('step', 'game.get_effective_house', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
 ]

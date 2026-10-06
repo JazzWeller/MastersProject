@@ -36,7 +36,11 @@ including the Adaptive chain-bid between games 2 and 3.
   - `game.py` — `Game`: setup, turn order, legal actions, play/reap/fight/destroy, `submit()`
   - `match.py` — a best-of-3 match across the three official formats
   - `view.py` — `PlayerView`, a read-only snapshot with hidden information removed
-  - `log.py` — structured event log
+  - `log.py` — structured event log, with each event kind's redaction schema
+  - `journal.py` — the zone journal: every move of a card between zones, with
+    its cause, and every submitted decision (privileged, like the log)
+  - `projection.py` — `Game.projected(viewer)`: the journal, log and
+    decisions as one player saw them; `Observation.history` is built from it
 - `bots/` — `Controller` interface, a seeded `RandomBot` (fuzz tests) and a
   rules-aware `HeuristicBot` (the GUI's default opponent; armor/assault/
   hazardous-aware fight evaluation, per-house scoring, sensible defaults

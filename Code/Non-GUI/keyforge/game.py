@@ -21,6 +21,8 @@ from .effects import steps
 from .effects.effect_object import ActiveEffectList, DurationEffect, InsteadEffect, ModifierEffect, TriggerEffect, resolve_cleanup
 from .enums import Affects, BOUNDARY_KINDS, CardType, DecisionIntent, DecisionKind, House, Resample
 from .keyed_random import derive_rng, portable_choice, portable_shuffle
+from .journal import Journal
+from .projection import projected
 from .log import GameLog
 from .player import Player
 from .replay import decode_choice, encode_choice, replay
@@ -122,6 +124,14 @@ def _relink_card(new_card: Card, card_remap: Dict[int, Card]) -> None:
         new_card.type_object.host = card_remap[id(new_card.type_object.host)]
 
 
+def _attach_zones(player, journal) -> None:
+    """Wires a player's zones to the game's journal (O1)."""
+    pid = player.id
+    for kind in ("deck", "hand", "discard", "archive", "purged"):
+        getattr(player, kind).attach(journal, kind, pid)
+    player.play_area.attach(journal, "play_area", pid)
+
+
 def _copy_zone_cards(cards: List[Card], card_remap: Dict[int, Card]) -> List[Card]:
     return [card_remap[id(c)] for c in cards]
 
@@ -210,8 +220,13 @@ class Game:
         # `state_hash`: every draw is a pure function of it plus the seed.
         self._rng_counters: dict = {}
         self.players = {1: Player(1), 2: Player(2)}
+        # Every move of a card between zones (Agent Observation Plan O1).
+        self.journal = Journal(self)
+        for p in self.players.values():
+            _attach_zones(p, self.journal)
         self.active_effects = ActiveEffectList()
         self.log = GameLog()
+        self.journal._events = self.log.events
         self.choice_log: list = []
         # The same choices as option indices (see keyforge/replay.py): with
         # the config's seed, this reproduces the game exactly.
@@ -237,6 +252,9 @@ class Game:
         # actually took the damage (MRB 18.3 FAQ, Shadow Self / Special
         # Delivery).
         self._redirected_hits: List[Card] = []
+        # instance ids of the cards whose abilities are resolving, innermost
+        # last: the journal's `cause` (O1). Not part of state_hash.
+        self._causes: List[int] = []
         self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
         # Populated once in _setup: the decklist never changes mid-game, so
         # player_houses() doesn't need to recompute it on every call.
@@ -281,6 +299,7 @@ class Game:
             raise ValueError(f"Invalid choice {choice!r} for decision {self.pending_decision}")
         self.choice_log.append(choice)
         self.choice_record.append(encode_choice(self.pending_decision, choice))
+        self.journal.decision(self.pending_decision, self.choice_record[-1])
         self._advance(choice)
 
     def _advance(self, choice) -> None:
@@ -324,6 +343,7 @@ class Game:
         # here is usually an element of the CALLER's own record/list, and
         # `choice_record` must never alias it.
         self.choice_record.append(list(encoded) if isinstance(encoded, list) else encoded)
+        self.journal.decision(self.pending_decision, self.choice_record[-1])
         self._advance(choice)
 
     def view_for(self, pid: int):
@@ -349,6 +369,12 @@ class Game:
         counter = self._rng_counters.get(key, 0)
         self._rng_counters[key] = counter + 1
         return derive_rng(self.config.seed, player, kind, counter)
+
+    def projected(self, viewer: Optional[int]) -> list:
+        """`viewer`'s projection of the game so far -- the zone journal,
+        the log and the decisions as `viewer` saw them (keyforge/
+        projection.py; None: privileged). Append-only; don't change it."""
+        return projected(self, viewer)
 
     def state_hash(self) -> str:
         """A canonical hash over everything that affects future play --
@@ -705,6 +731,7 @@ class Game:
         new.is_over = self.is_over
         new.result = dict(self.result) if self.result is not None else None
         new._elusive_suppressed = self._elusive_suppressed
+        new._causes = list(self._causes)
         new._player_houses_cache = dict(self._player_houses_cache)
         new._fork_snapshot = None  # a branch builds its own if it is ever forked
 
@@ -726,9 +753,13 @@ class Game:
             _relink_card(new_card, card_remap)
 
         new.players = {pid: _copy_player(p, card_remap) for pid, p in self.players.items()}
+        new.journal = self.journal.copy_into(new)
+        for p in new.players.values():
+            _attach_zones(p, new.journal)
 
         new.log = GameLog()
         new.log.events = list(self.log.events)
+        new.journal._events = new.log.events
         for kind_, events in self.log.by_kind.items():
             new.log.by_kind[kind_] = list(events)
 
@@ -1009,7 +1040,7 @@ class Game:
             self._player_houses_cache[pid] = sorted({c.house for c in cards}, key=lambda h: h.value)
             for c in cards:
                 self._cards_by_id[c.instance_id] = c
-            self.players[pid].deck = Deck(cards)
+            self.players[pid].deck.put_all(cards, op="deal")
             self.players[pid].deck.shuffle(self.event_rng("deck_shuffle", pid))
             if self.config.starting_chains:
                 self.players[pid].chains = self.config.starting_chains.get(pid, 0)
@@ -1271,6 +1302,7 @@ class Game:
         see `target_pid`'s hand through `view.build_view`, until the end
         of the current turn."""
         self.players[target_pid].hand_revealed_to.add(viewer_pid)
+        self.journal.reveal_hand(target_pid, viewer_pid)
         self.log.add(
             "reveal_hand", player=target_pid, viewer=viewer_pid,
             source=(source.name if source is not None else None),
@@ -1286,6 +1318,8 @@ class Game:
         for p in self.players.values():
             for c in p.play_area.creatures:
                 c.type_object.armor_used_this_turn = 0
+            for viewer in sorted(p.hand_revealed_to):
+                self.journal.reveal_hand(p.id, viewer, revealed=False)
             p.hand_revealed_to.clear()
         player.reset_turn_counters()
         self.active_effects.end_of_turn_tick()
@@ -1829,6 +1863,7 @@ class Game:
         elif card.type == CardType.UPGRADE:
             card.type_object.host = host
             host.type_object.upgrades.append(card)
+            self.journal.enter(card, ("attached", host.instance_id), "attach")
             # `card.controller` stays `pid` (the player who attached it,
             # set above) rather than snapping to the host's controller --
             # an upgrade can attach to an enemy creature (Collar of
@@ -1877,7 +1912,7 @@ class Game:
         for step_name in order:
             if step_name == "effect":
                 if card.card_def.on_play is not None:
-                    yield from card.card_def.on_play(self, card)
+                    yield from self._caused(card, card.card_def.on_play, card)
             else:
                 yield from self._run_play_trigger_check(card)
 
@@ -1897,7 +1932,7 @@ class Game:
         else:
             ordered = triggers
         for trig in ordered:
-            yield from trig.handler(self, {"player": event_player, "card": card})
+            yield from self._caused(trig.source_card, trig.handler, {"player": event_player, "card": card})
 
     def play_card_from_deck_top(self, player: Player, top_card: Card, ignore_house: bool = True, source=None):
         reason = self._effect_play_refusal(player, top_card)
@@ -1974,7 +2009,7 @@ class Game:
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
         self.log.add("use_action", player=pid, card=card.name, iid=card.instance_id)
         effect = card.card_def.on_action or card.granted_action
-        yield from effect(self, card)
+        yield from self._caused(card, effect, card)
         if card.type == CardType.ARTIFACT:
             yield from self._fire_event("artifact_used", {"player": pid, "card": card})
 
@@ -1987,7 +2022,7 @@ class Game:
         card.Exhausted = True
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
         self.log.add("use_omni", player=pid, card=card.name, iid=card.instance_id)
-        yield from card.card_def.on_omni(self, card)
+        yield from self._caused(card, card.card_def.on_omni, card)
         if card.type == CardType.ARTIFACT:
             yield from self._fire_event("artifact_used", {"player": pid, "card": card})
 
@@ -2006,9 +2041,9 @@ class Game:
         yield from self._fire_event("reap_resolved", {"card": card})
         cdef = card.card_def
         if cdef.on_reap is not None:
-            yield from cdef.on_reap(self, card)
+            yield from self._caused(card, cdef.on_reap, card)
         for extra in list(card.extra_triggers.get("after_reap", [])):
-            yield from extra(self, card)
+            yield from self._caused(card, extra, card)
 
     def _fight(self, pid: int, attacker: Card, exclude=frozenset()):
         """Returns the creature `attacker` actually fought (even if the
@@ -2068,7 +2103,7 @@ class Game:
         # the destroyed-check after it covers everyone in play, not just
         # attacker/target.
         if attacker.card_def.on_before_fight is not None:
-            yield from attacker.card_def.on_before_fight(self, attacker, target)
+            yield from self._caused(attacker, attacker.card_def.on_before_fight, attacker, target)
             destroyed = yield from self.check_destroyed(self.all_creatures("any", attacker))
             if attacker in destroyed or target in destroyed:
                 return target
@@ -2155,16 +2190,16 @@ class Game:
             elif target in destroyed and attacker not in destroyed:
                 survivor, victim = attacker, target
             if survivor is not None and survivor.card_def.on_destroyed_fighting is not None:
-                yield from survivor.card_def.on_destroyed_fighting(self, survivor, victim)
+                yield from self._caused(survivor, survivor.card_def.on_destroyed_fighting, survivor, victim)
 
             if attacker in destroyed:
                 return target
 
         cdef = attacker.card_def
         if cdef.on_fight is not None:
-            yield from cdef.on_fight(self, attacker)
+            yield from self._caused(attacker, cdef.on_fight, attacker)
         for extra in list(attacker.extra_triggers.get("after_fight", [])):
-            yield from extra(self, attacker)
+            yield from self._caused(attacker, extra, attacker)
         return target
 
     def use_creature_ability(self, card: Card):
@@ -2290,6 +2325,7 @@ class Game:
         if host is None or upgrade_card not in host.type_object.upgrades:
             return False
         host.type_object.upgrades.remove(upgrade_card)
+        self.journal.leave(upgrade_card, ("attached", host.instance_id), "detach")
         if upgrade_card.card_def.unregister_passive is not None:
             upgrade_card.card_def.unregister_passive(self, upgrade_card)
         self.players[upgrade_card.owner].discard.push(upgrade_card)
@@ -2344,9 +2380,9 @@ class Game:
         for item in ordered:
             if isinstance(item, tuple):
                 _, c, extra = item
-                yield from extra(self, c)
+                yield from self._caused(c, extra, c)
             else:
-                yield from item.card_def.on_destroyed(self, item)
+                yield from self._caused(item, item.card_def.on_destroyed, item)
         # A "each time a creature is destroyed" source (Soul Snatcher, Tolas)
         # that is itself destroyed in this same batch does not trigger at
         # all for the batch -- it isn't around to see any of it happen,
@@ -2359,6 +2395,21 @@ class Game:
         for c in batch:
             self._move_destroyed_card(c)
         return batch
+
+    def _caused(self, source, fn, a, b=None):
+        """Runs one ability, `fn(self, a[, b])` (`b` is never None where
+        given: a fight's target or victim), with `source` as the cause of
+        every zone move it makes (the journal's `cause`, O1)."""
+        # (`self._causes` at each use, never a local: a copy of a suspended
+        # frame must pop its own game's stack)
+        self._causes.append(source.instance_id if source is not None else None)
+        try:
+            if b is None:
+                yield from fn(self, a)
+            else:
+                yield from fn(self, a, b)
+        finally:
+            self._causes.pop()
 
     def _fire_event(self, event_name: str, event_data: dict, exclude_sources=None):
         """Yields from every registered TriggerEffect for `event_name`
@@ -2375,7 +2426,7 @@ class Game:
         else:
             ordered = triggers
         for trig in ordered:
-            yield from trig.handler(self, event_data)
+            yield from self._caused(trig.source_card, trig.handler, event_data)
 
     def _move_destroyed_card(self, card: Card):
         owner = self.players[card.owner]
@@ -2414,6 +2465,7 @@ class Game:
                 if upg.card_def.unregister_passive is not None:
                     upg.card_def.unregister_passive(self, upg)
                 owner = self.players[upg.owner]
+                self.journal.leave(upg, ("attached", card.instance_id), "detach")
                 owner.discard.push(upg)
                 upg.reset_on_leave_play()
         if card.aember_captured > 0:
@@ -2428,6 +2480,7 @@ class Game:
             self.log.add("aember_stored_lost", card=card.name, iid=card.instance_id, amount=card.aember_stored)
         if card.under_cards:
             for under in card.under_cards:
+                self.journal.leave(under, ("under", card.instance_id), "take_under")
                 self.players[under.owner].discard.push(under)
                 self.log.add("destroyed", card=under.name, iid=under.instance_id, destination="discard")
             card.under_cards = []
@@ -2554,7 +2607,7 @@ class Game:
             player=as_pid, card=card.name, iid=card.instance_id, as_if_yours=(as_pid != original_controller),
         )
         try:
-            yield from ability(self, card)
+            yield from self._caused(card, ability, card)
         finally:
             card.controller = original_controller
         if card.type == CardType.ARTIFACT:

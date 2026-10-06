@@ -151,7 +151,9 @@ class TestObservationFuzzNoLeak(unittest.TestCase):
         """Across a random-7-house-deck fuzz, every history entry in a
         viewer's own observation must also appear in that viewer's log
         stream (game.log.visible_to(viewer)) -- i.e. Observation's history
-        never shows more than the log's own visibility already allows."""
+        never shows more than the log's own visibility already allows. (The
+        history's zone and decision entries are the projection's, checked in
+        tests/test_agent_observation_o1.py.)"""
         deck_rng = random.Random(99)
         for i in range(60):
             d1 = random_deck(deck_rng, "R1")
@@ -165,7 +167,7 @@ class TestObservationFuzzNoLeak(unittest.TestCase):
             for viewer in (1, 2):
                 obs = build_observation(game, viewer)
                 entitled_kinds = [e.kind for e in game.log.visible_to(viewer)]
-                seen_kinds = [h.kind for h in obs.history]
+                seen_kinds = [h.kind for h in obs.history if h.stream == "log"]
                 self.assertEqual(seen_kinds, entitled_kinds)
 
 

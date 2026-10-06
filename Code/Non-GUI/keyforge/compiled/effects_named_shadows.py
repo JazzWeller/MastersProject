@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/shadows.py'
-SOURCE_SHA256 = 'f8188bdf2f7843516c789c49f97fa33dfead3004df4cca298d6f1ed8f385c55d'
+SOURCE_SHA256 = '6fbfd9e55be82e50c21411b487f42da0e84e6f337ad853873009f4e35d1098b0'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -999,6 +999,7 @@ def _kfmk_masterplan_play(_kfN, _kfR):
     c = choice[0]
     player.hand.remove(c)
     card.under_cards.append(c)
+    game.journal.enter(c, ('under', card.instance_id), 'put_under')
     game.log.add('under_card', visible_to={player.id}, player=player.id, card=card.name, iid=card.instance_id, under=c.name, under_iid=c.instance_id)
     return None
   return _kfr_masterplan_play
@@ -1006,7 +1007,7 @@ def _kfmk_masterplan_play(_kfN, _kfR):
 
 def _kfmk_masterplan_omni(_kfN, _kfR):
   def _kfr_masterplan_omni(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:369 masterplan_omni
+    # effects/named/shadows.py:370 masterplan_omni
     if _kfF is None:  # a fresh call: Python bound the arguments
         ok = player = to_play = _kf_U
         _pc = 0
@@ -1020,6 +1021,7 @@ def _kfmk_masterplan_omni(_kfN, _kfR):
     elif not _pc or _pc == 1:
         if not _pc:
             to_play = card.under_cards.pop(0)
+            game.journal.leave(to_play, ('under', card.instance_id), 'take_under')
         if not _pc:
             _sent = (_kfgm__play_card(game, player.id, to_play, from_deck_top=True) if type(game) is _kfGame else _kf_step(game._play_card)(player.id, to_play, from_deck_top=True))
             if type(_sent) is _kf_S:
@@ -1037,6 +1039,7 @@ def _kfmk_masterplan_omni(_kfN, _kfR):
             ok = _sent
         if not ok:
             card.under_cards.insert(0, to_play)
+            game.journal.enter(to_play, ('under', card.instance_id), 'put_under')
             steps.shortfall(game, card, f"can't play {to_play.name} right now; it stays beneath Masterplan", f"Can't play {to_play.name}")
     if not _pc:
         _sent = _kf_step(steps.sacrifice)(game, card)
@@ -1057,7 +1060,7 @@ def _kfmk_masterplan_omni(_kfN, _kfR):
 
 def _kfmk_seeker_needle(_kfN, _kfR):
   def _kfr_seeker_needle(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:382 seeker_needle
+    # effects/named/shadows.py:385 seeker_needle
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = destroyed = player = target = targets = _kf_U
         _pc = 0
@@ -1111,7 +1114,7 @@ def _kfmk_seeker_needle(_kfN, _kfR):
 
 def _kfmk_skeleton_key(_kfN, _kfR):
   def _kfr_skeleton_key(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:402 skeleton_key
+    # effects/named/shadows.py:405 skeleton_key
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = targets = _kf_U
         _pc = 0
@@ -1146,7 +1149,7 @@ def _kfmk_skeleton_key(_kfN, _kfR):
 
 def _kfmk_special_delivery(_kfN, _kfR):
   def _kfr_special_delivery(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:415 special_delivery
+    # effects/named/shadows.py:418 special_delivery
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = destroyed = player = target = targets = _kf_U
         _pc = 0
@@ -1214,7 +1217,7 @@ def _kfmk_special_delivery(_kfN, _kfR):
 
 def _kfmk_the_sting_action(_kfN, _kfR):
   def _kfr_the_sting_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:442 the_sting_action
+    # effects/named/shadows.py:445 the_sting_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -1239,7 +1242,7 @@ def _kfmk_the_sting_action(_kfN, _kfR):
 
 def _kfmk_bulleteye(_kfN, _kfR):
   def _kfr_bulleteye(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:446 bulleteye
+    # effects/named/shadows.py:449 bulleteye
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = targets = _kf_U
         _pc = 0
@@ -1286,7 +1289,7 @@ def _kfmk_bulleteye(_kfN, _kfR):
 
 def _kfmk__carlo_phantom_handler__handler(_kfN, _kfR):
   def _kfr__carlo_phantom_handler__handler(game=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:464 _carlo_phantom_handler.<locals>.handler
+    # effects/named/shadows.py:467 _carlo_phantom_handler.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_carlo_card = _kf_closure[0]
         _pc = 0
@@ -1315,7 +1318,7 @@ def _kfmk__carlo_phantom_handler__handler(_kfN, _kfR):
 
 def _kfmk_deipno_spymaster(_kfN, _kfR):
   def _kfr_deipno_spymaster(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:472 deipno_spymaster
+    # effects/named/shadows.py:475 deipno_spymaster
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = may_use = options = player = target = _kf_U
         _pc = 0
@@ -1383,7 +1386,7 @@ def _kfmk_deipno_spymaster(_kfN, _kfR):
 
 def _kfmk_faygin(_kfN, _kfR):
   def _kfr_faygin(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:494 faygin
+    # effects/named/shadows.py:497 faygin
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = in_play = options = player = target = _kf_U
         _pc = 0
@@ -1425,7 +1428,7 @@ def _kfmk_faygin(_kfN, _kfR):
 
 def _kfmk_magda_the_rat_play(_kfN, _kfR):
   def _kfr_magda_the_rat_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:519 magda_the_rat_play
+    # effects/named/shadows.py:522 magda_the_rat_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -1452,7 +1455,7 @@ def _kfmk_magda_the_rat_play(_kfN, _kfR):
 
 def _kfmk_nexus(_kfN, _kfR):
   def _kfr_nexus(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:529 nexus
+    # effects/named/shadows.py:532 nexus
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = player = targets = _kf_U
         _pc = 0
@@ -1500,7 +1503,7 @@ def _kfmk_nexus(_kfN, _kfR):
 
 def _kfmk_selwyn_the_fence(_kfN, _kfR):
   def _kfr_selwyn_the_fence(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:546 selwyn_the_fence
+    # effects/named/shadows.py:549 selwyn_the_fence
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = source_card = sources = _kf_U
         _pc = 0
@@ -1541,7 +1544,7 @@ def _kfmk_selwyn_the_fence(_kfN, _kfR):
 
 def _kfmk_smiling_ruth(_kfN, _kfR):
   def _kfr_smiling_ruth(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:582 smiling_ruth
+    # effects/named/shadows.py:585 smiling_ruth
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = player = targets = _kf_U
         _pc = 0
@@ -1592,7 +1595,7 @@ def _kfmk_smiling_ruth(_kfN, _kfR):
 
 def _kfmk_sneklifter(_kfN, _kfR):
   def _kfr_sneklifter(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:599 sneklifter
+    # effects/named/shadows.py:602 sneklifter
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = opponent = player = target = targets = _kf_U
         _pc = 0
@@ -1644,7 +1647,7 @@ def _kfmk_sneklifter(_kfN, _kfR):
 
 def _kfmk__silent_dagger_effect(_kfN, _kfR):
   def _kfr__silent_dagger_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/shadows.py:628 _silent_dagger_effect
+    # effects/named/shadows.py:631 _silent_dagger_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = targets = _kf_U
         _pc = 0
@@ -1720,19 +1723,19 @@ ROUTINES = [
     ('_evasion_sigil_handler', 323, _kfmk__evasion_sigil_handler, ('game', 'event', 'attacker', 'controller', 'top'), (), (), {1: 334}, None, {1: 'decision'}, {1: ()}),
     ('longfused_mines', 337, _kfmk_longfused_mines, ('game', 'card', 'c', 'opponent', 'targets'), (), (), {1: 339, 2: 346}, None, {1: 'steps.sacrifice', 2: 'game.check_destroyed'}, {1: (('step', 'steps.shortfall', ('?', '?', 'deals no damage: every enemy creature is on a flank', 'No non-flank enemy creature'), ()), ('step', 'steps.deal_damage', ('?', '?', 3), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
     ('masterplan_play', 349, _kfmk_masterplan_play, ('game', 'card', 'c', 'choice', 'options', 'player'), (), (), {1: 355}, None, {1: 'game.choose_cards'}, {1: ()}),
-    ('masterplan_omni', 369, _kfmk_masterplan_omni, ('game', 'card', 'ok', 'player', 'to_play'), (), (), {1: 375, 2: 379}, None, {1: 'game._play_card', 2: 'steps.sacrifice'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', '?'), ()), ('pause', 'steps.sacrifice', ('?', '?'), ())), 2: ()}),
-    ('seeker_needle', 382, _kfmk_seeker_needle, ('game', 'card', 'choice', 'destroyed', 'player', 'target', 'targets'), (), (), {1: 388, 2: 394}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 1), ()), ('pause', 'game.check_destroyed', ('?',), ()), ('step', 'steps.gain', ('?', '?', 1), ())), 2: (('step', 'steps.gain', ('?', '?', 1), ()),)}),
-    ('skeleton_key', 402, _kfmk_skeleton_key, ('game', 'card', 'choice', 'player', 'targets'), (), (), {1: 408}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.capture', ('?', '?', 1), ()),)}),
-    ('special_delivery', 415, _kfmk_special_delivery, ('game', 'card', 'choice', 'destroyed', 'player', 'target', 'targets'), (), (), {1: 417, 2: 422, 3: 428}, None, {1: 'steps.sacrifice', 2: 'game.choose_cards', 3: 'game.check_destroyed'}, {1: (('step', 'steps.shortfall', ('?', '?', 'deals no damage: there are no flank creatures in play', 'No flank creature'), ()), ('pause', 'game.choose_cards', ('?', 'Special Delivery: deal 3 damage to a flank creature', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DAMAGE'), ('affects', 'Affects.ANY'))), ('step', 'steps.deal_damage', ('?', '?', 3), ()), ('pause', 'game.check_destroyed', ('?',), ()), ('step', 'steps.purge', ('?', '?'), ())), 2: (('step', 'steps.deal_damage', ('?', '?', 3), ()), ('pause', 'game.check_destroyed', ('?',), ()), ('step', 'steps.purge', ('?', '?'), ())), 3: (('step', 'steps.purge', ('?', '?'), ()),)}),
-    ('the_sting_action', 442, _kfmk_the_sting_action, ('game', 'card'), (), (), {1: 443}, None, {1: 'steps.sacrifice'}, {1: ()}),
-    ('bulleteye', 446, _kfmk_bulleteye, ('game', 'card', 'choice', 'player', 'targets'), (), (), {1: 452, 2: 456}, None, {1: 'game.choose_cards', 2: 'game.destroy_cards'}, {1: (('pause', 'game.destroy_cards', ('?',), ()),), 2: ()}),
-    ('_carlo_phantom_handler.<locals>.handler', 464, _kfmk__carlo_phantom_handler__handler, ('game', 'event', '_kfc_carlo_card'), ('carlo_card',), (), {1: 468}, None, {1: 'decision'}, {1: ()}),
-    ('deipno_spymaster', 472, _kfmk_deipno_spymaster, ('game', 'card', 'choice', 'may_use', 'options', 'player', 'target'), (), (), {1: 478, 2: 486, 3: 491}, None, {1: 'game.choose_cards', 2: 'game.yes_no', 3: 'steps.use_creature'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', '?'), ()), ('pause', 'game.yes_no', ('?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.OPTIONAL_TRIGGER'))), ('pause', 'steps.use_creature', ('?', '?'), ())), 2: (('pause', 'steps.use_creature', ('?', '?'), ()),), 3: ()}),
-    ('faygin', 494, _kfmk_faygin, ('game', 'card', 'choice', 'in_play', 'options', 'player', 'target'), (), (), {1: 506}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.return_to_hand', ('?', '?'), ()),)}),
-    ('magda_the_rat_play', 519, _kfmk_magda_the_rat_play, ('game', 'card'), (), (), {1: 522}, None, {1: 'decision'}, {1: ()}),
-    ('nexus', 529, _kfmk_nexus, ('game', 'card', 'choice', 'opponent', 'player', 'targets'), (), (), {1: 539, 2: 543}, None, {1: 'game.choose_cards', 2: 'game.use_artifact_ability'}, {1: (('pause', 'game.use_artifact_ability', ('?', '?'), ()),), 2: ()}),
-    ('selwyn_the_fence', 546, _kfmk_selwyn_the_fence, ('game', 'card', 'choice', 'player', 'source_card', 'sources'), (), (), {1: 552}, None, {1: 'game.choose_cards'}, {1: ()}),
-    ('smiling_ruth', 582, _kfmk_smiling_ruth, ('game', 'card', 'choice', 'opponent', 'player', 'targets'), (), (), {1: 592, 2: 596}, None, {1: 'game.choose_cards', 2: 'game.take_control'}, {1: (('pause', 'game.take_control', ('?', '?'), ()),), 2: ()}),
-    ('sneklifter', 599, _kfmk_sneklifter, ('game', 'card', 'choice', 'opponent', 'player', 'target', 'targets'), (), (), {1: 606, 2: 611}, None, {1: 'game.choose_cards', 2: 'game.take_control'}, {1: (('pause', 'game.take_control', ('?', '?'), ()), ('step', 'game.player_houses', ('?',), ())), 2: (('step', 'game.player_houses', ('?',), ()),)}),
-    ('_silent_dagger_effect', 628, _kfmk__silent_dagger_effect, ('game', 'host_card', 'choice', 'targets'), (), (), {1: 633, 2: 638}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 4), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('masterplan_omni', 370, _kfmk_masterplan_omni, ('game', 'card', 'ok', 'player', 'to_play'), (), (), {1: 377, 2: 382}, None, {1: 'game._play_card', 2: 'steps.sacrifice'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', '?'), ()), ('pause', 'steps.sacrifice', ('?', '?'), ())), 2: ()}),
+    ('seeker_needle', 385, _kfmk_seeker_needle, ('game', 'card', 'choice', 'destroyed', 'player', 'target', 'targets'), (), (), {1: 391, 2: 397}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 1), ()), ('pause', 'game.check_destroyed', ('?',), ()), ('step', 'steps.gain', ('?', '?', 1), ())), 2: (('step', 'steps.gain', ('?', '?', 1), ()),)}),
+    ('skeleton_key', 405, _kfmk_skeleton_key, ('game', 'card', 'choice', 'player', 'targets'), (), (), {1: 411}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.capture', ('?', '?', 1), ()),)}),
+    ('special_delivery', 418, _kfmk_special_delivery, ('game', 'card', 'choice', 'destroyed', 'player', 'target', 'targets'), (), (), {1: 420, 2: 425, 3: 431}, None, {1: 'steps.sacrifice', 2: 'game.choose_cards', 3: 'game.check_destroyed'}, {1: (('step', 'steps.shortfall', ('?', '?', 'deals no damage: there are no flank creatures in play', 'No flank creature'), ()), ('pause', 'game.choose_cards', ('?', 'Special Delivery: deal 3 damage to a flank creature', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DAMAGE'), ('affects', 'Affects.ANY'))), ('step', 'steps.deal_damage', ('?', '?', 3), ()), ('pause', 'game.check_destroyed', ('?',), ()), ('step', 'steps.purge', ('?', '?'), ())), 2: (('step', 'steps.deal_damage', ('?', '?', 3), ()), ('pause', 'game.check_destroyed', ('?',), ()), ('step', 'steps.purge', ('?', '?'), ())), 3: (('step', 'steps.purge', ('?', '?'), ()),)}),
+    ('the_sting_action', 445, _kfmk_the_sting_action, ('game', 'card'), (), (), {1: 446}, None, {1: 'steps.sacrifice'}, {1: ()}),
+    ('bulleteye', 449, _kfmk_bulleteye, ('game', 'card', 'choice', 'player', 'targets'), (), (), {1: 455, 2: 459}, None, {1: 'game.choose_cards', 2: 'game.destroy_cards'}, {1: (('pause', 'game.destroy_cards', ('?',), ()),), 2: ()}),
+    ('_carlo_phantom_handler.<locals>.handler', 467, _kfmk__carlo_phantom_handler__handler, ('game', 'event', '_kfc_carlo_card'), ('carlo_card',), (), {1: 471}, None, {1: 'decision'}, {1: ()}),
+    ('deipno_spymaster', 475, _kfmk_deipno_spymaster, ('game', 'card', 'choice', 'may_use', 'options', 'player', 'target'), (), (), {1: 481, 2: 489, 3: 494}, None, {1: 'game.choose_cards', 2: 'game.yes_no', 3: 'steps.use_creature'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', '?'), ()), ('pause', 'game.yes_no', ('?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.OPTIONAL_TRIGGER'))), ('pause', 'steps.use_creature', ('?', '?'), ())), 2: (('pause', 'steps.use_creature', ('?', '?'), ()),), 3: ()}),
+    ('faygin', 497, _kfmk_faygin, ('game', 'card', 'choice', 'in_play', 'options', 'player', 'target'), (), (), {1: 509}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.return_to_hand', ('?', '?'), ()),)}),
+    ('magda_the_rat_play', 522, _kfmk_magda_the_rat_play, ('game', 'card'), (), (), {1: 525}, None, {1: 'decision'}, {1: ()}),
+    ('nexus', 532, _kfmk_nexus, ('game', 'card', 'choice', 'opponent', 'player', 'targets'), (), (), {1: 542, 2: 546}, None, {1: 'game.choose_cards', 2: 'game.use_artifact_ability'}, {1: (('pause', 'game.use_artifact_ability', ('?', '?'), ()),), 2: ()}),
+    ('selwyn_the_fence', 549, _kfmk_selwyn_the_fence, ('game', 'card', 'choice', 'player', 'source_card', 'sources'), (), (), {1: 555}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('smiling_ruth', 585, _kfmk_smiling_ruth, ('game', 'card', 'choice', 'opponent', 'player', 'targets'), (), (), {1: 595, 2: 599}, None, {1: 'game.choose_cards', 2: 'game.take_control'}, {1: (('pause', 'game.take_control', ('?', '?'), ()),), 2: ()}),
+    ('sneklifter', 602, _kfmk_sneklifter, ('game', 'card', 'choice', 'opponent', 'player', 'target', 'targets'), (), (), {1: 609, 2: 614}, None, {1: 'game.choose_cards', 2: 'game.take_control'}, {1: (('pause', 'game.take_control', ('?', '?'), ()), ('step', 'game.player_houses', ('?',), ())), 2: (('step', 'game.player_houses', ('?',), ()),)}),
+    ('_silent_dagger_effect', 631, _kfmk__silent_dagger_effect, ('game', 'host_card', 'choice', 'targets'), (), (), {1: 636, 2: 641}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 4), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
 ]
