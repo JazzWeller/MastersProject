@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/game.py'
-SOURCE_SHA256 = '375afffb850ce246ab8506cf976787afb05357f2f7e847221cf90e8736c3270b'
+SOURCE_SHA256 = '743dffe79cb478ddd3e983626f173d10010212044f3cb24d7a62a6a47b10a23e'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -17,7 +17,7 @@ _kf_U = None
 
 def _kfmk_Game_choose_cards(_kfN, _kfR):
   def _kfr_Game_choose_cards(self=_kf_U, player=_kf_U, prompt=_kf_U, options=_kf_U, min_n=_kf_U, max_n=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, intent=_kf_U, affects=_kf_U, optional=_kf_U, _kf_closure=None):
-    # game.py:676 Game.choose_cards
+    # game.py:695 Game.choose_cards
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -50,7 +50,7 @@ def _kfmk_Game_choose_cards(_kfN, _kfR):
 
 def _kfmk_Game_choose_house(_kfN, _kfR):
   def _kfr_Game_choose_house(self=_kf_U, player=_kf_U, prompt=_kf_U, houses=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:690 Game.choose_house
+    # game.py:709 Game.choose_house
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -83,7 +83,7 @@ def _kfmk_Game_choose_house(_kfN, _kfR):
 
 def _kfmk_Game_yes_no(_kfN, _kfR):
   def _kfr_Game_yes_no(self=_kf_U, player=_kf_U, prompt=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, intent=_kf_U, optional=_kf_U, _kf_closure=None):
-    # game.py:699 Game.yes_no
+    # game.py:718 Game.yes_no
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -110,7 +110,7 @@ def _kfmk_Game_yes_no(_kfN, _kfR):
 
 def _kfmk_Game_order_effects(_kfN, _kfR):
   def _kfr_Game_order_effects(self=_kf_U, player=_kf_U, items=_kf_U, prompt=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, _kf_closure=None):
-    # game.py:706 Game.order_effects
+    # game.py:725 Game.order_effects
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -141,7 +141,7 @@ def _kfmk_Game_order_effects(_kfN, _kfR):
 
 def _kfmk_Game_choose_number(_kfN, _kfR):
   def _kfr_Game_choose_number(self=_kf_U, player=_kf_U, prompt=_kf_U, numbers=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, _kf_closure=None):
-    # game.py:716 Game.choose_number
+    # game.py:735 Game.choose_number
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -174,7 +174,7 @@ def _kfmk_Game_choose_number(_kfN, _kfR):
 
 def _kfmk_Game_choose_mode(_kfN, _kfR):
   def _kfr_Game_choose_mode(self=_kf_U, player=_kf_U, prompt=_kf_U, modes=_kf_U, _kfF=None, _sent=None, *, source_card=_kf_U, _kf_closure=None):
-    # game.py:728 Game.choose_mode
+    # game.py:747 Game.choose_mode
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
         _pc = 0
@@ -207,7 +207,7 @@ def _kfmk_Game_choose_mode(_kfN, _kfR):
 
 def _kfmk_Game__setup(_kfN, _kfR):
   def _kfr_Game__setup(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:883 Game._setup
+    # game.py:902 Game._setup
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = card = cards = deck_name = first = p1_deck_name = p2_deck_name = pid = second = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -262,7 +262,7 @@ def _kfmk_Game__setup(_kfN, _kfR):
 
 def _kfmk_Game__maybe_mulligan(_kfN, _kfR):
   def _kfr_Game__maybe_mulligan(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:922 Game._maybe_mulligan
+    # game.py:941 Game._maybe_mulligan
     if _kfF is None:  # a fresh call: Python bound the arguments
         cards = choice = n = player = _kf_U
         _pc = 0
@@ -297,7 +297,7 @@ def _kfmk_Game__maybe_mulligan(_kfN, _kfR):
 
 def _kfmk_Game__run(_kfN, _kfR):
   def _kfr_Game__run(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1007 Game._run
+    # game.py:1026 Game._run
     if _kfF is None:  # a fresh call: Python bound the arguments
         over = _kf_U
         _pc = 0
@@ -351,7 +351,7 @@ def _kfmk_Game__run(_kfN, _kfR):
 
 def _kfmk_Game__take_turn(_kfN, _kfR):
   def _kfr_Game__take_turn(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1022 Game._take_turn
+    # game.py:1041 Game._take_turn
     if _kfF is None:  # a fresh call: Python bound the arguments
         cost = player = source = _kf_U
         _pc = 0
@@ -404,7 +404,7 @@ def _kfmk_Game__take_turn(_kfN, _kfR):
 
 def _kfmk_Game__take_turn_from_house(_kfN, _kfR):
   def _kfr_Game__take_turn_from_house(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1046 Game._take_turn_from_house
+    # game.py:1065 Game._take_turn_from_house
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -444,7 +444,7 @@ def _kfmk_Game__take_turn_from_house(_kfN, _kfR):
 
 def _kfmk_Game__take_turn_from_archive(_kfN, _kfR):
   def _kfr_Game__take_turn_from_archive(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1056 Game._take_turn_from_archive
+    # game.py:1075 Game._take_turn_from_archive
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = take = _kf_U
         _pc = 0
@@ -497,7 +497,7 @@ def _kfmk_Game__take_turn_from_archive(_kfN, _kfR):
 
 def _kfmk_Game__take_turn_action_loop(_kfN, _kfR):
   def _kfr_Game__take_turn_action_loop(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1079 Game._take_turn_action_loop
+    # game.py:1098 Game._take_turn_action_loop
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = _kf_U
         _pc = 0
@@ -561,7 +561,7 @@ def _kfmk_Game__take_turn_action_loop(_kfN, _kfR):
 
 def _kfmk_Game__resume(_kfN, _kfR):
   def _kfr_Game__resume(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1100 Game._resume
+    # game.py:1119 Game._resume
     if _kfF is None:  # a fresh call: Python bound the arguments
         kind = over = pid = _kf_U
         _pc = 0
@@ -656,7 +656,7 @@ def _kfmk_Game__resume(_kfN, _kfR):
 
 def _kfmk_Game__choose_house_step(_kfN, _kfR):
   def _kfr_Game__choose_house_step(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1131 Game._choose_house_step
+    # game.py:1150 Game._choose_house_step
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = cannot = forced = house = options = player = _kf_U
         _pc = 0
@@ -713,7 +713,7 @@ def _kfmk_Game__choose_house_step(_kfN, _kfR):
 
 def _kfmk_Game__cleanup_turn(_kfN, _kfR):
   def _kfr_Game__cleanup_turn(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1160 Game._cleanup_turn
+    # game.py:1179 Game._cleanup_turn
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = cleanups = iid = operation = p = player = _kf_U
         _pc = 0
@@ -754,7 +754,7 @@ def _kfmk_Game__cleanup_turn(_kfN, _kfR):
 
 def _kfmk_Game__pay_forge_cost(_kfN, _kfR):
   def _kfr_Game__pay_forge_cost(self=_kf_U, pid=_kf_U, cost=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1196 Game._pay_forge_cost
+    # game.py:1215 Game._pay_forge_cost
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = order = player = remaining = shortfall_amt = sources = take = _kf_U
         _pc = 0
@@ -805,7 +805,7 @@ def _kfmk_Game__pay_forge_cost(_kfN, _kfR):
 
 def _kfmk_Game__pay_and_forge_key(_kfN, _kfR):
   def _kfr_Game__pay_and_forge_key(self=_kf_U, pid=_kf_U, cost=_kf_U, source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1237 Game._pay_and_forge_key
+    # game.py:1256 Game._pay_and_forge_key
     if _kfF is None:  # a fresh call: Python bound the arguments
         ok = player = _kf_U
         _pc = 0
@@ -855,7 +855,7 @@ def _kfmk_Game__pay_and_forge_key(_kfN, _kfR):
 
 def _kfmk_Game_forge_key(_kfN, _kfR):
   def _kfr_Game_forge_key(self=_kf_U, pid=_kf_U, cost_modifier=_kf_U, source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1254 Game.forge_key
+    # game.py:1273 Game.forge_key
     if _kfF is None:  # a fresh call: Python bound the arguments
         cost = ok = player = _kf_U
         _pc = 0
@@ -889,7 +889,7 @@ def _kfmk_Game_forge_key(_kfN, _kfR):
 
 def _kfmk_Game__resolve_action(_kfN, _kfR):
   def _kfr_Game__resolve_action(self=_kf_U, pid=_kf_U, action=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1555 Game._resolve_action
+    # game.py:1574 Game._resolve_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -990,7 +990,7 @@ def _kfmk_Game__resolve_action(_kfN, _kfR):
 
 def _kfmk_Game__discard_card(_kfN, _kfR):
   def _kfr_Game__discard_card(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1569 Game._discard_card
+    # game.py:1588 Game._discard_card
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
         _pc = 0
@@ -1022,7 +1022,7 @@ def _kfmk_Game__discard_card(_kfN, _kfR):
 
 def _kfmk_Game__choose_flank(_kfN, _kfR):
   def _kfr_Game__choose_flank(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1579 Game._choose_flank
+    # game.py:1598 Game._choose_flank
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = player = _kf_U
         _pc = 0
@@ -1053,7 +1053,7 @@ def _kfmk_Game__choose_flank(_kfN, _kfR):
 
 def _kfmk_Game__play_card(_kfN, _kfR):
   def _kfr_Game__play_card(self=_kf_U, pid=_kf_U, card=_kf_U, from_deck_top=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1598 Game._play_card
+    # game.py:1617 Game._play_card
     if _kfF is None:  # a fresh call: Python bound the arguments
         amount = cdef = choice = enters_ready = first_creature_this_turn = flank = host = house = player = receiver_pid = targets = toll = _kf_U
         _pc = 0
@@ -1287,7 +1287,7 @@ def _kfmk_Game__play_card(_kfN, _kfR):
 
 def _kfmk_Game__play_resolution(_kfN, _kfR):
   def _kfr_Game__play_resolution(self=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1741 Game._play_resolution
+    # game.py:1760 Game._play_resolution
     if _kfF is None:  # a fresh call: Python bound the arguments
         order = pre_existing = step_name = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1356,7 +1356,7 @@ def _kfmk_Game__play_resolution(_kfN, _kfR):
 
 def _kfmk_Game__run_play_trigger_check(_kfN, _kfR):
   def _kfr_Game__run_play_trigger_check(self=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1765 Game._run_play_trigger_check
+    # game.py:1784 Game._run_play_trigger_check
     if _kfF is None:  # a fresh call: Python bound the arguments
         event_player = ordered = trig = triggers = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1412,7 +1412,7 @@ def _kfmk_Game__run_play_trigger_check(_kfN, _kfR):
 
 def _kfmk_Game_play_card_from_deck_top(_kfN, _kfR):
   def _kfr_Game_play_card_from_deck_top(self=_kf_U, player=_kf_U, top_card=_kf_U, ignore_house=_kf_U, source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1783 Game.play_card_from_deck_top
+    # game.py:1802 Game.play_card_from_deck_top
     if _kfF is None:  # a fresh call: Python bound the arguments
         ok = reason = _kf_U
         _pc = 0
@@ -1447,7 +1447,7 @@ def _kfmk_Game_play_card_from_deck_top(_kfN, _kfR):
 
 def _kfmk_Game__use_action(_kfN, _kfR):
   def _kfr_Game__use_action(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1848 Game._use_action
+    # game.py:1867 Game._use_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         effect = player = _kf_U
         _pc = 0
@@ -1497,7 +1497,7 @@ def _kfmk_Game__use_action(_kfN, _kfR):
 
 def _kfmk_Game__use_omni(_kfN, _kfR):
   def _kfr_Game__use_omni(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1862 Game._use_omni
+    # game.py:1881 Game._use_omni
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
         _pc = 0
@@ -1546,7 +1546,7 @@ def _kfmk_Game__use_omni(_kfN, _kfR):
 
 def _kfmk_Game__reap(_kfN, _kfR):
   def _kfr_Game__reap(self=_kf_U, pid=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1875 Game._reap
+    # game.py:1894 Game._reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         cdef = extra = player = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1620,7 +1620,7 @@ def _kfmk_Game__reap(_kfN, _kfR):
 
 def _kfmk_Game__fight(_kfN, _kfR):
   def _kfr_Game__fight(self=_kf_U, pid=_kf_U, attacker=_kf_U, exclude=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:1894 Game._fight
+    # game.py:1913 Game._fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         assault_n = attack_power = attacker_keywords = before = c = cdef = choice = destroyed = dmg_target = extra = hazardous_n = hit = hits = player = skip_fight = survivor = target = target_keywords = targets = victim = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -1887,7 +1887,7 @@ def _kfmk_Game__fight(_kfN, _kfR):
 
 def _kfmk_Game_use_creature_ability(_kfN, _kfR):
   def _kfr_Game_use_creature_ability(self=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2051 Game.use_creature_ability
+    # game.py:2070 Game.use_creature_ability
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = kind = only_fight = options = pid = player = _kf_U
         _pc = 0
@@ -1996,7 +1996,7 @@ def _kfmk_Game_use_creature_ability(_kfN, _kfR):
 
 def _kfmk_Game_ready_and_fight(_kfN, _kfR):
   def _kfr_Game_ready_and_fight(self=_kf_U, card=_kf_U, exclude=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2090 Game.ready_and_fight
+    # game.py:2109 Game.ready_and_fight
     if _kfF is None:  # a fresh call: Python bound the arguments
         pid = player = _kf_U
         _pc = 0
@@ -2031,7 +2031,7 @@ def _kfmk_Game_ready_and_fight(_kfN, _kfR):
 
 def _kfmk_Game_check_destroyed(_kfN, _kfR):
   def _kfr_Game_check_destroyed(self=_kf_U, cards=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2110 Game.check_destroyed
+    # game.py:2129 Game.check_destroyed
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = destroyed = to_destroy = _kf_U
         _pc = 0
@@ -2072,7 +2072,7 @@ def _kfmk_Game_check_destroyed(_kfN, _kfR):
 
 def _kfmk_Game_destroy_cards(_kfN, _kfR):
   def _kfr_Game_destroy_cards(self=_kf_U, cards=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2180 Game.destroy_cards
+    # game.py:2199 Game.destroy_cards
     if _kfF is None:  # a fresh call: Python bound the arguments
         _ = also_destroyed = batch = c = e = extra = insteads = intercepted = item = ordered = survivors = to_resolve = _kfs0 = _kfi1 = _kfs2 = _kfi3 = _kf_U
         _pc = 0
@@ -2191,7 +2191,7 @@ def _kfmk_Game_destroy_cards(_kfN, _kfR):
 
 def _kfmk_Game__fire_event(_kfN, _kfR):
   def _kfr_Game__fire_event(self=_kf_U, event_name=_kf_U, event_data=_kf_U, exclude_sources=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2244 Game._fire_event
+    # game.py:2263 Game._fire_event
     if _kfF is None:  # a fresh call: Python bound the arguments
         ordered = trig = triggers = _kfs0 = _kfi1 = _kf_U
         _pc = 0
@@ -2248,7 +2248,7 @@ def _kfmk_Game__fire_event(_kfN, _kfR):
 
 def _kfmk_Game_take_control(_kfN, _kfR):
   def _kfr_Game_take_control(self=_kf_U, card=_kf_U, new_pid=_kf_U, until_source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2369 Game.take_control
+    # game.py:2388 Game.take_control
     if _kfF is None:  # a fresh call: Python bound the arguments
         flank = new_area = old_area = old_pid = _kf_U
         _pc = 0
@@ -2298,7 +2298,7 @@ def _kfmk_Game_take_control(_kfN, _kfR):
 
 def _kfmk_Game_use_artifact_ability(_kfN, _kfR):
   def _kfr_Game_use_artifact_ability(self=_kf_U, card=_kf_U, as_pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # game.py:2403 Game.use_artifact_ability
+    # game.py:2422 Game.use_artifact_ability
     if _kfF is None:  # a fresh call: Python bound the arguments
         ability = as_player = is_omni = original_controller = toll = _kf_U
         _kfxe = None
@@ -2367,41 +2367,41 @@ def _kfmk_Game_use_artifact_ability(_kfN, _kfR):
 # (qualname, first line, routine factory, slots, free variables, nested code (name, line),
 #  line of each resume id, (exception slot, resume ids inside a try region) or None)
 ROUTINES = [
-    ('Game.choose_cards', 676, _kfmk_Game_choose_cards, ('self', 'player', 'prompt', 'options', 'min_n', 'max_n', 'source_card', 'intent', 'affects', 'optional', 'choice'), (), (), {1: 684}, None),
-    ('Game.choose_house', 690, _kfmk_Game_choose_house, ('self', 'player', 'prompt', 'houses', 'choice'), (), (), {1: 696}, None),
-    ('Game.yes_no', 699, _kfmk_Game_yes_no, ('self', 'player', 'prompt', 'source_card', 'intent', 'optional', 'choice'), (), (), {1: 700}, None),
-    ('Game.order_effects', 706, _kfmk_Game_order_effects, ('self', 'player', 'items', 'prompt', 'source_card', 'choice'), (), (), {1: 710}, None),
-    ('Game.choose_number', 716, _kfmk_Game_choose_number, ('self', 'player', 'prompt', 'numbers', 'source_card', 'choice'), (), (), {1: 722}, None),
-    ('Game.choose_mode', 728, _kfmk_Game_choose_mode, ('self', 'player', 'prompt', 'modes', 'source_card', 'choice'), (), (), {1: 734}, None),
-    ('Game._setup', 883, _kfmk_Game__setup, ('self', 'c', 'card', 'cards', 'deck_name', 'first', 'p1_deck_name', 'p2_deck_name', 'pid', 'second', '_kfs0', '_kfi1'), (), (('<lambda>', 890),), {1: 906}, None),
-    ('Game._maybe_mulligan', 922, _kfmk_Game__maybe_mulligan, ('self', 'pid', 'cards', 'choice', 'n', 'player'), (), (), {1: 924}, None),
-    ('Game._run', 1007, _kfmk_Game__run, ('self', 'over'), (), (), {1: 1008, 2: 1014}, None),
-    ('Game._take_turn', 1022, _kfmk_Game__take_turn, ('self', 'pid', 'cost', 'player', 'source'), (), (), {1: 1037, 2: 1044}, None),
-    ('Game._take_turn_from_house', 1046, _kfmk_Game__take_turn_from_house, ('self', 'pid'), (), (), {1: 1053, 2: 1054}, None),
-    ('Game._take_turn_from_archive', 1056, _kfmk_Game__take_turn_from_archive, ('self', 'pid', 'c', 'player', 'take'), (), (), {1: 1062, 2: 1077}, None),
-    ('Game._take_turn_action_loop', 1079, _kfmk_Game__take_turn_action_loop, ('self', 'pid', 'choice', 'options', 'player'), (), (), {1: 1087, 2: 1090, 3: 1095}, None),
-    ('Game._resume', 1100, _kfmk_Game__resume, ('self', 'kind', 'over', 'pid'), (), (), {1: 1112, 2: 1114, 3: 1116, 4: 1127}, None),
-    ('Game._choose_house_step', 1131, _kfmk_Game__choose_house_step, ('self', 'pid', 'c', 'cannot', 'forced', 'house', 'options', 'player'), (), (), {1: 1142, 2: 1148}, None),
-    ('Game._cleanup_turn', 1160, _kfmk_Game__cleanup_turn, ('self', 'pid', 'c', 'cleanups', 'iid', 'operation', 'p', 'player'), (), (), {1: 1162}, None),
-    ('Game._pay_forge_cost', 1196, _kfmk_Game__pay_forge_cost, ('self', 'pid', 'cost', 'c', 'order', 'player', 'remaining', 'shortfall_amt', 'sources', 'take'), (), (), {1: 1210}, None),
-    ('Game._pay_and_forge_key', 1237, _kfmk_Game__pay_and_forge_key, ('self', 'pid', 'cost', 'source', 'ok', 'player'), (), (), {1: 1240, 2: 1249}, None),
-    ('Game.forge_key', 1254, _kfmk_Game_forge_key, ('self', 'pid', 'cost_modifier', 'source', 'cost', 'ok', 'player'), (), (), {1: 1263}, None),
-    ('Game._resolve_action', 1555, _kfmk_Game__resolve_action, ('self', 'pid', 'action'), (), (), {1: 1557, 2: 1559, 3: 1561, 4: 1563, 5: 1565, 6: 1567}, None),
-    ('Game._discard_card', 1569, _kfmk_Game__discard_card, ('self', 'pid', 'card', 'player'), (), (), {1: 1575}, None),
-    ('Game._choose_flank', 1579, _kfmk_Game__choose_flank, ('self', 'pid', 'choice', 'player'), (), (), {1: 1583}, None),
-    ('Game._play_card', 1598, _kfmk_Game__play_card, ('self', 'pid', 'card', 'from_deck_top', 'amount', 'cdef', 'choice', 'enters_ready', 'first_creature_this_turn', 'flank', 'host', 'house', 'player', 'receiver_pid', 'targets', 'toll'), (), (), {1: 1637, 2: 1640, 3: 1696, 4: 1697, 5: 1709, 6: 1723, 7: 1726, 8: 1730, 9: 1738}, None),
-    ('Game._play_resolution', 1741, _kfmk_Game__play_resolution, ('self', 'card', 'order', 'pre_existing', 'step_name', '_kfs0', '_kfi1'), (), (), {1: 1753, 2: 1761, 3: 1763}, None),
-    ('Game._run_play_trigger_check', 1765, _kfmk_Game__run_play_trigger_check, ('self', 'card', 'event_player', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 1775, 2: 1781}, None),
-    ('Game.play_card_from_deck_top', 1783, _kfmk_Game_play_card_from_deck_top, ('self', 'player', 'top_card', 'ignore_house', 'source', 'ok', 'reason'), (), (), {1: 1786}, None),
-    ('Game._use_action', 1848, _kfmk_Game__use_action, ('self', 'pid', 'card', 'effect', 'player'), (), (), {1: 1858, 2: 1860}, None),
-    ('Game._use_omni', 1862, _kfmk_Game__use_omni, ('self', 'pid', 'card', 'player'), (), (), {1: 1871, 2: 1873}, None),
-    ('Game._reap', 1875, _kfmk_Game__reap, ('self', 'pid', 'card', 'cdef', 'extra', 'player', '_kfs0', '_kfi1'), (), (), {1: 1887, 2: 1890, 3: 1892}, None),
-    ('Game._fight', 1894, _kfmk_Game__fight, ('self', 'pid', 'attacker', 'exclude', 'assault_n', 'attack_power', 'attacker_keywords', 'before', 'c', 'cdef', 'choice', 'destroyed', 'dmg_target', 'extra', 'hazardous_n', 'hit', 'hits', 'player', 'skip_fight', 'survivor', 'target', 'target_keywords', 'targets', 'victim', '_kfs0', '_kfi1'), (), (), {1: 1918, 2: 1925, 3: 1940, 4: 1942, 5: 1952, 6: 1953, 7: 1962, 8: 1971, 9: 2022, 10: 2039, 11: 2046, 12: 2048}, None),
-    ('Game.use_creature_ability', 2051, _kfmk_Game_use_creature_ability, ('self', 'card', 'choice', 'kind', 'only_fight', 'options', 'pid', 'player'), (), (), {1: 2063, 2: 2076, 3: 2084, 4: 2086, 5: 2088}, None),
-    ('Game.ready_and_fight', 2090, _kfmk_Game_ready_and_fight, ('self', 'card', 'exclude', 'pid', 'player'), (), (), {1: 2106}, None),
-    ('Game.check_destroyed', 2110, _kfmk_Game_check_destroyed, ('self', 'cards', 'c', 'destroyed', 'to_destroy'), (), (), {1: 2125}, None),
-    ('Game.destroy_cards', 2180, _kfmk_Game_destroy_cards, ('self', 'cards', '_', 'also_destroyed', 'batch', 'c', 'e', 'extra', 'insteads', 'intercepted', 'item', 'ordered', 'survivors', 'to_resolve', '_kfs0', '_kfi1', '_kfs2', '_kfi3'), (), (), {1: 2220, 2: 2228, 3: 2230, 4: 2239}, None),
-    ('Game._fire_event', 2244, _kfmk_Game__fire_event, ('self', 'event_name', 'event_data', 'exclude_sources', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 2255, 2: 2259}, None),
-    ('Game.take_control', 2369, _kfmk_Game_take_control, ('self', 'card', 'new_pid', 'until_source', 'flank', 'new_area', 'old_area', 'old_pid'), (), (), {1: 2388}, None),
-    ('Game.use_artifact_ability', 2403, _kfmk_Game_use_artifact_ability, ('self', 'card', 'as_pid', 'ability', 'as_player', 'is_omni', 'original_controller', 'toll', '_kfxe'), (), (), {1: 2438, 2: 2442}, (8, (1,))),
+    ('Game.choose_cards', 695, _kfmk_Game_choose_cards, ('self', 'player', 'prompt', 'options', 'min_n', 'max_n', 'source_card', 'intent', 'affects', 'optional', 'choice'), (), (), {1: 703}, None),
+    ('Game.choose_house', 709, _kfmk_Game_choose_house, ('self', 'player', 'prompt', 'houses', 'choice'), (), (), {1: 715}, None),
+    ('Game.yes_no', 718, _kfmk_Game_yes_no, ('self', 'player', 'prompt', 'source_card', 'intent', 'optional', 'choice'), (), (), {1: 719}, None),
+    ('Game.order_effects', 725, _kfmk_Game_order_effects, ('self', 'player', 'items', 'prompt', 'source_card', 'choice'), (), (), {1: 729}, None),
+    ('Game.choose_number', 735, _kfmk_Game_choose_number, ('self', 'player', 'prompt', 'numbers', 'source_card', 'choice'), (), (), {1: 741}, None),
+    ('Game.choose_mode', 747, _kfmk_Game_choose_mode, ('self', 'player', 'prompt', 'modes', 'source_card', 'choice'), (), (), {1: 753}, None),
+    ('Game._setup', 902, _kfmk_Game__setup, ('self', 'c', 'card', 'cards', 'deck_name', 'first', 'p1_deck_name', 'p2_deck_name', 'pid', 'second', '_kfs0', '_kfi1'), (), (('<lambda>', 909),), {1: 925}, None),
+    ('Game._maybe_mulligan', 941, _kfmk_Game__maybe_mulligan, ('self', 'pid', 'cards', 'choice', 'n', 'player'), (), (), {1: 943}, None),
+    ('Game._run', 1026, _kfmk_Game__run, ('self', 'over'), (), (), {1: 1027, 2: 1033}, None),
+    ('Game._take_turn', 1041, _kfmk_Game__take_turn, ('self', 'pid', 'cost', 'player', 'source'), (), (), {1: 1056, 2: 1063}, None),
+    ('Game._take_turn_from_house', 1065, _kfmk_Game__take_turn_from_house, ('self', 'pid'), (), (), {1: 1072, 2: 1073}, None),
+    ('Game._take_turn_from_archive', 1075, _kfmk_Game__take_turn_from_archive, ('self', 'pid', 'c', 'player', 'take'), (), (), {1: 1081, 2: 1096}, None),
+    ('Game._take_turn_action_loop', 1098, _kfmk_Game__take_turn_action_loop, ('self', 'pid', 'choice', 'options', 'player'), (), (), {1: 1106, 2: 1109, 3: 1114}, None),
+    ('Game._resume', 1119, _kfmk_Game__resume, ('self', 'kind', 'over', 'pid'), (), (), {1: 1131, 2: 1133, 3: 1135, 4: 1146}, None),
+    ('Game._choose_house_step', 1150, _kfmk_Game__choose_house_step, ('self', 'pid', 'c', 'cannot', 'forced', 'house', 'options', 'player'), (), (), {1: 1161, 2: 1167}, None),
+    ('Game._cleanup_turn', 1179, _kfmk_Game__cleanup_turn, ('self', 'pid', 'c', 'cleanups', 'iid', 'operation', 'p', 'player'), (), (), {1: 1181}, None),
+    ('Game._pay_forge_cost', 1215, _kfmk_Game__pay_forge_cost, ('self', 'pid', 'cost', 'c', 'order', 'player', 'remaining', 'shortfall_amt', 'sources', 'take'), (), (), {1: 1229}, None),
+    ('Game._pay_and_forge_key', 1256, _kfmk_Game__pay_and_forge_key, ('self', 'pid', 'cost', 'source', 'ok', 'player'), (), (), {1: 1259, 2: 1268}, None),
+    ('Game.forge_key', 1273, _kfmk_Game_forge_key, ('self', 'pid', 'cost_modifier', 'source', 'cost', 'ok', 'player'), (), (), {1: 1282}, None),
+    ('Game._resolve_action', 1574, _kfmk_Game__resolve_action, ('self', 'pid', 'action'), (), (), {1: 1576, 2: 1578, 3: 1580, 4: 1582, 5: 1584, 6: 1586}, None),
+    ('Game._discard_card', 1588, _kfmk_Game__discard_card, ('self', 'pid', 'card', 'player'), (), (), {1: 1594}, None),
+    ('Game._choose_flank', 1598, _kfmk_Game__choose_flank, ('self', 'pid', 'choice', 'player'), (), (), {1: 1602}, None),
+    ('Game._play_card', 1617, _kfmk_Game__play_card, ('self', 'pid', 'card', 'from_deck_top', 'amount', 'cdef', 'choice', 'enters_ready', 'first_creature_this_turn', 'flank', 'host', 'house', 'player', 'receiver_pid', 'targets', 'toll'), (), (), {1: 1656, 2: 1659, 3: 1715, 4: 1716, 5: 1728, 6: 1742, 7: 1745, 8: 1749, 9: 1757}, None),
+    ('Game._play_resolution', 1760, _kfmk_Game__play_resolution, ('self', 'card', 'order', 'pre_existing', 'step_name', '_kfs0', '_kfi1'), (), (), {1: 1772, 2: 1780, 3: 1782}, None),
+    ('Game._run_play_trigger_check', 1784, _kfmk_Game__run_play_trigger_check, ('self', 'card', 'event_player', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 1794, 2: 1800}, None),
+    ('Game.play_card_from_deck_top', 1802, _kfmk_Game_play_card_from_deck_top, ('self', 'player', 'top_card', 'ignore_house', 'source', 'ok', 'reason'), (), (), {1: 1805}, None),
+    ('Game._use_action', 1867, _kfmk_Game__use_action, ('self', 'pid', 'card', 'effect', 'player'), (), (), {1: 1877, 2: 1879}, None),
+    ('Game._use_omni', 1881, _kfmk_Game__use_omni, ('self', 'pid', 'card', 'player'), (), (), {1: 1890, 2: 1892}, None),
+    ('Game._reap', 1894, _kfmk_Game__reap, ('self', 'pid', 'card', 'cdef', 'extra', 'player', '_kfs0', '_kfi1'), (), (), {1: 1906, 2: 1909, 3: 1911}, None),
+    ('Game._fight', 1913, _kfmk_Game__fight, ('self', 'pid', 'attacker', 'exclude', 'assault_n', 'attack_power', 'attacker_keywords', 'before', 'c', 'cdef', 'choice', 'destroyed', 'dmg_target', 'extra', 'hazardous_n', 'hit', 'hits', 'player', 'skip_fight', 'survivor', 'target', 'target_keywords', 'targets', 'victim', '_kfs0', '_kfi1'), (), (), {1: 1937, 2: 1944, 3: 1959, 4: 1961, 5: 1971, 6: 1972, 7: 1981, 8: 1990, 9: 2041, 10: 2058, 11: 2065, 12: 2067}, None),
+    ('Game.use_creature_ability', 2070, _kfmk_Game_use_creature_ability, ('self', 'card', 'choice', 'kind', 'only_fight', 'options', 'pid', 'player'), (), (), {1: 2082, 2: 2095, 3: 2103, 4: 2105, 5: 2107}, None),
+    ('Game.ready_and_fight', 2109, _kfmk_Game_ready_and_fight, ('self', 'card', 'exclude', 'pid', 'player'), (), (), {1: 2125}, None),
+    ('Game.check_destroyed', 2129, _kfmk_Game_check_destroyed, ('self', 'cards', 'c', 'destroyed', 'to_destroy'), (), (), {1: 2144}, None),
+    ('Game.destroy_cards', 2199, _kfmk_Game_destroy_cards, ('self', 'cards', '_', 'also_destroyed', 'batch', 'c', 'e', 'extra', 'insteads', 'intercepted', 'item', 'ordered', 'survivors', 'to_resolve', '_kfs0', '_kfi1', '_kfs2', '_kfi3'), (), (), {1: 2239, 2: 2247, 3: 2249, 4: 2258}, None),
+    ('Game._fire_event', 2263, _kfmk_Game__fire_event, ('self', 'event_name', 'event_data', 'exclude_sources', 'ordered', 'trig', 'triggers', '_kfs0', '_kfi1'), (), (), {1: 2274, 2: 2278}, None),
+    ('Game.take_control', 2388, _kfmk_Game_take_control, ('self', 'card', 'new_pid', 'until_source', 'flank', 'new_area', 'old_area', 'old_pid'), (), (), {1: 2407}, None),
+    ('Game.use_artifact_ability', 2422, _kfmk_Game_use_artifact_ability, ('self', 'card', 'as_pid', 'ability', 'as_player', 'is_omni', 'original_controller', 'toll', '_kfxe'), (), (), {1: 2457, 2: 2461}, (8, (1,))),
 ]

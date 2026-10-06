@@ -531,6 +531,21 @@ class Game:
             self.submit_index(encoded)
         return self
 
+    def snapshot(self) -> bytes:
+        """This game, serialized: canonical, versioned, pickle-free bytes
+        (keyforge/snapshot.py). Valid at any decision in compiled execution,
+        at a boundary decision in native execution."""
+        from .snapshot import snapshot
+
+        return snapshot(self)
+
+    @staticmethod
+    def restore(data: bytes) -> "Game":
+        """The game `snapshot()` serialized, ready to continue."""
+        from .snapshot import restore
+
+        return restore(data)
+
     def release(self) -> None:
         """Declares that this game will not be played any further (a
         search's world, once its simulation is backed up): drops the driver
@@ -635,7 +650,11 @@ class Game:
             for source_iid, entries in self._temp_control.items()
         }
 
-        new.choice_log = list(self.choice_log)
+        # The live choices `submit` saw are this object's own history, not
+        # game state: a copy starts without them, as a replay fork does
+        # (`submit_index` never records there). Before Part R a copy shared
+        # the original's, which named the original game's cards.
+        new.choice_log = []
         # Shallow: a recorded choice is never changed once appended (both
         # games only ever append), so the copy can share the entries.
         new.choice_record = list(self.choice_record)
