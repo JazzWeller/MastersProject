@@ -600,7 +600,10 @@ def novu_archaeologist(game, card):
 
 
 def ozmo(game, card):
-    targets = [c for c in game.all_creatures("any", card) if "Mars" in c.tags]
+    # "a Mars creature": a creature of house Mars, as it currently is
+    # (keyteki: card.hasHouse('mars')). This used to test for a "Mars" trait
+    # no card has -- a leftover from the Dis/Logos/Shadows-only pool.
+    targets = [c for c in game.all_creatures("any", card) if game.get_effective_house(c) == House.MARS]
     if not targets:
         steps.shortfall(game, card, "does nothing: there are no Mars creatures in play", "No Mars creature")
         return

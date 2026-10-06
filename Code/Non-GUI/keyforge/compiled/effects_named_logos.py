@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/logos.py'
-SOURCE_SHA256 = 'e23e73a591e1d75be87036f308ca9926eed5a8fa74374a67bf5665243374aad3'
+SOURCE_SHA256 = '583d0f20e228e726e33964d66c0c4724218a561ff5ff93e68bd9df49f0355f04'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -1613,7 +1613,7 @@ def _kfmk_ozmo(_kfN, _kfR):
         (game, card, choice, mode, target, target_intent, targets,) = _kfF.L
         _pc = _kfF.pc
     if not _pc:
-        targets = [c for c in game.all_creatures('any', card) if 'Mars' in c.tags]
+        targets = [c for c in game.all_creatures('any', card) if game.get_effective_house(c) == House.MARS]
         if not targets:
             steps.shortfall(game, card, 'does nothing: there are no Mars creatures in play', 'No Mars creature')
             return
@@ -1661,7 +1661,7 @@ def _kfmk_ozmo(_kfN, _kfR):
 
 def _kfmk_psychic_bug(_kfN, _kfR):
   def _kfr_psychic_bug(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:627 psychic_bug
+    # effects/named/logos.py:630 psychic_bug
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = _kf_U
         _pc = 0
@@ -1690,7 +1690,7 @@ def _kfmk_psychic_bug(_kfN, _kfR):
 
 def _kfmk_replicator(_kfN, _kfR):
   def _kfr_replicator(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:634 replicator
+    # effects/named/logos.py:637 replicator
     if _kfF is None:  # a fresh call: Python bound the arguments
         candidates = choice = extra = original_controller = player = target = _kfs0 = _kfi1 = _kf_U
         _kfxe = None
@@ -1777,7 +1777,7 @@ def _kfmk_replicator(_kfN, _kfR):
 
 def _kfmk_research_smoko_destroyed(_kfN, _kfR):
   def _kfr_research_smoko_destroyed(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:664 research_smoko_destroyed
+    # effects/named/logos.py:667 research_smoko_destroyed
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = top = _kf_U
         _pc = 0
@@ -1811,7 +1811,7 @@ def _kfmk_research_smoko_destroyed(_kfN, _kfR):
 
 def _kfmk_skippy_timehog(_kfN, _kfR):
   def _kfr_skippy_timehog(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:680 skippy_timehog
+    # effects/named/logos.py:683 skippy_timehog
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
     else:  # resuming a suspended frame
@@ -1838,7 +1838,7 @@ def _kfmk_skippy_timehog(_kfN, _kfR):
 
 def _kfmk_vespilon_theorist(_kfN, _kfR):
   def _kfr_vespilon_theorist(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:686 vespilon_theorist
+    # effects/named/logos.py:689 vespilon_theorist
     if _kfF is None:  # a fresh call: Python bound the arguments
         chosen = houses = player = top = _kf_U
         _pc = 0
@@ -1881,7 +1881,7 @@ def _kfmk_vespilon_theorist(_kfN, _kfR):
 
 def _kfmk__veylan_handler__handler(_kfN, _kfR):
   def _kfr__veylan_handler__handler(game=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:709 _veylan_handler.<locals>.handler
+    # effects/named/logos.py:712 _veylan_handler.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_veylan_card = _kf_closure[0]
         _pc = 0
@@ -1910,7 +1910,7 @@ def _kfmk__veylan_handler__handler(_kfN, _kfR):
 
 def _kfmk_experimental_therapy(_kfN, _kfR):
   def _kfr_experimental_therapy(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:717 experimental_therapy
+    # effects/named/logos.py:720 experimental_therapy
     if _kfF is None:  # a fresh call: Python bound the arguments
         host = _kf_U
         _pc = 0
@@ -1941,7 +1941,7 @@ def _kfmk_experimental_therapy(_kfN, _kfR):
 
 def _kfmk__rocket_boots_effect(_kfN, _kfR):
   def _kfr__rocket_boots_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:744 _rocket_boots_effect
+    # effects/named/logos.py:747 _rocket_boots_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
         _pc = 0
@@ -1971,7 +1971,7 @@ def _kfmk__rocket_boots_effect(_kfN, _kfR):
 
 def _kfmk__transposition_sandals_action(_kfN, _kfR):
   def _kfr__transposition_sandals_action(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:765 _transposition_sandals_action
+    # effects/named/logos.py:768 _transposition_sandals_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = i = j = may_use = other = others = player = _kf_U
         _pc = 0
@@ -2082,14 +2082,14 @@ ROUTINES = [
     ('harland_mindlock', 544, _kfmk_harland_mindlock, ('game', 'card', 'choice', 'opponent', 'targets'), (), (), {1: 550, 2: 554}, None, {1: 'game.choose_cards', 2: 'game.take_control'}, {1: (('pause', 'game.take_control', ('?', '?'), (('until_source', '?'),)),), 2: ()}),
     ('neutron_shark', 557, _kfmk_neutron_shark, ('game', 'card', 'choice_e', 'choice_f', 'enemy_targets', 'friendly_targets', 'opponent', 'player', 'top'), (), (), {1: 566, 2: 570, 3: 574}, None, {1: 'game.choose_cards', 2: 'game.choose_cards', 3: 'game.destroy_cards'}, {1: (('pause', 'game.choose_cards', ('?', 'Neutron Shark: destroy a friendly creature or artifact', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DESTROY'), ('affects', 'Affects.FRIENDLY'))), ('pause', 'game.destroy_cards', ('?',), ()), ('loop', 558), ('step', 'steps.shortfall', ('?', '?', 'destroys nothing more: it needs both an enemy and a friendly creature/artifact in play', 'Nothing left to destroy'), ()), ('pause', 'game.choose_cards', ('?', 'Neutron Shark: destroy an enemy creature or artifact', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DESTROY'), ('affects', 'Affects.ENEMY'))), ('pause', 'game.choose_cards', ('?', 'Neutron Shark: destroy a friendly creature or artifact', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DESTROY'), ('affects', 'Affects.FRIENDLY'))), ('pause', 'game.destroy_cards', ('?',), ())), 2: (('pause', 'game.destroy_cards', ('?',), ()), ('loop', 558), ('step', 'steps.shortfall', ('?', '?', 'destroys nothing more: it needs both an enemy and a friendly creature/artifact in play', 'Nothing left to destroy'), ()), ('pause', 'game.choose_cards', ('?', 'Neutron Shark: destroy an enemy creature or artifact', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DESTROY'), ('affects', 'Affects.ENEMY'))), ('pause', 'game.choose_cards', ('?', 'Neutron Shark: destroy a friendly creature or artifact', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DESTROY'), ('affects', 'Affects.FRIENDLY'))), ('pause', 'game.destroy_cards', ('?',), ())), 3: (('loop', 558), ('step', 'steps.shortfall', ('?', '?', 'destroys nothing more: it needs both an enemy and a friendly creature/artifact in play', 'Nothing left to destroy'), ()), ('pause', 'game.choose_cards', ('?', 'Neutron Shark: destroy an enemy creature or artifact', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DESTROY'), ('affects', 'Affects.ENEMY'))), ('pause', 'game.choose_cards', ('?', 'Neutron Shark: destroy a friendly creature or artifact', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DESTROY'), ('affects', 'Affects.FRIENDLY'))), ('pause', 'game.destroy_cards', ('?',), ()))}),
     ('novu_archaeologist', 586, _kfmk_novu_archaeologist, ('game', 'card', 'c', 'choice', 'options', 'player'), (), (), {1: 592}, None, {1: 'game.choose_cards'}, {1: ()}),
-    ('ozmo', 602, _kfmk_ozmo, ('game', 'card', 'choice', 'mode', 'target', 'target_intent', 'targets'), (), (), {1: 607, 2: 615}, None, {1: 'game.choose_mode', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', 'Ozmo: choose a Mars creature', '?', 1, 1), (('source_card', '?'), ('intent', '?'), ('affects', 'Affects.ANY'))), ('step', 'steps.heal', ('?', '?', 3), ())), 2: (('step', 'steps.heal', ('?', '?', 3), ()),)}),
-    ('psychic_bug', 627, _kfmk_psychic_bug, ('game', 'card', 'opponent'), (), (), {1: 631}, None, {1: 'decision'}, {1: ()}),
-    ('replicator', 634, _kfmk_replicator, ('game', 'card', 'candidates', 'choice', 'extra', 'original_controller', 'player', 'target', '_kfs0', '_kfi1', '_kfxe'), (), (), {1: 648, 2: 657, 3: 659}, (10, (2, 3)), {1: 'game.choose_cards', 2: 'target.card_def.on_reap', 3: 'extra'}, {1: (('pause', 'target.card_def.on_reap', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 2: (('pause', 'extra', ('?', '?'), ()),), 3: (('loop', 658), ('pause', 'extra', ('?', '?'), ()))}),
-    ('research_smoko_destroyed', 664, _kfmk_research_smoko_destroyed, ('game', 'card', 'player', 'top'), (), (), {1: 677}, None, {1: 'decision'}, {1: ()}),
-    ('skippy_timehog', 680, _kfmk_skippy_timehog, ('game', 'card'), (), (), {1: 683}, None, {1: 'decision'}, {1: ()}),
-    ('vespilon_theorist', 686, _kfmk_vespilon_theorist, ('game', 'card', 'chosen', 'houses', 'player', 'top'), (), (), {1: 689}, None, {1: 'game.choose_house'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', 'Deck is empty'), ()), ('step', 'steps.gain', ('?', '?', 1), ()))}),
-    ('_veylan_handler.<locals>.handler', 709, _kfmk__veylan_handler__handler, ('game', 'event', '_kfc_veylan_card'), ('veylan_card',), (), {1: 713}, None, {1: 'decision'}, {1: ()}),
-    ('experimental_therapy', 717, _kfmk_experimental_therapy, ('game', 'card', 'host'), (), (), {1: 723}, None, {1: 'decision'}, {1: ()}),
-    ('_rocket_boots_effect', 744, _kfmk__rocket_boots_effect, ('game', 'host_card', 'player'), (), (), {1: 749}, None, {1: 'decision'}, {1: ()}),
-    ('_transposition_sandals_action', 765, _kfmk__transposition_sandals_action, ('game', 'host_card', 'area', 'choice', 'i', 'j', 'may_use', 'other', 'others', 'player'), (), (), {1: 771, 2: 781, 3: 786}, None, {1: 'game.choose_cards', 2: 'game.yes_no', 3: 'game.use_creature_ability'}, {1: (('pause', 'game.yes_no', ('?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.OPTIONAL_TRIGGER'))), ('pause', 'game.use_creature_ability', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', '?', '?'), ())), 2: (('pause', 'game.use_creature_ability', ('?',), ()),), 3: ()}),
+    ('ozmo', 602, _kfmk_ozmo, ('game', 'card', 'choice', 'mode', 'target', 'target_intent', 'targets'), (), (), {1: 610, 2: 618}, None, {1: 'game.choose_mode', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', 'Ozmo: choose a Mars creature', '?', 1, 1), (('source_card', '?'), ('intent', '?'), ('affects', 'Affects.ANY'))), ('step', 'steps.heal', ('?', '?', 3), ())), 2: (('step', 'steps.heal', ('?', '?', 3), ()),)}),
+    ('psychic_bug', 630, _kfmk_psychic_bug, ('game', 'card', 'opponent'), (), (), {1: 634}, None, {1: 'decision'}, {1: ()}),
+    ('replicator', 637, _kfmk_replicator, ('game', 'card', 'candidates', 'choice', 'extra', 'original_controller', 'player', 'target', '_kfs0', '_kfi1', '_kfxe'), (), (), {1: 651, 2: 660, 3: 662}, (10, (2, 3)), {1: 'game.choose_cards', 2: 'target.card_def.on_reap', 3: 'extra'}, {1: (('pause', 'target.card_def.on_reap', ('?', '?'), ()), ('pause', 'extra', ('?', '?'), ())), 2: (('pause', 'extra', ('?', '?'), ()),), 3: (('loop', 661), ('pause', 'extra', ('?', '?'), ()))}),
+    ('research_smoko_destroyed', 667, _kfmk_research_smoko_destroyed, ('game', 'card', 'player', 'top'), (), (), {1: 680}, None, {1: 'decision'}, {1: ()}),
+    ('skippy_timehog', 683, _kfmk_skippy_timehog, ('game', 'card'), (), (), {1: 686}, None, {1: 'decision'}, {1: ()}),
+    ('vespilon_theorist', 689, _kfmk_vespilon_theorist, ('game', 'card', 'chosen', 'houses', 'player', 'top'), (), (), {1: 692}, None, {1: 'game.choose_house'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', 'Deck is empty'), ()), ('step', 'steps.gain', ('?', '?', 1), ()))}),
+    ('_veylan_handler.<locals>.handler', 712, _kfmk__veylan_handler__handler, ('game', 'event', '_kfc_veylan_card'), ('veylan_card',), (), {1: 716}, None, {1: 'decision'}, {1: ()}),
+    ('experimental_therapy', 720, _kfmk_experimental_therapy, ('game', 'card', 'host'), (), (), {1: 726}, None, {1: 'decision'}, {1: ()}),
+    ('_rocket_boots_effect', 747, _kfmk__rocket_boots_effect, ('game', 'host_card', 'player'), (), (), {1: 752}, None, {1: 'decision'}, {1: ()}),
+    ('_transposition_sandals_action', 768, _kfmk__transposition_sandals_action, ('game', 'host_card', 'area', 'choice', 'i', 'j', 'may_use', 'other', 'others', 'player'), (), (), {1: 774, 2: 784, 3: 789}, None, {1: 'game.choose_cards', 2: 'game.yes_no', 3: 'game.use_creature_ability'}, {1: (('pause', 'game.yes_no', ('?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.OPTIONAL_TRIGGER'))), ('pause', 'game.use_creature_ability', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', '?', '?'), ())), 2: (('pause', 'game.use_creature_ability', ('?',), ()),), 3: ()}),
 ]
