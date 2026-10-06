@@ -37,6 +37,7 @@ def _game(seed: int, execution=None) -> Game:
 
 
 def bench_engine(n_games: int, execution=None) -> dict:
+    _game(0, execution)  # loads the compiled routines (once per process) outside the timing
     decisions = 0
     t0 = time.perf_counter()
     for g in range(n_games):

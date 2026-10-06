@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_Match__run(_kfN, _kfR):
-  def _kfr_Match__run(self=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__run(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:191 Match._run
     if _kfF is None:  # a fresh call: Python bound the arguments
         g = seat_decks = _kf_U
@@ -61,7 +61,7 @@ def _kfmk_Match__run(_kfN, _kfR):
 
 
 def _kfmk_Match__run_adaptive(_kfN, _kfR):
-  def _kfr_Match__run_adaptive(self=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__run_adaptive(self=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:203 Match._run_adaptive
     if _kfF is None:  # a fresh call: Python bound the arguments
         amount = bid_deck = bid_owner = g1 = g2 = g3 = loser_pid = next_first = other_deck = seat_decks = starting_chains = winner_pid = _kf_U
@@ -183,7 +183,7 @@ def _kfmk_Match__run_adaptive(_kfN, _kfR):
 
 
 def _kfmk_Match__play_game(_kfN, _kfR):
-  def _kfr_Match__play_game(self=_kf_U, decks=_kf_U, first_player=_kf_U, starting_chains=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__play_game(self=_kf_U, decks=_kf_U, first_player=_kf_U, starting_chains=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:254 Match._play_game
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = game = game_config = record = result = _kf_U
@@ -220,7 +220,7 @@ def _kfmk_Match__play_game(_kfN, _kfR):
 
 
 def _kfmk_Match__choose_first_player(_kfN, _kfR):
-  def _kfr_Match__choose_first_player(self=_kf_U, pid=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__choose_first_player(self=_kf_U, pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:281 Match._choose_first_player
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = _kf_U
@@ -247,7 +247,7 @@ def _kfmk_Match__choose_first_player(_kfN, _kfR):
 
 
 def _kfmk_Match__run_bid(_kfN, _kfR):
-  def _kfr_Match__run_bid(self=_kf_U, owner_pid=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_Match__run_bid(self=_kf_U, owner_pid=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # match.py:289 Match._run_bid
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = current_bid = current_bidder = opponent_pid = options = prompt = standing = turn = winner_pid = _kf_U
@@ -296,11 +296,12 @@ def _kfmk_Match__run_bid(_kfN, _kfR):
 
 
 # (qualname, first line, routine factory, slots, free variables, nested code (name, line),
-#  line of each resume id, (exception slot, resume ids inside a try region) or None)
+#  line of each resume id, (exception slot, resume ids inside a try region) or None,
+#  what each resume id waits on, the operations still reachable from each resume id)
 ROUTINES = [
-    ('Match._run', 191, _kfmk_Match__run, ('self', 'g', 'seat_decks'), (), (), {1: 194, 2: 201}, None),
-    ('Match._run_adaptive', 203, _kfmk_Match__run_adaptive, ('self', 'amount', 'bid_deck', 'bid_owner', 'g1', 'g2', 'g3', 'loser_pid', 'next_first', 'other_deck', 'seat_decks', 'starting_chains', 'winner_pid'), (), (), {1: 204, 2: 210, 3: 211, 4: 234, 5: 241, 6: 242}, None),
-    ('Match._play_game', 254, _kfmk_Match__play_game, ('self', 'decks', 'first_player', 'starting_chains', 'choice', 'game', 'game_config', 'record', 'result'), (), (), {1: 265}, None),
-    ('Match._choose_first_player', 281, _kfmk_Match__choose_first_player, ('self', 'pid', 'choice'), (), (), {1: 282}, None),
-    ('Match._run_bid', 289, _kfmk_Match__run_bid, ('self', 'owner_pid', 'choice', 'current_bid', 'current_bidder', 'opponent_pid', 'options', 'prompt', 'standing', 'turn', 'winner_pid'), (), (), {1: 307}, None),
+    ('Match._run', 191, _kfmk_Match__run, ('self', 'g', 'seat_decks'), (), (), {1: 194, 2: 201}, None, {1: 'self._play_game', 2: 'self._run_adaptive'}, {1: (('pause', 'self._run_adaptive', (), ()),), 2: ()}),
+    ('Match._run_adaptive', 203, _kfmk_Match__run_adaptive, ('self', 'amount', 'bid_deck', 'bid_owner', 'g1', 'g2', 'g3', 'loser_pid', 'next_first', 'other_deck', 'seat_decks', 'starting_chains', 'winner_pid'), (), (), {1: 204, 2: 210, 3: 211, 4: 234, 5: 241, 6: 242}, None, {1: 'self._play_game', 2: 'self._choose_first_player', 3: 'self._play_game', 4: 'self._run_bid', 5: 'self._choose_first_player', 6: 'self._play_game'}, {1: (('pause', 'self._choose_first_player', ('?',), ()), ('pause', 'self._play_game', (), (('decks', '?'), ('first_player', '?'))), ('pause', 'self._run_bid', ('?',), ()), ('pause', 'self._choose_first_player', ('?',), ()), ('pause', 'self._play_game', (), (('decks', '?'), ('first_player', '?'), ('starting_chains', '?')))), 2: (('pause', 'self._play_game', (), (('decks', '?'), ('first_player', '?'))), ('pause', 'self._run_bid', ('?',), ()), ('pause', 'self._choose_first_player', ('?',), ()), ('pause', 'self._play_game', (), (('decks', '?'), ('first_player', '?'), ('starting_chains', '?')))), 3: (('pause', 'self._run_bid', ('?',), ()), ('pause', 'self._choose_first_player', ('?',), ()), ('pause', 'self._play_game', (), (('decks', '?'), ('first_player', '?'), ('starting_chains', '?')))), 4: (('pause', 'self._choose_first_player', ('?',), ()), ('pause', 'self._play_game', (), (('decks', '?'), ('first_player', '?'), ('starting_chains', '?')))), 5: (('pause', 'self._play_game', (), (('decks', '?'), ('first_player', '?'), ('starting_chains', '?'))),), 6: ()}),
+    ('Match._play_game', 254, _kfmk_Match__play_game, ('self', 'decks', 'first_player', 'starting_chains', 'choice', 'game', 'game_config', 'record', 'result'), (), (), {1: 265}, None, {1: 'decision'}, {1: (('step', 'game.submit', ('?',), ()), ('loop', 264), ('decision', 'yield', (), ()), ('step', 'game.submit', ('?',), ()), ('step', 'self._score_game', ('?',), ()))}),
+    ('Match._choose_first_player', 281, _kfmk_Match__choose_first_player, ('self', 'pid', 'choice'), (), (), {1: 282}, None, {1: 'decision'}, {1: ()}),
+    ('Match._run_bid', 289, _kfmk_Match__run_bid, ('self', 'owner_pid', 'choice', 'current_bid', 'current_bidder', 'opponent_pid', 'options', 'prompt', 'standing', 'turn', 'winner_pid'), (), (), {1: 307}, None, {1: 'decision'}, {1: (('loop', 298), ('decision', 'yield', (), ()))}),
 ]

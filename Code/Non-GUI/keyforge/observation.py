@@ -10,12 +10,10 @@ written to disk, or reason about the game's full public history:
   game, per Milestone A) plus their public state, so a consumer can't
   mutate engine state through its own observation, or read a field it
   isn't entitled to.
-- **The full public history**, not a 20-event tail, built from the log
-  (already redacted per-viewer -- see keyforge/log.py's `visible_to`) plus
-  two decision-stream events (`mulligan_decision`, `archive_decision`) the
-  log alone can't provide: a *declined* mulligan or archive pickup is
-  public information in real play, but leaves no trace in the log's
-  existing "only log it when it happens" entries.
+- **The full public history**, not a 20-event tail: the viewer's
+  projection (keyforge/projection.py, Agent Observation Plan O1) -- every
+  zone move, log event and decision as the viewer saw it, in game order,
+  each with its visibility code (`vis`).
 - **Match context in every observation**: format, which game this is
   within the match, the match score, and starting chains -- constants in a
   single Archon game, but what let one agent play every format without a
@@ -79,6 +77,10 @@ class ObservedDecision:
 class HistoryEntry:
     kind: str
     data: Dict[str, Any] = field(default_factory=dict)
+    # "log" (`kind` is the event's), "zone" (a journal entry; `kind` is
+    # "zone", or "revealed_card" for one card of a revealed hand) or
+    # "decision"
+    stream: str = "log"
 
 
 @dataclass(frozen=True)
@@ -170,9 +172,27 @@ def _observed_decision(decision, viewer: int, privileged: bool) -> Optional[Obse
     )
 
 
+_ZONE_FIELDS = ("seq", "turn", "iid", "owner", "controller", "from", "to", "op", "epoch", "position", "cause", "vis")
+_DECISION_FIELDS = ("index", "player", "kind", "intent", "source", "affects", "optional", "chosen", "offered", "peek",
+                    "vis")
+
+
+def _history_entry(item) -> HistoryEntry:
+    tag = item[0]
+    if tag == "log":
+        _, index, kind, data, code = item
+        return HistoryEntry(kind=kind, data={**data, "vis": code}, stream="log")
+    if tag == "zone":
+        return HistoryEntry(kind="zone", data=canonicalize(dict(zip(_ZONE_FIELDS, item[1:]))), stream="zone")
+    if tag == "reveal":
+        _, seq, iid, zone, code = item
+        return HistoryEntry(kind="revealed_card", data=canonicalize({"seq": seq, "iid": iid, "zone": zone, "vis": code}),
+                            stream="zone")
+    return HistoryEntry(kind="decision", data=canonicalize(dict(zip(_DECISION_FIELDS, item[1:]))), stream="decision")
+
+
 def _history(game, viewer: int, privileged: bool) -> Tuple[HistoryEntry, ...]:
-    events = game.log.events if privileged else game.log.visible_to(viewer)
-    return tuple(HistoryEntry(kind=e.kind, data=canonicalize(e.data)) for e in events)
+    return tuple(_history_entry(item) for item in game.projected(None if privileged else viewer))
 
 
 def build_observation(game, viewer: int, *, match=None, privileged: bool = False) -> Observation:

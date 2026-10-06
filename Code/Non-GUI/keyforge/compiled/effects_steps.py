@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/steps.py'
-SOURCE_SHA256 = '89d9244453ec6c0cae509aa60d23a44f3527b05b6e5390d933a9b3d3c04fa766'
+SOURCE_SHA256 = '2a50788ce382f325ab29016e1b6aef67576738f0f9dbe278961d4f3080ab6a5c'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_discard_from_hand(_kfN, _kfR):
-  def _kfr_discard_from_hand(game=_kf_U, player=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_discard_from_hand(game=_kf_U, player=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/steps.py:145 discard_from_hand
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -29,7 +29,7 @@ def _kfmk_discard_from_hand(_kfN, _kfR):
         player.discard.push(card)
         game.log.add('discard', player=player.id, card=card.name, iid=card.instance_id)
     if not _pc:
-        _sent = _kf_step(game._fire_event)('card_discarded_from_hand', {'player': player.id, 'card': card})
+        _sent = (_kfgm__fire_event(game, 'card_discarded_from_hand', {'player': player.id, 'card': card}) if type(game) is _kfGame else _kf_step(game._fire_event)('card_discarded_from_hand', {'player': player.id, 'card': card}))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, player, card])
@@ -47,7 +47,7 @@ def _kfmk_discard_from_hand(_kfN, _kfR):
 
 
 def _kfmk_discard_random(_kfN, _kfR):
-  def _kfr_discard_random(game=_kf_U, player=_kf_U, source=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_discard_random(game=_kf_U, player=_kf_U, source=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/steps.py:154 discard_random
     if _kfF is None:  # a fresh call: Python bound the arguments
         card = cards = _kf_U
@@ -66,7 +66,7 @@ def _kfmk_discard_random(_kfN, _kfR):
         player.discard.push(card)
         game.log.add('discard_random', player=player.id, card=card.name, iid=card.instance_id)
     if not _pc:
-        _sent = _kf_step(game._fire_event)('card_discarded_from_hand', {'player': player.id, 'card': card})
+        _sent = (_kfgm__fire_event(game, 'card_discarded_from_hand', {'player': player.id, 'card': card}) if type(game) is _kfGame else _kf_step(game._fire_event)('card_discarded_from_hand', {'player': player.id, 'card': card}))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, player, source, card, cards])
@@ -84,7 +84,7 @@ def _kfmk_discard_random(_kfN, _kfR):
 
 
 def _kfmk_sacrifice(_kfN, _kfR):
-  def _kfr_sacrifice(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_sacrifice(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/steps.py:290 sacrifice
     if _kfF is None:  # a fresh call: Python bound the arguments
         destroyed = _kf_U
@@ -96,7 +96,7 @@ def _kfmk_sacrifice(_kfN, _kfR):
         if game.find_play_area(card) is None:
             return False
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)([card])
+        _sent = (_kfgm_destroy_cards(game, [card]) if type(game) is _kfGame else _kf_step(game.destroy_cards)([card]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, destroyed])
@@ -116,7 +116,7 @@ def _kfmk_sacrifice(_kfN, _kfR):
 
 
 def _kfmk_use_creature(_kfN, _kfR):
-  def _kfr_use_creature(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_use_creature(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/steps.py:330 use_creature
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -124,7 +124,7 @@ def _kfmk_use_creature(_kfN, _kfR):
         (game, card,) = _kfF.L
         _pc = _kfF.pc
     if not _pc:
-        _sent = _kf_step(game.use_creature_ability)(card)
+        _sent = (_kfgm_use_creature_ability(game, card) if type(game) is _kfGame else _kf_step(game.use_creature_ability)(card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card])
@@ -142,10 +142,11 @@ def _kfmk_use_creature(_kfN, _kfR):
 
 
 # (qualname, first line, routine factory, slots, free variables, nested code (name, line),
-#  line of each resume id, (exception slot, resume ids inside a try region) or None)
+#  line of each resume id, (exception slot, resume ids inside a try region) or None,
+#  what each resume id waits on, the operations still reachable from each resume id)
 ROUTINES = [
-    ('discard_from_hand', 145, _kfmk_discard_from_hand, ('game', 'player', 'card'), (), (), {1: 150}, None),
-    ('discard_random', 154, _kfmk_discard_random, ('game', 'player', 'source', 'card', 'cards'), (), (), {1: 164}, None),
-    ('sacrifice', 290, _kfmk_sacrifice, ('game', 'card', 'destroyed'), (), (), {1: 294}, None),
-    ('use_creature', 330, _kfmk_use_creature, ('game', 'card'), (), (), {1: 333}, None),
+    ('discard_from_hand', 145, _kfmk_discard_from_hand, ('game', 'player', 'card'), (), (), {1: 150}, None, {1: 'game._fire_event'}, {1: ()}),
+    ('discard_random', 154, _kfmk_discard_random, ('game', 'player', 'source', 'card', 'cards'), (), (), {1: 164}, None, {1: 'game._fire_event'}, {1: ()}),
+    ('sacrifice', 290, _kfmk_sacrifice, ('game', 'card', 'destroyed'), (), (), {1: 294}, None, {1: 'game.destroy_cards'}, {1: ()}),
+    ('use_creature', 330, _kfmk_use_creature, ('game', 'card'), (), (), {1: 333}, None, {1: 'game.use_creature_ability'}, {1: ()}),
 ]

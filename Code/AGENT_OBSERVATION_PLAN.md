@@ -1,6 +1,7 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-10-02): planned.** Built so far:
+**Status (2026-10-05): O0 done; Part R R0–R7 done, R8 in progress** (details under "Progress"
+below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
 - O9's faster training: vectorized losses, bf16, a fused optimizer, a compiled trunk and faster batch
@@ -9,6 +10,106 @@
   server, ahead of Part R.
 - O7's attention layer (`ml/layers.py`, now the default) and O7's memory options for larger
   networks: activation checkpointing and gradient accumulation (`micro_batch`), 2026-10-05.
+
+### Progress (2026-10-05)
+
+**O0, done.**
+- **The draw leak is closed.** Log events have per-field privacy; a `draw` stays public with its
+  count, and its iids are the drawer's alone in `Observation.history` and `PlayerView.log_tail`.
+  `tests/test_agent_observation_o0.py` checks contents against what each viewer was entitled to
+  when the event happened (`tests/_entitlement.py`). It found 8,490 draw leaks in 20 games before the
+  fix and finds none in 300+ games after it; nothing else leaked.
+- **The resample test exists** (`test_agent_training_m7.py`).
+- **v1 baselines** (`runs/obs-baseline/`, `tools/obs_baseline.py`, Tier 0 network, validation split):
+  - value log-loss 0.4827 (constant 0.6931): at turn boundaries 0.4841, mid-turn 0.4781;
+  - belief log-loss 0.5264, against 0.5406 for uniform over consistent worlds;
+  - encode time per decision: extract 54 µs + encode 34 µs, against 21 µs for the engine's submit;
+  - Screen 5 rerun (bf16): held-out CHOOSE_ACTION top-1 0.846 (attributes only) / 0.829 (both) /
+    0.724 (ID only), seen ~0.90; Tier 0's 0.846 / 0.829 / 0.715 reproduced.
+
+**Part R.**
+- **R0.** `keyforge_ref/` is the engine frozen at `dbc0943` (plus the rules fixes below, applied to
+  both). `tools/diff_engines.py` drives two engines in lockstep and compares, after every choice, the
+  pending decision, every log event, the RNG counters, the choice record, periodically the whole
+  canonical state, and (compiled) that no `NativeFrame` is on the stack. Today's engine equals the
+  reference on 100,000 fuzz games (27.4M decisions; three bots; presets, random and alliance decks;
+  Archon, Reversal and Adaptive). Coverage (`tools/ref_coverage.py`, 20,000 games): 404 of 413
+  suspension points; the other nine get constructed positions in
+  `tests/test_part_r_coverage_scenarios.py`, or (`Game._resume`, native-copy only) a written reason.
+  Two of the missed points were rules bugs, fixed as their own changes: **Ozmo** looked for a "Mars"
+  trait no card has, so it never had a target; **Tireless Crocag's** destroy check counted the
+  creatures being destroyed, so it never fired (a bounce/archive/control-change gap is recorded in
+  the rulings).
+- **R1, departure.** Stored callables are not rewritten as `Ref`s. A closure is already a routine
+  id (its code object) plus an environment (its cells), so it is treated as data generically: the
+  copier remaps cells through one memo with the frames, the snapshot writes the code path plus the
+  cells, and `state_hash` hashes qualname + captured values + defaults. Same goals, no source rewrite
+  of 85 card sites, less rules risk. `state_hash` is exact (handlers and cleanups by content); the
+  golden corpus's hashes were regenerated, its play unchanged. The census found closures capture
+  Cards, frozensets and (Charge) a Player, which the old `_rebind_closure` didn't rebind.
+- **R2–R5.** `keyforge/vm.py` is the machine; `tools/compile_engine.py` compiles all 367 generator
+  functions (232 pausing, 135 stubs) into `keyforge/compiled/`. Routines are *structured*: they keep
+  the source's `if`/`while`/`for`/`try`, and a resumed frame finds its way back through guards;
+  calls run inline on the Python stack and a frame is made only when something suspends.
+  `NativeFrame` runs anything uncompiled (tested with no routine registered). 300 random programs in
+  the subset run identically to native; unsupported constructs are compile errors with their line.
+- **R6.** `Game.copy()` works at every decision in compiled execution (frames remapped,
+  `keyforge/copying.py`); `fork()` copies there, `fork_by_replay()` is the cross-check.
+  `Game.snapshot()`/`restore()` (`keyforge/snapshot.py`): canonical JSON object graph, ~130 KB,
+  ~13 ms per round trip; equal states give equal bytes. 1,231 copies and 394 round trips at
+  decisions of 10 kinds each equal a replay fork and continue identically.
+- **R7.** The compiler emits each suspension point's call site and its remaining operations;
+  `Game.resolution_view(viewer)` lists the frames with ability kind, trigger event, source card,
+  locals and remaining operations, hidden cards as ("hidden", zone, side). A re-deal now returns σ
+  and relabels the cards frames hold, so worlds stay consistent with what is resolving; I1 holds
+  with frames (the view is identical in determinized forks, and fails without the relabel).
+- **R8.** Compiled execution is the default (`KEYFORGE_EXECUTION=native` runs the generators, kept
+  as the oracle). Compiled equals native on 100,000 fuzz games (27.4M decisions, 20 min). The suite
+  passes in both modes on CPython 3.12 (Windows), CPython 3.14 and PyPy 3.11 (WSL). The README has an execution section and a
+  guide to writing a card effect in the compiled subset. `ENGINE_VERSION` stays 1.1.2: no record
+  replays differently.
+- **Throughput** (CPython 3.12, Fignor/Igor):
+
+  | | native | compiled |
+  |---|---|---|
+  | Engine with HeuristicBot, decisions/s | 20.1–20.4k | 19.0–19.6k (94–96%) |
+  | Bare replay, 30 games | 81–93 ms | 100–104 ms (~0.83×) |
+  | Copy at a boundary / mid-resolution | ~230 µs / replay ~1.5 ms | ~260 µs / ~260 µs |
+  | Search sims/s at 100 sims, within-turn / full-game | 2,103 / 1,397 | 1,942 / 1,304 |
+  | The same, native before Part R | 1,806–1,842 / 1,250–1,297 | |
+
+  Search got 16–17% faster in both modes from dropping a type object's back reference to its card
+  and releasing finished worlds (`Game.release()`), which lets reference counting free them instead of
+  the cyclic collector. Compiled search beats native search as it was before Part R; it is ~92% of
+  native search today.
+
+**O1, done** (2026-10-06).
+- **The journal** (`keyforge/journal.py`): every zone reports its moves; entries are as specified,
+  plus `reveal`, `search_reveal` and `reveal_hand`/`unreveal_hand` notes. `cause` is filled by
+  `Game._caused`, which every ability call goes through (the resolution view reads the ability kind
+  off it). Dealt cards come from a hidden `setup` zone. A peek needs no op of its own: a decision
+  offering cards from a zone hidden from the chooser is one, and the projection shows the chooser
+  those cards.
+- **Decision records** are written raw (the decision and its encoded choice) and turned into data
+  only when read, copied or snapshotted. Where each option's card was is taken from the
+  projection's own fold of the journal.
+- **Log schemas** (`log.EVENT_SCHEMAS`, 62 kinds): `draw.iids` is the drawer's; `archive`,
+  `return_to_hand` and `under_card` may be narrowed at their call sites (`SITE_RESTRICTED`). A
+  registry test scans the source for every `log.add`.
+- **The projection** (`keyforge/projection.py`, `Game.projected(viewer)`), incremental, with codes
+  public / private / revealed. `Observation.history` is built from it (`HistoryEntry.stream`:
+  log, zone, decision).
+- **Acceptance** (`tools/o1_acceptance.py`; 1,000 games per pool: Phase 1.1, Phase 2, Phase 3
+  presets and random decks; 4,000 games): completeness at every decision, σ-invariance for both
+  viewers, no over-hiding, determinism (replay, and a copy at a random decision played on). Zero
+  problems. σ found two real leaks while building: the deal showed deck order, and a decision
+  showed the chooser's hidden choice to the other player. Compiled equals native on 10,000 fuzz
+  games with journals compared.
+- **Throughput.** Bare engine (`tools/bench_engine.py`, RandomBot, no views): 27.5k → 24.4k
+  decisions/s, **−11%**, a point over the gate after optimization (pending-leave merging, bulk
+  deal, lazy decision records). About 3 of the 11 points are extra cyclic-GC work. Where views are
+  built (HeuristicBot) the engine is **5% faster** than before O1 (12.1k → 12.7k): `build_view`
+  redacted the whole log every decision to show 20 events; it now reads only the tail.
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);

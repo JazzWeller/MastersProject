@@ -27,6 +27,7 @@ def help_from_future_self(game, card):
             player.discard.remove(found)
     if found is not None:
         player.hand.add(found)
+        game.journal.reveal(found, "search_reveal")
         game.log.add("help_from_future_self", player=player.id, found=True, iid=found.instance_id)
     else:
         steps.shortfall(game, card, f"finds no Timetraveller in {{pos:{player.id}}} deck or discard pile (the discard is still shuffled in)", "No Timetraveller")
@@ -313,9 +314,12 @@ def remote_access(game, card):
 
 def reverse_time(game, card):
     player = controller_of(game, card)
-    old_deck_cards = player.deck.cards()
+    # The two piles change places through the zones themselves, so every
+    # move is journaled (O1); the result is what replacing the deck with
+    # the discard gave.
+    old_deck_cards = player.deck.take_all()
     old_discard_cards = player.discard.take_all()
-    player.deck = Deck(old_discard_cards)
+    player.deck.put_all(old_discard_cards)
     for c in old_deck_cards:
         player.discard.push(c)
     player.deck.shuffle(game.event_rng("deck_shuffle", player.id))
@@ -371,6 +375,7 @@ def chaos_portal(game, card):
         steps.shortfall(game, card, f"reveals nothing: {{pos:{player.id}}} deck is empty", "Deck is empty")
         return
     game.log.add("reveal_top", player=player.id, card=top.name, iid=top.instance_id)
+    game.journal.reveal(top, position="top")
     if top.house != chosen:
         steps.shortfall(game, card, f"doesn't play {top.name}: it is not {chosen.value}", f"Not {chosen.value}")
         return
@@ -600,7 +605,10 @@ def novu_archaeologist(game, card):
 
 
 def ozmo(game, card):
-    targets = [c for c in game.all_creatures("any", card) if "Mars" in c.tags]
+    # "a Mars creature": a creature of house Mars, as it currently is
+    # (keyteki: card.hasHouse('mars')). This used to test for a "Mars" trait
+    # no card has -- a leftover from the Dis/Logos/Shadows-only pool.
+    targets = [c for c in game.all_creatures("any", card) if game.get_effective_house(c) == House.MARS]
     if not targets:
         steps.shortfall(game, card, "does nothing: there are no Mars creatures in play", "No Mars creature")
         return
@@ -692,6 +700,7 @@ def vespilon_theorist(game, card):
         steps.shortfall(game, card, f"reveals nothing: {{pos:{player.id}}} deck is empty", "Deck is empty")
         return
     game.log.add("reveal_top", player=player.id, card=top.name, iid=top.instance_id)
+    game.journal.reveal(top)
     if top.house == chosen:
         player.archive.add(top)
         game.log.add("archive", player=player.id, card=top.name, iid=top.instance_id)

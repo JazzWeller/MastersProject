@@ -36,7 +36,11 @@ including the Adaptive chain-bid between games 2 and 3.
   - `game.py` — `Game`: setup, turn order, legal actions, play/reap/fight/destroy, `submit()`
   - `match.py` — a best-of-3 match across the three official formats
   - `view.py` — `PlayerView`, a read-only snapshot with hidden information removed
-  - `log.py` — structured event log
+  - `log.py` — structured event log, with each event kind's redaction schema
+  - `journal.py` — the zone journal: every move of a card between zones, with
+    its cause, and every submitted decision (privileged, like the log)
+  - `projection.py` — `Game.projected(viewer)`: the journal, log and
+    decisions as one player saw them; `Observation.history` is built from it
 - `bots/` — `Controller` interface, a seeded `RandomBot` (fuzz tests) and a
   rules-aware `HeuristicBot` (the GUI's default opponent; armor/assault/
   hazardous-aware fight evaluation, per-house scoring, sensible defaults
@@ -66,6 +70,38 @@ Rule and effect code is written as Python generators: any step that needs a
 player's input does `choice = yield Decision(...)`, so resolution can pause
 mid-effect and resume exactly where it left off once `submit()` is called
 again. `Decision.options` always holds only the currently legal choices.
+
+## Execution: compiled and native
+
+The same generator source runs two ways (`Game(config, execution=...)`, or
+`$KEYFORGE_EXECUTION`):
+
+- `compiled` (the default): `tools/compile_engine.py` turns every generator
+  function into a routine (`keyforge/compiled/`, checked in) run by
+  `keyforge/vm.py`'s machine, which keeps what is still resolving -- each
+  suspended routine's `pc` and locals -- as data. So a game can be copied at
+  any decision (`Game.copy()`), serialized (`Game.snapshot()` /
+  `Game.restore()`), hashed exactly, and shown to a network
+  (`Game.resolution_view(viewer)`).
+- `native`: the generators themselves. Kept as the oracle: the differential
+  test (`tests/test_part_r_differential.py`, `tools/diff_engines.py`) holds
+  the two to the same decisions, log and state after every choice.
+  `keyforge_ref/` is the engine as it was before the compiler (plus rules
+  fixes), for checking source changes the same way.
+
+### Writing a new card effect
+
+1. Write the effect as a generator function, in the supported subset (see
+   `tools/compile_engine.py`'s docstring): a `yield` is a whole statement,
+   the whole right-hand side of an assignment, a `return` value or an `if`
+   test; `yield from` takes a plain call; loops, `if` and `try/finally` may
+   contain suspensions; no `with`, `nonlocal`, `global`, walrus, or yields in
+   comprehensions. Closures and lambdas are fine.
+2. Run `python -m tools.compile_engine`. Anything outside the subset is a
+   compile error naming the line; the generated module is checked in.
+3. Run the tests: `tests/test_part_r_compiler.py` fails if any generated
+   module is stale (and the engine refuses to load a stale one), and the
+   differential tests compare the two execution modes.
 
 ## Running things
 

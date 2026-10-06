@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_cooperative_hunting(_kfN, _kfR):
-  def _kfr_cooperative_hunting(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_cooperative_hunting(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:15 cooperative_hunting
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = hit = i = n = options = player = _kfs0 = _kfi1 = _kf_U
@@ -32,7 +32,7 @@ def _kfmk_cooperative_hunting(_kfN, _kfR):
             return
         hit = []
     if not _pc:
-        _kfs0 = _kf_seq(range(n))
+        _kfs0 = range(n)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or _pc == 1:
         if not _pc:
@@ -43,7 +43,7 @@ def _kfmk_cooperative_hunting(_kfN, _kfR):
             if not options:
                 break
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 1 damage to a creature ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: deal 1 damage to a creature ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: deal 1 damage to a creature ({i + 1}/{n})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, hit, i, n, options, player, _kfs0, _kfi1])
@@ -60,7 +60,7 @@ def _kfmk_cooperative_hunting(_kfN, _kfR):
         steps.deal_damage(game, choice[0], 1)
         hit.append(choice[0])
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(hit)
+        _sent = (_kfgm_check_destroyed(game, hit) if type(game) is _kfGame else _kf_step(game.check_destroyed)(hit))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, hit, i, n, options, player, _kfs0, _kfi1])
@@ -77,7 +77,7 @@ def _kfmk_cooperative_hunting(_kfN, _kfR):
 
 
 def _kfmk_curiosity(_kfN, _kfR):
-  def _kfr_curiosity(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_curiosity(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:35 curiosity
     if _kfF is None:  # a fresh call: Python bound the arguments
         targets = _kf_U
@@ -91,7 +91,7 @@ def _kfmk_curiosity(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: there is no Scientist creature in play', 'No Scientist creature')
             return
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, targets])
@@ -108,7 +108,7 @@ def _kfmk_curiosity(_kfN, _kfR):
 
 
 def _kfmk_fertility_chant(_kfN, _kfR):
-  def _kfr_fertility_chant(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_fertility_chant(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:43 fertility_chant
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -135,7 +135,7 @@ def _kfmk_fertility_chant(_kfN, _kfR):
 
 
 def _kfmk_full_moon(_kfN, _kfR):
-  def _kfr_full_moon(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_full_moon(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:49 full_moon
     if _kfF is None:  # a fresh call: Python bound the arguments
         handler = _kf_U
@@ -165,7 +165,7 @@ def _kfmk_full_moon(_kfN, _kfR):
 
 
 def _kfmk_full_moon__handler(_kfN, _kfR):
-  def _kfr_full_moon__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_full_moon__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:50 full_moon.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -194,7 +194,7 @@ def _kfmk_full_moon__handler(_kfN, _kfR):
 
 
 def _kfmk_grasping_vines(_kfN, _kfR):
-  def _kfr_grasping_vines(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_grasping_vines(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:61 grasping_vines
     if _kfF is None:  # a fresh call: Python bound the arguments
         a = choice = options = player = _kf_U
@@ -209,7 +209,7 @@ def _kfmk_grasping_vines(_kfN, _kfR):
             steps.shortfall(game, card, 'returns nothing: there is no artifact in play', 'No artifacts')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f"{card.name}: choose up to 3 artifacts to return to their owners' hands", options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True)
+        _sent = (_kfgm_choose_cards(game, player.id, f"{card.name}: choose up to 3 artifacts to return to their owners' hands", options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f"{card.name}: choose up to 3 artifacts to return to their owners' hands", options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, a, choice, options, player])
@@ -230,7 +230,7 @@ def _kfmk_grasping_vines(_kfN, _kfR):
 
 
 def _kfmk__lose_one_then_maybe_forge(_kfN, _kfR):
-  def _kfr__lose_one_then_maybe_forge(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr__lose_one_then_maybe_forge(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:75 _lose_one_then_maybe_forge
     if _kfF is None:  # a fresh call: Python bound the arguments
         do_it = player = _kf_U
@@ -243,7 +243,7 @@ def _kfmk__lose_one_then_maybe_forge(_kfN, _kfR):
         if not steps.lose(game, player, 1):
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(player.id, f'{card.name}: forge a key at current cost?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, player.id, f'{card.name}: forge a key at current cost?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(player.id, f'{card.name}: forge a key at current cost?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, do_it, player])
@@ -261,7 +261,7 @@ def _kfmk__lose_one_then_maybe_forge(_kfN, _kfR):
         if not do_it:
             return
     if not _pc:
-        _sent = _kf_step(game.forge_key)(player.id, source=card)
+        _sent = (_kfgm_forge_key(game, player.id, source=card) if type(game) is _kfGame else _kf_step(game.forge_key)(player.id, source=card))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, do_it, player])
@@ -278,7 +278,7 @@ def _kfmk__lose_one_then_maybe_forge(_kfN, _kfR):
 
 
 def _kfmk_key_charge(_kfN, _kfR):
-  def _kfr_key_charge(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_key_charge(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:87 key_charge
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -303,7 +303,7 @@ def _kfmk_key_charge(_kfN, _kfR):
 
 
 def _kfmk_lifeweb(_kfN, _kfR):
-  def _kfr_lifeweb(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lifeweb(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:91 lifeweb
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = opponent = player = _kf_U
@@ -337,7 +337,7 @@ def _kfmk_lifeweb(_kfN, _kfR):
 
 
 def _kfmk_lost_in_the_woods(_kfN, _kfR):
-  def _kfr_lost_in_the_woods(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lost_in_the_woods(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:103 lost_in_the_woods
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = c = enemy_choice = enemy_options = friendly_choice = friendly_options = n = opponent = owner = player = _kf_U
@@ -354,7 +354,7 @@ def _kfmk_lost_in_the_woods(_kfN, _kfR):
         if not _pc:
             n = min(2, len(friendly_options))
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f"{card.name}: choose {n} friendly creature{('s' if n != 1 else '')}", friendly_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY)
+            _sent = (_kfgm_choose_cards(game, player.id, f"{card.name}: choose {n} friendly creature{('s' if n != 1 else '')}", friendly_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f"{card.name}: choose {n} friendly creature{('s' if n != 1 else '')}", friendly_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, area, c, enemy_choice, enemy_options, friendly_choice, friendly_options, n, opponent, owner, player])
@@ -375,7 +375,7 @@ def _kfmk_lost_in_the_woods(_kfN, _kfR):
         if not _pc:
             n = min(2, len(enemy_options))
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f"{card.name}: choose {n} enemy creature{('s' if n != 1 else '')}", enemy_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY)
+            _sent = (_kfgm_choose_cards(game, player.id, f"{card.name}: choose {n} enemy creature{('s' if n != 1 else '')}", enemy_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f"{card.name}: choose {n} enemy creature{('s' if n != 1 else '')}", enemy_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, area, c, enemy_choice, enemy_options, friendly_choice, friendly_options, n, opponent, owner, player])
@@ -404,7 +404,7 @@ def _kfmk_lost_in_the_woods(_kfN, _kfR):
 
 
 def _kfmk_mimicry_play(_kfN, _kfR):
-  def _kfr_mimicry_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_mimicry_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:138 mimicry_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = copied = opponent = options = player = _kf_U
@@ -420,7 +420,7 @@ def _kfmk_mimicry_play(_kfN, _kfR):
             steps.shortfall(game, card, "does nothing: there is no action card in your opponent's discard pile", 'No action card')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f"{card.name}: choose an action card in your opponent's discard pile to copy", options, 1, 1, source_card=card, intent=DecisionIntent.COPY, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, player.id, f"{card.name}: choose an action card in your opponent's discard pile to copy", options, 1, 1, source_card=card, intent=DecisionIntent.COPY, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f"{card.name}: choose an action card in your opponent's discard pile to copy", options, 1, 1, source_card=card, intent=DecisionIntent.COPY, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, copied, opponent, options, player])
@@ -457,7 +457,7 @@ def _kfmk_mimicry_play(_kfN, _kfR):
 
 
 def _kfmk_natures_call(_kfN, _kfR):
-  def _kfr_natures_call(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_natures_call(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:163 natures_call
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = choice = options = _kf_U
@@ -471,7 +471,7 @@ def _kfmk_natures_call(_kfN, _kfR):
             steps.shortfall(game, card, 'returns nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f"{card.name}: choose up to 3 creatures to return to their owners' hands", options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True)
+        _sent = (_kfgm_choose_cards(game, card.controller, f"{card.name}: choose up to 3 creatures to return to their owners' hands", options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f"{card.name}: choose up to 3 creatures to return to their owners' hands", options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ANY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, choice, options])
@@ -492,7 +492,7 @@ def _kfmk_natures_call(_kfN, _kfR):
 
 
 def _kfmk_nocturnal_maneuver(_kfN, _kfR):
-  def _kfr_nocturnal_maneuver(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_nocturnal_maneuver(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:176 nocturnal_maneuver
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = choice = options = _kf_U
@@ -506,7 +506,7 @@ def _kfmk_nocturnal_maneuver(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no ready creature in play', 'No ready creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose up to 3 creatures to exhaust', options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.EXHAUST, affects=Affects.ANY, optional=True)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose up to 3 creatures to exhaust', options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.EXHAUST, affects=Affects.ANY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose up to 3 creatures to exhaust', options, 0, min(3, len(options)), source_card=card, intent=DecisionIntent.EXHAUST, affects=Affects.ANY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, choice, options])
@@ -527,7 +527,7 @@ def _kfmk_nocturnal_maneuver(_kfN, _kfR):
 
 
 def _kfmk_perilous_wild(_kfN, _kfR):
-  def _kfr_perilous_wild(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_perilous_wild(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:189 perilous_wild
     if _kfF is None:  # a fresh call: Python bound the arguments
         targets = _kf_U
@@ -541,7 +541,7 @@ def _kfmk_perilous_wild(_kfN, _kfR):
             steps.shortfall(game, card, 'destroys nothing: there is no elusive creature in play', 'No elusive creature')
             return
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, targets])
@@ -558,7 +558,7 @@ def _kfmk_perilous_wild(_kfN, _kfR):
 
 
 def _kfmk_regrowth(_kfN, _kfR):
-  def _kfr_regrowth(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_regrowth(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:197 regrowth
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = target = _kf_U
@@ -573,7 +573,7 @@ def _kfmk_regrowth(_kfN, _kfR):
             steps.shortfall(game, card, 'returns nothing: your discard pile has no creature', 'No creature in discard')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a creature to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player, target])
@@ -596,7 +596,7 @@ def _kfmk_regrowth(_kfN, _kfR):
 
 
 def _kfmk_save_the_pack(_kfN, _kfR):
-  def _kfr_save_the_pack(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_save_the_pack(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:213 save_the_pack
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = targets = _kf_U
@@ -608,7 +608,7 @@ def _kfmk_save_the_pack(_kfN, _kfR):
         player = controller_of(game, card)
         targets = [c for c in game.all_creatures('any', card) if c.type_object.damage > 0]
     if not _pc:
-        _sent = _kf_step(game.destroy_cards)(targets)
+        _sent = (_kfgm_destroy_cards(game, targets) if type(game) is _kfGame else _kf_step(game.destroy_cards)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, player, targets])
@@ -628,7 +628,7 @@ def _kfmk_save_the_pack(_kfN, _kfR):
 
 
 def _kfmk_scout(_kfN, _kfR):
-  def _kfr_scout(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_scout(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:222 scout
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = choice = mod = options = player = _kfs0 = _kfi1 = _kf_U
@@ -644,7 +644,7 @@ def _kfmk_scout(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no friendly creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose up to 2 friendly creatures to gain skirmish', options, 0, min(2, len(options)), source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY, optional=True)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose up to 2 friendly creatures to gain skirmish', options, 0, min(2, len(options)), source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose up to 2 friendly creatures to gain skirmish', options, 0, min(2, len(options)), source_card=card, intent=DecisionIntent.MODIFY, affects=Affects.FRIENDLY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, choice, _kfc_chosen_ids, mod, options, player, _kfs0, _kfi1])
@@ -673,7 +673,7 @@ def _kfmk_scout(_kfN, _kfR):
             c = _kfs0[_kfi1]
             _kfi1 += 1
         if not _pc:
-            _sent = _kf_step(game.ready_and_fight)(c)
+            _sent = (_kfgm_ready_and_fight(game, c) if type(game) is _kfGame else _kf_step(game.ready_and_fight)(c))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, c, choice, _kfc_chosen_ids, mod, options, player, _kfs0, _kfi1])
@@ -690,7 +690,7 @@ def _kfmk_scout(_kfN, _kfR):
 
 
 def _kfmk_stampede(_kfN, _kfR):
-  def _kfr_stampede(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_stampede(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:245 stampede
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = total_uses = _kf_U
@@ -723,7 +723,7 @@ def _kfmk_stampede(_kfN, _kfR):
 
 
 def _kfmk_the_common_cold(_kfN, _kfR):
-  def _kfr_the_common_cold(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_the_common_cold(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:260 the_common_cold
     if _kfF is None:  # a fresh call: Python bound the arguments
         destroyed = do_it = remaining_mars = t = targets = _kf_U
@@ -736,7 +736,7 @@ def _kfmk_the_common_cold(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 1)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, destroyed, do_it, remaining_mars, t, targets])
@@ -755,7 +755,7 @@ def _kfmk_the_common_cold(_kfN, _kfR):
         if not remaining_mars:
             return
     if not _pc:
-        _sent = _kf_step(game.yes_no)(card.controller, f'{card.name}: destroy all Mars creatures?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER)
+        _sent = (_kfgm_yes_no(game, card.controller, f'{card.name}: destroy all Mars creatures?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER) if type(game) is _kfGame else _kf_step(game.yes_no)(card.controller, f'{card.name}: destroy all Mars creatures?', source_card=card, intent=DecisionIntent.OPTIONAL_TRIGGER))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, destroyed, do_it, remaining_mars, t, targets])
@@ -771,7 +771,7 @@ def _kfmk_the_common_cold(_kfN, _kfR):
         do_it = _sent
     if (not _pc and (do_it)) or _pc == 3:
         if not _pc:
-            _sent = _kf_step(game.destroy_cards)(remaining_mars)
+            _sent = (_kfgm_destroy_cards(game, remaining_mars) if type(game) is _kfGame else _kf_step(game.destroy_cards)(remaining_mars))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, destroyed, do_it, remaining_mars, t, targets])
@@ -788,7 +788,7 @@ def _kfmk_the_common_cold(_kfN, _kfR):
 
 
 def _kfmk_troop_call(_kfN, _kfR):
-  def _kfr_troop_call(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_troop_call(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:275 troop_call
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = from_discard = from_play = player = _kf_U
@@ -827,7 +827,7 @@ def _kfmk_troop_call(_kfN, _kfR):
 
 
 def _kfmk_vigor(_kfN, _kfR):
-  def _kfr_vigor(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_vigor(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:292 vigor
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = healed = options = _kf_U
@@ -841,7 +841,7 @@ def _kfmk_vigor(_kfN, _kfR):
             steps.shortfall(game, card, 'heals nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to heal up to 3 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to heal up to 3 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to heal up to 3 damage from', options, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, healed, options])
@@ -863,7 +863,7 @@ def _kfmk_vigor(_kfN, _kfR):
 
 
 def _kfmk_word_of_returning(_kfN, _kfR):
-  def _kfr_word_of_returning(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_word_of_returning(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:306 word_of_returning
     if _kfF is None:  # a fresh call: Python bound the arguments
         n = opponent = t = targets = total_returned = _kf_U
@@ -886,7 +886,7 @@ def _kfmk_word_of_returning(_kfN, _kfR):
         if total_returned:
             steps.gain(game, controller_of(game, card), total_returned)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, n, opponent, t, targets, total_returned])
@@ -903,7 +903,7 @@ def _kfmk_word_of_returning(_kfN, _kfR):
 
 
 def _kfmk_bear_flute(_kfN, _kfR):
-  def _kfr_bear_flute(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_bear_flute(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:325 bear_flute
     if _kfF is None:  # a fresh call: Python bound the arguments
         bears_in_play = c = choice = found = player = remaining_discard = target = _kf_U
@@ -919,7 +919,7 @@ def _kfmk_bear_flute(_kfN, _kfR):
             target = bears_in_play[0]
         if (not _pc and (len(bears_in_play) > 1)) or _pc == 1:
             if not _pc:
-                _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an Ancient Bear to fully heal', bears_in_play, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY)
+                _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose an Ancient Bear to fully heal', bears_in_play, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose an Ancient Bear to fully heal', bears_in_play, 1, 1, source_card=card, intent=DecisionIntent.HEAL, affects=Affects.ANY))
                 if type(_sent) is _kf_S:
                     if _kfF is None:
                         _kfF = _kf_Frame(_kfR, [game, card, bears_in_play, c, choice, found, player, remaining_discard, target])
@@ -952,7 +952,7 @@ def _kfmk_bear_flute(_kfN, _kfR):
 
 
 def _kfmk_nepenthe_seed(_kfN, _kfR):
-  def _kfr_nepenthe_seed(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_nepenthe_seed(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:359 nepenthe_seed
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = target = _kf_U
@@ -980,7 +980,7 @@ def _kfmk_nepenthe_seed(_kfN, _kfR):
         if not options:
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a card to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a card to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a card to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player, target])
@@ -1003,7 +1003,7 @@ def _kfmk_nepenthe_seed(_kfN, _kfR):
 
 
 def _kfmk_ritual_of_balance(_kfN, _kfR):
-  def _kfr_ritual_of_balance(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_ritual_of_balance(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:375 ritual_of_balance
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = _kf_U
@@ -1035,7 +1035,7 @@ def _kfmk_ritual_of_balance(_kfN, _kfR):
 
 
 def _kfmk_ritual_of_the_hunt(_kfN, _kfR):
-  def _kfr_ritual_of_the_hunt(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_ritual_of_the_hunt(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:385 ritual_of_the_hunt
     if _kfF is None:  # a fresh call: Python bound the arguments
         c = player = _kf_U
@@ -1067,7 +1067,7 @@ def _kfmk_ritual_of_the_hunt(_kfN, _kfR):
 
 
 def _kfmk_world_tree(_kfN, _kfR):
-  def _kfr_world_tree(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_world_tree(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:394 world_tree
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = target = _kf_U
@@ -1082,7 +1082,7 @@ def _kfmk_world_tree(_kfN, _kfR):
             steps.shortfall(game, card, 'returns nothing: your discard pile has no creature', 'No creature in discard')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to return to the top of your deck', options, 1, 1, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a creature to return to the top of your deck', options, 1, 1, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a creature to return to the top of your deck', options, 1, 1, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player, target])
@@ -1105,7 +1105,7 @@ def _kfmk_world_tree(_kfN, _kfR):
 
 
 def _kfmk_bigtwig_after_reap(_kfN, _kfR):
-  def _kfr_bigtwig_after_reap(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_bigtwig_after_reap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:412 bigtwig_after_reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = target = _kf_U
@@ -1119,7 +1119,7 @@ def _kfmk_bigtwig_after_reap(_kfN, _kfR):
             steps.shortfall(game, card, 'does nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun and exhaust', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to stun and exhaust', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun and exhaust', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, target])
@@ -1141,7 +1141,7 @@ def _kfmk_bigtwig_after_reap(_kfN, _kfR):
 
 
 def _kfmk_witch_of_the_wilds_register__handler(_kfN, _kfR):
-  def _kfr_witch_of_the_wilds_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_witch_of_the_wilds_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:427 witch_of_the_wilds_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
@@ -1172,7 +1172,7 @@ def _kfmk_witch_of_the_wilds_register__handler(_kfN, _kfR):
 
 
 def _kfmk_chota_hazri(_kfN, _kfR):
-  def _kfr_chota_hazri(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_chota_hazri(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:441 chota_hazri
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1197,7 +1197,7 @@ def _kfmk_chota_hazri(_kfN, _kfR):
 
 
 def _kfmk_flaxia(_kfN, _kfR):
-  def _kfr_flaxia(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_flaxia(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:445 flaxia
     if _kfF is None:  # a fresh call: Python bound the arguments
         opponent = player = _kf_U
@@ -1230,7 +1230,7 @@ def _kfmk_flaxia(_kfN, _kfR):
 
 
 def _kfmk_giant_sloth_register__handler(_kfN, _kfR):
-  def _kfr_giant_sloth_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_giant_sloth_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:457 giant_sloth_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -1259,7 +1259,7 @@ def _kfmk_giant_sloth_register__handler(_kfN, _kfR):
 
 
 def _kfmk_giant_sloth_action(_kfN, _kfR):
-  def _kfr_giant_sloth_action(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_giant_sloth_action(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:470 giant_sloth_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         _pc = 0
@@ -1286,7 +1286,7 @@ def _kfmk_giant_sloth_action(_kfN, _kfR):
 
 
 def _kfmk_inka_the_spider_effect(_kfN, _kfR):
-  def _kfr_inka_the_spider_effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_inka_the_spider_effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:486 inka_the_spider_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1300,7 +1300,7 @@ def _kfmk_inka_the_spider_effect(_kfN, _kfR):
             steps.shortfall(game, card, 'stuns nothing: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose a creature to stun', options, 1, 1, source_card=card, intent=DecisionIntent.STUN, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1320,7 +1320,7 @@ def _kfmk_inka_the_spider_effect(_kfN, _kfR):
 
 
 def _kfmk_kindrith_longshot_after_reap(_kfN, _kfR):
-  def _kfr_kindrith_longshot_after_reap(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_kindrith_longshot_after_reap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:498 kindrith_longshot_after_reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1334,7 +1334,7 @@ def _kfmk_kindrith_longshot_after_reap(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no creature in play', 'No creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: deal 2 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: deal 2 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: deal 2 damage to a creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1351,7 +1351,7 @@ def _kfmk_kindrith_longshot_after_reap(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(game, choice[0], 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1368,7 +1368,7 @@ def _kfmk_kindrith_longshot_after_reap(_kfN, _kfR):
 
 
 def _kfmk_lupo_the_scarred_play(_kfN, _kfR):
-  def _kfr_lupo_the_scarred_play(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lupo_the_scarred_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:511 lupo_the_scarred_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = _kf_U
@@ -1382,7 +1382,7 @@ def _kfmk_lupo_the_scarred_play(_kfN, _kfR):
             steps.shortfall(game, card, 'deals no damage: there is no enemy creature in play', 'No enemy creature')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY)
+        _sent = (_kfgm_choose_cards(game, card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'{card.name}: choose an enemy creature', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1399,7 +1399,7 @@ def _kfmk_lupo_the_scarred_play(_kfN, _kfR):
     if not _pc:
         steps.deal_damage(game, choice[0], 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(choice)
+        _sent = (_kfgm_check_destroyed(game, choice) if type(game) is _kfGame else _kf_step(game.check_destroyed)(choice))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options])
@@ -1416,7 +1416,7 @@ def _kfmk_lupo_the_scarred_play(_kfN, _kfR):
 
 
 def _kfmk_piranha_monkeys_effect(_kfN, _kfR):
-  def _kfr_piranha_monkeys_effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_piranha_monkeys_effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:551 piranha_monkeys_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
@@ -1432,7 +1432,7 @@ def _kfmk_piranha_monkeys_effect(_kfN, _kfR):
         for t in targets:
             steps.deal_damage(game, t, 2)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)(targets)
+        _sent = (_kfgm_check_destroyed(game, targets) if type(game) is _kfGame else _kf_step(game.check_destroyed)(targets))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, t, targets])
@@ -1449,7 +1449,7 @@ def _kfmk_piranha_monkeys_effect(_kfN, _kfR):
 
 
 def _kfmk_teliga_register__handler(_kfN, _kfR):
-  def _kfr_teliga_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_teliga_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:562 teliga_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_card = _kf_closure[0]
@@ -1478,7 +1478,7 @@ def _kfmk_teliga_register__handler(_kfN, _kfR):
 
 
 def _kfmk_hunting_witch_register__handler(_kfN, _kfR):
-  def _kfr_hunting_witch_register__handler(g=_kf_U, event=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_hunting_witch_register__handler(g=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:572 hunting_witch_register.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         played = _kf_U
@@ -1509,7 +1509,7 @@ def _kfmk_hunting_witch_register__handler(_kfN, _kfR):
 
 
 def _kfmk_witch_of_the_eye_after_reap(_kfN, _kfR):
-  def _kfr_witch_of_the_eye_after_reap(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_witch_of_the_eye_after_reap(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/named/untamed.py:582 witch_of_the_eye_after_reap
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = options = player = target = _kf_U
@@ -1524,7 +1524,7 @@ def _kfmk_witch_of_the_eye_after_reap(_kfN, _kfR):
             steps.shortfall(game, card, 'returns nothing: your discard pile is empty', 'Discard pile is empty')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a card to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY)
+        _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose a card to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose a card to return to your hand', options, 1, 1, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.FRIENDLY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, options, player, target])
@@ -1547,46 +1547,47 @@ def _kfmk_witch_of_the_eye_after_reap(_kfN, _kfR):
 
 
 # (qualname, first line, routine factory, slots, free variables, nested code (name, line),
-#  line of each resume id, (exception slot, resume ids inside a try region) or None)
+#  line of each resume id, (exception slot, resume ids inside a try region) or None,
+#  what each resume id waits on, the operations still reachable from each resume id)
 ROUTINES = [
-    ('cooperative_hunting', 15, _kfmk_cooperative_hunting, ('game', 'card', 'choice', 'hit', 'i', 'n', 'options', 'player', '_kfs0', '_kfi1'), (), (), {1: 26, 2: 32}, None),
-    ('curiosity', 35, _kfmk_curiosity, ('game', 'card', 'targets'), (), (), {1: 40}, None),
-    ('fertility_chant', 43, _kfmk_fertility_chant, ('game', 'card'), (), (), {1: 46}, None),
-    ('full_moon', 49, _kfmk_full_moon, ('game', '_kfc_card', 'handler'), (), (('handler', 50),), {1: 58}, None),
-    ('full_moon.<locals>.handler', 50, _kfmk_full_moon__handler, ('g', 'event', '_kfc_card'), ('card',), (), {1: 54}, None),
-    ('grasping_vines', 61, _kfmk_grasping_vines, ('game', 'card', 'a', 'choice', 'options', 'player'), (), (), {1: 67}, None),
-    ('_lose_one_then_maybe_forge', 75, _kfmk__lose_one_then_maybe_forge, ('game', 'card', 'do_it', 'player'), (), (), {1: 79, 2: 84}, None),
-    ('key_charge', 87, _kfmk_key_charge, ('game', 'card'), (), (), {1: 88}, None),
-    ('lifeweb', 91, _kfmk_lifeweb, ('game', 'card', 'n', 'opponent', 'player'), (), (), {1: 100}, None),
-    ('lost_in_the_woods', 103, _kfmk_lost_in_the_woods, ('game', 'card', 'area', 'c', 'enemy_choice', 'enemy_options', 'friendly_choice', 'friendly_options', 'n', 'opponent', 'owner', 'player'), (), (), {1: 114, 2: 122}, None),
-    ('mimicry_play', 138, _kfmk_mimicry_play, ('game', 'card', 'choice', 'copied', 'opponent', 'options', 'player'), (), (), {1: 147, 2: 160}, None),
-    ('natures_call', 163, _kfmk_natures_call, ('game', 'card', 'c', 'choice', 'options'), (), (), {1: 168}, None),
-    ('nocturnal_maneuver', 176, _kfmk_nocturnal_maneuver, ('game', 'card', 'c', 'choice', 'options'), (), (), {1: 181}, None),
-    ('perilous_wild', 189, _kfmk_perilous_wild, ('game', 'card', 'targets'), (), (), {1: 194}, None),
-    ('regrowth', 197, _kfmk_regrowth, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 203}, None),
-    ('save_the_pack', 213, _kfmk_save_the_pack, ('game', 'card', 'player', 'targets'), (), (), {1: 216}, None),
-    ('scout', 222, _kfmk_scout, ('game', 'card', 'c', 'choice', '_kfc_chosen_ids', 'mod', 'options', 'player', '_kfs0', '_kfi1'), (), (('mod', 236),), {1: 228, 2: 242}, None),
-    ('stampede', 245, _kfmk_stampede, ('game', 'card', 'player', 'total_uses'), (), (), {1: 257}, None),
-    ('the_common_cold', 260, _kfmk_the_common_cold, ('game', 'card', 'destroyed', 'do_it', 'remaining_mars', 't', 'targets'), (), (), {1: 264, 2: 268, 3: 272}, None),
-    ('troop_call', 275, _kfmk_troop_call, ('game', 'card', 'c', 'from_discard', 'from_play', 'player'), (), (), {1: 289}, None),
-    ('vigor', 292, _kfmk_vigor, ('game', 'card', 'choice', 'healed', 'options'), (), (), {1: 297}, None),
-    ('word_of_returning', 306, _kfmk_word_of_returning, ('game', 'card', 'n', 'opponent', 't', 'targets', 'total_returned'), (), (), {1: 320}, None),
-    ('bear_flute', 325, _kfmk_bear_flute, ('game', 'card', 'bears_in_play', 'c', 'choice', 'found', 'player', 'remaining_discard', 'target'), (), (), {1: 336}, None),
-    ('nepenthe_seed', 359, _kfmk_nepenthe_seed, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 361, 2: 365}, None),
-    ('ritual_of_balance', 375, _kfmk_ritual_of_balance, ('game', 'card', 'opponent'), (), (), {1: 382}, None),
-    ('ritual_of_the_hunt', 385, _kfmk_ritual_of_the_hunt, ('game', 'card', 'c', 'player'), (), (), {1: 387}, None),
-    ('world_tree', 394, _kfmk_world_tree, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 400}, None),
-    ('bigtwig_after_reap', 412, _kfmk_bigtwig_after_reap, ('game', 'card', 'choice', 'options', 'target'), (), (), {1: 417}, None),
-    ('witch_of_the_wilds_register.<locals>.handler', 427, _kfmk_witch_of_the_wilds_register__handler, ('g', 'event', 'player', '_kfc_card'), ('card',), (), {1: 436}, None),
-    ('chota_hazri', 441, _kfmk_chota_hazri, ('game', 'card'), (), (), {1: 442}, None),
-    ('flaxia', 445, _kfmk_flaxia, ('game', 'card', 'opponent', 'player'), (), (), {1: 453}, None),
-    ('giant_sloth_register.<locals>.handler', 457, _kfmk_giant_sloth_register__handler, ('g', 'event', '_kfc_card'), ('card',), (), {1: 461}, None),
-    ('giant_sloth_action', 470, _kfmk_giant_sloth_action, ('game', 'card'), (), (), {1: 473}, None),
-    ('inka_the_spider_effect', 486, _kfmk_inka_the_spider_effect, ('game', 'card', 'choice', 'options'), (), (), {1: 491}, None),
-    ('kindrith_longshot_after_reap', 498, _kfmk_kindrith_longshot_after_reap, ('game', 'card', 'choice', 'options'), (), (), {1: 503, 2: 508}, None),
-    ('lupo_the_scarred_play', 511, _kfmk_lupo_the_scarred_play, ('game', 'card', 'choice', 'options'), (), (), {1: 516, 2: 521}, None),
-    ('piranha_monkeys_effect', 551, _kfmk_piranha_monkeys_effect, ('game', 'card', 't', 'targets'), (), (), {1: 558}, None),
-    ('teliga_register.<locals>.handler', 562, _kfmk_teliga_register__handler, ('g', 'event', '_kfc_card'), ('card',), (), {1: 566}, None),
-    ('hunting_witch_register.<locals>.handler', 572, _kfmk_hunting_witch_register__handler, ('g', 'event', 'played', '_kfc_card'), ('card',), (), {1: 577}, None),
-    ('witch_of_the_eye_after_reap', 582, _kfmk_witch_of_the_eye_after_reap, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 588}, None),
+    ('cooperative_hunting', 15, _kfmk_cooperative_hunting, ('game', 'card', 'choice', 'hit', 'i', 'n', 'options', 'player', '_kfs0', '_kfi1'), (), (), {1: 26, 2: 32}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 1), ()), ('loop', 22), ('step', 'game.all_creatures', ('any', '?'), ()), ('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.DAMAGE'), ('affects', 'Affects.ANY'))), ('step', 'steps.deal_damage', ('?', '?', 1), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('curiosity', 35, _kfmk_curiosity, ('game', 'card', 'targets'), (), (), {1: 40}, None, {1: 'game.destroy_cards'}, {1: ()}),
+    ('fertility_chant', 43, _kfmk_fertility_chant, ('game', 'card'), (), (), {1: 46}, None, {1: 'decision'}, {1: ()}),
+    ('full_moon', 49, _kfmk_full_moon, ('game', '_kfc_card', 'handler'), (), (('handler', 50),), {1: 58}, None, {1: 'decision'}, {1: ()}),
+    ('full_moon.<locals>.handler', 50, _kfmk_full_moon__handler, ('g', 'event', '_kfc_card'), ('card',), (), {1: 54}, None, {1: 'decision'}, {1: ()}),
+    ('grasping_vines', 61, _kfmk_grasping_vines, ('game', 'card', 'a', 'choice', 'options', 'player'), (), (), {1: 67}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.return_to_hand', ('?', '?'), ()),)}),
+    ('_lose_one_then_maybe_forge', 75, _kfmk__lose_one_then_maybe_forge, ('game', 'card', 'do_it', 'player'), (), (), {1: 79, 2: 84}, None, {1: 'game.yes_no', 2: 'game.forge_key'}, {1: (('pause', 'game.forge_key', ('?',), (('source', '?'),)),), 2: ()}),
+    ('key_charge', 87, _kfmk_key_charge, ('game', 'card'), (), (), {1: 88}, None, {1: '_lose_one_then_maybe_forge'}, {1: ()}),
+    ('lifeweb', 91, _kfmk_lifeweb, ('game', 'card', 'n', 'opponent', 'player'), (), (), {1: 100}, None, {1: 'decision'}, {1: ()}),
+    ('lost_in_the_woods', 103, _kfmk_lost_in_the_woods, ('game', 'card', 'area', 'c', 'enemy_choice', 'enemy_options', 'friendly_choice', 'friendly_options', 'n', 'opponent', 'owner', 'player'), (), (), {1: 114, 2: 122}, None, {1: 'game.choose_cards', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', '?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.SHUFFLE_IN'), ('affects', 'Affects.ENEMY'))), ('step', 'game.find_play_area', ('?',), ()), ('step', 'game.leave_play', ('?',), ()), ('step', 'game.event_rng', ('reshuffle', '?'), ()), ('step', 'steps.shortfall', ('?', '?', 'does nothing: there is no creature in play', 'No creature'), ())), 2: (('step', 'game.find_play_area', ('?',), ()), ('step', 'game.leave_play', ('?',), ()), ('step', 'game.event_rng', ('reshuffle', '?'), ()), ('step', 'steps.shortfall', ('?', '?', 'does nothing: there is no creature in play', 'No creature'), ()))}),
+    ('mimicry_play', 138, _kfmk_mimicry_play, ('game', 'card', 'choice', 'copied', 'opponent', 'options', 'player'), (), (), {1: 147, 2: 160}, None, {1: 'game.choose_cards', 2: 'copied.card_def.on_play'}, {1: (('pause', 'copied.card_def.on_play', ('?', '?'), ()),), 2: ()}),
+    ('natures_call', 163, _kfmk_natures_call, ('game', 'card', 'c', 'choice', 'options'), (), (), {1: 168}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.return_to_hand', ('?', '?'), ()),)}),
+    ('nocturnal_maneuver', 176, _kfmk_nocturnal_maneuver, ('game', 'card', 'c', 'choice', 'options'), (), (), {1: 181}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.exhaust', ('?', '?'), ()),)}),
+    ('perilous_wild', 189, _kfmk_perilous_wild, ('game', 'card', 'targets'), (), (), {1: 194}, None, {1: 'game.destroy_cards'}, {1: ()}),
+    ('regrowth', 197, _kfmk_regrowth, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 203}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('save_the_pack', 213, _kfmk_save_the_pack, ('game', 'card', 'player', 'targets'), (), (), {1: 216}, None, {1: 'game.destroy_cards'}, {1: (('step', 'steps.shortfall', ('?', '?', 'destroys nothing: no creature in play has any damage', 'No damaged creature'), ()), ('step', 'steps.gain_chains', ('?', '?', '?', 1), ()))}),
+    ('scout', 222, _kfmk_scout, ('game', 'card', 'c', 'choice', '_kfc_chosen_ids', 'mod', 'options', 'player', '_kfs0', '_kfi1'), (), (('mod', 236),), {1: 228, 2: 242}, None, {1: 'game.choose_cards', 2: 'game.ready_and_fight'}, {1: (('pause', 'game.ready_and_fight', ('?',), ()),), 2: (('loop', 241), ('pause', 'game.ready_and_fight', ('?',), ()))}),
+    ('stampede', 245, _kfmk_stampede, ('game', 'card', 'player', 'total_uses'), (), (), {1: 257}, None, {1: 'decision'}, {1: ()}),
+    ('the_common_cold', 260, _kfmk_the_common_cold, ('game', 'card', 'destroyed', 'do_it', 'remaining_mars', 't', 'targets'), (), (), {1: 264, 2: 268, 3: 272}, None, {1: 'game.check_destroyed', 2: 'game.yes_no', 3: 'game.destroy_cards'}, {1: (('step', 'game.all_creatures', ('any', '?'), ()), ('pause', 'game.yes_no', ('?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.OPTIONAL_TRIGGER'))), ('pause', 'game.destroy_cards', ('?',), ())), 2: (('pause', 'game.destroy_cards', ('?',), ()),), 3: ()}),
+    ('troop_call', 275, _kfmk_troop_call, ('game', 'card', 'c', 'from_discard', 'from_play', 'player'), (), (), {1: 289}, None, {1: 'decision'}, {1: ()}),
+    ('vigor', 292, _kfmk_vigor, ('game', 'card', 'choice', 'healed', 'options'), (), (), {1: 297}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.heal', ('?', '?', 3), ()), ('step', 'steps.gain', ('?', '?', 1), ()))}),
+    ('word_of_returning', 306, _kfmk_word_of_returning, ('game', 'card', 'n', 'opponent', 't', 'targets', 'total_returned'), (), (), {1: 320}, None, {1: 'game.check_destroyed'}, {1: ()}),
+    ('bear_flute', 325, _kfmk_bear_flute, ('game', 'card', 'bears_in_play', 'c', 'choice', 'found', 'player', 'remaining_discard', 'target'), (), (), {1: 336}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.fully_heal', ('?', '?'), ()), ('step', 'steps.shortfall', ('?', '?', 'finds no Ancient Bear in play or in your deck or discard pile', 'No Ancient Bear'), ()), ('step', 'game.event_rng', ('reshuffle', '?'), ()))}),
+    ('nepenthe_seed', 359, _kfmk_nepenthe_seed, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 361, 2: 365}, None, {1: 'steps.sacrifice', 2: 'game.choose_cards'}, {1: (('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.RETURN_TO_HAND'), ('affects', 'Affects.FRIENDLY'))),), 2: ()}),
+    ('ritual_of_balance', 375, _kfmk_ritual_of_balance, ('game', 'card', 'opponent'), (), (), {1: 382}, None, {1: 'decision'}, {1: ()}),
+    ('ritual_of_the_hunt', 385, _kfmk_ritual_of_the_hunt, ('game', 'card', 'c', 'player'), (), (), {1: 387}, None, {1: 'steps.sacrifice'}, {1: ()}),
+    ('world_tree', 394, _kfmk_world_tree, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 400}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('bigtwig_after_reap', 412, _kfmk_bigtwig_after_reap, ('game', 'card', 'choice', 'options', 'target'), (), (), {1: 417}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.stun', ('?', '?'), ()), ('step', 'steps.exhaust', ('?', '?'), ()))}),
+    ('witch_of_the_wilds_register.<locals>.handler', 427, _kfmk_witch_of_the_wilds_register__handler, ('g', 'event', 'player', '_kfc_card'), ('card',), (), {1: 436}, None, {1: 'decision'}, {1: ()}),
+    ('chota_hazri', 441, _kfmk_chota_hazri, ('game', 'card'), (), (), {1: 442}, None, {1: '_lose_one_then_maybe_forge'}, {1: ()}),
+    ('flaxia', 445, _kfmk_flaxia, ('game', 'card', 'opponent', 'player'), (), (), {1: 453}, None, {1: 'decision'}, {1: ()}),
+    ('giant_sloth_register.<locals>.handler', 457, _kfmk_giant_sloth_register__handler, ('g', 'event', '_kfc_card'), ('card',), (), {1: 461}, None, {1: 'decision'}, {1: ()}),
+    ('giant_sloth_action', 470, _kfmk_giant_sloth_action, ('game', 'card'), (), (), {1: 473}, None, {1: 'decision'}, {1: ()}),
+    ('inka_the_spider_effect', 486, _kfmk_inka_the_spider_effect, ('game', 'card', 'choice', 'options'), (), (), {1: 491}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.stun', ('?', '?'), ()),)}),
+    ('kindrith_longshot_after_reap', 498, _kfmk_kindrith_longshot_after_reap, ('game', 'card', 'choice', 'options'), (), (), {1: 503, 2: 508}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 2), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('lupo_the_scarred_play', 511, _kfmk_lupo_the_scarred_play, ('game', 'card', 'choice', 'options'), (), (), {1: 516, 2: 521}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', 2), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('piranha_monkeys_effect', 551, _kfmk_piranha_monkeys_effect, ('game', 'card', 't', 'targets'), (), (), {1: 558}, None, {1: 'game.check_destroyed'}, {1: ()}),
+    ('teliga_register.<locals>.handler', 562, _kfmk_teliga_register__handler, ('g', 'event', '_kfc_card'), ('card',), (), {1: 566}, None, {1: 'decision'}, {1: ()}),
+    ('hunting_witch_register.<locals>.handler', 572, _kfmk_hunting_witch_register__handler, ('g', 'event', 'played', '_kfc_card'), ('card',), (), {1: 577}, None, {1: 'decision'}, {1: ()}),
+    ('witch_of_the_eye_after_reap', 582, _kfmk_witch_of_the_eye_after_reap, ('game', 'card', 'choice', 'options', 'player', 'target'), (), (), {1: 588}, None, {1: 'game.choose_cards'}, {1: ()}),
 ]

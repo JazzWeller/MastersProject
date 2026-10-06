@@ -9,6 +9,30 @@ from typing import Any, Dict, FrozenSet, List, Optional
 _BOTH_PLAYERS = frozenset({1, 2})
 _NO_PRIVATE: Dict[str, FrozenSet[int]] = {}
 
+# Every event kind's redaction schema (Agent Observation Plan, O1): its
+# private fields, each with the data field naming the one player who may see
+# it. A field not listed is seen by everyone the event is logged for.
+# `tests/test_agent_observation_o1.py` fails on an event kind logged
+# anywhere in the engine that is missing here.
+EVENT_SCHEMAS: Dict[str, Dict[str, str]] = {kind: {} for kind in (
+    "aember_stored_lost", "archive", "archive_decision", "arise", "capture", "capture_released", "choose_house",
+    "damage", "damage_prevented", "damage_redirected", "destroyed", "destroyed_in_fight", "discard",
+    "discard_from_hand", "discard_random", "draw", "duration_effect", "exhaust", "fight", "forge_key",
+    "forge_skipped", "gain", "gain_chains", "heal", "help_from_future_self", "house_forced", "lose",
+    "mimicry_copy", "move_aember", "mulligan", "mulligan_decision", "pay", "place_aember", "play_card",
+    "power_counter", "purge", "put_into_play", "put_on_bottom", "put_on_top", "ready", "reap", "reshuffle",
+    "return_to_hand", "reveal", "reveal_hand", "reveal_top", "shed_chain", "shortfall", "shuffle_into_deck",
+    "spend_stored_aember", "steal", "stun", "stun_consumed", "swap", "take_archive", "take_control",
+    "timetraveler_shuffle", "turn_start", "under_card", "unforge", "use_action", "use_omni",
+)}
+EVENT_SCHEMAS["draw"] = {"iids": "player"}  # the count is public, the cards the drawer's
+# Kinds whose call sites may log the whole event for one player only: each
+# names a card that came from a hidden zone when it did (archived from a
+# hand or a deck, returned to a hand from an archive, put facedown under a
+# card). The move itself is public through the journal.
+SITE_RESTRICTED = frozenset({"archive", "return_to_hand", "under_card"})
+_PRIVATE_FIELDS = {kind: fields for kind, fields in EVENT_SCHEMAS.items() if fields}
+
 
 @dataclass(slots=True)
 class LogEvent:
@@ -58,6 +82,8 @@ class GameLog:
 
     def add(self, kind: str, visible_to: Optional[Any] = None, private: Optional[Dict[str, Any]] = None, **data) -> None:
         entitled = _BOTH_PLAYERS if visible_to is None else frozenset(visible_to)
+        if private is None and kind in _PRIVATE_FIELDS:
+            private = {f: (data[holder],) for f, holder in _PRIVATE_FIELDS[kind].items() if f in data}
         fields = _NO_PRIVATE if not private else {k: frozenset(who) for k, who in private.items()}
         event = LogEvent(kind, data, visible_to=entitled, private=fields)
         self.events.append(event)
@@ -70,3 +96,16 @@ class GameLog:
         """Every event `pid` is entitled to see, engine-log order preserved,
         each with any field `pid` isn't entitled to removed."""
         return [e.redacted_for(pid) if e.private else e for e in self.events if pid in e.visible_to]
+
+    def visible_tail(self, pid: int, n: int) -> List[LogEvent]:
+        """`visible_to(pid)[-n:]`, reading only the end of the log."""
+        out = []
+        events = self.events
+        i = len(events) - 1
+        while i >= 0 and len(out) < n:
+            e = events[i]
+            if pid in e.visible_to:
+                out.append(e.redacted_for(pid) if e.private else e)
+            i -= 1
+        out.reverse()
+        return out

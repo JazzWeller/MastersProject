@@ -7,17 +7,12 @@ objects and ad hoc tuples used as `ORDER_EFFECTS` options, closures held by
 its own, and keeping it together makes the "what does the hash actually
 cover" question answerable by reading one file.
 
-Two known, accepted approximations, both inherent to the engine holding
-closures as live state (see Code/AGENT_INTERFACE_PLAN.md's "Verified engine
-facts"): a `DurationEffect.value`/`ModifierEffect.handler`/etc. that is
-callable collapses to a fixed `"<callable>"` marker rather than comparing
-code identity, and pending `_end_of_turn_cleanups` are hashed by count only,
-not content. Two independently-replayed games that reached the same state by
-the same choices register the same closures by construction, so this does
-not weaken fork-equivalence checking in practice -- it only means the hash
-can't distinguish games that (incorrectly) differ *solely* in an effect's
-code identity, which isn't a thing that can happen at all outside a plugin
-architecture this engine doesn't have.
+The hash is exact (Agent Observation Plan, Part R, R1): a callable held in
+state -- a lasting effect's value, condition or handler, an upgrade-granted
+ability -- is hashed as what it is, its code's qualified name plus the
+values it closes over and its defaults; pending end-of-turn cleanups are
+hashed by content. (Before Part R both were approximations: a fixed
+`"<callable>"` marker, and the cleanups' count.)
 """
 
 from __future__ import annotations
@@ -31,6 +26,8 @@ from .actions import DiscardCard, EndTurn, Fight, PlayCard, Reap, UseAction, Use
 from .cards.card import Card, CreatureType, UpgradeType
 from .effects.effect_object import EffectObject, TriggerEffect
 from .version import ENGINE_VERSION
+
+import types as _types
 
 _ACTION_CARD_TYPES = (PlayCard, DiscardCard, UseAction, UseOmni, Reap, Fight)
 
@@ -67,9 +64,39 @@ def canonicalize(value: Any) -> Any:
         return sorted((canonicalize(v) for v in value), key=repr)
     if isinstance(value, dict):
         return {str(k): canonicalize(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))}
+    if isinstance(value, _types.FunctionType):
+        return canonical_function(value)
+    if isinstance(value, _types.MethodType):
+        return {"__method__": canonical_function(value.__func__), "self": canonicalize(value.__self__)}
+    t = type(value).__name__
+    if t == "Player":
+        return {"__player__": value.id}
+    if t == "Game":
+        return {"__game__": None}
     if callable(value):
-        return "<callable>"
+        return {"__callable__": f"{type(value).__module__}.{type(value).__qualname__}"}
     return str(value)
+
+
+def canonical_function(fn) -> dict:
+    """A function as data: its code's module and qualified name, the values
+    its closure cells hold (by free-variable name) and its defaults. Two
+    closures made by the same code over the same values are equal; any
+    difference in what they capture shows."""
+    out = {"__fn__": f"{fn.__module__}:{fn.__qualname__}"}
+    if fn.__closure__:
+        cells = {}
+        for name, cell in zip(fn.__code__.co_freevars, fn.__closure__):
+            try:
+                cells[name] = canonicalize(cell.cell_contents)
+            except ValueError:
+                cells[name] = {"__empty_cell__": None}
+        out["cells"] = cells
+    if fn.__defaults__:
+        out["defaults"] = canonicalize(fn.__defaults__)
+    if fn.__kwdefaults__:
+        out["kwdefaults"] = canonicalize(fn.__kwdefaults__)
+    return out
 
 
 def _canonicalize_option(option: Any) -> Any:
@@ -162,19 +189,22 @@ def canonical_effects_state(active_effects) -> dict:
                 "variable": e.variable,
                 "op": e.op,
                 "value": canonicalize(e.value),
-                "conditional": e.conditional is not None,
+                "conditional": canonicalize(e.conditional),
             }
             for e in active_effects.duration_effects
         ],
         "trigger": [
-            {"source": source_iid(e), "controller": e.controller, "event": e.event, "remaining": e.remaining_duration}
+            {"source": source_iid(e), "controller": e.controller, "event": e.event, "remaining": e.remaining_duration,
+             "handler": canonicalize(e.handler)}
             for e in active_effects.trigger_effects
         ],
         "instead": [
-            {"source": source_iid(e), "controller": e.controller, "kind": e.kind} for e in active_effects.instead_effects
+            {"source": source_iid(e), "controller": e.controller, "kind": e.kind, "handler": canonicalize(e.handler)}
+            for e in active_effects.instead_effects
         ],
         "modifier": [
-            {"source": source_iid(e), "controller": e.controller, "kind": e.kind} for e in active_effects.modifier_effects
+            {"source": source_iid(e), "controller": e.controller, "kind": e.kind, "handler": canonicalize(e.handler)}
+            for e in active_effects.modifier_effects
         ],
     }
 
@@ -205,7 +235,7 @@ def canonical_game_state(game) -> dict:
         "elusive_suppressed": game._elusive_suppressed,
         "players": {str(pid): canonical_player_state(p) for pid, p in sorted(game.players.items())},
         "active_effects": canonical_effects_state(game.active_effects),
-        "pending_cleanups": len(game._end_of_turn_cleanups),
+        "pending_cleanups": canonicalize(game._end_of_turn_cleanups),
         "temp_control": canonical_temp_control(game._temp_control),
         "log": canonical_log_state(game.log),
         "rng_counters": canonical_rng_counters(game._rng_counters),

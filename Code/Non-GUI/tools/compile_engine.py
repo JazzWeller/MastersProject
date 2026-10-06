@@ -283,6 +283,11 @@ class FunctionCompiler:
         self.line_of_pc: Dict[int, int] = {}
         self.exc_points: List[int] = []  # resume ids inside a try region
         self._number(self.body, in_try=False)
+        # R7: what each resume id waits on, and what is still reachable
+        # from it
+        self.site_of_pc: Dict[int, str] = {}
+        self.ops_of_pc: Dict[int, tuple] = {}
+        self._remaining(self.body, [])
 
     # ------------------------------------------------------------ subset ----
 
@@ -441,6 +446,33 @@ class FunctionCompiler:
                 hi = r[1]
         return None if lo is None else (lo, hi)
 
+    # --------------------------------------------------------- remaining ----
+
+    def _remaining(self, stmts: List[ast.stmt], outer: List[Tuple[Optional[ast.stmt], List[ast.stmt]]]):
+        """Fills `site_of_pc` and `ops_of_pc` (Part R, R7). `outer`, innermost
+        first: for each enclosing statement, the loop it is (or None) and
+        the statements that follow it."""
+        for i, s in enumerate(stmts):
+            following = stmts[i + 1:]
+            k = self.ids.get(id(s))
+            if k is not None:
+                y = s.value
+                self.site_of_pc[k] = _callee_text(y.value.func) if isinstance(y, ast.YieldFrom) else "decision"
+                ops = list(_ops_of(following))
+                for loop, fol in outer:
+                    if loop is not None:
+                        ops.append(("loop", loop.lineno))
+                        ops.extend(_ops_of(loop.body))
+                    ops.extend(_ops_of(fol))
+                self.ops_of_pc[k] = tuple(ops)
+            elif isinstance(s, ast.If):
+                self._remaining(s.body, [(None, following)] + outer)
+                self._remaining(s.orelse, [(None, following)] + outer)
+            elif isinstance(s, (ast.While, ast.For)):
+                self._remaining(s.body, [(s, following)] + outer)
+            elif isinstance(s, ast.Try):
+                self._remaining(s.body, [(None, s.finalbody + following)] + outer)
+
     # ------------------------------------------------------------- emit ----
 
     def compile(self) -> "CompiledRoutine":
@@ -550,17 +582,39 @@ class CompiledRoutine:
         ast.fix_missing_locations(n2)
         return ast.unparse(n2)
 
+    def call_expr(self, call: ast.Call) -> str:
+        """`yield from f(args)` as a call of f's routine with the original
+        arguments. `x.m(args)` with `m` a compiled method of `Game` goes
+        straight to Game's routine when `x` really is a Game -- no lookup and
+        no bound methods -- and through `_kf_step` otherwise."""
+        generic = self.expr(ast.Call(ast.Call(ast.Name("_kf_step", ast.Load()), [call.func], []), call.args, call.keywords))
+        f = call.func
+        if (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.attr in GAME_ROUTINES):
+            obj = self.expr(f.value)
+            direct = self.expr(ast.Call(ast.Name(f"_kfgm_{f.attr}", ast.Load()), [f.value] + call.args, call.keywords))
+            return f"({direct} if type({obj}) is _kfGame else {generic})"
+        return generic
+
+    def seq_expr(self, it: ast.expr) -> str:
+        """What a suspending `for` loop iterates by index: the iterable itself
+        when it is visibly a list, tuple or range, else `_kf_seq(...)`."""
+        known = isinstance(it, (ast.List, ast.Tuple)) or (
+            isinstance(it, ast.Call) and isinstance(it.func, ast.Name) and it.func.id in ("list", "tuple", "range", "sorted")
+            and it.func.id not in self.fc.params and it.func.id not in self.fc.locals)
+        return self.expr(it) if known else f"_kf_seq({self.expr(it)})"
+
     def signature(self) -> str:
         """The original parameters, each with a placeholder default (the
         loader installs the original's own defaults; a resumed frame passes
-        none), then `_kfF` (the frame being resumed, None for a fresh call),
-        `_sent` (what it was waiting for) and, for a nested function,
-        `_kf_closure` (the cells it closes over)."""
+        none), then `_kfF` (the frame being resumed, None for a fresh call)
+        and `_sent` (what it was waiting for) -- positional, so a fresh call
+        fills them from the defaults tuple, not by name -- and, for a nested
+        function, `_kf_closure` (the cells it closes over)."""
         a = self.fc.func.args
         params = [f"{p.arg}=_kf_U" for p in a.args]
-        params.append("*")
+        params += ["_kfF=None", "_sent=None", "*"]
         params += [f"{p.arg}=_kf_U" for p in a.kwonlyargs]
-        params += ["_kfF=None", "_sent=None", "_kf_closure=None"]
+        params += ["_kf_closure=None"]
         return ", ".join(params)
 
     def _suspend_here(self, k: int, what: str) -> List[str]:
@@ -625,8 +679,7 @@ class CompiledRoutine:
                 # the callee, with the ORIGINAL arguments: `_kf_step(f)` is
                 # its routine (or a native runner), called as `f` would be
                 call = y.value
-                callee = ast.Call(ast.Call(ast.Name("_kf_step", ast.Load()), [call.func], []), call.args, call.keywords)
-                out.append(f"{i2}_sent = {self.expr(callee)}")
+                out.append(f"{i2}_sent = {self.call_expr(call)}")
                 out.append(f"{i2}if type(_sent) is _kf_S:")
                 out.extend(i2 + "    " + ln for ln in self._suspend_here(k, "_sent"))
                 out.extend(i2 + ln for ln in self._consume(s))
@@ -663,7 +716,7 @@ class CompiledRoutine:
         if isinstance(s, ast.For):
             seq, idx = fc.for_temps[id(s)]
             out.append(f"{ind}if not _pc:")
-            out.append(f"{i2}{seq} = _kf_seq({self.expr(s.iter)})")
+            out.append(f"{i2}{seq} = {self.seq_expr(s.iter)}")
             out.append(f"{i2}{idx} = 0")
             out.append(f"{ind}while (not _pc and {idx} < len({seq})) or {_in(r)}:")
             out.append(f"{i2}if not _pc:")
@@ -719,7 +772,55 @@ class CompiledRoutine:
         nested = tuple((getattr(n, "name", "<lambda>"), n.lineno) for n in fc.nested)
         exc = (fc.slots.index("_kfxe"), tuple(fc.exc_points)) if fc.has_try else None
         return (f"    ({self.fc.qualname!r}, {fc.func.lineno}, _kfmk_{self.name}, {tuple(fc.slots)!r}, "
-                f"{tuple(fc.freevars)!r}, {nested!r}, {fc.line_of_pc!r}, {exc!r}),")
+                f"{tuple(fc.freevars)!r}, {nested!r}, {fc.line_of_pc!r}, {exc!r}, {fc.site_of_pc!r}, {fc.ops_of_pc!r}),")
+
+
+# Receivers whose method calls are rules operations worth listing in the
+# remaining-operations tables (R7): the game, the effect steps module.
+_OP_RECEIVERS = frozenset({"self", "game", "g", "steps"})
+
+
+def _callee_text(f: ast.expr) -> str:
+    return ast.unparse(f)
+
+
+def _literal(e: ast.expr):
+    """A call argument as data, if it is a literal the table can carry:
+    numbers, strings, booleans, None, `Enum.MEMBER`; else "?"."""
+    if isinstance(e, ast.Constant) and isinstance(e.value, (int, float, str, bool, type(None))):
+        return e.value
+    if isinstance(e, ast.Attribute) and isinstance(e.value, ast.Name) and e.value.id[:1].isupper():
+        return f"{e.value.id}.{e.attr}"
+    return "?"
+
+
+def _ops_of(stmts: List[ast.stmt]):
+    """The rules operations in `stmts`, in source order: `(kind, callee,
+    literal positional arguments, literal keyword arguments)`, kind
+    "pause" for a `yield from` (or "decision" for a `yield`), "step" for a
+    call on the game or the steps module. Nested functions are skipped:
+    they run later, if at all, as their own routines."""
+    found = []
+    pausing = set()
+    for st in stmts:
+        nodes = [st] + list(iter_own(st)) if not isinstance(st, _SCOPES) else []
+        for n in nodes:
+            if isinstance(n, ast.YieldFrom):
+                pausing.add(id(n.value))
+            elif isinstance(n, ast.Yield):
+                found.append((n.lineno, n.col_offset, ("decision", "yield", (), ())))
+        for n in nodes:
+            if not isinstance(n, ast.Call):
+                continue
+            f = n.func
+            is_pause = id(n) in pausing
+            if not is_pause and not (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id in _OP_RECEIVERS):
+                continue
+            args = tuple(_literal(a) for a in n.args)
+            kwargs = tuple((k.arg, _literal(k.value)) for k in n.keywords if k.arg is not None)
+            found.append((n.lineno, n.col_offset, ("pause" if is_pause else "step", _callee_text(f), args, kwargs)))
+    found.sort(key=lambda t: (t[0], t[1]))
+    return [op for _l, _c, op in found]
 
 
 def _range_of(stmts: List[ast.stmt], fc: FunctionCompiler) -> Optional[Tuple[int, int]]:
@@ -735,6 +836,20 @@ def _in(r: Tuple[int, int]) -> str:
 
 
 # --------------------------------------------------------------- modules ----
+
+
+def _game_routines() -> frozenset:
+    """The generator methods of `Game` (keyforge/game.py): the calls
+    `CompiledRoutine.call_expr` sends straight to Game's routine."""
+    with open(os.path.join(PACKAGE_DIR, "game.py"), encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == "Game":
+            return frozenset(n.name for n in node.body if isinstance(n, ast.FunctionDef) and own_yields(n))
+    return frozenset()
+
+
+GAME_ROUTINES = _game_routines()
 
 
 def _generator_functions(tree: ast.Module) -> List[Tuple[str, ast.FunctionDef, List[str]]]:
@@ -806,7 +921,8 @@ def compile_source(raw: bytes, rel: str) -> Tuple[str, List[str]]:
         names.append(qual)
     parts.append("")
     parts.append("# (qualname, first line, routine factory, slots, free variables, nested code (name, line),")
-    parts.append("#  line of each resume id, (exception slot, resume ids inside a try region) or None)")
+    parts.append("#  line of each resume id, (exception slot, resume ids inside a try region) or None,")
+    parts.append("#  what each resume id waits on, the operations still reachable from each resume id)")
     parts.append("ROUTINES = [")
     parts.extend(entries)
     parts.append("]")

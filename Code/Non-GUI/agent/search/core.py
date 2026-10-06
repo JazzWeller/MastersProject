@@ -100,6 +100,14 @@ def map_choice(decision, fork_choice: Any) -> Any:
     return by_key[option_key(None, fork_choice)]
 
 
+def _release(world) -> None:
+    """Frees a finished simulation's world promptly (`Game.release`); a
+    test double without it is left alone."""
+    release = getattr(world, "release", None)
+    if release is not None:
+        release()
+
+
 class Edge:
     __slots__ = ("N", "W", "P", "A", "vloss", "child")
 
@@ -260,6 +268,7 @@ class Search:
                 break
             wave = min(s.leaves_in_flight, sims - done)
             descents: List[_Descent] = []
+            worlds = []
             for _ in range(wave):
                 t0 = time.perf_counter()
                 world = self._world(capability, self.rng)
@@ -270,8 +279,10 @@ class Search:
                     self._backup(d.path, d.value)
                     stats["terminal"] += 1
                     done += 1
+                    _release(world)
                 else:
                     descents.append(d)
+                    worlds.append(world)
             if descents:
                 results = yield from self._run_jobs_gen([d.job for d in descents])
                 for d, (priors, value) in zip(descents, results):
@@ -280,6 +291,9 @@ class Search:
                     self._backup(d.path, value)
                     stats["evaluations"] += 1
                 done += len(descents)
+            # the jobs played their worlds to the value state: done with them
+            for world in worlds:
+                _release(world)
         stats["simulations"] = done
         cache = getattr(self.evaluator, "cache", None)
         if cache is not None:

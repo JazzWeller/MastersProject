@@ -494,6 +494,34 @@ class TestBrobnarCreatures(unittest.TestCase):
         drive(named.tireless_crocag_play(game, crocag))
         self.assertNotIn(crocag, game.players[1].play_area.creatures)
 
+    def test_tireless_crocag_destroyed_when_the_last_enemy_creature_is_destroyed(self):
+        """"If your opponent has no creatures in play, destroy Tireless
+        Crocag" -- it fires during the destroy, before the destroyed
+        creature leaves the battleline."""
+        game = new_game()
+        crocag = put_creature(game, 1, "Tireless Crocag")
+        enemy = put_creature(game, 2, "Drumble")
+        drive(game.destroy_cards([enemy]))
+        self.assertNotIn(crocag, game.players[1].play_area.creatures)
+        self.assertIn(crocag, game.players[1].discard.cards())
+
+    def test_tireless_crocag_survives_while_an_enemy_creature_remains(self):
+        game = new_game()
+        crocag = put_creature(game, 1, "Tireless Crocag")
+        a = put_creature(game, 2, "Drumble")
+        put_creature(game, 2, "Troll")
+        drive(game.destroy_cards([a]))
+        self.assertIn(crocag, game.players[1].play_area.creatures)
+
+    def test_tireless_crocag_destroyed_once_when_a_batch_empties_the_enemy_battleline(self):
+        game = new_game()
+        crocag = put_creature(game, 1, "Tireless Crocag")
+        a = put_creature(game, 2, "Drumble")
+        b = put_creature(game, 2, "Troll")
+        drive(game.destroy_cards([a, b]))
+        self.assertIn(crocag, game.players[1].discard.cards())
+        self.assertEqual(sum(1 for e in game.log.events if e.kind == "destroyed" and e.data.get("card") == "Tireless Crocag"), 1)
+
     def test_tireless_crocag_survives_if_opponent_has_a_creature(self):
         game = new_game()
         crocag = put_creature(game, 1, "Tireless Crocag")

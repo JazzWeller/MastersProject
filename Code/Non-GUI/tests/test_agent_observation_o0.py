@@ -33,9 +33,10 @@ def _shown_history(game, viewer):
     """`(log index, kind, data)` for each entry of `viewer`'s observation
     history, aligned with the full log."""
     obs = build_observation(game, viewer)
+    logged = [h for h in obs.history if h.stream == "log"]
     indices = [i for i, e in enumerate(game.log.events) if viewer in e.visible_to]
-    assert len(indices) == len(obs.history)
-    return [(i, h.kind, h.data) for i, h in zip(indices, obs.history)]
+    assert len(indices) == len(logged)
+    return [(i, h.kind, {k: v for k, v in h.data.items() if k != "vis"}) for i, h in zip(indices, logged)]
 
 
 def _shown_tail(game, viewer):

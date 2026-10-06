@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import collections
 import dataclasses
 import itertools
+import types
 import math
 import random
 
@@ -19,6 +21,8 @@ from .effects import steps
 from .effects.effect_object import ActiveEffectList, DurationEffect, InsteadEffect, ModifierEffect, TriggerEffect, resolve_cleanup
 from .enums import Affects, BOUNDARY_KINDS, CardType, DecisionIntent, DecisionKind, House, Resample
 from .keyed_random import derive_rng, portable_choice, portable_shuffle
+from .journal import Journal
+from .projection import projected
 from .log import GameLog
 from .player import Player
 from .replay import decode_choice, encode_choice, replay
@@ -57,58 +61,52 @@ class _PlayGate:
 # still share its copy.
 
 
-def _copy_type_object(old: TypeObject) -> TypeObject:
-    """A fresh `TypeObject`, `card` left `None` -- the caller sets it once
-    the new `Card` it belongs to exists (a `Card` and its `type_object`
-    are constructed together, but that back-reference is only meaningful
-    once both new objects exist)."""
-    if isinstance(old, CreatureType):
-        new = CreatureType.__new__(CreatureType)
-        new.base_power = old.base_power
-        new.base_armor = old.base_armor
-        new.damage = old.damage
-        new.armor_used_this_turn = old.armor_used_this_turn
-        new.upgrades = list(old.upgrades)  # Card refs fixed up in _relink_card
-    elif isinstance(old, UpgradeType):
-        new = UpgradeType.__new__(UpgradeType)
-        new.host = old.host  # Card ref fixed up in _relink_card
-    elif isinstance(old, ArtifactType):
-        new = ArtifactType.__new__(ArtifactType)
-    else:
-        new = ActionType.__new__(ActionType)
-    new.card = None
-    return new
-
-
-def _make_slot_copier(slots):
-    """`copy(old, new)`: `new.<slot> = old.<slot>` for each of `slots`,
-    compiled as straight-line attribute assignments -- about twice as fast
-    as a getattr/setattr loop over the names, and `Game.copy()` runs it for
-    every card on every search simulation."""
-    src = "def copy(old, new):\n" + "".join(f"    new.{s} = old.{s}\n" for s in slots)
-    namespace: dict = {}
+def _make_card_copier():
+    """`_copy_card(old)`, generated as one straight-line function: every
+    `Card` slot assigned in turn, the type object rebuilt by its exact class
+    (no subclasses exist), the two per-card lists copied. `Game.copy()`
+    runs it for every card on every search simulation, and three Python
+    calls per card (the old slot copier, type-object copier and wrapper)
+    were a third of its cost."""
+    slots = [s for s in Card.__slots__ if s not in ("type_object", "extra_triggers", "under_cards")]
+    creature = "".join(f"        nt.{s} = t.{s}\n" for s in CreatureType.__slots__ if s != "upgrades")
+    src = (
+        "def _copy_card(old):\n"
+        "    new = _new(Card)\n"
+        + "".join(f"    new.{s} = old.{s}\n" for s in slots)
+        + "    t = old.type_object\n"
+        "    tt = type(t)\n"
+        "    if tt is CreatureType:\n"
+        "        nt = _new(CreatureType)\n"
+        + creature
+        + "        nt.upgrades = t.upgrades[:]  # Card refs fixed up in _relink_card\n"
+        "    elif tt is UpgradeType:\n"
+        "        nt = _new(UpgradeType)\n"
+        "        nt.host = t.host  # Card ref fixed up in _relink_card\n"
+        "    elif tt is ArtifactType:\n"
+        "        nt = _new(ArtifactType)\n"
+        "    else:\n"
+        "        nt = _new(ActionType)\n"
+        "    new.type_object = nt\n"
+        "    new.extra_triggers = {k: v[:] for k, v in old.extra_triggers.items()}\n"
+        "    new.under_cards = old.under_cards[:]\n"
+        "    return new\n"
+    )
+    namespace = {"_new": object.__new__, "Card": Card, "CreatureType": CreatureType, "UpgradeType": UpgradeType,
+                 "ArtifactType": ArtifactType, "ActionType": ActionType}
     exec(src, namespace)
-    return namespace["copy"]
-
-
-# Every `Card` slot except the three `_copy_card` rebuilds itself.
-_copy_card_slots = _make_slot_copier([s for s in Card.__slots__ if s not in ("type_object", "extra_triggers", "under_cards")])
-
-
-def _copy_card(old: Card) -> Card:
-    """A fresh `Card` with the same instance_id and every current field
+    fn = namespace["_copy_card"]
+    fn.__doc__ = """A fresh `Card` with the same instance_id and every current field
     value, sharing `card_def` (immutable, printed-card data). Cross-card
     references (`type_object.upgrades`/`.host`, `purged_by`,
-    `redirect_fight_damage_to`, `under_cards`) still point at the OLD
-    game's cards until `_relink_card` runs -- deferred because the card
-    they need to point at instead might not exist yet during this pass."""
-    new = Card.__new__(Card)
-    _copy_card_slots(old, new)
-    new.type_object = _copy_type_object(old.type_object)
-    new.type_object.card = new
-    new.extra_triggers = {k: list(v) for k, v in old.extra_triggers.items()}
-    new.under_cards = list(old.under_cards)
-    return new
+    `redirect_fight_damage_to`, `under_cards`) still point at the OLD game's
+    cards until `_relink_card` runs -- deferred because the card they need
+    to point at instead might not exist yet during this pass."""
+    return fn
+
+
+assert set(CreatureType.__slots__) == {"base_power", "base_armor", "damage", "armor_used_this_turn", "upgrades"}
+_copy_card = _make_card_copier()
 
 
 def _relink_card(new_card: Card, card_remap: Dict[int, Card]) -> None:
@@ -124,6 +122,14 @@ def _relink_card(new_card: Card, card_remap: Dict[int, Card]) -> None:
         new_card.type_object.upgrades = [card_remap[id(c)] for c in new_card.type_object.upgrades]
     elif isinstance(new_card.type_object, UpgradeType) and new_card.type_object.host is not None:
         new_card.type_object.host = card_remap[id(new_card.type_object.host)]
+
+
+def _attach_zones(player, journal) -> None:
+    """Wires a player's zones to the game's journal (O1)."""
+    pid = player.id
+    for kind in ("deck", "hand", "discard", "archive", "purged"):
+        getattr(player, kind).attach(journal, kind, pid)
+    player.play_area.attach(journal, "play_area", pid)
 
 
 def _copy_zone_cards(cards: List[Card], card_remap: Dict[int, Card]) -> List[Card]:
@@ -214,8 +220,13 @@ class Game:
         # `state_hash`: every draw is a pure function of it plus the seed.
         self._rng_counters: dict = {}
         self.players = {1: Player(1), 2: Player(2)}
+        # Every move of a card between zones (Agent Observation Plan O1).
+        self.journal = Journal(self)
+        for p in self.players.values():
+            _attach_zones(p, self.journal)
         self.active_effects = ActiveEffectList()
         self.log = GameLog()
+        self.journal._events = self.log.events
         self.choice_log: list = []
         # The same choices as option indices (see keyforge/replay.py): with
         # the config's seed, this reproduces the game exactly.
@@ -241,6 +252,9 @@ class Game:
         # actually took the damage (MRB 18.3 FAQ, Shadow Self / Special
         # Delivery).
         self._redirected_hits: List[Card] = []
+        # instance ids of the cards whose abilities are resolving, innermost
+        # last: the journal's `cause` (O1). Not part of state_hash.
+        self._causes: List[int] = []
         self._elusive_suppressed = False  # Sniffer: "for the remainder of the turn, each creature loses elusive"
         # Populated once in _setup: the decklist never changes mid-game, so
         # player_houses() doesn't need to recompute it on every call.
@@ -264,7 +278,9 @@ class Game:
     def _new_driver(self):
         if self.execution == "compiled":
             vm.load_compiled()
-            return vm.MachineDriver(vm.Machine.calling(self._run))
+            self._machine = vm.Machine.calling(self._run)
+            return vm.MachineDriver(self._machine)
+        self._machine = None
         return self._run()
 
     # ---------------------------------------------------------- driver ----
@@ -283,6 +299,21 @@ class Game:
             raise ValueError(f"Invalid choice {choice!r} for decision {self.pending_decision}")
         self.choice_log.append(choice)
         self.choice_record.append(encode_choice(self.pending_decision, choice))
+        self.journal.decision(self.pending_decision, self.choice_record[-1])
+        self._advance(choice)
+
+    def _advance(self, choice) -> None:
+        """Delivers `choice` to the suspended rules and runs them to the
+        next decision (or the end)."""
+        m = self._machine
+        if m is not None:  # compiled: the machine directly, no driver layer
+            decision = m.run(choice)
+            if m.done:
+                self.is_over = True
+                self.pending_decision = None
+            else:
+                self.pending_decision = decision
+            return
         try:
             self.pending_decision = self._driver.send(choice)
         except StopIteration:
@@ -312,11 +343,8 @@ class Game:
         # here is usually an element of the CALLER's own record/list, and
         # `choice_record` must never alias it.
         self.choice_record.append(list(encoded) if isinstance(encoded, list) else encoded)
-        try:
-            self.pending_decision = self._driver.send(choice)
-        except StopIteration:
-            self.is_over = True
-            self.pending_decision = None
+        self.journal.decision(self.pending_decision, self.choice_record[-1])
+        self._advance(choice)
 
     def view_for(self, pid: int):
         return build_view(self, pid)
@@ -341,6 +369,12 @@ class Game:
         counter = self._rng_counters.get(key, 0)
         self._rng_counters[key] = counter + 1
         return derive_rng(self.config.seed, player, kind, counter)
+
+    def projected(self, viewer: Optional[int]) -> list:
+        """`viewer`'s projection of the game so far -- the zone journal,
+        the log and the decisions as `viewer` saw them (keyforge/
+        projection.py; None: privileged). Append-only; don't change it."""
+        return projected(self, viewer)
 
     def state_hash(self) -> str:
         """A canonical hash over everything that affects future play --
@@ -384,7 +418,20 @@ class Game:
         hidden state and RNG future: replaying the same config and
         `choice_record` reproduces a game byte-for-byte (Milestone A), so
         this is just that. PRIVILEGED -- a normal agent handed this could
-        search its own future draws and the opponent's true hand."""
+        search its own future draws and the opponent's true hand.
+
+        A copy wherever a copy is valid (every decision in compiled
+        execution, Part R, R6), else a replay -- the same game either way;
+        `fork_by_replay` is the replay, kept as the cross-check."""
+        # (native fork() stays a replay: a native copy is boundary-only and
+        # re-runs the turn to rebuild its pending decision)
+        if self.execution == "compiled" and self.copy_anywhere:
+            return self.copy()
+        return self.fork_by_replay()
+
+    def fork_by_replay(self) -> "Game":
+        """`fork()` by replaying the config and `choice_record` from the
+        start: valid at any decision in either execution mode."""
         return replay(self.config, self.choice_record, execution=self.execution)
 
     def fork_determinized(
@@ -422,14 +469,10 @@ class Game:
         elif backend == "auto":
             fork = self._fork_from_snapshot()
         elif backend == "replay":
-            fork = self.fork()
+            fork = self.fork_by_replay()
         else:
             raise ValueError(f"fork_determinized: unknown backend {backend!r}")
-        opponent = 3 - viewer
-        if resample in (Resample.OWN_DECK, Resample.ALL):
-            fork._resample_own_deck(viewer, rng)
-        if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
-            fork._resample_hidden_pool(opponent, viewer, rng)
+        fork._redeal(viewer, rng, resample)
         # A fresh, independent seed drawn from the caller's own `rng` --
         # portability doesn't matter here (this value is never itself
         # replayed as an engine-internal draw), only that it decorrelates
@@ -463,22 +506,29 @@ class Game:
             self._fork_snapshot = (latest, snapshot.apply(record[start:latest]))
         return world
 
-    def _resample_own_deck(self, pid: int, rng: random.Random) -> None:
+    def _resample_own_deck(self, pid: int, rng: random.Random) -> Dict[Card, Card]:
+        """Reshuffles `pid`'s deck in place. Returns sigma: each card -> the
+        card now at its position."""
         player = self.players[pid]
         cards = player.deck.cards()
-        if len(cards) > 1:
-            portable_shuffle(rng, cards)
-        player.deck = Deck(cards)
+        new = list(cards)
+        if len(new) > 1:
+            portable_shuffle(rng, new)
+        player.deck._cards = collections.deque(new)
+        return {a: b for a, b in zip(cards, new) if a is not b}
 
-    def _resample_hidden_pool(self, pid: int, viewer: int, rng: random.Random) -> None:
+    def _resample_hidden_pool(self, pid: int, viewer: int, rng: random.Random) -> Dict[Card, Card]:
         """Redistributes `pid`'s hand + archive + deck among themselves,
         preserving each zone's count, except any hand card `viewer`
-        currently has revealed to them (`hand_revealed_to`)."""
+        currently has revealed to them (`hand_revealed_to`). Returns sigma:
+        each card -> the card now at its position (zone and index)."""
         player = self.players[pid]
         hand_cards = player.hand.cards()
+        archive_cards = player.archive.cards()
+        deck_cards = player.deck.cards()
         revealed = viewer in player.hand_revealed_to
         fixed = hand_cards if revealed else []
-        pool = ([] if revealed else list(hand_cards)) + player.archive.cards() + player.deck.cards()
+        pool = ([] if revealed else list(hand_cards)) + archive_cards + deck_cards
         portable_shuffle(rng, pool)
         n_hand = len(hand_cards) - len(fixed)
         n_archive = len(player.archive)
@@ -491,7 +541,81 @@ class Game:
             player.archive.remove(c)
         for c in new_archive:
             player.archive.add(c)
-        player.deck = Deck(new_deck)
+        player.deck._cards = collections.deque(new_deck)
+        sigma = {}
+        for old, new in ((hand_cards, new_hand), (archive_cards, new_archive), (deck_cards, new_deck)):
+            sigma.update({a: b for a, b in zip(old, new) if a is not b})
+        return sigma
+
+    def _redeal(self, viewer: int, rng: random.Random, resample: Resample) -> None:
+        """Re-deals what `viewer` doesn't know (`resample`, see
+        `fork_determinized`), in place, and relabels what is still resolving
+        to match."""
+        sigma: Dict[Card, Card] = {}
+        if resample in (Resample.OWN_DECK, Resample.ALL):
+            sigma.update(self._resample_own_deck(viewer, rng))
+        if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
+            sigma.update(self._resample_hidden_pool(3 - viewer, viewer, rng))
+        if self.execution == "compiled" and not self.is_over:
+            self._relabel(sigma)
+
+    def _relabel(self, sigma: Dict[Card, Card]) -> None:
+        """Applies a re-deal's sigma to what is still resolving (Part R, R7;
+        plan O3): every card a suspended frame or the pending decision holds
+        that the re-deal moved is replaced by the card now in its place, so
+        an effect choosing among "their hand" still chooses among their
+        hand. The engine's own containers were rebuilt by the re-deal and
+        are left alone. (A native game can't do this: its frames are
+        generators.)"""
+        if not sigma:
+            return
+        from .copying import container_index
+
+        engine = container_index(self)
+        seen = set()
+
+        def walk(x):
+            t = type(x)
+            if t is Card:
+                return sigma.get(x, x)
+            if t is list or t is dict or t is set:
+                if id(x) in seen or id(x) in engine:
+                    return x
+                seen.add(id(x))
+                if t is list:
+                    x[:] = [walk(v) for v in x]
+                elif t is dict:
+                    for k in list(x):
+                        x[k] = walk(x[k])
+                else:
+                    items = [walk(v) for v in x]
+                    x.clear()
+                    x.update(items)
+                return x
+            if t is tuple:
+                return tuple(walk(v) for v in x)
+            if t is frozenset:
+                return frozenset(walk(v) for v in x)
+            if t is types.CellType:
+                if id(x) not in seen:
+                    seen.add(id(x))
+                    try:
+                        x.cell_contents = walk(x.cell_contents)
+                    except ValueError:
+                        pass
+                return x
+            if t in (PlayCard, DiscardCard, UseAction, UseOmni, Reap, Fight):
+                new = sigma.get(x.card)
+                return t(new) if new is not None else x
+            return x
+
+        for fr in self._machine.stack:
+            fr.L[:] = [walk(v) for v in fr.L]
+        d = self.pending_decision
+        if d is not None:
+            d.options = walk(d.options)
+            if isinstance(d.source_card, Card):
+                d.source_card = sigma.get(d.source_card, d.source_card)
 
     def _branch_seed(self, index: int) -> int:
         """A deterministic per-branch seed derived from this game's own
@@ -525,6 +649,42 @@ class Game:
             self.submit_index(encoded)
         return self
 
+    def resolution_view(self, viewer: int):
+        """What is still left to resolve, for `viewer` (Part R, R7; see
+        keyforge/resolution.py): one entry per suspended frame, top first,
+        with what the viewer may not see redacted. Compiled execution only."""
+        from .resolution import resolution_view
+
+        return resolution_view(self, viewer)
+
+    def snapshot(self) -> bytes:
+        """This game, serialized: canonical, versioned, pickle-free bytes
+        (keyforge/snapshot.py). Valid at any decision in compiled execution,
+        at a boundary decision in native execution."""
+        from .snapshot import snapshot
+
+        return snapshot(self)
+
+    @staticmethod
+    def restore(data: bytes) -> "Game":
+        """The game `snapshot()` serialized, ready to continue."""
+        from .snapshot import restore
+
+        return restore(data)
+
+    def release(self) -> None:
+        """Declares that this game will not be played any further (a
+        search's world, once its simulation is backed up): drops the driver
+        that holds the game in a reference cycle, so the whole game is freed
+        as soon as the last reference goes, instead of waiting for the
+        cyclic garbage collector -- which was a third of what a search paid
+        per copy. Its state stays readable; `submit` raises."""
+        self._driver = None
+        self._machine = None
+        self._fork_snapshot = None
+        self.pending_decision = None
+        self.is_over = True
+
     @property
     def copy_anywhere(self) -> bool:
         """Whether `copy()` is valid at the current decision: always in
@@ -534,7 +694,7 @@ class Game:
         if self.is_over:
             return True
         if self.execution == "compiled":
-            return self._driver.machine.copyable
+            return self._machine.copyable
         return self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS
 
     def copy(self) -> "Game":
@@ -571,6 +731,7 @@ class Game:
         new.is_over = self.is_over
         new.result = dict(self.result) if self.result is not None else None
         new._elusive_suppressed = self._elusive_suppressed
+        new._causes = list(self._causes)
         new._player_houses_cache = dict(self._player_houses_cache)
         new._fork_snapshot = None  # a branch builds its own if it is ever forked
 
@@ -592,9 +753,13 @@ class Game:
             _relink_card(new_card, card_remap)
 
         new.players = {pid: _copy_player(p, card_remap) for pid, p in self.players.items()}
+        new.journal = self.journal.copy_into(new)
+        for p in new.players.values():
+            _attach_zones(p, new.journal)
 
         new.log = GameLog()
         new.log.events = list(self.log.events)
+        new.journal._events = new.log.events
         for kind_, events in self.log.by_kind.items():
             new.log.by_kind[kind_] = list(events)
 
@@ -616,17 +781,23 @@ class Game:
             for source_iid, entries in self._temp_control.items()
         }
 
-        new.choice_log = list(self.choice_log)
+        # The live choices `submit` saw are this object's own history, not
+        # game state: a copy starts without them, as a replay fork does
+        # (`submit_index` never records there). Before Part R a copy shared
+        # the original's, which named the original game's cards.
+        new.choice_log = []
         # Shallow: a recorded choice is never changed once appended (both
         # games only ever append), so the copy can share the entries.
         new.choice_record = list(self.choice_record)
 
+        new._machine = None
         if self.is_over:
             new._driver = iter(())
             new.pending_decision = None
         elif self.execution == "compiled":
             machine = vm.Machine()
-            machine.stack = [remapper.frame(fr) for fr in self._driver.machine.stack]
+            machine.stack = [remapper.frame(fr) for fr in self._machine.stack]
+            new._machine = machine
             new._driver = vm.MachineDriver(machine)
             new.pending_decision = remapper.remap(self.pending_decision)
         else:
@@ -869,7 +1040,7 @@ class Game:
             self._player_houses_cache[pid] = sorted({c.house for c in cards}, key=lambda h: h.value)
             for c in cards:
                 self._cards_by_id[c.instance_id] = c
-            self.players[pid].deck = Deck(cards)
+            self.players[pid].deck.put_all(cards, op="deal")
             self.players[pid].deck.shuffle(self.event_rng("deck_shuffle", pid))
             if self.config.starting_chains:
                 self.players[pid].chains = self.config.starting_chains.get(pid, 0)
@@ -1131,6 +1302,7 @@ class Game:
         see `target_pid`'s hand through `view.build_view`, until the end
         of the current turn."""
         self.players[target_pid].hand_revealed_to.add(viewer_pid)
+        self.journal.reveal_hand(target_pid, viewer_pid)
         self.log.add(
             "reveal_hand", player=target_pid, viewer=viewer_pid,
             source=(source.name if source is not None else None),
@@ -1146,6 +1318,8 @@ class Game:
         for p in self.players.values():
             for c in p.play_area.creatures:
                 c.type_object.armor_used_this_turn = 0
+            for viewer in sorted(p.hand_revealed_to):
+                self.journal.reveal_hand(p.id, viewer, revealed=False)
             p.hand_revealed_to.clear()
         player.reset_turn_counters()
         self.active_effects.end_of_turn_tick()
@@ -1689,6 +1863,7 @@ class Game:
         elif card.type == CardType.UPGRADE:
             card.type_object.host = host
             host.type_object.upgrades.append(card)
+            self.journal.enter(card, ("attached", host.instance_id), "attach")
             # `card.controller` stays `pid` (the player who attached it,
             # set above) rather than snapping to the host's controller --
             # an upgrade can attach to an enemy creature (Collar of
@@ -1737,7 +1912,7 @@ class Game:
         for step_name in order:
             if step_name == "effect":
                 if card.card_def.on_play is not None:
-                    yield from card.card_def.on_play(self, card)
+                    yield from self._caused(card, card.card_def.on_play, card)
             else:
                 yield from self._run_play_trigger_check(card)
 
@@ -1757,7 +1932,7 @@ class Game:
         else:
             ordered = triggers
         for trig in ordered:
-            yield from trig.handler(self, {"player": event_player, "card": card})
+            yield from self._caused(trig.source_card, trig.handler, {"player": event_player, "card": card})
 
     def play_card_from_deck_top(self, player: Player, top_card: Card, ignore_house: bool = True, source=None):
         reason = self._effect_play_refusal(player, top_card)
@@ -1834,7 +2009,7 @@ class Game:
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
         self.log.add("use_action", player=pid, card=card.name, iid=card.instance_id)
         effect = card.card_def.on_action or card.granted_action
-        yield from effect(self, card)
+        yield from self._caused(card, effect, card)
         if card.type == CardType.ARTIFACT:
             yield from self._fire_event("artifact_used", {"player": pid, "card": card})
 
@@ -1847,7 +2022,7 @@ class Game:
         card.Exhausted = True
         player.used_this_turn[card.name] = player.used_this_turn.get(card.name, 0) + 1
         self.log.add("use_omni", player=pid, card=card.name, iid=card.instance_id)
-        yield from card.card_def.on_omni(self, card)
+        yield from self._caused(card, card.card_def.on_omni, card)
         if card.type == CardType.ARTIFACT:
             yield from self._fire_event("artifact_used", {"player": pid, "card": card})
 
@@ -1866,9 +2041,9 @@ class Game:
         yield from self._fire_event("reap_resolved", {"card": card})
         cdef = card.card_def
         if cdef.on_reap is not None:
-            yield from cdef.on_reap(self, card)
+            yield from self._caused(card, cdef.on_reap, card)
         for extra in list(card.extra_triggers.get("after_reap", [])):
-            yield from extra(self, card)
+            yield from self._caused(card, extra, card)
 
     def _fight(self, pid: int, attacker: Card, exclude=frozenset()):
         """Returns the creature `attacker` actually fought (even if the
@@ -1928,7 +2103,7 @@ class Game:
         # the destroyed-check after it covers everyone in play, not just
         # attacker/target.
         if attacker.card_def.on_before_fight is not None:
-            yield from attacker.card_def.on_before_fight(self, attacker, target)
+            yield from self._caused(attacker, attacker.card_def.on_before_fight, attacker, target)
             destroyed = yield from self.check_destroyed(self.all_creatures("any", attacker))
             if attacker in destroyed or target in destroyed:
                 return target
@@ -2015,16 +2190,16 @@ class Game:
             elif target in destroyed and attacker not in destroyed:
                 survivor, victim = attacker, target
             if survivor is not None and survivor.card_def.on_destroyed_fighting is not None:
-                yield from survivor.card_def.on_destroyed_fighting(self, survivor, victim)
+                yield from self._caused(survivor, survivor.card_def.on_destroyed_fighting, survivor, victim)
 
             if attacker in destroyed:
                 return target
 
         cdef = attacker.card_def
         if cdef.on_fight is not None:
-            yield from cdef.on_fight(self, attacker)
+            yield from self._caused(attacker, cdef.on_fight, attacker)
         for extra in list(attacker.extra_triggers.get("after_fight", [])):
-            yield from extra(self, attacker)
+            yield from self._caused(attacker, extra, attacker)
         return target
 
     def use_creature_ability(self, card: Card):
@@ -2150,6 +2325,7 @@ class Game:
         if host is None or upgrade_card not in host.type_object.upgrades:
             return False
         host.type_object.upgrades.remove(upgrade_card)
+        self.journal.leave(upgrade_card, ("attached", host.instance_id), "detach")
         if upgrade_card.card_def.unregister_passive is not None:
             upgrade_card.card_def.unregister_passive(self, upgrade_card)
         self.players[upgrade_card.owner].discard.push(upgrade_card)
@@ -2204,9 +2380,9 @@ class Game:
         for item in ordered:
             if isinstance(item, tuple):
                 _, c, extra = item
-                yield from extra(self, c)
+                yield from self._caused(c, extra, c)
             else:
-                yield from item.card_def.on_destroyed(self, item)
+                yield from self._caused(item, item.card_def.on_destroyed, item)
         # A "each time a creature is destroyed" source (Soul Snatcher, Tolas)
         # that is itself destroyed in this same batch does not trigger at
         # all for the batch -- it isn't around to see any of it happen,
@@ -2219,6 +2395,21 @@ class Game:
         for c in batch:
             self._move_destroyed_card(c)
         return batch
+
+    def _caused(self, source, fn, a, b=None):
+        """Runs one ability, `fn(self, a[, b])` (`b` is never None where
+        given: a fight's target or victim), with `source` as the cause of
+        every zone move it makes (the journal's `cause`, O1)."""
+        # (`self._causes` at each use, never a local: a copy of a suspended
+        # frame must pop its own game's stack)
+        self._causes.append(source.instance_id if source is not None else None)
+        try:
+            if b is None:
+                yield from fn(self, a)
+            else:
+                yield from fn(self, a, b)
+        finally:
+            self._causes.pop()
 
     def _fire_event(self, event_name: str, event_data: dict, exclude_sources=None):
         """Yields from every registered TriggerEffect for `event_name`
@@ -2235,7 +2426,7 @@ class Game:
         else:
             ordered = triggers
         for trig in ordered:
-            yield from trig.handler(self, event_data)
+            yield from self._caused(trig.source_card, trig.handler, event_data)
 
     def _move_destroyed_card(self, card: Card):
         owner = self.players[card.owner]
@@ -2274,6 +2465,7 @@ class Game:
                 if upg.card_def.unregister_passive is not None:
                     upg.card_def.unregister_passive(self, upg)
                 owner = self.players[upg.owner]
+                self.journal.leave(upg, ("attached", card.instance_id), "detach")
                 owner.discard.push(upg)
                 upg.reset_on_leave_play()
         if card.aember_captured > 0:
@@ -2288,6 +2480,7 @@ class Game:
             self.log.add("aember_stored_lost", card=card.name, iid=card.instance_id, amount=card.aember_stored)
         if card.under_cards:
             for under in card.under_cards:
+                self.journal.leave(under, ("under", card.instance_id), "take_under")
                 self.players[under.owner].discard.push(under)
                 self.log.add("destroyed", card=under.name, iid=under.instance_id, destination="discard")
             card.under_cards = []
@@ -2414,7 +2607,7 @@ class Game:
             player=as_pid, card=card.name, iid=card.instance_id, as_if_yours=(as_pid != original_controller),
         )
         try:
-            yield from ability(self, card)
+            yield from self._caused(card, ability, card)
         finally:
             card.controller = original_controller
         if card.type == CardType.ARTIFACT:

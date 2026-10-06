@@ -98,13 +98,9 @@ class TestOzmoIntentDisambiguation(unittest.TestCase):
         checks the *engine's* tagging, not just the bot's handling of a
         hand-built Decision (see test_heuristic_bot.py for that side).
 
-        `ozmo`'s own target filter checks `"Mars" in c.tags` (a literal tag
-        no card in this pool actually carries -- see
-        test_cards_logos_phase2.py's test_ozmo_is_elusive_and_has_no_valid_
-        target_in_this_pool, which documents this as existing, accepted
-        behavior). That's a pool/rules question outside this plan's scope,
-        so this test satisfies the filter with synthetic Mars-tagged
-        creatures rather than changing it.
+        The targets are synthetic house-Mars creatures (Ozmo targets a
+        creature of house Mars; the full pool's real ones are tested in
+        test_cards_logos_phase2.py).
         """
         from tests.helpers import new_game, put_creature
         from keyforge.cards.card import Card, CardDef

@@ -15,6 +15,7 @@ After every submit the two must agree on:
 - every new log event: kind, data, who may see it and its private fields;
 - the journal's new entries, once both engines keep one (Milestone O1);
 - the keyed-RNG counters and the choice record;
+- in compiled execution, that nothing on the stack is a NativeFrame;
 - and, every `--hash-every` decisions and at the end, the whole canonical
   state (`state_hash`'s input, minus the engine version string).
 
@@ -116,10 +117,47 @@ class Engine:
         return state
 
 
+def approximate(state):
+    """A canonical state in the frozen reference's approximations, for
+    comparing an exact-hash engine with it (Part R, R1 made the hash exact):
+    a callable is `"<callable>"`, an effect's handler isn't hashed, a
+    condition is only whether there is one, and pending cleanups are
+    counted."""
+
+    def walk(x):
+        if isinstance(x, dict):
+            if "__fn__" in x or "__method__" in x or "__callable__" in x:
+                return "<callable>"
+            return {k: walk(v) for k, v in x.items()}
+        if isinstance(x, list):
+            return [walk(v) for v in x]
+        return x
+
+    out = walk(state)
+    if not isinstance(out, dict):
+        return out
+    eff = out.get("active_effects")
+    if isinstance(eff, dict):
+        for kind in ("trigger", "instead", "modifier"):
+            for e in eff.get(kind, []):
+                e.pop("handler", None)
+        for e in eff.get("duration", []):
+            if not isinstance(e.get("conditional"), bool):
+                e["conditional"] = e.get("conditional") is not None
+    if isinstance(out.get("pending_cleanups"), list):
+        out["pending_cleanups"] = len(out["pending_cleanups"])
+    return out
+
+
 def _game_of(obj):
     """The `Game` a handle is currently playing: itself, or a match's
     current game."""
     return getattr(obj, "current_game", obj) if not hasattr(obj, "players") else obj
+
+
+def _vm_enabled() -> bool:
+    from keyforge import vm
+    return vm._ENABLED
 
 
 class Lockstep:
@@ -150,6 +188,8 @@ class Lockstep:
             self.fail("log length", len(ea), len(eb))
         for i in range(start, len(ea)):
             xa, xb = self.a.event(ea[i]), self.b.event(eb[i])
+            if self.a.package != self.b.package:
+                xa, xb = approximate(xa), approximate(xb)
             if xa != xb:
                 self.fail(f"log event {i}", xa, xb)
         self._log_seen[key] = len(ea)
@@ -162,12 +202,19 @@ class Lockstep:
                 if tuple(ja[i]) != tuple(jb[i]):
                     self.fail(f"journal entry {i}", ja[i], jb[i])
             self._journal_seen[key] = len(ja)
+        for eng, g in ((self.a, ga), (self.b, gb)):
+            m = getattr(g, "_machine", None)
+            # (inside `vm.disabled()` every frame is native by design)
+            if eng.mode == "compiled" and m is not None and not m.copyable and _vm_enabled():
+                self.fail("a NativeFrame in compiled execution", [type(f).__name__ for f in m.stack], "")
         if ga._rng_counters != gb._rng_counters:
             self.fail("rng counters", ga._rng_counters, gb._rng_counters)
         if ga.choice_record != gb.choice_record:
             self.fail("game choice record", ga.choice_record[-3:], gb.choice_record[-3:])
         if full:
             sa, sb = self.a.state(ga), self.b.state(gb)
+            if self.a.package != self.b.package:
+                sa, sb = approximate(sa), approximate(sb)
             if sa != sb:
                 for k in sa:
                     if sa.get(k) != sb.get(k):
@@ -178,6 +225,8 @@ class Lockstep:
         if self.ga.is_over != self.gb.is_over:
             self.fail("is_over", self.ga.is_over, self.gb.is_over)
         da, db = self.a.decision(self.ga.pending_decision), self.b.decision(self.gb.pending_decision)
+        if self.a.package != self.b.package:
+            da, db = approximate(da), approximate(db)
         if da != db:
             self.fail("pending decision", da, db)
         if self.ga.choice_record != self.gb.choice_record:

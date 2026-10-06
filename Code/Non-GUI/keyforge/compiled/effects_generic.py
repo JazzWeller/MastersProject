@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/generic.py'
-SOURCE_SHA256 = '9f30eec34b5cba790cb73f56d328800eae67a434d27361034e860dc4c6261673'
+SOURCE_SHA256 = 'bcc831df94abea2af5823860d535308b7eadab85ebff837d749d850cf853bbcd'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -16,7 +16,7 @@ _kf_U = None
 
 
 def _kfmk_gain_n__effect(_kfN, _kfR):
-  def _kfr_gain_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_gain_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:24 gain_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -44,7 +44,7 @@ def _kfmk_gain_n__effect(_kfN, _kfR):
 
 
 def _kfmk_opponent_gain_n__effect(_kfN, _kfR):
-  def _kfr_opponent_gain_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_opponent_gain_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:33 opponent_gain_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -72,7 +72,7 @@ def _kfmk_opponent_gain_n__effect(_kfN, _kfR):
 
 
 def _kfmk_lose_n__effect(_kfN, _kfR):
-  def _kfr_lose_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_lose_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:42 lose_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -100,7 +100,7 @@ def _kfmk_lose_n__effect(_kfN, _kfR):
 
 
 def _kfmk_steal_n__effect(_kfN, _kfR):
-  def _kfr_steal_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_steal_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:51 steal_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -128,7 +128,7 @@ def _kfmk_steal_n__effect(_kfN, _kfR):
 
 
 def _kfmk_archive_n__effect(_kfN, _kfR):
-  def _kfr_archive_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_archive_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:60 archive_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = i = options = player = what = _kfs0 = _kfi1 = _kf_U
@@ -140,7 +140,7 @@ def _kfmk_archive_n__effect(_kfN, _kfR):
     if not _pc:
         player = controller_of(game, card)
     if not _pc:
-        _kfs0 = _kf_seq(range(_kfc_n.cell_contents))
+        _kfs0 = range(_kfc_n.cell_contents)
         _kfi1 = 0
     while (not _pc and _kfi1 < len(_kfs0)) or _pc == 1:
         if not _pc:
@@ -153,7 +153,7 @@ def _kfmk_archive_n__effect(_kfN, _kfR):
                 break
             options = player.hand.cards()
         if not _pc:
-            _sent = _kf_step(game.choose_cards)(player.id, f'Archive a card ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY)
+            _sent = (_kfgm_choose_cards(game, player.id, f'Archive a card ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'Archive a card ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.ARCHIVE, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, choice, i, options, player, what, _kfc_n, _kfs0, _kfi1])
@@ -173,7 +173,7 @@ def _kfmk_archive_n__effect(_kfN, _kfR):
 
 
 def _kfmk_draw_n__effect(_kfN, _kfR):
-  def _kfr_draw_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_draw_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:78 draw_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -201,7 +201,7 @@ def _kfmk_draw_n__effect(_kfN, _kfR):
 
 
 def _kfmk_heal_self_n__effect(_kfN, _kfR):
-  def _kfr_heal_self_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_heal_self_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:87 heal_self_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -229,7 +229,7 @@ def _kfmk_heal_self_n__effect(_kfN, _kfR):
 
 
 def _kfmk_capture_n__effect(_kfN, _kfR):
-  def _kfr_capture_n__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_capture_n__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:96 capture_n.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_n = _kf_closure[0]
@@ -257,7 +257,7 @@ def _kfmk_capture_n__effect(_kfN, _kfR):
 
 
 def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
-  def _kfr_deal_damage_to_chosen__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_deal_damage_to_chosen__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:105 deal_damage_to_chosen.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = hit = kind = options = player = _kf_U
@@ -275,7 +275,7 @@ def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
             steps.shortfall(game, card, f'deals no damage: there are no {kind} in play', 'No creature to damage')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_n.cell_contents} damage ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY))
+        _sent = (_kfgm_choose_cards(game, player.id, f'Deal {_kfc_n.cell_contents} damage ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_n.cell_contents} damage ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, hit, kind, options, player, _kfc_n, _kfc_targets])
@@ -292,7 +292,7 @@ def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
     if not _pc:
         hit = steps.deal_damage(game, choice[0], _kfc_n.cell_contents)
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([hit] if hit is not None else [])
+        _sent = (_kfgm_check_destroyed(game, [hit] if hit is not None else []) if type(game) is _kfGame else _kf_step(game.check_destroyed)([hit] if hit is not None else []))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, choice, hit, kind, options, player, _kfc_n, _kfc_targets])
@@ -309,7 +309,7 @@ def _kfmk_deal_damage_to_chosen__effect(_kfN, _kfR):
 
 
 def _kfmk_move_aember_to_card__effect(_kfN, _kfR):
-  def _kfr_move_aember_to_card__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_move_aember_to_card__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:129 move_aember_to_card.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         amount = player = _kf_U
@@ -345,27 +345,27 @@ def _kfmk_move_aember_to_card__effect(_kfN, _kfR):
 
 
 def _kfmk_reveal_from_hand(_kfN, _kfR):
-  def _kfr_reveal_from_hand(game=_kf_U, player=_kf_U, predicate=_kf_U, prompt=_kf_U, source_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
+  def _kfr_reveal_from_hand(game=_kf_U, player=_kf_U, predicate=_kf_U, prompt=_kf_U, source_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
     # effects/generic.py:144 reveal_from_hand
     if _kfF is None:  # a fresh call: Python bound the arguments
-        choice = options = _kf_U
+        c = choice = options = _kf_U
         _pc = 0
     else:  # resuming a suspended frame
-        (game, player, predicate, prompt, source_card, choice, options,) = _kfF.L
+        (game, player, predicate, prompt, source_card, c, choice, options,) = _kfF.L
         _pc = _kfF.pc
     if not _pc:
         options = [c for c in player.hand.cards() if predicate(c)]
         if not options:
             return []
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, prompt, options, 0, len(options), source_card=source_card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY, optional=True)
+        _sent = (_kfgm_choose_cards(game, player.id, prompt, options, 0, len(options), source_card=source_card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY, optional=True) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, prompt, options, 0, len(options), source_card=source_card, intent=DecisionIntent.REVEAL, affects=Affects.FRIENDLY, optional=True))
         if type(_sent) is _kf_S:
             if _kfF is None:
-                _kfF = _kf_Frame(_kfR, [game, player, predicate, prompt, source_card, choice, options])
+                _kfF = _kf_Frame(_kfR, [game, player, predicate, prompt, source_card, c, choice, options])
                 _kfF.pc = 1
                 _sent.frames.append(_kfF)
             else:
-                _kfF.L = [game, player, predicate, prompt, source_card, choice, options]
+                _kfF.L = [game, player, predicate, prompt, source_card, c, choice, options]
                 _kfF.pc = 1
             return _sent
         choice = _sent
@@ -374,14 +374,16 @@ def _kfmk_reveal_from_hand(_kfN, _kfR):
         choice = _sent
     if choice:
         game.log.add('reveal', player=player.id, cards=[c.name for c in choice], iids=[c.instance_id for c in choice])
+        for c in choice:
+            game.journal.reveal(c)
     return choice
     return None
   return _kfr_reveal_from_hand
 
 
 def _kfmk_choose_most_powerful(_kfN, _kfR):
-  def _kfr_choose_most_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
-    # effects/generic.py:162 choose_most_powerful
+  def _kfr_choose_most_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
+    # effects/generic.py:164 choose_most_powerful
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = max_power = tied = _kf_U
         _pc = 0
@@ -396,7 +398,7 @@ def _kfmk_choose_most_powerful(_kfN, _kfR):
         if len(tied) == 1:
             return tied[0]
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.SPARE, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.SPARE, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.SPARE, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, pid, creatures, prompt, source_card, choice, max_power, tied])
@@ -416,8 +418,8 @@ def _kfmk_choose_most_powerful(_kfN, _kfR):
 
 
 def _kfmk_choose_least_powerful(_kfN, _kfR):
-  def _kfr_choose_least_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
-    # effects/generic.py:180 choose_least_powerful
+  def _kfr_choose_least_powerful(game=_kf_U, pid=_kf_U, creatures=_kf_U, prompt=_kf_U, source_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
+    # effects/generic.py:182 choose_least_powerful
     if _kfF is None:  # a fresh call: Python bound the arguments
         choice = min_power = tied = _kf_U
         _pc = 0
@@ -432,7 +434,7 @@ def _kfmk_choose_least_powerful(_kfN, _kfR):
         if len(tied) == 1:
             return tied[0]
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.DESTROY, affects=Affects.ANY)
+        _sent = (_kfgm_choose_cards(game, pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.DESTROY, affects=Affects.ANY) if type(game) is _kfGame else _kf_step(game.choose_cards)(pid, prompt, tied, 1, 1, source_card=source_card, intent=DecisionIntent.DESTROY, affects=Affects.ANY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, pid, creatures, prompt, source_card, choice, min_power, tied])
@@ -452,8 +454,8 @@ def _kfmk_choose_least_powerful(_kfN, _kfR):
 
 
 def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
-  def _kfr_deal_damage_to_chosen_with_splash__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
-    # effects/generic.py:200 deal_damage_to_chosen_with_splash.<locals>.effect
+  def _kfr_deal_damage_to_chosen_with_splash__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
+    # effects/generic.py:202 deal_damage_to_chosen_with_splash.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = hits = kind = n = neighbors = options = player = target = _kf_U
         _kfc_main = _kf_closure[0]
@@ -471,7 +473,7 @@ def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
             steps.shortfall(game, card, f'deals no damage: there are no {kind} in play', 'No creature to damage')
             return
     if not _pc:
-        _sent = _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_main.cell_contents} damage with {_kfc_splash.cell_contents} splash ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY))
+        _sent = (_kfgm_choose_cards(game, player.id, f'Deal {_kfc_main.cell_contents} damage with {_kfc_splash.cell_contents} splash ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'Deal {_kfc_main.cell_contents} damage with {_kfc_splash.cell_contents} splash ({card.name})', options, 1, 1, source_card=card, intent=DecisionIntent.DAMAGE, affects=_AFFECTS_BY_SCOPE.get(_kfc_targets.cell_contents, Affects.ANY)))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, hits, kind, n, neighbors, options, player, target, _kfc_main, _kfc_splash, _kfc_targets])
@@ -493,7 +495,7 @@ def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
         for n in neighbors:
             hits.append(steps.deal_damage(game, n, _kfc_splash.cell_contents))
     if not _pc:
-        _sent = _kf_step(game.check_destroyed)([c for c in hits if c is not None])
+        _sent = (_kfgm_check_destroyed(game, [c for c in hits if c is not None]) if type(game) is _kfGame else _kf_step(game.check_destroyed)([c for c in hits if c is not None]))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, area, choice, hits, kind, n, neighbors, options, player, target, _kfc_main, _kfc_splash, _kfc_targets])
@@ -510,8 +512,8 @@ def _kfmk_deal_damage_to_chosen_with_splash__effect(_kfN, _kfR):
 
 
 def _kfmk_duration_effect__effect(_kfN, _kfR):
-  def _kfr_duration_effect__effect(game=_kf_U, card=_kf_U, *, _kfF=None, _sent=None, _kf_closure=None):
-    # effects/generic.py:228 duration_effect.<locals>.effect
+  def _kfr_duration_effect__effect(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
+    # effects/generic.py:230 duration_effect.<locals>.effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         controller = player_affected = targets = _kf_U
         _kfc_duration = _kf_closure[0]
@@ -551,21 +553,22 @@ def _kfmk_duration_effect__effect(_kfN, _kfR):
 
 
 # (qualname, first line, routine factory, slots, free variables, nested code (name, line),
-#  line of each resume id, (exception slot, resume ids inside a try region) or None)
+#  line of each resume id, (exception slot, resume ids inside a try region) or None,
+#  what each resume id waits on, the operations still reachable from each resume id)
 ROUTINES = [
-    ('gain_n.<locals>.effect', 24, _kfmk_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 27}, None),
-    ('opponent_gain_n.<locals>.effect', 33, _kfmk_opponent_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 36}, None),
-    ('lose_n.<locals>.effect', 42, _kfmk_lose_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 45}, None),
-    ('steal_n.<locals>.effect', 51, _kfmk_steal_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 54}, None),
-    ('archive_n.<locals>.effect', 60, _kfmk_archive_n__effect, ('game', 'card', 'choice', 'i', 'options', 'player', 'what', '_kfc_n', '_kfs0', '_kfi1'), ('n',), (), {1: 68}, None),
-    ('draw_n.<locals>.effect', 78, _kfmk_draw_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 81}, None),
-    ('heal_self_n.<locals>.effect', 87, _kfmk_heal_self_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 90}, None),
-    ('capture_n.<locals>.effect', 96, _kfmk_capture_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 99}, None),
-    ('deal_damage_to_chosen.<locals>.effect', 105, _kfmk_deal_damage_to_chosen__effect, ('game', 'card', 'choice', 'hit', 'kind', 'options', 'player', '_kfc_n', '_kfc_targets'), ('n', 'targets'), (), {1: 112, 2: 120}, None),
-    ('move_aember_to_card.<locals>.effect', 129, _kfmk_move_aember_to_card__effect, ('game', 'card', 'amount', 'player', '_kfc_n'), ('n',), (), {1: 139}, None),
-    ('reveal_from_hand', 144, _kfmk_reveal_from_hand, ('game', 'player', 'predicate', 'prompt', 'source_card', 'choice', 'options'), (), (), {1: 153}, None),
-    ('choose_most_powerful', 162, _kfmk_choose_most_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'max_power', 'tied'), (), (), {1: 174}, None),
-    ('choose_least_powerful', 180, _kfmk_choose_least_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'min_power', 'tied'), (), (), {1: 189}, None),
-    ('deal_damage_to_chosen_with_splash.<locals>.effect', 200, _kfmk_deal_damage_to_chosen_with_splash__effect, ('game', 'card', 'area', 'choice', 'hits', 'kind', 'n', 'neighbors', 'options', 'player', 'target', '_kfc_main', '_kfc_splash', '_kfc_targets'), ('main', 'splash', 'targets'), (), {1: 207, 2: 220}, None),
-    ('duration_effect.<locals>.effect', 228, _kfmk_duration_effect__effect, ('game', 'card', 'controller', 'player_affected', 'targets', '_kfc_duration', '_kfc_op', '_kfc_scope', '_kfc_value', '_kfc_variable'), ('duration', 'op', 'scope', 'value', 'variable'), (), {1: 244}, None),
+    ('gain_n.<locals>.effect', 24, _kfmk_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 27}, None, {1: 'decision'}, {1: ()}),
+    ('opponent_gain_n.<locals>.effect', 33, _kfmk_opponent_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 36}, None, {1: 'decision'}, {1: ()}),
+    ('lose_n.<locals>.effect', 42, _kfmk_lose_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 45}, None, {1: 'decision'}, {1: ()}),
+    ('steal_n.<locals>.effect', 51, _kfmk_steal_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 54}, None, {1: 'decision'}, {1: ()}),
+    ('archive_n.<locals>.effect', 60, _kfmk_archive_n__effect, ('game', 'card', 'choice', 'i', 'options', 'player', 'what', '_kfc_n', '_kfs0', '_kfi1'), ('n',), (), {1: 68}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.archive_card', ('?', '?', '?'), ()), ('loop', 62), ('step', 'steps.shortfall', ('?', '?', '?', 'Hand is empty'), ()), ('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.ARCHIVE'), ('affects', 'Affects.FRIENDLY'))), ('step', 'steps.archive_card', ('?', '?', '?'), ()))}),
+    ('draw_n.<locals>.effect', 78, _kfmk_draw_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 81}, None, {1: 'decision'}, {1: ()}),
+    ('heal_self_n.<locals>.effect', 87, _kfmk_heal_self_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 90}, None, {1: 'decision'}, {1: ()}),
+    ('capture_n.<locals>.effect', 96, _kfmk_capture_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 99}, None, {1: 'decision'}, {1: ()}),
+    ('deal_damage_to_chosen.<locals>.effect', 105, _kfmk_deal_damage_to_chosen__effect, ('game', 'card', 'choice', 'hit', 'kind', 'options', 'player', '_kfc_n', '_kfc_targets'), ('n', 'targets'), (), {1: 112, 2: 120}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('move_aember_to_card.<locals>.effect', 129, _kfmk_move_aember_to_card__effect, ('game', 'card', 'amount', 'player', '_kfc_n'), ('n',), (), {1: 139}, None, {1: 'decision'}, {1: ()}),
+    ('reveal_from_hand', 144, _kfmk_reveal_from_hand, ('game', 'player', 'predicate', 'prompt', 'source_card', 'c', 'choice', 'options'), (), (), {1: 153}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('choose_most_powerful', 164, _kfmk_choose_most_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'max_power', 'tied'), (), (), {1: 176}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('choose_least_powerful', 182, _kfmk_choose_least_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'min_power', 'tied'), (), (), {1: 191}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('deal_damage_to_chosen_with_splash.<locals>.effect', 202, _kfmk_deal_damage_to_chosen_with_splash__effect, ('game', 'card', 'area', 'choice', 'hits', 'kind', 'n', 'neighbors', 'options', 'player', 'target', '_kfc_main', '_kfc_splash', '_kfc_targets'), ('main', 'splash', 'targets'), (), {1: 209, 2: 222}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'game.find_play_area', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('duration_effect.<locals>.effect', 230, _kfmk_duration_effect__effect, ('game', 'card', 'controller', 'player_affected', 'targets', '_kfc_duration', '_kfc_op', '_kfc_scope', '_kfc_value', '_kfc_variable'), ('duration', 'op', 'scope', 'value', 'variable'), (), {1: 246}, None, {1: 'decision'}, {1: ()}),
 ]

@@ -156,6 +156,8 @@ def reveal_from_hand(game, player, predicate, prompt, source_card=None):
     )
     if choice:
         game.log.add("reveal", player=player.id, cards=[c.name for c in choice], iids=[c.instance_id for c in choice])
+        for c in choice:
+            game.journal.reveal(c)
     return choice
 
 

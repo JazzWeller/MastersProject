@@ -415,6 +415,7 @@ def incubation_chamber(game, card):
     )
     target = choice[0]
     game.log.add("reveal", player=player.id, cards=[target.name], iids=[target.instance_id])
+    game.journal.reveal(target)
     steps.archive_card(game, player, target)
 
 
@@ -732,6 +733,7 @@ def zyzzix_the_many_after(game, card):
     )
     target = choice[0]
     game.log.add("reveal", player=player.id, cards=[target.name], iids=[target.instance_id])
+    game.journal.reveal(target)
     steps.archive_card(game, player, target)
     card.power_counters += 3
 

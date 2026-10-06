@@ -346,11 +346,34 @@ class TestLogosPhase2(unittest.TestCase):
         run_hook(game, named.novu_archaeologist, novu, answers=[[c]])
         self.assertIn(c, p1.archive.cards())
 
-    def test_ozmo_is_elusive_and_has_no_valid_target_in_this_pool(self):
+    def test_ozmo_is_elusive_and_does_nothing_without_a_mars_creature(self):
         game = new_game()
         ozmo = put_creature(game, 1, "Ozmo, Martianologist")
         self.assertIn("elusive", game.get_keywords(ozmo))
         run_hook(game, named.ozmo, ozmo)  # no Mars creatures -> shortfall, no crash
+        self.assertEqual(game.log.events[-1].kind, "shortfall")
+
+    def test_ozmo_heals_or_stuns_a_mars_creature(self):
+        """"Heal 3 damage from a Mars creature or stun a Mars creature": a
+        creature of house Mars (keyteki: hasHouse('mars')), friend or foe."""
+        game = new_game()
+        hurt = put_creature(game, 1, "Zorg")  # Mars
+        hurt.type_object.damage = 4
+        enemy = put_creature(game, 2, "Ether Spider")  # Mars
+        not_mars = put_creature(game, 2, "Batdrone")  # Logos
+        ozmo = put_creature(game, 1, "Ozmo, Martianologist")
+        gen = named.ozmo(game, ozmo)
+        mode = next(gen)
+        target = gen.send("Heal 3")
+        self.assertEqual(set(target.options), {hurt, enemy})
+        self.assertNotIn(not_mars, target.options)
+        try:
+            gen.send([hurt])
+        except StopIteration:
+            pass
+        self.assertEqual(hurt.type_object.damage, 1)
+        run_hook(game, named.ozmo, ozmo, answers=["Stun", [enemy]])
+        self.assertTrue(enemy.stunned)
 
     def test_replicator_triggers_another_creatures_reap(self):
         game = new_game()
