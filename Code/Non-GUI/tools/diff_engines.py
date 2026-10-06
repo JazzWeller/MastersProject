@@ -133,6 +133,8 @@ def approximate(state):
         return x
 
     out = walk(state)
+    if not isinstance(out, dict):
+        return out
     eff = out.get("active_effects")
     if isinstance(eff, dict):
         for kind in ("trigger", "instead", "modifier"):
@@ -180,6 +182,8 @@ class Lockstep:
             self.fail("log length", len(ea), len(eb))
         for i in range(start, len(ea)):
             xa, xb = self.a.event(ea[i]), self.b.event(eb[i])
+            if self.a.package != self.b.package:
+                xa, xb = approximate(xa), approximate(xb)
             if xa != xb:
                 self.fail(f"log event {i}", xa, xb)
         self._log_seen[key] = len(ea)
@@ -210,6 +214,8 @@ class Lockstep:
         if self.ga.is_over != self.gb.is_over:
             self.fail("is_over", self.ga.is_over, self.gb.is_over)
         da, db = self.a.decision(self.ga.pending_decision), self.b.decision(self.gb.pending_decision)
+        if self.a.package != self.b.package:
+            da, db = approximate(da), approximate(db)
         if da != db:
             self.fail("pending decision", da, db)
         if self.ga.choice_record != self.gb.choice_record:

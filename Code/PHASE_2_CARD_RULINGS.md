@@ -448,6 +448,9 @@ No card-specific MRB 18.3 ruling; standard rules apply.
 
 **Errata:** general Fight/Reap errata (the pool table's canonical text already includes it).
 
+**Rulings:**
+- "A Mars creature" is a creature of house Mars, as its house currently is (keyteki: `hasHouse('mars')`), friendly or enemy. Until 2026-10-05 the engine looked for a "Mars" trait instead, which no card has -- a leftover from when the pool held no Mars cards -- so Ozmo never had a target. Tested by `tests/test_cards_logos_phase2.py::test_ozmo_heals_or_stuns_a_mars_creature`.
+
 
 ### 149 Psychic Bug
 
