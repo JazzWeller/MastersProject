@@ -84,6 +84,8 @@ class _Encoder:
         zone = self.zones.get(c.instance_id, ("limbo", c.owner))
         if visible_to(self.game, zone, self.viewer):
             return ("card", c.instance_id)
+        # (the zone a frame took it from: a determinized world puts the card
+        # in the same place in the same zone, keyforge/determinize.py)
         return ("hidden", zone[0], self.side(zone[1]))
 
     def value(self, x, depth: int = 0) -> Any:
@@ -153,8 +155,11 @@ _CAUSED_CALLER_KINDS = {
 def _caused_kind(caused, caller) -> str:
     src, fn = _local(caused, "source"), _local(caused, "fn")
     cdef = getattr(src, "card_def", None)
+    code = getattr(fn, "__code__", None)
     for attr, kind in _HOOK_ATTRS:
-        if cdef is not None and getattr(cdef, attr, None) is fn:
+        hook = getattr(cdef, attr, None) if cdef is not None else None
+        # (by code: a copied frame may hold a rebuilt function object)
+        if hook is not None and (hook is fn or (code is not None and getattr(hook, "__code__", None) is code)):
             return kind
     return _CAUSED_CALLER_KINDS.get(caller.routine.qualname if caller is not None else None, "effect")
 

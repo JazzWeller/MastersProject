@@ -57,9 +57,14 @@ _NOTES_SHOWN_TO_BOTH = frozenset({"reveal", "search_reveal"})
 class Projector:
     """One viewer's projection of one game, advanced by `update()`."""
 
-    def __init__(self, viewer: Optional[int]):
+    def __init__(self, viewer: Optional[int], cut=None):
         self.viewer = viewer
         self.other = None if viewer is None else 3 - viewer
+        # Inside a determinized world (keyforge/determinize.py, O3 "drop"):
+        # (the world's viewer, entries, log events, decisions) at its start.
+        # Before that, this viewer is shown only what the world's viewer saw
+        # too: their own private past belongs to the true game.
+        self.cut = cut
         self.items: List[tuple] = []
         self.i = 0  # next journal entry
         self.k = 0  # next log event
@@ -67,6 +72,16 @@ class Projector:
         self.where: Dict[int, tuple] = {}
         self.hands: Dict[int, Set[int]] = {1: set(), 2: set()}
         self.revealed: Dict[int, Set[int]] = {1: set(), 2: set()}
+
+    def copy(self) -> "Projector":
+        new = Projector.__new__(Projector)
+        new.viewer, new.other, new.cut = self.viewer, self.other, self.cut
+        new.items = list(self.items)
+        new.i, new.k, new.d = self.i, self.k, self.d
+        new.where = dict(self.where)
+        new.hands = {p: set(s) for p, s in self.hands.items()}
+        new.revealed = {p: set(s) for p, s in self.revealed.items()}
+        return new
 
     # ------------------------------------------------------ visibility ----
 
@@ -147,6 +162,9 @@ class Projector:
             self.items.append(("zone",) + e + (PUBLIC,))
             return
         me = self.shown(e, v)
+        cut = self.cut
+        if cut is not None and e[0] < cut[1]:
+            me = me and self.shown(e, cut[0])
         them = True if v is None else self.shown(e, o)
         before = v is not None and owner == v and not self.visible_zone(frm, o, owner)
         code = self.code(me, them, before)
@@ -162,6 +180,15 @@ class Projector:
             return
         if v not in event.visible_to:
             return
+        cut = self.cut
+        if cut is not None and idx < cut[2]:
+            if cut[0] not in event.visible_to:
+                return
+            if event.private:
+                data = {k: x for k, x in event.data.items()
+                        if k not in event.private or (v in event.private[k] and cut[0] in event.private[k])}
+                self.items.append(("log", idx, event.kind, canonicalize(data), PUBLIC))
+                return
         shown = event.redacted_for(v) if event.private else event
         o = self.other
         if o not in event.visible_to:
@@ -185,6 +212,12 @@ class Projector:
         if v is None:
             self.items.append(("decision", idx, player, kind, intent, source, affects, optional,
                                chosen, offered_shown, peek, PUBLIC))
+            return
+        cut = self.cut
+        if cut is not None and idx < cut[3] and v == player and v != cut[0]:
+            # before the world: their choice as the world's viewer saw it
+            self.items.append(("decision", idx, player, kind, intent, source, affects, optional,
+                               tuple(self._option(f, cut[0]) for f in chosen), offered_shown, (), PUBLIC))
             return
         if v == player:  # the chooser saw every option they were offered
             theirs = tuple(self._option(f, o) for f in chosen)
@@ -231,5 +264,6 @@ def projected(game, viewer: Optional[int]) -> List[tuple]:
         cache = game.__dict__["_projectors"] = {}
     p = cache.get(viewer)
     if p is None:
-        p = cache[viewer] = Projector(viewer)
+        cut = game.__dict__.get("_world_cut")
+        p = cache[viewer] = Projector(viewer, cut if cut is not None and cut[0] != viewer else None)
     return p.update(game.journal, game.log.events)

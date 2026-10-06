@@ -111,6 +111,80 @@ below). Built before that:
   built (HeuristicBot) the engine is **5% faster** than before O1 (12.1k → 12.7k): `build_view`
   redacted the whole log every decision to show 20 events; it now reads only the tail.
 
+**O2, done** (2026-10-06).
+- `keyforge/knowledge.py`: one `Tracker` per viewer, fed only by the projection and the public
+  decklists. Each card has a mask of possible zones (exact = one zone), a provenance group, last
+  seen (turn, zone), how it last left sight, and per deck the known top and bottom sequences. Its
+  rules: a shown move makes a card exact; a draw from a known end moves that card (and not one known
+  at the other end); the pigeonhole rule (a zone holding as many cards as may be in it holds exactly
+  those; an empty zone none). Second-order knowledge (`second_order_tracker`) is the same tracker
+  fed the part of the viewer's projection the opponent sees. `card_knowledge` exports all of it per
+  card, with O3's priors. Trackers are kept on the game and copied with it; a determinization drops
+  every viewer's but the determinizing one's.
+- **Soundness** (`tools/o2_acceptance.py`, 1,000 games per pool): every true zone in its mask and
+  every known deck position true, for both viewers and the second-order tracker, at every
+  decision: no problems in 4,000 games. 4.6% of the opponent's hidden cards are placed exactly;
+  the mean mask is 2.02 zones.
+- **Against brute force.** `world_masks` is a DP over the opponent's journal entries: each hidden
+  move takes any card that may be in its zone (a tracked card, or an anonymous one while the zone's
+  public count allows), constrained by everything the viewer saw (moves, notes, revealed hands,
+  known deck ends). At 73,630 positions no mask missed a zone some world allows; 220 (0.3%) were
+  wider than the worlds -- the tracker counts per zone, the worlds per card, which O3's group counts
+  capture. The plan's five scenarios (a Lights Out bounce, Snudge returning an artifact, an
+  exhausted deck reshuffled, a card put on top, a revealed hand later partly archived) are found in
+  fuzz games, and there the masks equal the worlds' exactly.
+- Building the oracle found two journal issues, both fixed: Vespilon Theorist revealed the card
+  it had just drawn in limbo (the note came after its move's entry, completed in place); it now
+  reveals the top card and then draws it, so the draw is known. And Chaos Portal's reveal now
+  records that it is the top card.
+
+**O3, done** (2026-10-06).
+- `keyforge/determinize.py`; `Game.fork_determinized(viewer, rng, ..., sampler=, weights=,
+  history=)`; `search.determinization` (config default `chance_exact`, wired through
+  `SearchSettings` and every capability). A world is sampled on the source game (where the
+  knowledge caches are) and applied to the fork by instance id, unjournaled; cards that stay in a
+  zone keep their places, so frames are relabelled role for role. Cards in the opponent's zones
+  that they don't own (one of mine archived from play) stay put.
+- **`constrained`**: a DP over mask classes (multinomial counts, the deck taking the rest; plans
+  cached per position). **`chance_exact`** (`ChanceFilter`): atoms of exchangeable cards with the
+  exact joint distribution of their counts in hand / archive / deck / elsewhere (under cards); a
+  shuffle merges the atoms certainly in the deck (without it the state blew up to 2.7M; with it
+  the largest seen is 28 states). **`belief`**: chance_exact's support, the hand drawn by weight.
+  **`uniform`**: the legacy re-deal, now unjournaled too.
+- **History in a world**: `drop` (default) cuts the opponent's projection to what the viewer saw
+  before the world began. `relabel` relabels the entries the viewer didn't see, accepted only when
+  the relabelled journal folds to the world's zones and the opponent's tracker, built from it, is
+  sound in the world; it was accepted for 75% of worlds (33,000 of 44,262), the rest fall back to `drop`.
+- **Acceptance** (`tools/o3_acceptance.py`): every world from constrained / chance_exact / belief
+  satisfies every mask, count and known deck position, leaves the viewer's projection unchanged,
+  and the opponent's tracker inside it is sound (1,000 games, 132,786 worlds). `constrained` passes a
+  chi-square test on an enumerable scenario. chance_exact equals a brute-force enumeration of the
+  generative process (`tests/_chance_brute.py`) on 8 scenarios to 1e-12, P(next draw) included.
+- **Calibration** (400 games of epsilon-greedy HeuristicBots, as in the BC corpus, 1.7M
+  card-positions): P(hand) log-loss **0.498** for chance_exact against **0.548** for the uniform
+  prior on the same positions -- below the plan's 0.541, and below O0's belief head (0.526).
+- **Cost**: 37–92 µs per chance_exact world, 57–176 µs constrained, against a replay fork of
+  3.5–12.7 ms.
+
+**O4, done** (2026-10-06).
+- `keyforge/infoset_v2.py` (v1's `infoset.py` untouched): entities in public decklist order, each
+  with `card_knowledge` (O2/O3) and, where the viewer can see it, every `Card` and type-object
+  attribute (cards as entity pointers, hidden ones as ("hidden", side)), its position and host;
+  every player counter and flag; effect tokens (all four kinds; values and conditions evaluated
+  now); cleanups, temporary control, redirected hits; resolution tokens (R7); the turn cap and
+  turns left; match tokens.
+- `agent/state_registry.py` classifies every attribute of `Game`, `Player`, `Card`, the type
+  objects, the effect classes and the zones (encoded / derived / hidden / bookkeeping); the test
+  fails on an unclassified attribute or a bookkeeping one off its default.
+- **Acceptance** (`tests/test_agent_observation_o4.py`): coverage over fuzz games of every pool;
+  the extract byte-identical in every consistent world (~3,500 checked while building, no
+  difference); resolution tokens identical after replay, copy and snapshot. Building it found two
+  bugs: a copied frame's rebuilt function made the resolution view call a Play ability an
+  "effect" (kinds are now matched by code object), and the re-deal mapped hand cards by position
+  after shuffling the hand, so frames named different cards.
+- The extract is the reference form (~1.1 ms per call, dicts); O5's encoder reads the same state
+  directly.
+
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
 - self-play is held until everything here is complete;

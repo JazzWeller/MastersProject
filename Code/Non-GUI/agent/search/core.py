@@ -143,6 +143,9 @@ class SearchSettings:
     # upper bound, never an ordinary agent.
     resample: Optional[Resample] = Resample.ALL
     fork_backend: str = "auto"  # replay | copy | auto (copy at boundary decisions)
+    # How a world is sampled (keyforge/determinize.py, observation plan O3):
+    # uniform | constrained | chance_exact | belief
+    determinization: str = "uniform"
     enumerate_cap: int = 1024
     temperature: float = 0.0
     reuse: bool = True
@@ -307,7 +310,9 @@ class Search:
             if not hasattr(capability, "fork"):
                 raise PermissionError("an exact-fork search needs the privileged capability")
             return capability.fork()
-        return capability.fork_determinized(rng, s.resample, backend=s.fork_backend)
+        if s.determinization == "uniform":
+            return capability.fork_determinized(rng, s.resample, backend=s.fork_backend)
+        return capability.fork_determinized(rng, s.resample, backend=s.fork_backend, sampler=s.determinization)
 
     def _run_one(self, job):
         results = yield from self._run_jobs_gen([job])

@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/logos.py'
-SOURCE_SHA256 = '210d7a6b3dabe513f41165587abf80d5def600e311a4f41d78d288f1d8ad2b7d'
+SOURCE_SHA256 = '3e6ac77d0a0be77f44025616215a116d23b519d07f5fe94b269b963f9f3a38c0'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -1865,12 +1865,13 @@ def _kfmk_vespilon_theorist(_kfN, _kfR):
     elif _pc == 1:
         _pc = 0
         chosen = _sent
-    top = player.deck.draw_top()
+    top = player.deck.peek_top()
     if top is None:
         steps.shortfall(game, card, f'reveals nothing: {{pos:{player.id}}} deck is empty', 'Deck is empty')
         return
     game.log.add('reveal_top', player=player.id, card=top.name, iid=top.instance_id)
-    game.journal.reveal(top)
+    game.journal.reveal(top, position='top')
+    player.deck.draw_top()
     if top.house == chosen:
         player.archive.add(top)
         game.log.add('archive', player=player.id, card=top.name, iid=top.instance_id)
@@ -1884,7 +1885,7 @@ def _kfmk_vespilon_theorist(_kfN, _kfR):
 
 def _kfmk__veylan_handler__handler(_kfN, _kfR):
   def _kfr__veylan_handler__handler(game=_kf_U, event=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:718 _veylan_handler.<locals>.handler
+    # effects/named/logos.py:721 _veylan_handler.<locals>.handler
     if _kfF is None:  # a fresh call: Python bound the arguments
         _kfc_veylan_card = _kf_closure[0]
         _pc = 0
@@ -1913,7 +1914,7 @@ def _kfmk__veylan_handler__handler(_kfN, _kfR):
 
 def _kfmk_experimental_therapy(_kfN, _kfR):
   def _kfr_experimental_therapy(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:726 experimental_therapy
+    # effects/named/logos.py:729 experimental_therapy
     if _kfF is None:  # a fresh call: Python bound the arguments
         host = _kf_U
         _pc = 0
@@ -1944,7 +1945,7 @@ def _kfmk_experimental_therapy(_kfN, _kfR):
 
 def _kfmk__rocket_boots_effect(_kfN, _kfR):
   def _kfr__rocket_boots_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:753 _rocket_boots_effect
+    # effects/named/logos.py:756 _rocket_boots_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = _kf_U
         _pc = 0
@@ -1974,7 +1975,7 @@ def _kfmk__rocket_boots_effect(_kfN, _kfR):
 
 def _kfmk__transposition_sandals_action(_kfN, _kfR):
   def _kfr__transposition_sandals_action(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/logos.py:774 _transposition_sandals_action
+    # effects/named/logos.py:777 _transposition_sandals_action
     if _kfF is None:  # a fresh call: Python bound the arguments
         area = choice = i = j = may_use = other = others = player = _kf_U
         _pc = 0
@@ -2091,8 +2092,8 @@ ROUTINES = [
     ('research_smoko_destroyed', 672, _kfmk_research_smoko_destroyed, ('game', 'card', 'player', 'top'), (), (), {1: 685}, None, {1: 'decision'}, {1: ()}),
     ('skippy_timehog', 688, _kfmk_skippy_timehog, ('game', 'card'), (), (), {1: 691}, None, {1: 'decision'}, {1: ()}),
     ('vespilon_theorist', 694, _kfmk_vespilon_theorist, ('game', 'card', 'chosen', 'houses', 'player', 'top'), (), (), {1: 697}, None, {1: 'game.choose_house'}, {1: (('step', 'steps.shortfall', ('?', '?', '?', 'Deck is empty'), ()), ('step', 'steps.gain', ('?', '?', 1), ()))}),
-    ('_veylan_handler.<locals>.handler', 718, _kfmk__veylan_handler__handler, ('game', 'event', '_kfc_veylan_card'), ('veylan_card',), (), {1: 722}, None, {1: 'decision'}, {1: ()}),
-    ('experimental_therapy', 726, _kfmk_experimental_therapy, ('game', 'card', 'host'), (), (), {1: 732}, None, {1: 'decision'}, {1: ()}),
-    ('_rocket_boots_effect', 753, _kfmk__rocket_boots_effect, ('game', 'host_card', 'player'), (), (), {1: 758}, None, {1: 'decision'}, {1: ()}),
-    ('_transposition_sandals_action', 774, _kfmk__transposition_sandals_action, ('game', 'host_card', 'area', 'choice', 'i', 'j', 'may_use', 'other', 'others', 'player'), (), (), {1: 780, 2: 790, 3: 795}, None, {1: 'game.choose_cards', 2: 'game.yes_no', 3: 'game.use_creature_ability'}, {1: (('pause', 'game.yes_no', ('?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.OPTIONAL_TRIGGER'))), ('pause', 'game.use_creature_ability', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', '?', '?'), ())), 2: (('pause', 'game.use_creature_ability', ('?',), ()),), 3: ()}),
+    ('_veylan_handler.<locals>.handler', 721, _kfmk__veylan_handler__handler, ('game', 'event', '_kfc_veylan_card'), ('veylan_card',), (), {1: 725}, None, {1: 'decision'}, {1: ()}),
+    ('experimental_therapy', 729, _kfmk_experimental_therapy, ('game', 'card', 'host'), (), (), {1: 735}, None, {1: 'decision'}, {1: ()}),
+    ('_rocket_boots_effect', 756, _kfmk__rocket_boots_effect, ('game', 'host_card', 'player'), (), (), {1: 761}, None, {1: 'decision'}, {1: ()}),
+    ('_transposition_sandals_action', 777, _kfmk__transposition_sandals_action, ('game', 'host_card', 'area', 'choice', 'i', 'j', 'may_use', 'other', 'others', 'player'), (), (), {1: 783, 2: 793, 3: 798}, None, {1: 'game.choose_cards', 2: 'game.yes_no', 3: 'game.use_creature_ability'}, {1: (('pause', 'game.yes_no', ('?', '?'), (('source_card', '?'), ('intent', 'DecisionIntent.OPTIONAL_TRIGGER'))), ('pause', 'game.use_creature_ability', ('?',), ()), ('step', 'steps.shortfall', ('?', '?', '?', '?'), ())), 2: (('pause', 'game.use_creature_ability', ('?',), ()),), 3: ()}),
 ]

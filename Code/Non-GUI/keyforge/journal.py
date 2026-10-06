@@ -24,6 +24,10 @@ Every move of a card between zones appends one entry to `game.journal`:
   (innermost, `Game._caused`), or None for a rules move (a card played,
   discarded, drawn at the end of the turn, destroyed by fight damage).
 
+**Notes in limbo.** A note on a card between zones (Vespilon Theorist's
+reveal of the card it has just drawn) comes after its move's entry, which
+is completed in place: the move may already show where the card went.
+
 **Pairing.** A card that leaves a zone gets an entry to limbo at once; when
 it enters a zone before the next decision, that same entry is completed in
 place (it keeps its `seq`), so a move is one entry. A card still between

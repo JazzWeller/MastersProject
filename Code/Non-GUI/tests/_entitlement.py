@@ -22,7 +22,8 @@ behind an effect, which was public when the effect began, and say nothing
 about where that card is now.
 
 Events whose purpose is to show a card to the viewer (the reveal kinds
-below) are themselves the entitlement for the cards they name.
+below) are themselves the entitlement for the cards they name, from then
+to the end of their window (a revealed card stays known while it moves on).
 """
 
 from __future__ import annotations
@@ -66,6 +67,8 @@ class EntitlementRecorder:
         self.window_of: List[int] = []
         self.window_starts: List[int] = [0]
         self.window_visible: List[Dict[int, FrozenSet[int]]] = [{1: frozenset(), 2: frozenset()}]
+        # per event: the cards a reveal kind showed, to whom
+        self.revealed: List[Dict[int, FrozenSet[int]]] = []
         original = log.add
 
         def add(kind, visible_to=None, **data):
@@ -73,6 +76,12 @@ class EntitlementRecorder:
                 self.all_iids = frozenset(c.instance_id for p in game.players.values() for c in p.all_cards)
             self.visible.append(self._now())
             self.window_of.append(len(self.window_starts) - 1)
+            shown = {1: frozenset(), 2: frozenset()}
+            if kind in REVEAL_KINDS:
+                iids = frozenset(i for key, value in data.items() for i in _iid_values(key, value))
+                for v in (visible_to if visible_to is not None else (1, 2)):
+                    shown[v] = iids
+            self.revealed.append(shown)
             original(kind, visible_to=visible_to, **data)
 
         log.add = add
@@ -95,6 +104,7 @@ class EntitlementRecorder:
         out: Set[int] = set(self.window_visible[window][viewer])
         for i in range(self.window_starts[window], index + 1):
             out |= self.visible[i][viewer]
+            out |= self.revealed[i][viewer]
         return frozenset(out)
 
 

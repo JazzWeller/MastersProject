@@ -126,7 +126,7 @@ def run_worker(args) -> dict:
         settings = SearchSettings(
             simulations=s.sims_full, c_puct=s.c_puct, dirichlet_alpha=s.dirichlet_alpha, dirichlet_eps=s.dirichlet_eps,
             root_noise=True, leaves_in_flight=s.leaves_in_flight, resample=Resample(s.resample),
-            enumerate_cap=s.enumerate_cap, reuse=False,
+            determinization=s.determinization, enumerate_cap=s.enumerate_cap, reuse=False,
         )
         sl.search = Search(regime, make_evaluator(s.leaf, seed=seed), policy, settings, seed=seed)
         sl.bot = HeuristicBot(seed=seed ^ 0x5EED)
