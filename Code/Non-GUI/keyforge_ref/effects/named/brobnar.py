@@ -545,7 +545,10 @@ def tireless_crocag_register(game, card):
             return
         if g.find_play_area(card) is None:
             return
-        if not g.players[opponent_id].play_area.creatures:
+        # This fires while the destroyed creatures are still on the
+        # battleline (destroy_cards moves them afterwards): count what stays.
+        # It used to count them too, so it never fired.
+        if not any(not c.destroyed for c in g.players[opponent_id].play_area.creatures):
             yield from g.destroy_cards([card])
 
     game.active_effects.add(TriggerEffect(card, card.controller, "creature_destroyed", handler))

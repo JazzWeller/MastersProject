@@ -8,7 +8,7 @@ called as `routine(_kfF=frame, _sent=sent)` it resumes a frame.
 # fmt: off
 # flake8: noqa
 SOURCE = 'keyforge/effects/named/brobnar.py'
-SOURCE_SHA256 = 'b06cde30b12da79c3e2921765623bdf4ae984e4e93a104686689d5794e0bdacc'
+SOURCE_SHA256 = '2d86968d0f1e001b7785dccfcceb663d197107130c97e8b61fbd4935c953d510'
 
 # Placeholder defaults: the loader rebuilds every function here in the source module's globals,
 # with the original function's own defaults.
@@ -1531,7 +1531,7 @@ def _kfmk_tireless_crocag_register__handler(_kfN, _kfR):
             return
         if g.find_play_area(_kfc_card.cell_contents) is None:
             return
-    if (not _pc and (not g.players[opponent_id].play_area.creatures)) or _pc == 1:
+    if (not _pc and (not any((not c.destroyed for c in g.players[opponent_id].play_area.creatures)))) or _pc == 1:
         if not _pc:
             _sent = (_kfgm_destroy_cards(g, [_kfc_card.cell_contents]) if type(g) is _kfGame else _kf_step(g.destroy_cards)([_kfc_card.cell_contents]))
             if type(_sent) is _kf_S:
@@ -1551,7 +1551,7 @@ def _kfmk_tireless_crocag_register__handler(_kfN, _kfR):
 
 def _kfmk_wardrummer(_kfN, _kfR):
   def _kfr_wardrummer(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/brobnar.py:554 wardrummer
+    # effects/named/brobnar.py:557 wardrummer
     if _kfF is None:  # a fresh call: Python bound the arguments
         player = t = targets = _kf_U
         _pc = 0
@@ -1585,7 +1585,7 @@ def _kfmk_wardrummer(_kfN, _kfR):
 
 def _kfmk__phoenix_heart_effect(_kfN, _kfR):
   def _kfr__phoenix_heart_effect(game=_kf_U, host_card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/brobnar.py:580 _phoenix_heart_effect
+    # effects/named/brobnar.py:583 _phoenix_heart_effect
     if _kfF is None:  # a fresh call: Python bound the arguments
         t = targets = _kf_U
         _pc = 0
@@ -1616,7 +1616,7 @@ def _kfmk__phoenix_heart_effect(_kfN, _kfR):
 
 def _kfmk_yo_mama_mastery_play(_kfN, _kfR):
   def _kfr_yo_mama_mastery_play(game=_kf_U, card=_kf_U, _kfF=None, _sent=None, *, _kf_closure=None):
-    # effects/named/brobnar.py:588 yo_mama_mastery_play
+    # effects/named/brobnar.py:591 yo_mama_mastery_play
     if _kfF is None:  # a fresh call: Python bound the arguments
         host = _kf_U
         _pc = 0
@@ -1686,8 +1686,8 @@ ROUTINES = [
     ('rogue_ogre_register.<locals>.handler', 510, _kfmk_rogue_ogre_register__handler, ('g', 'event', 'player', '_kfc_card'), ('card',), (), {1: 517}, None, {1: 'decision'}, {1: ()}),
     ('smaaash', 522, _kfmk_smaaash, ('game', 'card', 'choice', 'options'), (), (), {1: 527}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.stun', ('?', '?'), ()),)}),
     ('tireless_crocag_play', 534, _kfmk_tireless_crocag_play, ('game', 'card', 'opponent'), (), (), {1: 537}, None, {1: 'game.destroy_cards'}, {1: ()}),
-    ('tireless_crocag_register.<locals>.handler', 541, _kfmk_tireless_crocag_register__handler, ('g', 'event', 'destroyed_card', 'opponent_id', '_kfc_card'), ('card',), (), {1: 549}, None, {1: 'g.destroy_cards'}, {1: ()}),
-    ('wardrummer', 554, _kfmk_wardrummer, ('game', 'card', 'player', 't', 'targets'), (), (), {1: 563}, None, {1: 'decision'}, {1: ()}),
-    ('_phoenix_heart_effect', 580, _kfmk__phoenix_heart_effect, ('game', 'host_card', 't', 'targets'), (), (), {1: 585}, None, {1: 'game.check_destroyed'}, {1: ()}),
-    ('yo_mama_mastery_play', 588, _kfmk_yo_mama_mastery_play, ('game', 'card', 'host'), (), (), {1: 593}, None, {1: 'decision'}, {1: ()}),
+    ('tireless_crocag_register.<locals>.handler', 541, _kfmk_tireless_crocag_register__handler, ('g', 'event', 'destroyed_card', 'opponent_id', '_kfc_card'), ('card',), (), {1: 552}, None, {1: 'g.destroy_cards'}, {1: ()}),
+    ('wardrummer', 557, _kfmk_wardrummer, ('game', 'card', 'player', 't', 'targets'), (), (), {1: 566}, None, {1: 'decision'}, {1: ()}),
+    ('_phoenix_heart_effect', 583, _kfmk__phoenix_heart_effect, ('game', 'host_card', 't', 'targets'), (), (), {1: 588}, None, {1: 'game.check_destroyed'}, {1: ()}),
+    ('yo_mama_mastery_play', 591, _kfmk_yo_mama_mastery_play, ('game', 'card', 'host'), (), (), {1: 596}, None, {1: 'decision'}, {1: ()}),
 ]

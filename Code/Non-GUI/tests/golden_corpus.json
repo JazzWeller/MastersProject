@@ -256,7 +256,7 @@
       "reason": "3 keys"
     },
     "turns": 53,
-    "state_hash": "7956beca934b87501301b438a6ce56049db33fce36b5fe7fd4fc29a32ee52707"
+    "state_hash": "ca7e79f2c321f64ac60a611a04509b837ab1f31e1d85a5a417d5448054ca4860"
   },
   {
     "name": "igor_fignor_random_seed0",
@@ -477,7 +477,7 @@
       "reason": "3 keys"
     },
     "turns": 48,
-    "state_hash": "05019a9b81198057bc762e249028db9ea278205afcf6c2f64784d921c4a67b63"
+    "state_hash": "9205f569a67ab9199f4ad300c184ad291e291ac30a81c1fb862085bcf7973d9a"
   },
   {
     "name": "fignor_igor_random_seed1",
@@ -729,7 +729,7 @@
       "reason": "3 keys"
     },
     "turns": 54,
-    "state_hash": "95b42c5ae11a5613f5c0982d87fb7199d8e6549ad3b21cbda6ae250c4565f8f5"
+    "state_hash": "454109302c8a136190730f4557109415d1d462686e1544c8d6659a6114546d10"
   },
   {
     "name": "igor_fignor_random_seed1",
@@ -1045,7 +1045,7 @@
       "reason": "3 keys"
     },
     "turns": 61,
-    "state_hash": "3bd78fb89138de29e5463532c9ae281d0ff86d790781ac69ea3a02aa14f93a1c"
+    "state_hash": "00751f49a8d31c4b38970a3e314fcd0315eb18b71b421366d387217379743bdc"
   },
   {
     "name": "fignor_igor_random_seed2",
@@ -1442,7 +1442,7 @@
       "reason": "3 keys"
     },
     "turns": 72,
-    "state_hash": "c863080ce9bdcf1af43165d7b97646ce3f801cb7cb9df5275313193afdd4d100"
+    "state_hash": "110e1bde90a9bfc4dbcfdeb759c2c753d125d8ea84bcfb6632fe46dcc280dee4"
   },
   {
     "name": "igor_fignor_random_seed2",
@@ -1686,7 +1686,7 @@
       "reason": "3 keys"
     },
     "turns": 50,
-    "state_hash": "bf856005a7d33194081bba1943e8d5dc1d097da4589ef6eace4e0e5410560fba"
+    "state_hash": "ff30070d225d123eed933fd0d8e4125cf2d557549c3a00905fa31b0966efebf3"
   },
   {
     "name": "fignor_igor_random_seed3",
@@ -1852,7 +1852,7 @@
       "reason": "3 keys"
     },
     "turns": 35,
-    "state_hash": "cae78e2a2a4dff511ff89ccfa802d7c6ff9cae428f0c3a18bb3df66352e7fc35"
+    "state_hash": "98f52cbb77cad8dd3d50a977de620b32b15b1487f2f4d28d0293d0f1a7377887"
   },
   {
     "name": "igor_fignor_random_seed3",
@@ -2159,7 +2159,7 @@
       "reason": "3 keys"
     },
     "turns": 58,
-    "state_hash": "d31ea3009497be22fddd9ed7acf7d2c2559188d71517a13b058b96d4e31c612d"
+    "state_hash": "ac53b92221d610ed13e2c924e598d4675f1eb252577aaf1c9e6683bfeafbaae3"
   },
   {
     "name": "fignor_igor_random_seed4",
@@ -2420,7 +2420,7 @@
       "reason": "3 keys"
     },
     "turns": 36,
-    "state_hash": "fe18d53833211466eac45fad409fd1a056b70786178376e86bbb526941810ef4"
+    "state_hash": "e6a2c74a4c63f2347b617ca328834a530c608503975599745030bcbfea738003"
   },
   {
     "name": "igor_fignor_random_seed4",
@@ -2695,7 +2695,7 @@
       "reason": "3 keys"
     },
     "turns": 45,
-    "state_hash": "afc31a3c3071c917c4b5a7ca9ada18fb2b8f5165272578dac79699039d854d0b"
+    "state_hash": "977de5c2ede8a65c797fdc3c79cce44659f3a3d64ae372509712d51da2c0c8f5"
   },
   {
     "name": "fignor_igor_random_seed5",
@@ -2900,7 +2900,7 @@
       "reason": "3 keys"
     },
     "turns": 42,
-    "state_hash": "808924ea425b4f18063cdacafc8a8d3d5e2706c30c1181d467589c403233dbb5"
+    "state_hash": "81f60684f91b45d76467acb4cbb35dddb5222bcd0086c56c45e80eaa36964cad"
   },
   {
     "name": "igor_fignor_random_seed5",
@@ -3124,7 +3124,7 @@
       "reason": "3 keys"
     },
     "turns": 42,
-    "state_hash": "a70e3dfaa1dd5674d1f1a38677df4bb8bc2520e9346d938add250096710f3096"
+    "state_hash": "67b0b8179ce34b27c8f4fe7b7220400183c856e56c8625a0343effc195200305"
   },
   {
     "name": "fignor_igor_heuristic_seed0",
@@ -3338,7 +3338,7 @@
       "reason": "3 keys"
     },
     "turns": 18,
-    "state_hash": "a66f1fea83e61da6150b188806958eb655c1e45f18d753f0dcdca94b1657eb3b"
+    "state_hash": "0d24b9c0b36df5932c092d97acf1dc56ecc8bf398f9bd5e298d5528bb85fa99a"
   },
   {
     "name": "fignor_igor_heuristic_seed1",
@@ -3599,7 +3599,7 @@
       "reason": "3 keys"
     },
     "turns": 21,
-    "state_hash": "ff4ccbd9e019fe8f91ba845e2d0da73abb96fed4517c94852a4bac4f48d57e53"
+    "state_hash": "890e8773c00766623591c4def79f2af4e02720bb24836ed26762bb1b7c6ad5de"
   },
   {
     "name": "fignor_igor_heuristic_seed2",
@@ -3750,7 +3750,7 @@
       "reason": "3 keys"
     },
     "turns": 14,
-    "state_hash": "82ed2adda6c7e263648ff071b629f5345e4f98d35071a854a164cf1da7319ec0"
+    "state_hash": "669249b5b91ce902213e880f1a9cb70dd3ab15ad4911d1905edd23436f2c84c1"
   },
   {
     "name": "fignor_igor_heuristic_seed3",
@@ -3909,7 +3909,7 @@
       "reason": "3 keys"
     },
     "turns": 15,
-    "state_hash": "cb34cfe20869494b577d57eec7e735788e578827ae44e4c2ced971f73ed0f685"
+    "state_hash": "c2766e38a5d61202d8b3886a719088fe757d6ed6d1819b515183b58354fb9b01"
   },
   {
     "name": "fignor_igor_heuristic_seed4",
@@ -4110,7 +4110,7 @@
       "reason": "3 keys"
     },
     "turns": 15,
-    "state_hash": "d513ab2c395fdb6e563e6238902440c367c4ea91b600f529bf85c2ce02857076"
+    "state_hash": "eee1e937b037dac494215fa0fe8939022ae4d41d0ebc0be5918a6dbc0d6b7b3c"
   },
   {
     "name": "fignor_igor_heuristic_seed5",
@@ -4256,7 +4256,7 @@
       "reason": "3 keys"
     },
     "turns": 14,
-    "state_hash": "b542c85b6cd5afc8b9c050093a1cfd8073afbb8808037df87cf786f4d31e5a24"
+    "state_hash": "d9d5e95e8dd806f8dc021382a4fa1518f7f9bc038036f095561aec497152fdff"
   },
   {
     "name": "fignor_igor_mixed_seed0",
@@ -4371,7 +4371,7 @@
       "reason": "3 keys"
     },
     "turns": 15,
-    "state_hash": "0e7e91d4d2907e6f21de5230634053f5b81b511e6c069fb32704e3b7019d2b78"
+    "state_hash": "54b15c35810f20b279d52e326f336a0be7ee633d612e61630c4d6e8ee9386a82"
   },
   {
     "name": "fignor_igor_mixed_seed1",
@@ -4577,7 +4577,7 @@
       "reason": "3 keys"
     },
     "turns": 24,
-    "state_hash": "05cd96a66596c2fbbb474febfe74a8be7d568278a1711db23878be0ce65735f3"
+    "state_hash": "e4442fa4e812e83d3af8c2135dd4654fed8e9a56f2d2f68ad45e9f68c829bb32"
   },
   {
     "name": "fignor_igor_mixed_seed2",
@@ -4662,7 +4662,7 @@
       "reason": "3 keys"
     },
     "turns": 13,
-    "state_hash": "89b4ef22a001cbd8037dae648e6d594e5953842a62e5ddce774d63dbb7b532fc"
+    "state_hash": "a768b094af45e0befa6deef01b7f7bb2d5b5dee9485e8cbc636a434cbbdb498e"
   },
   {
     "name": "setup_script_position",
@@ -4780,6 +4780,6 @@
       "reason": "turn limit"
     },
     "turns": 20,
-    "state_hash": "a33600a1da87edc127857f199a1f267f6587189adc3f2f68ce34f0f1724038f8"
+    "state_hash": "0a151d807e5dc07331e79237bff4d3a1199aaa0dce08aef00f7d207b3a1cea2b"
   }
 ]

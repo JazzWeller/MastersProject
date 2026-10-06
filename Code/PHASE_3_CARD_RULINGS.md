@@ -206,6 +206,8 @@ No card-specific MRB 18.3 FAQ entry; standard rules apply.
 
 No card-specific MRB 18.3 FAQ entry; standard rules apply.
 
+**Implementation note (2026-10-05):** "If your opponent has no creatures in play, destroy Tireless Crocag" is a constant ability (keyteki: a terminal condition, checked after each event). The engine checks it when Crocag is played and whenever an enemy creature is destroyed, counting only the enemy creatures that aren't being destroyed in the same batch. Until 2026-10-05 the destroy check counted those too, so it never fired. Tested by `tests/test_cards_brobnar.py::test_tireless_crocag_destroyed_when_the_last_enemy_creature_is_destroyed`. **Known gap:** an enemy battleline emptied by anything other than destruction (returned to hand, archived, taken control of) doesn't destroy Crocag yet; the engine has no general continuous check.
+
 ### 048 Troll
 
 No card-specific MRB 18.3 FAQ entry; standard rules apply.

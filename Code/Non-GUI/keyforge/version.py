@@ -22,7 +22,7 @@ import hashlib
 import os
 import platform
 
-ENGINE_VERSION = "1.1.1"
+ENGINE_VERSION = "1.1.2"
 
 _PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
