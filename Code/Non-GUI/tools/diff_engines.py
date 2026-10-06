@@ -15,6 +15,7 @@ After every submit the two must agree on:
 - every new log event: kind, data, who may see it and its private fields;
 - the journal's new entries, once both engines keep one (Milestone O1);
 - the keyed-RNG counters and the choice record;
+- in compiled execution, that nothing on the stack is a NativeFrame;
 - and, every `--hash-every` decisions and at the end, the whole canonical
   state (`state_hash`'s input, minus the engine version string).
 
@@ -154,6 +155,11 @@ def _game_of(obj):
     return getattr(obj, "current_game", obj) if not hasattr(obj, "players") else obj
 
 
+def _vm_enabled() -> bool:
+    from keyforge import vm
+    return vm._ENABLED
+
+
 class Lockstep:
     def __init__(self, a: Engine, b: Engine, spec: dict):
         self.a, self.b = a, b
@@ -196,6 +202,11 @@ class Lockstep:
                 if tuple(ja[i]) != tuple(jb[i]):
                     self.fail(f"journal entry {i}", ja[i], jb[i])
             self._journal_seen[key] = len(ja)
+        for eng, g in ((self.a, ga), (self.b, gb)):
+            m = getattr(g, "_machine", None)
+            # (inside `vm.disabled()` every frame is native by design)
+            if eng.mode == "compiled" and m is not None and not m.copyable and _vm_enabled():
+                self.fail("a NativeFrame in compiled execution", [type(f).__name__ for f in m.stack], "")
         if ga._rng_counters != gb._rng_counters:
             self.fail("rng counters", ga._rng_counters, gb._rng_counters)
         if ga.choice_record != gb.choice_record:

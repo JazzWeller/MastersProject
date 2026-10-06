@@ -130,13 +130,16 @@ def bench_copy(config: GameConfig, record: List) -> Dict[str, float]:
     # never copyable at all) already is, for the same reason: this measures
     # the cost of copying the game's DATA, and neither field is data.
     counter = game._instance_counter
+    machine = getattr(game, "_machine", None)  # compiled execution's stack (Part R): not data either
     game._driver = None
     game._instance_counter = None
+    game._machine = None
     t0 = time.perf_counter()
     copy.deepcopy(game)
     elapsed = (time.perf_counter() - t0) * 1000.0
     game._driver = driver
     game._instance_counter = counter
+    game._machine = machine
     return {"at_50%_ms": elapsed, "decision_index": mid}
 
 

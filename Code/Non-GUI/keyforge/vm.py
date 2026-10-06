@@ -68,8 +68,9 @@ EXECUTION_MODES = ("native", "compiled")
 
 def default_execution() -> str:
     """The execution mode a `Game` gets when none is named:
-    `$KEYFORGE_EXECUTION`, else `native`."""
-    mode = os.environ.get("KEYFORGE_EXECUTION", "native")
+    `$KEYFORGE_EXECUTION`, else `compiled` (Part R, R8; native stays
+    runnable, as the oracle the differential test checks compiled against)."""
+    mode = os.environ.get("KEYFORGE_EXECUTION", "compiled")
     if mode not in EXECUTION_MODES:
         raise ValueError(f"KEYFORGE_EXECUTION={mode!r}: expected one of {EXECUTION_MODES}")
     return mode
