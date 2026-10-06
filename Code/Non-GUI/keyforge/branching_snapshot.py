@@ -41,12 +41,8 @@ def run_branches_snapshot(
     for seed in seeds:
         branch = game.copy()
         if viewer is not None:
-            opponent = 3 - viewer
             rng = random.Random(seed)
-            if resample in (Resample.OWN_DECK, Resample.ALL):
-                branch._resample_own_deck(viewer, rng)
-            if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
-                branch._resample_hidden_pool(opponent, viewer, rng)
+            branch._redeal(viewer, rng, resample)
             branch.config = dataclasses.replace(branch.config, seed=rng.getrandbits(63))
         results.append(work(branch))
     return results

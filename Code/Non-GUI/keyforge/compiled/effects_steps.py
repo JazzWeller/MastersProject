@@ -142,10 +142,11 @@ def _kfmk_use_creature(_kfN, _kfR):
 
 
 # (qualname, first line, routine factory, slots, free variables, nested code (name, line),
-#  line of each resume id, (exception slot, resume ids inside a try region) or None)
+#  line of each resume id, (exception slot, resume ids inside a try region) or None,
+#  what each resume id waits on, the operations still reachable from each resume id)
 ROUTINES = [
-    ('discard_from_hand', 145, _kfmk_discard_from_hand, ('game', 'player', 'card'), (), (), {1: 150}, None),
-    ('discard_random', 154, _kfmk_discard_random, ('game', 'player', 'source', 'card', 'cards'), (), (), {1: 164}, None),
-    ('sacrifice', 290, _kfmk_sacrifice, ('game', 'card', 'destroyed'), (), (), {1: 294}, None),
-    ('use_creature', 330, _kfmk_use_creature, ('game', 'card'), (), (), {1: 333}, None),
+    ('discard_from_hand', 145, _kfmk_discard_from_hand, ('game', 'player', 'card'), (), (), {1: 150}, None, {1: 'game._fire_event'}, {1: ()}),
+    ('discard_random', 154, _kfmk_discard_random, ('game', 'player', 'source', 'card', 'cards'), (), (), {1: 164}, None, {1: 'game._fire_event'}, {1: ()}),
+    ('sacrifice', 290, _kfmk_sacrifice, ('game', 'card', 'destroyed'), (), (), {1: 294}, None, {1: 'game.destroy_cards'}, {1: ()}),
+    ('use_creature', 330, _kfmk_use_creature, ('game', 'card'), (), (), {1: 333}, None, {1: 'game.use_creature_ability'}, {1: ()}),
 ]

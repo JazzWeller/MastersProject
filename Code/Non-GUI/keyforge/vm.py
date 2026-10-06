@@ -105,14 +105,20 @@ class Routine:
     - `dynamic`: a nested function, whose defaults and closure come from the
       function object being called.
     - `line_of_pc`: the source line each `pc` resumes at.
+    - `site_of_pc`: what the frame waits on at each `pc` -- the callee's
+      source text, or "decision" (R7).
+    - `ops_of_pc`: the rules operations still reachable from each `pc`, in
+      source order, loops marked (R7; see tools/compile_engine.py's
+      `_ops_of`).
     """
 
     __slots__ = ("rid", "qualname", "module", "step", "dynamic", "freevars", "local_names", "code", "line_of_pc",
-                 "exc_slot", "exc_points", "ops_of_pc", "n_positional")
+                 "exc_slot", "exc_points", "ops_of_pc", "site_of_pc", "n_positional")
 
     def __init__(self, rid: str, qualname: str, module: str, step: Callable, *, dynamic: bool,
                  freevars: Tuple[str, ...], local_names: Tuple[str, ...], code, line_of_pc: Dict[int, int],
-                 exc_slot: Optional[int], exc_points: frozenset, n_positional: int, ops_of_pc: Optional[Dict[int, tuple]] = None):
+                 exc_slot: Optional[int], exc_points: frozenset, n_positional: int, ops_of_pc: Optional[Dict[int, tuple]] = None,
+                 site_of_pc: Optional[Dict[int, str]] = None):
         self.rid = rid
         self.qualname = qualname
         self.module = module
@@ -126,6 +132,7 @@ class Routine:
         self.exc_points = exc_points
         self.n_positional = n_positional
         self.ops_of_pc = ops_of_pc or {}
+        self.site_of_pc = site_of_pc or {}
 
     def __repr__(self):
         return f"<Routine {self.rid}>"

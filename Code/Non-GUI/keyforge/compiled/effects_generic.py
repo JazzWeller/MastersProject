@@ -551,21 +551,22 @@ def _kfmk_duration_effect__effect(_kfN, _kfR):
 
 
 # (qualname, first line, routine factory, slots, free variables, nested code (name, line),
-#  line of each resume id, (exception slot, resume ids inside a try region) or None)
+#  line of each resume id, (exception slot, resume ids inside a try region) or None,
+#  what each resume id waits on, the operations still reachable from each resume id)
 ROUTINES = [
-    ('gain_n.<locals>.effect', 24, _kfmk_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 27}, None),
-    ('opponent_gain_n.<locals>.effect', 33, _kfmk_opponent_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 36}, None),
-    ('lose_n.<locals>.effect', 42, _kfmk_lose_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 45}, None),
-    ('steal_n.<locals>.effect', 51, _kfmk_steal_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 54}, None),
-    ('archive_n.<locals>.effect', 60, _kfmk_archive_n__effect, ('game', 'card', 'choice', 'i', 'options', 'player', 'what', '_kfc_n', '_kfs0', '_kfi1'), ('n',), (), {1: 68}, None),
-    ('draw_n.<locals>.effect', 78, _kfmk_draw_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 81}, None),
-    ('heal_self_n.<locals>.effect', 87, _kfmk_heal_self_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 90}, None),
-    ('capture_n.<locals>.effect', 96, _kfmk_capture_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 99}, None),
-    ('deal_damage_to_chosen.<locals>.effect', 105, _kfmk_deal_damage_to_chosen__effect, ('game', 'card', 'choice', 'hit', 'kind', 'options', 'player', '_kfc_n', '_kfc_targets'), ('n', 'targets'), (), {1: 112, 2: 120}, None),
-    ('move_aember_to_card.<locals>.effect', 129, _kfmk_move_aember_to_card__effect, ('game', 'card', 'amount', 'player', '_kfc_n'), ('n',), (), {1: 139}, None),
-    ('reveal_from_hand', 144, _kfmk_reveal_from_hand, ('game', 'player', 'predicate', 'prompt', 'source_card', 'choice', 'options'), (), (), {1: 153}, None),
-    ('choose_most_powerful', 162, _kfmk_choose_most_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'max_power', 'tied'), (), (), {1: 174}, None),
-    ('choose_least_powerful', 180, _kfmk_choose_least_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'min_power', 'tied'), (), (), {1: 189}, None),
-    ('deal_damage_to_chosen_with_splash.<locals>.effect', 200, _kfmk_deal_damage_to_chosen_with_splash__effect, ('game', 'card', 'area', 'choice', 'hits', 'kind', 'n', 'neighbors', 'options', 'player', 'target', '_kfc_main', '_kfc_splash', '_kfc_targets'), ('main', 'splash', 'targets'), (), {1: 207, 2: 220}, None),
-    ('duration_effect.<locals>.effect', 228, _kfmk_duration_effect__effect, ('game', 'card', 'controller', 'player_affected', 'targets', '_kfc_duration', '_kfc_op', '_kfc_scope', '_kfc_value', '_kfc_variable'), ('duration', 'op', 'scope', 'value', 'variable'), (), {1: 244}, None),
+    ('gain_n.<locals>.effect', 24, _kfmk_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 27}, None, {1: 'decision'}, {1: ()}),
+    ('opponent_gain_n.<locals>.effect', 33, _kfmk_opponent_gain_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 36}, None, {1: 'decision'}, {1: ()}),
+    ('lose_n.<locals>.effect', 42, _kfmk_lose_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 45}, None, {1: 'decision'}, {1: ()}),
+    ('steal_n.<locals>.effect', 51, _kfmk_steal_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 54}, None, {1: 'decision'}, {1: ()}),
+    ('archive_n.<locals>.effect', 60, _kfmk_archive_n__effect, ('game', 'card', 'choice', 'i', 'options', 'player', 'what', '_kfc_n', '_kfs0', '_kfi1'), ('n',), (), {1: 68}, None, {1: 'game.choose_cards'}, {1: (('step', 'steps.archive_card', ('?', '?', '?'), ()), ('loop', 62), ('step', 'steps.shortfall', ('?', '?', '?', 'Hand is empty'), ()), ('pause', 'game.choose_cards', ('?', '?', '?', 1, 1), (('source_card', '?'), ('intent', 'DecisionIntent.ARCHIVE'), ('affects', 'Affects.FRIENDLY'))), ('step', 'steps.archive_card', ('?', '?', '?'), ()))}),
+    ('draw_n.<locals>.effect', 78, _kfmk_draw_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 81}, None, {1: 'decision'}, {1: ()}),
+    ('heal_self_n.<locals>.effect', 87, _kfmk_heal_self_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 90}, None, {1: 'decision'}, {1: ()}),
+    ('capture_n.<locals>.effect', 96, _kfmk_capture_n__effect, ('game', 'card', '_kfc_n'), ('n',), (), {1: 99}, None, {1: 'decision'}, {1: ()}),
+    ('deal_damage_to_chosen.<locals>.effect', 105, _kfmk_deal_damage_to_chosen__effect, ('game', 'card', 'choice', 'hit', 'kind', 'options', 'player', '_kfc_n', '_kfc_targets'), ('n', 'targets'), (), {1: 112, 2: 120}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('move_aember_to_card.<locals>.effect', 129, _kfmk_move_aember_to_card__effect, ('game', 'card', 'amount', 'player', '_kfc_n'), ('n',), (), {1: 139}, None, {1: 'decision'}, {1: ()}),
+    ('reveal_from_hand', 144, _kfmk_reveal_from_hand, ('game', 'player', 'predicate', 'prompt', 'source_card', 'choice', 'options'), (), (), {1: 153}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('choose_most_powerful', 162, _kfmk_choose_most_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'max_power', 'tied'), (), (), {1: 174}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('choose_least_powerful', 180, _kfmk_choose_least_powerful, ('game', 'pid', 'creatures', 'prompt', 'source_card', 'choice', 'min_power', 'tied'), (), (), {1: 189}, None, {1: 'game.choose_cards'}, {1: ()}),
+    ('deal_damage_to_chosen_with_splash.<locals>.effect', 200, _kfmk_deal_damage_to_chosen_with_splash__effect, ('game', 'card', 'area', 'choice', 'hits', 'kind', 'n', 'neighbors', 'options', 'player', 'target', '_kfc_main', '_kfc_splash', '_kfc_targets'), ('main', 'splash', 'targets'), (), {1: 207, 2: 220}, None, {1: 'game.choose_cards', 2: 'game.check_destroyed'}, {1: (('step', 'game.find_play_area', ('?',), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('step', 'steps.deal_damage', ('?', '?', '?'), ()), ('pause', 'game.check_destroyed', ('?',), ())), 2: ()}),
+    ('duration_effect.<locals>.effect', 228, _kfmk_duration_effect__effect, ('game', 'card', 'controller', 'player_affected', 'targets', '_kfc_duration', '_kfc_op', '_kfc_scope', '_kfc_value', '_kfc_variable'), ('duration', 'op', 'scope', 'value', 'variable'), (), {1: 244}, None, {1: 'decision'}, {1: ()}),
 ]

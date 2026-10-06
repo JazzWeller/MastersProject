@@ -101,7 +101,7 @@ def register(entries, target, src_name: str) -> List[vm.Routine]:
         vm.INJECTED.append(g)
     _link_game(g)
     out = []
-    for qualname, line, factory, slots, freevars, nested, line_of_pc, exc in entries:
+    for qualname, line, factory, slots, freevars, nested, line_of_pc, exc, site_of_pc, ops_of_pc in entries:
         code = _resolve(target, qualname, line)
         if tuple(freevars) != code.co_freevars:
             raise StaleCompiledModule(f"{src_name}:{qualname}: free variables {freevars} != {code.co_freevars}")
@@ -111,7 +111,7 @@ def register(entries, target, src_name: str) -> List[vm.Routine]:
         routine = vm.Routine(rid, qualname, src_name, None, dynamic=dynamic, freevars=tuple(freevars),
                              local_names=tuple(slots), code=code, line_of_pc=dict(line_of_pc),
                              exc_slot=exc[0] if exc else None, exc_points=frozenset(exc[1]) if exc else frozenset(),
-                             n_positional=n_pos)
+                             n_positional=n_pos, ops_of_pc=dict(ops_of_pc), site_of_pc=dict(site_of_pc))
         # the factory runs in the source module's globals, so the routine does
         make = types.FunctionType(factory.__code__, g, factory.__name__)
         step = make(_nested_codes(code, nested), routine)

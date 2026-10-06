@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import collections
 import dataclasses
 import itertools
+import types
 import math
 import random
 
@@ -444,11 +446,7 @@ class Game:
             fork = self.fork_by_replay()
         else:
             raise ValueError(f"fork_determinized: unknown backend {backend!r}")
-        opponent = 3 - viewer
-        if resample in (Resample.OWN_DECK, Resample.ALL):
-            fork._resample_own_deck(viewer, rng)
-        if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
-            fork._resample_hidden_pool(opponent, viewer, rng)
+        fork._redeal(viewer, rng, resample)
         # A fresh, independent seed drawn from the caller's own `rng` --
         # portability doesn't matter here (this value is never itself
         # replayed as an engine-internal draw), only that it decorrelates
@@ -482,22 +480,29 @@ class Game:
             self._fork_snapshot = (latest, snapshot.apply(record[start:latest]))
         return world
 
-    def _resample_own_deck(self, pid: int, rng: random.Random) -> None:
+    def _resample_own_deck(self, pid: int, rng: random.Random) -> Dict[Card, Card]:
+        """Reshuffles `pid`'s deck in place. Returns sigma: each card -> the
+        card now at its position."""
         player = self.players[pid]
         cards = player.deck.cards()
-        if len(cards) > 1:
-            portable_shuffle(rng, cards)
-        player.deck = Deck(cards)
+        new = list(cards)
+        if len(new) > 1:
+            portable_shuffle(rng, new)
+        player.deck._cards = collections.deque(new)
+        return {a: b for a, b in zip(cards, new) if a is not b}
 
-    def _resample_hidden_pool(self, pid: int, viewer: int, rng: random.Random) -> None:
+    def _resample_hidden_pool(self, pid: int, viewer: int, rng: random.Random) -> Dict[Card, Card]:
         """Redistributes `pid`'s hand + archive + deck among themselves,
         preserving each zone's count, except any hand card `viewer`
-        currently has revealed to them (`hand_revealed_to`)."""
+        currently has revealed to them (`hand_revealed_to`). Returns sigma:
+        each card -> the card now at its position (zone and index)."""
         player = self.players[pid]
         hand_cards = player.hand.cards()
+        archive_cards = player.archive.cards()
+        deck_cards = player.deck.cards()
         revealed = viewer in player.hand_revealed_to
         fixed = hand_cards if revealed else []
-        pool = ([] if revealed else list(hand_cards)) + player.archive.cards() + player.deck.cards()
+        pool = ([] if revealed else list(hand_cards)) + archive_cards + deck_cards
         portable_shuffle(rng, pool)
         n_hand = len(hand_cards) - len(fixed)
         n_archive = len(player.archive)
@@ -510,7 +515,81 @@ class Game:
             player.archive.remove(c)
         for c in new_archive:
             player.archive.add(c)
-        player.deck = Deck(new_deck)
+        player.deck._cards = collections.deque(new_deck)
+        sigma = {}
+        for old, new in ((hand_cards, new_hand), (archive_cards, new_archive), (deck_cards, new_deck)):
+            sigma.update({a: b for a, b in zip(old, new) if a is not b})
+        return sigma
+
+    def _redeal(self, viewer: int, rng: random.Random, resample: Resample) -> None:
+        """Re-deals what `viewer` doesn't know (`resample`, see
+        `fork_determinized`), in place, and relabels what is still resolving
+        to match."""
+        sigma: Dict[Card, Card] = {}
+        if resample in (Resample.OWN_DECK, Resample.ALL):
+            sigma.update(self._resample_own_deck(viewer, rng))
+        if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
+            sigma.update(self._resample_hidden_pool(3 - viewer, viewer, rng))
+        if self.execution == "compiled" and not self.is_over:
+            self._relabel(sigma)
+
+    def _relabel(self, sigma: Dict[Card, Card]) -> None:
+        """Applies a re-deal's sigma to what is still resolving (Part R, R7;
+        plan O3): every card a suspended frame or the pending decision holds
+        that the re-deal moved is replaced by the card now in its place, so
+        an effect choosing among "their hand" still chooses among their
+        hand. The engine's own containers were rebuilt by the re-deal and
+        are left alone. (A native game can't do this: its frames are
+        generators.)"""
+        if not sigma:
+            return
+        from .copying import container_index
+
+        engine = container_index(self)
+        seen = set()
+
+        def walk(x):
+            t = type(x)
+            if t is Card:
+                return sigma.get(x, x)
+            if t is list or t is dict or t is set:
+                if id(x) in seen or id(x) in engine:
+                    return x
+                seen.add(id(x))
+                if t is list:
+                    x[:] = [walk(v) for v in x]
+                elif t is dict:
+                    for k in list(x):
+                        x[k] = walk(x[k])
+                else:
+                    items = [walk(v) for v in x]
+                    x.clear()
+                    x.update(items)
+                return x
+            if t is tuple:
+                return tuple(walk(v) for v in x)
+            if t is frozenset:
+                return frozenset(walk(v) for v in x)
+            if t is types.CellType:
+                if id(x) not in seen:
+                    seen.add(id(x))
+                    try:
+                        x.cell_contents = walk(x.cell_contents)
+                    except ValueError:
+                        pass
+                return x
+            if t in (PlayCard, DiscardCard, UseAction, UseOmni, Reap, Fight):
+                new = sigma.get(x.card)
+                return t(new) if new is not None else x
+            return x
+
+        for fr in self._machine.stack:
+            fr.L[:] = [walk(v) for v in fr.L]
+        d = self.pending_decision
+        if d is not None:
+            d.options = walk(d.options)
+            if isinstance(d.source_card, Card):
+                d.source_card = sigma.get(d.source_card, d.source_card)
 
     def _branch_seed(self, index: int) -> int:
         """A deterministic per-branch seed derived from this game's own
@@ -543,6 +622,14 @@ class Game:
                 raise ValueError("Game.apply: more choices than the game has pending decisions for")
             self.submit_index(encoded)
         return self
+
+    def resolution_view(self, viewer: int):
+        """What is still left to resolve, for `viewer` (Part R, R7; see
+        keyforge/resolution.py): one entry per suspended frame, top first,
+        with what the viewer may not see redacted. Compiled execution only."""
+        from .resolution import resolution_view
+
+        return resolution_view(self, viewer)
 
     def snapshot(self) -> bytes:
         """This game, serialized: canonical, versioned, pickle-free bytes

@@ -101,10 +101,7 @@ def _run_child(game, work, viewer, opponent, resample, seed, w: int) -> None:
     try:
         if viewer is not None:
             rng = random.Random(seed)
-            if resample in (Resample.OWN_DECK, Resample.ALL):
-                game._resample_own_deck(viewer, rng)
-            if resample in (Resample.OPPONENT_PRIVATE, Resample.ALL):
-                game._resample_hidden_pool(opponent, viewer, rng)
+            game._redeal(viewer, rng, resample)
             # Without this, every future `event_rng` draw in this branch
             # would exactly match the true game's (both still derive from
             # the same `config.seed` and the same `_rng_counters`) --

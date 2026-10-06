@@ -217,7 +217,12 @@ class _Writer:
         if t is random.Random:
             return self.ref(x, lambda: {"k": "random", "v": self.value(x.getstate())})
         if t is itertools.count:
-            return {"count": x.__reduce__()[1][0]}
+            # its next value, from its repr ("count(73)"): Python 3.14 drops
+            # itertools' pickling support
+            text = repr(x)
+            if not (text.startswith("count(") and text.endswith(")") and "," not in text):
+                raise SnapshotError(f"an itertools.count with a step: {text}")
+            return {"count": int(text[len("count("):-1])}
         if t is vm.Frame:
             return self.ref(x, lambda: {"k": "frame", "routine": x.routine.rid, "pc": x.pc, "L": [self.value(v) for v in x.L]})
         if t is vm.Machine:
