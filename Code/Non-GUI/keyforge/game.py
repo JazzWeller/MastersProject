@@ -390,7 +390,20 @@ class Game:
         hidden state and RNG future: replaying the same config and
         `choice_record` reproduces a game byte-for-byte (Milestone A), so
         this is just that. PRIVILEGED -- a normal agent handed this could
-        search its own future draws and the opponent's true hand."""
+        search its own future draws and the opponent's true hand.
+
+        A copy wherever a copy is valid (every decision in compiled
+        execution, Part R, R6), else a replay -- the same game either way;
+        `fork_by_replay` is the replay, kept as the cross-check."""
+        # (native fork() stays a replay: a native copy is boundary-only and
+        # re-runs the turn to rebuild its pending decision)
+        if self.execution == "compiled" and self.copy_anywhere:
+            return self.copy()
+        return self.fork_by_replay()
+
+    def fork_by_replay(self) -> "Game":
+        """`fork()` by replaying the config and `choice_record` from the
+        start: valid at any decision in either execution mode."""
         return replay(self.config, self.choice_record, execution=self.execution)
 
     def fork_determinized(
@@ -428,7 +441,7 @@ class Game:
         elif backend == "auto":
             fork = self._fork_from_snapshot()
         elif backend == "replay":
-            fork = self.fork()
+            fork = self.fork_by_replay()
         else:
             raise ValueError(f"fork_determinized: unknown backend {backend!r}")
         opponent = 3 - viewer

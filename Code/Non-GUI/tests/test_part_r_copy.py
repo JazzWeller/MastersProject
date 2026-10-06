@@ -30,7 +30,7 @@ def _play_with_copies(spec, rate, rng):
         d = g.pending_decision
         if rng.random() < rate:
             c = g.copy()
-            f = g.fork()
+            f = g.fork_by_replay()
             assert E.state(c) == E.state(f), (spec["name"], len(g.choice_record), d.kind)
             assert E.decision(c.pending_decision) == E.decision(f.pending_decision)
             copies.append(c)
