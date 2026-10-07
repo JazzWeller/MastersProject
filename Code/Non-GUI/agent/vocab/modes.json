@@ -1,0 +1,19 @@
+{
+ "name": "modes",
+ "version": 1,
+ "entries": [
+  "Archive a card",
+  "Destroy each Dis creature",
+  "Gain 1Æ",
+  "Gain 1Æ per archived card",
+  "Heal 3",
+  "Stun",
+  "Ready a Mars creature",
+  "Stun a non-Mars creature",
+  "action",
+  "check",
+  "effect",
+  "fight",
+  "reap"
+ ]
+}

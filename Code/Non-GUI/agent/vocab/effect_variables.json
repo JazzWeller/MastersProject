@@ -1,0 +1,30 @@
+{
+ "name": "effect_variables",
+ "version": 1,
+ "entries": [
+  "ArtifactPlayToll",
+  "ArtifactUseToll",
+  "CanFight",
+  "CanKeyForge",
+  "CanOnlyFight",
+  "CanPlayActions",
+  "CanPlayCards",
+  "CanPlayCreatures",
+  "CannotBeDealtDamage",
+  "CannotBeStolenFrom",
+  "CannotChooseHouse",
+  "CannotUseCards",
+  "CardDrawModifier",
+  "CardPlayedLimit",
+  "DrawUpToLimit",
+  "FightPermittedHouse",
+  "FirstCreatureEntersReady",
+  "FlankAndAfterReapDraw",
+  "HouseSelection",
+  "KeyForgeCost",
+  "NonLogosCardsPlayable",
+  "ReapGainBecomesSteal",
+  "RedirectsForgePayment",
+  "UsePermittedHouse"
+ ]
+}

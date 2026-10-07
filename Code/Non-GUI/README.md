@@ -135,8 +135,10 @@ The learned-agent stack from `Code/AGENT_TRAINING_PLAN.md` (see its
 - `agent/` — **pure standard library, never imports torch** (a test enforces
   it), so engine workers can `fork()` and could run under PyPy:
   `spec.py` (the feature layout, versions and reserved slots),
-  `features.py` (the encoder, reading `keyforge/infoset.py`'s fast redacted
-  extract), `search/` (the ISMCTS core, both regimes, leaf estimators),
+  `features.py` (the v1 encoder, frozen in `features_v1.py`, reading
+  `keyforge/infoset.py`'s fast redacted extract), `spec_v2.py` +
+  `features_v2.py` + `static_v2.py` + `vocab/` (the lossless v2 encoding),
+  `state_registry.py` (what every engine attribute is to the agent), `search/` (the ISMCTS core, both regimes, leaf estimators),
   `agents/` (the search-free `NetAgent`, the `SearchAgent`, registry
   entries), `selfplay.py` (the self-play actor), `config.py` +
   `telemetry.py` (resolved/hashed configs, runs, journals, metrics).

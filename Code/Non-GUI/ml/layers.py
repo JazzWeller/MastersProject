@@ -60,13 +60,18 @@ class SelfAttention(nn.Module):
         nn.init.xavier_uniform_(self.in_proj_weight)
         nn.init.zeros_(self.out_proj.bias)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """`mask` (v2): bool [B, 1 or T, T], True = may attend (padding and
+        the `stream` block-causal mask); None = full attention (v1)."""
         B, T, d = x.shape
         qkv = F.linear(x, self.in_proj_weight, self.in_proj_bias)
         q, k, v = qkv.view(B, T, 3, self.heads, d // self.heads).permute(2, 0, 3, 1, 4)
         p = self.dropout if self.training else 0.0
-        if self.kernels is None:
-            a = F.scaled_dot_product_attention(q, k, v, dropout_p=p)
+        m = None if mask is None else mask.unsqueeze(1)
+        if self.kernels is None or m is not None:
+            # (the flash kernel takes no arbitrary mask: a masked batch runs
+            # on whichever kernel can)
+            a = F.scaled_dot_product_attention(q, k, v, attn_mask=m, dropout_p=p)
         else:
             with sdpa_kernel(self.kernels, set_priority=True):
                 a = F.scaled_dot_product_attention(q, k, v, dropout_p=p)
@@ -88,8 +93,8 @@ class FastEncoderLayer(nn.Module):
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.dropout1(self.self_attn(self.norm1(x)))
+    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+        x = x + self.dropout1(self.self_attn(self.norm1(x), mask))
         return x + self.dropout2(self.linear2(self.dropout(F.gelu(self.linear1(self.norm2(x))))))
 
 
@@ -101,12 +106,15 @@ class Trunk(nn.Module):
         self.layers = nn.ModuleList(layers)
         self.checkpoint = False
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         recompute = self.checkpoint and self.training and torch.is_grad_enabled()
         for layer in self.layers:
             # Non-reentrant checkpointing keeps the RNG state, so dropout
             # masks in the recompute match the forward pass exactly.
-            x = checkpoint(layer, x, use_reentrant=False) if recompute else layer(x)
+            if mask is None:
+                x = checkpoint(layer, x, use_reentrant=False) if recompute else layer(x)
+            else:
+                x = checkpoint(layer, x, mask, use_reentrant=False) if recompute else layer(x, mask)
         return x
 
 

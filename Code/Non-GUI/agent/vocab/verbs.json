@@ -1,0 +1,27 @@
+{
+ "name": "verbs",
+ "version": 1,
+ "entries": [
+  "bid",
+  "bool",
+  "card",
+  "discard",
+  "end_turn",
+  "fight",
+  "first_player",
+  "flank",
+  "house",
+  "mode",
+  "number",
+  "opaque",
+  "pass",
+  "play",
+  "reap",
+  "seq",
+  "trigger",
+  "use_action",
+  "use_omni",
+  "value",
+  "stop"
+ ]
+}

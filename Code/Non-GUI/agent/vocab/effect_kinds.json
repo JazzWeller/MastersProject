@@ -1,0 +1,14 @@
+{
+ "name": "effect_kinds",
+ "version": 1,
+ "entries": [
+  "aember_gain",
+  "armor",
+  "damage_target",
+  "discard_destination",
+  "fight_damage",
+  "keywords",
+  "power",
+  "would_be_destroyed"
+ ]
+}

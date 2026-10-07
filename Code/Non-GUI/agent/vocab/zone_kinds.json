@@ -1,0 +1,17 @@
+{
+ "name": "zone_kinds",
+ "version": 1,
+ "entries": [
+  "archive",
+  "artifacts",
+  "attached",
+  "battleline",
+  "deck",
+  "discard",
+  "hand",
+  "limbo",
+  "purged",
+  "setup",
+  "under"
+ ]
+}

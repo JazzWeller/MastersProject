@@ -1,0 +1,12 @@
+{
+ "name": "cleanup_ops",
+ "version": 1,
+ "entries": [
+  "dis.clear_armor_negated",
+  "logos.spectral_tunneler_revert",
+  "mars.clear_elusive_suppressed",
+  "mars.clear_house_override",
+  "remove_effects_from_source",
+  "sanctum.clear_damage_prevented"
+ ]
+}
