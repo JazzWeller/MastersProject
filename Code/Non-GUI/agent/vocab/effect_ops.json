@@ -1,0 +1,10 @@
+{
+ "name": "effect_ops",
+ "version": 1,
+ "entries": [
+  "+",
+  "-",
+  "=",
+  "add"
+ ]
+}

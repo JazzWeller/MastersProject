@@ -19,7 +19,9 @@ entry per suspended frame, top (innermost) first:
 
 Values are plain data, redacted for `viewer`: a card the viewer may see is
 `("card", instance id)`; one in a zone hidden from them is `("hidden",
-zone, side)` -- "a hidden card from zone Z of side S". Sides are relative
+zone, side)` -- "a hidden card from zone Z of side S" -- and inside a list
+or set, the hidden cards are a multiset of counts per (zone, side) after
+the other items (a hidden card's place in a list can say which card it is). Sides are relative
 to the viewer ("mine" / "theirs"). Abilities resolve face up, so the frames
 themselves are public; only identities are redacted.
 """
@@ -88,6 +90,20 @@ class _Encoder:
         # in the same place in the same zone, keyforge/determinize.py)
         return ("hidden", zone[0], self.side(zone[1]))
 
+    @staticmethod
+    def _hide_order(items: tuple) -> tuple:
+        """A sequence's hidden cards as counts per (zone, side), after its
+        other items: where a hidden card sits in a list can say which card
+        it is (a decklist in build order), so its place is never shown."""
+        hidden = [v for v in items if isinstance(v, tuple) and v and v[0] == "hidden"]
+        if not hidden:
+            return items
+        counts: Dict[tuple, int] = {}
+        for v in hidden:
+            counts[v[1:]] = counts.get(v[1:], 0) + 1
+        rest = tuple(v for v in items if not (isinstance(v, tuple) and v and v[0] == "hidden"))
+        return rest + (("hidden_counts", tuple(sorted((k + (n,) for k, n in counts.items())))),)
+
     def value(self, x, depth: int = 0) -> Any:
         if x is None or isinstance(x, (bool, int, float, str)):
             return x
@@ -101,9 +117,9 @@ class _Encoder:
         if t == "Game":
             return ("game",)
         if isinstance(x, (list, tuple)):
-            return ("list", tuple(self.value(v, depth + 1) for v in x))
+            return ("list", self._hide_order(tuple(self.value(v, depth + 1) for v in x)))
         if isinstance(x, (set, frozenset)):
-            return ("set", tuple(sorted((self.value(v, depth + 1) for v in x), key=repr)))
+            return ("set", self._hide_order(tuple(sorted((self.value(v, depth + 1) for v in x), key=repr))))
         if isinstance(x, dict):
             return ("dict", tuple((self.value(k, depth + 1), self.value(v, depth + 1)) for k, v in x.items()))
         if isinstance(x, EffectObject):

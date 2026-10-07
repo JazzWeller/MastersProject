@@ -491,7 +491,9 @@ class Game:
 
             world = sample_world(self, viewer, rng, resample, sampler, weights)
         if backend == "copy" or (backend == "auto" and self.copy_anywhere):
-            fork = self.copy(caches=False)
+            # the viewer's own caches hold in every world they can't tell
+            # apart (O1's sigma-invariance): carried, not rebuilt
+            fork = self.copy(caches=viewer)
         elif backend == "auto":
             fork = self._fork_from_snapshot()
         elif backend == "replay":
@@ -603,7 +605,7 @@ class Game:
             self._relabel(sigma)
         # `viewer`'s projection and knowledge are the same in every world
         # they can't tell apart (O1's sigma-invariance); no one else's are
-        for name in ("_projectors", "_trackers", "_trackers2", "_chance"):
+        for name in ("_projectors", "_trackers", "_trackers2", "_chance", "_history"):
             cache = self.__dict__.get(name)
             if cache:
                 for v in list(cache):
@@ -748,7 +750,7 @@ class Game:
             return self._machine.copyable
         return self.pending_decision is not None and self.pending_decision.kind in BOUNDARY_KINDS
 
-    def copy(self, caches: bool = True) -> "Game":
+    def copy(self, caches=True) -> "Game":
         """An independent snapshot of this game -- exact and PRIVILEGED, the
         fast analog of `fork()`. Hand-written, not `copy.deepcopy` (which
         treats functions as atomic, so a deepcopied game's effect handlers
@@ -785,10 +787,11 @@ class Game:
         new._causes = list(self._causes)
         # what each viewer has seen and knows (projection.py, knowledge.py):
         # caches over the journal, carried along so a copy reads on from here
-        for name in ("_projectors", "_trackers", "_trackers2", "_chance"):
-            cache = self.__dict__.get(name) if caches else None
+        for name in ("_projectors", "_trackers", "_trackers2", "_chance", "_history"):
+            cache = self.__dict__.get(name) if caches is not False else None
             if cache:
-                new.__dict__[name] = {v: x.copy() for v, x in cache.items()}
+                # (`caches`: True for every viewer's, a player id for theirs only)
+                new.__dict__[name] = {v: x.copy() for v, x in cache.items() if caches is True or v == caches}
         if "_world_cut" in self.__dict__:
             new.__dict__["_world_cut"] = self.__dict__["_world_cut"]
         new._player_houses_cache = dict(self._player_houses_cache)

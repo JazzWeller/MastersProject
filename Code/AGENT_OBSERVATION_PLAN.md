@@ -1,7 +1,7 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-10-05): O0 done; Part R R0–R7 done, R8 in progress** (details under "Progress"
-below). Built before that:
+**Status (2026-10-07): O0, Part R and O1–O6 done; O7 built (its throughput table pending)**
+(details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
 - O9's faster training: vectorized losses, bf16, a fused optimizer, a compiled trunk and faster batch
@@ -184,6 +184,78 @@ below). Built before that:
   after shuffling the hand, so frames named different cards.
 - The extract is the reference form (~1.1 ms per call, dicts); O5's encoder reads the same state
   directly.
+
+**O5, done** (2026-10-06).
+- **v1 frozen**: `agent/features_v1.py`; `agent/features.py` re-exports it, so every v1 import and
+  checkpoint path is unchanged (M1's tests pass through it).
+- **v2**: `agent/spec_v2.py` (typed token blocks: GLOBAL, ENTITY ×72, EFFECT, RESOLUTION,
+  RES_POINTER, RES_OP, CLEANUP, MATCH, OPTION; int and float columns; pointers as entity indices
+  with NO_POINTER / HIDDEN_MINE / HIDDEN_THEIRS) and `agent/features_v2.py` (`encode_v2`,
+  `encode_v2_for`, `encode_v2_match`). An entity carries the tracker's knowledge (mask as zone-code
+  bits, deck position, provenance group as rank and size, last sighting, exit op, what the
+  opponent knows) and chance_exact's priors, and, where visible, every attribute the registry
+  marks encoded. Nothing is clipped; counts are scaled only.
+- **Vocabularies** (`agent/vocab/`, 20 append-only files, `tools/build_vocab_v2.py`): built from
+  the card data, the engine's source by AST, its registries, the compiled routines (routines,
+  sites, roles, reachable operations) and a fuzz harvest for values made at run time (mode names
+  such as Play-resolution's "effect"/"check", trigger-option tags). An unknown entry raises;
+  `VOCAB_V2_HASH` is in the v2 stamp.
+- **Static meaning, three tables** (`agent/static_v2.py`): attributes (traits from the vocabulary),
+  parsed text rows (trigger, verb, amount, scope, conditions; 570 rows), and engine signatures (the
+  `steps`/`game` calls, the lasting effects created, the state attributes written, the hooks
+  granted to a host, literal amounts; every card with an effect has a non-empty one). The text
+  embedding has its loader and `tools/build_text_embedding.py`; the table itself is not built (it
+  needs `sentence-transformers` and a model download).
+- **A leak found and fixed in the resolution view**: during the mulligan the setup frame holds the
+  opponent's deck as a list in build order, so each element's "hidden, hand" / "hidden, deck"
+  said which card was in the hand. Hidden cards inside a list or set are now an order-free count
+  per (zone, side). The invariance tests could not see it (a world relabels positions to match).
+- **Acceptance** (`tests/test_agent_observation_o5.py`, `tools/o5_acceptance.py`): no leak (bytes
+  identical in consistent worlds), determinism across processes and hash seeds, every decision
+  kind, every deck source and format (match-level decisions included), vocabulary coverage of all
+  370 cards, v1 bit-identical. The sweep: 4,000 games (1,000 per pool), 1.75M encodes, 356,360
+  worlds, no problem. **Cost**: ~0.85 ms per encode on CPython 3.12 (v1: ~90 µs); PyPy averaged
+  3.7 ms in the 10-worker sweep (to be measured on a quiet machine); O8/O10 measure it against a
+  simulation.
+
+**O6, done** (2026-10-07).
+- `agent/history.py`: `HistoryEncoder(game, viewer)` folds the viewer's projection into event rows
+  (kind, actor side, from/to zone, numeric fields, house, flank, visibility, absolute turn, step,
+  sequence index; decision rows add kind, intent, source and the chosen/offered options) plus a
+  separate (row, role, entity) pointer list, variable length. A hidden identity is "a hidden card
+  from zone Z of side S". Rows take their turn from the event, not from when they were folded.
+- **All three representations**: full rows, turn tokens (one per half-turn, with every field the
+  plan lists) and summaries (per entity and global). Turn tokens and summaries are folded
+  incrementally (`_Folds`, carried by `copy`): 217 µs per call where recomputing took ~20 ms.
+- **Prefix and suffix**: `freeze()` marks the prefix with a rolling blake2b digest; a world's copy
+  appends only its suffix. `history_for(game, viewer)` keeps one encoder per viewer on the game
+  (a cache the copier, snapshot and re-deal know about).
+- **Acceptance** (`tests/test_agent_observation_o6.py`): history bytes identical in every
+  chance_exact world of every pool; prefix + suffix byte-identical to encoding the world from
+  scratch, turn tokens and summaries included; the byte form round-trips; hidden identities stay
+  hidden. **Cost**: a world used to rebuild the viewer's projection to extend its history (188% of
+  a simulation); `fork_determinized` now carries the determinizing viewer's caches
+  (`copy(caches=viewer)`), and the suffix costs ~26% of a simulation (loaded machine; O10 measures
+  it quietly).
+- Left to O9, where the shards are written: one stream per game and seat with a cursor per position,
+  and mirroring of event rows' flank fields.
+
+**O7, built** (2026-10-07).
+- `ml/encode_v2.py`: `collate_v2` pads each token block, the history rows and pointers, turn tokens
+  and summaries, with masks; `bucket_by_length`; `static_tables_tensor` (the three static tables).
+- `ml/model_v2.py`, `KeyForgeNetV2` (v1's `ml/model.py` untouched): one input projection per token
+  type (`ColumnEmbed`: ids, bit fields, pointers, numbers) plus a type embedding; pointer enrichment
+  (role embedding + the card's identity and static rows) for entities, effects, resolution frames,
+  history rows and options; sinusoidal time features (no table, no cap). `history_arch`: `joint`,
+  `stream` (block-causal), `turn_tokens`, `summary`, `none`; `options_in_trunk` either way. Heads:
+  policy, value, top-k, Q, multi-select, sequential, belief v2 (O3's prior logits plus a learned
+  difference, and P(next draw)), oracle over hand/archive/deck, and the auxiliary heads.
+- `ml/layers.py`: the attention layer and trunk take an optional boolean mask (SDPA, kernel chosen
+  by torch); without one, v1's path is unchanged.
+- **Acceptance** (`tests/test_agent_observation_o7.py`, WSL): shapes for every architecture, both
+  option placements and every decision kind met in fuzz games; padding never changes an output;
+  the stamp carries feature version 2 and the vocabulary hash. Throughput per architecture
+  (`tools/bench_model_v2.py`): see below.
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);

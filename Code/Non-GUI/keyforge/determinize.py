@@ -102,6 +102,53 @@ class ChanceFilter:
                 out[k] += p * c[k] / size
         return tuple(out)
 
+    def marginals(self) -> Dict[int, Tuple[float, float, float, float]]:
+        """`p_zone` of every card in the pool, in one pass over the states."""
+        sums = [[0.0, 0.0, 0.0, 0.0] for _ in self.atoms]
+        for state, p in self.dist.items():
+            for a, c in enumerate(state):
+                if c[0] or c[1] or c[2] or c[3]:
+                    s = sums[a]
+                    s[0] += p * c[0]
+                    s[1] += p * c[1]
+                    s[2] += p * c[2]
+                    s[3] += p * c[3]
+        out = {}
+        for a, members in enumerate(self.atoms):
+            if members:
+                size = len(members)
+                v = (sums[a][0] / size, sums[a][1] / size, sums[a][2] / size, sums[a][3] / size)
+                for iid in members:
+                    out[iid] = v
+        return out
+
+    def next_draw_fn(self):
+        """`p_next_draw` for many cards: the per-state deck sizes computed
+        once."""
+        known_bottom = {x for x in self.bottom if x is not None}
+        top = self.top[0] if self.top and self.top[0] is not None else None
+        per_atom = [0.0] * len(self.atoms)
+        for state, p in self.dist.items():
+            n_deck = sum(c[DECK] for c in state) - len(known_bottom)
+            if n_deck > 0:
+                w = p / n_deck
+                for a, c in enumerate(state):
+                    if c[DECK]:
+                        per_atom[a] += w * c[DECK]
+        atom_of, atoms = self.atom_of, self.atoms
+
+        def p(iid: int) -> float:
+            a = atom_of.get(iid)
+            if a is None:
+                return 0.0
+            if top is not None:
+                return 1.0 if top == iid else 0.0
+            if iid in known_bottom:
+                return 0.0
+            return per_atom[a] / len(atoms[a])
+
+        return p
+
     def p_next_draw(self, iid: int) -> float:
         a = self.atom_of.get(iid)
         if a is None:

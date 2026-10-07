@@ -1,0 +1,20 @@
+{
+ "name": "ability_kinds",
+ "version": 1,
+ "entries": [
+  "action",
+  "after_fight",
+  "after_reap",
+  "before_fight",
+  "destroyed",
+  "destroyed_fighting",
+  "effect",
+  "fight",
+  "kernel",
+  "omni",
+  "play",
+  "reap",
+  "trigger",
+  "turn"
+ ]
+}

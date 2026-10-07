@@ -58,6 +58,7 @@ REGISTRY = {
         "_trackers": (DERIVED, "per-viewer caches of the knowledge tracker"),
         "_trackers2": (DERIVED, "per-viewer caches of the second-order tracker"),
         "_chance": (DERIVED, "per-viewer caches of the chance filter"),
+        "_history": (DERIVED, "per-viewer caches of the history encoding (O6)"),
         "_world_cut": (DERIVED, "where a determinized world began (O3)"),
     },
     "Player": {

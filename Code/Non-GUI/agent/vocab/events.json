@@ -1,0 +1,21 @@
+{
+ "name": "events",
+ "version": 1,
+ "entries": [
+  "after_fight",
+  "after_reap",
+  "any_card_played",
+  "artifact_used",
+  "before_fight",
+  "card_discarded_from_hand",
+  "card_played",
+  "creature_destroyed",
+  "creature_entered_play",
+  "destroyed",
+  "end_of_turn",
+  "fight_resolved",
+  "house_chosen",
+  "key_forged",
+  "reap_resolved"
+ ]
+}
