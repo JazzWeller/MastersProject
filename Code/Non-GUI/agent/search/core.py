@@ -230,6 +230,9 @@ class Search:
         receives their results, returns the `SearchResult`."""
         s = self.settings
         self.searcher = capability.viewer
+        prepare = getattr(self.evaluator, "prepare", None)
+        if prepare is not None:  # e.g. freeze the history prefix, before any fork
+            prepare(capability, self)
         world0 = self._world(capability, random.Random(0))
         self.root_turn = world0.turn_number
         reused = self._reuse_root(self.root_turn)

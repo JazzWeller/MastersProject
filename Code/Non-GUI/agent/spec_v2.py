@@ -145,6 +145,7 @@ OPTION = Columns("option", [
 ])
 
 BLOCKS = (GLOBAL, ENTITY, EFFECT, RESOLUTION, RES_POINTER, RES_OP, CLEANUP, MATCH, OPTION)
+BLOCK_BY_NAME = {b.name: b for b in BLOCKS}
 
 
 def layout() -> dict:

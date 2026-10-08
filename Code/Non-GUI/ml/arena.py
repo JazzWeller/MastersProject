@@ -73,6 +73,11 @@ class _Cap:
     def infoset(self):
         return build_infoset(self._game, self.viewer)
 
+    def history(self):
+        from agent.history import history_for
+
+        return history_for(self._game, self.viewer)
+
 
 def _make_search(p: Player, seed: int) -> Search:
     policy = make_policy("heuristic", seed=seed)

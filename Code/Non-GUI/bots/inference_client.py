@@ -108,6 +108,7 @@ class InProcessInferenceClient(InferenceClient):
 class _PendingRequest:
     observations: List[Any]
     event: threading.Event = field(default_factory=threading.Event)
+    queued: float = field(default_factory=time.monotonic)
     result: Optional[Any] = None  # ("ok", [Prediction, ...]) or ("error", message) once `event` is set
 
 
@@ -147,6 +148,12 @@ class InferenceServer:
         self._state_lock = threading.Lock()
         self._closed = False
         self.connections_accepted = 0
+        # Opt-in timing (`$KEYFORGE_SERVER_STATS`, a JSON-lines file: the
+        # running totals appended every 10 s, so a window can be taken):
+        # where the server's time goes, for the actor benchmarks.
+        self._stats_path = os.environ.get("KEYFORGE_SERVER_STATS")
+        self.stats = {"batches": 0, "calls": 0, "observations": 0, "predict_seconds": 0.0,
+                      "queue_wait_seconds": 0.0, "window_seconds": 0.0, "since": time.time()}
 
     @property
     def address(self) -> Any:
@@ -210,6 +217,7 @@ class InferenceServer:
             first = self._queue.get()
             if first is None:
                 return
+            t_first = time.monotonic()
             batch = [first]
             total = len(first.observations)
             deadline = time.monotonic() + self._batch_window_seconds
@@ -228,6 +236,7 @@ class InferenceServer:
                 total += len(nxt.observations)
 
             all_observations = [o for req in batch for o in req.observations]
+            t_predict = time.monotonic()
             try:
                 all_results = self._predict(all_observations)
                 i = 0
@@ -241,6 +250,20 @@ class InferenceServer:
                     req.result = ("error", message)
             for req in batch:
                 req.event.set()
+            if self._stats_path:
+                st = self.stats
+                st["batches"] += 1
+                st["calls"] += len(batch)
+                st["observations"] += len(all_observations)
+                st["predict_seconds"] += time.monotonic() - t_predict
+                st["window_seconds"] += t_predict - t_first
+                st["queue_wait_seconds"] += sum(t_first - r.queued for r in batch if t_first > r.queued)
+                if time.time() - st.get("written", 0) > 10:
+                    st["written"] = time.time()
+                    import json
+
+                    with open(self._stats_path, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(st) + "\n")
 
     def serve_forever(self) -> None:
         # `Listener`'s own default backlog is 1 -- fine for occasional

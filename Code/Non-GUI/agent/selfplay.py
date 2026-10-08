@@ -234,6 +234,11 @@ class _Cap:
     def infoset(self):
         return build_infoset(self._game, self.viewer)
 
+    def history(self):
+        from .history import history_for
+
+        return history_for(self._game, self.viewer)
+
 
 @dataclass
 class _Slot:

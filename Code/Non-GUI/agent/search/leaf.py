@@ -219,11 +219,18 @@ class BeliefOracleEvaluator(NetworkEvaluator):
         return sum(v for _s, v in got) / len(got)
 
 
-def make_evaluator(name: str, *, samples: int = 8, seed: Optional[int] = None, cache_size: int = 50_000):
+def make_evaluator(name: str, *, samples: int = 8, seed: Optional[int] = None, cache_size: int = 50_000,
+                   history: str = "rows"):
+    """`student_v2`: the v2 network (`leaf_v2.py`); `history` is its request
+    form (`leaf_v2.history_form` of the network's `history_arch`)."""
     if name == "heuristic":
         return HeuristicEvaluator()
     if name == "student":
         return NetworkEvaluator(cache_size)
+    if name == "student_v2":
+        from .leaf_v2 import NetworkEvaluatorV2
+
+        return NetworkEvaluatorV2(history, cache_size)
     if name == "belief_oracle":
         return BeliefOracleEvaluator(samples, seed, cache_size)
     raise ValueError(f"unknown leaf estimator {name!r}")

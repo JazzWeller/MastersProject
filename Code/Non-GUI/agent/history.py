@@ -60,6 +60,89 @@ N_RI, N_RF = len(ROW_INTS), len(ROW_FLOATS)
 _AFFECTS = {}
 
 
+class HistoryRows:
+    """Bare event rows: a prefix or a suffix of a `HistoryEncoder`, as the
+    inference protocol carries them (O8). `first` is the row number of the
+    first row; pointer triples keep their absolute row numbers."""
+
+    __slots__ = ("n", "ints", "floats", "pointers", "first")
+
+    def __init__(self, n: int, ints: array, floats: array, pointers: array, first: int = 0):
+        self.n, self.ints, self.floats, self.pointers, self.first = n, ints, floats, pointers, first
+
+    def to_bytes(self) -> bytes:
+        return (struct.pack("<qqq", self.n, len(self.pointers), self.first) + self.ints.tobytes()
+                + self.floats.tobytes() + self.pointers.tobytes())
+
+    @staticmethod
+    def from_bytes(data: bytes) -> "HistoryRows":
+        n, n_ptr, first = struct.unpack_from("<qqq", data)
+        at = 24
+        ints, floats, pointers = array("q"), array("f"), array("q")
+        ints.frombytes(data[at:at + 8 * n * N_RI])
+        at += 8 * n * N_RI
+        floats.frombytes(data[at:at + 4 * n * N_RF])
+        at += 4 * n * N_RF
+        pointers.frombytes(data[at:at + 8 * n_ptr])
+        return HistoryRows(n, ints, floats, pointers, first)
+
+
+class HistoryFolded:
+    """Turn tokens and summaries as flat arrays, built on the engine side
+    (the `turn_tokens` / `summary` architectures' history; in a request the
+    workers build it, not the one server thread, O8):
+    - `u` turn tokens: `turn_ints` (u x 3: turn offset, actor, house),
+      `turn_floats` (u x `TURN_SCALARS`), `turn_sets` ((token, set, entity)
+      triples: played / discarded / archived);
+    - `summary_entity` (72 x `SUMMARY_ENTITY`, -1 = never), `summary_global`
+      (`SUMMARY_GLOBAL`)."""
+
+    __slots__ = ("u", "turn_ints", "turn_floats", "turn_sets", "summary_entity", "summary_global")
+
+    @staticmethod
+    def of(h: "HistoryEncoder", turn_now: int) -> "HistoryFolded":
+        new = HistoryFolded()
+        toks = turn_tokens(h)
+        new.u = len(toks)
+        ti, tf, ts = array("q"), array("f"), array("q")
+        for k, t in enumerate(toks):
+            actor = t["actor"]
+            ti.extend((turn_now - t["turn"], actor, t["house"]))
+            for f in TURN_SCALARS:
+                v = t[f]
+                if isinstance(v, dict):  # hand sizes: the actor's
+                    v = v.get(actor, 0) if actor else 0
+                tf.append(float(v))
+            for j, f in enumerate(("played", "discarded", "archived")):
+                for p in t[f]:
+                    if 0 <= p < S.N_ENTITIES:
+                        ts.extend((k, j, p))
+        new.turn_ints, new.turn_floats, new.turn_sets = ti, tf, ts
+        sm = summaries(h, turn_now)
+        ent = array("f", [0.0] * (S.N_ENTITIES * len(SUMMARY_ENTITY)))
+        for i, e in enumerate(sm["entities"][:S.N_ENTITIES]):
+            for j, f in enumerate(SUMMARY_ENTITY):
+                v = e[f]
+                ent[i * len(SUMMARY_ENTITY) + j] = -1.0 if v is None else float(v)
+        glob = array("f")
+        for side in (1, 2):
+            g = sm["global"][side]
+            glob.extend(g["house_counts"])
+            glob.extend((list(g["last_three"]) + [0, 0, 0])[:3])
+            glob.extend(-1.0 if x is None else float(x) for x in g["since"])
+            glob.extend((g["mulligans"], g["declined_archive"]))
+            glob.extend((list(g["hand_at_end_of_last_three"]) + [0, 0, 0])[:3])
+        new.summary_entity, new.summary_global = ent, glob
+        return new
+
+    def __getstate__(self):
+        return tuple(getattr(self, k) for k in self.__slots__)
+
+    def __setstate__(self, state):
+        for k, v in zip(self.__slots__, state):
+            setattr(self, k, v)
+
+
 class HistoryEncoder:
     __slots__ = ("viewer", "order_index", "owner_of", "ints", "floats", "pointers", "n", "cursor", "_digest",
                  "_prefix", "_turn", "_step", "zone_code_cache", "folds")
@@ -75,7 +158,11 @@ class HistoryEncoder:
         self.pointers = array("q")  # (row, role, entity) triples
         self.n = 0
         self.cursor = 0
+        # The digest starts from both public decklists: equal rows in games
+        # with different cards are different prefixes (a cached prefix's
+        # keys and values depend on the cards its rows point at).
         self._digest = hashlib.blake2b(digest_size=16)
+        self._digest.update("\x1f".join(c.name for c in me.all_cards + them.all_cards).encode())
         self._prefix = (0, self._digest.copy())
         self._turn = None
         self._step = 0
@@ -242,11 +329,34 @@ class HistoryEncoder:
         return self._digest.hexdigest()
 
     def suffix(self) -> Tuple[array, array, array]:
-        """The rows after the prefix (what a world adds)."""
+        """The rows after the prefix (what a world adds). Pointer triples are
+        in row order, so the suffix's are a tail of them."""
         k = self._prefix[0]
-        ptrs = array("q", (x for t in range(0, len(self.pointers), 3) if self.pointers[t] >= k
-                           for x in self.pointers[t:t + 3]))
-        return self.ints[k * N_RI:], self.floats[k * N_RF:], ptrs
+        p = self.pointers
+        start = len(p)
+        while start >= 3 and p[start - 3] >= k:
+            start -= 3
+        return self.ints[k * N_RI:], self.floats[k * N_RF:], p[start:]
+
+    def prefix_rows(self) -> HistoryRows:
+        """The frozen prefix's rows."""
+        k = self._prefix[0]
+        p = self.pointers
+        end = next((t for t in range(0, len(p), 3) if p[t] >= k), len(p))
+        return HistoryRows(k, self.ints[:k * N_RI], self.floats[:k * N_RF], p[:end], 0)
+
+    def suffix_rows(self) -> HistoryRows:
+        """The rows after the frozen prefix (what a world added)."""
+        ints, floats, ptrs = self.suffix()
+        k = self._prefix[0]
+        return HistoryRows(self.n - k, ints, floats, ptrs, k)
+
+    def prefix_n(self) -> int:
+        return self._prefix[0]
+
+    def to_rows(self) -> HistoryRows:
+        """Every row (the naive request path)."""
+        return HistoryRows(self.n, self.ints, self.floats, self.pointers, 0)
 
     def copy(self) -> "HistoryEncoder":
         new = HistoryEncoder.__new__(HistoryEncoder)
@@ -319,6 +429,11 @@ def history_for(game, viewer: int) -> HistoryEncoder:
 TURN_FIELDS = ("turn", "actor", "house", "played", "discarded", "archived", "reaps", "fights", "uses", "gained",
                "stolen", "captured", "lost", "keys", "drawn", "hand_start", "hand_end", "archive_taken",
                "archive_declined", "chains_shed")
+TURN_SCALARS = tuple(f for f in TURN_FIELDS if f not in ("turn", "actor", "house", "played", "discarded", "archived",
+                                                         "hand_start", "hand_end")) + ("hand_start", "hand_end")
+SUMMARY_ENTITY = ("played", "reaped", "fought", "used", "since_seen", "last_public", "left_by", "revealed",
+                  "drawn_turn")
+SUMMARY_GLOBAL = 2 * (7 + 3 + 7 + 2 + 3)  # per side: house counts, last three, since, mulligans + declined, hands
 _LOG_COUNT = {"reap": "reaps", "fight": "fights", "use_action": "uses", "use_omni": "uses", "forge_key": "keys",
               "shed_chain": "chains_shed"}
 _LOG_AMOUNT = {"gain": "gained", "steal": "stolen", "capture": "captured", "lose": "lost"}
