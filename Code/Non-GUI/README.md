@@ -138,13 +138,19 @@ The learned-agent stack from `Code/AGENT_TRAINING_PLAN.md` (see its
   `features.py` (the v1 encoder, frozen in `features_v1.py`, reading
   `keyforge/infoset.py`'s fast redacted extract), `spec_v2.py` +
   `features_v2.py` + `static_v2.py` + `vocab/` (the lossless v2 encoding),
-  `state_registry.py` (what every engine attribute is to the agent), `search/` (the ISMCTS core, both regimes, leaf estimators),
+  `history.py` (the event history: rows, turn tokens, summaries; prefix
+  and suffix), `state_registry.py` (what every engine attribute is to the
+  agent), `search/` (the ISMCTS core, both regimes, leaf estimators;
+  `leaf_v2.py` is the v2 network's, with the history prefix cached on the
+  server),
   `agents/` (the search-free `NetAgent`, the `SearchAgent`, registry
   entries), `selfplay.py` (the self-play actor), `config.py` +
   `telemetry.py` (resolved/hashed configs, runs, journals, metrics).
 - `ml/` — torch only (CPython; CUDA in WSL): the network, batching,
   checkpoints, the inference server, behaviour cloning, the self-play
-  learner, the arena.
+  learner, the arena. v2 (Agent Observation Plan): `model_v2.py` (every
+  history architecture), `encode_v2.py` (batching), `infer_v2.py` (the
+  server: prefix cache, `stream` keys and values cached per prefix).
 - `configs/*.json` — one file per experiment; every artifact carries its
   resolved config's hash.
 
@@ -161,6 +167,10 @@ python -m tools.diag_hidden_info --regime within_turn --sims 100
 python -m tools.diag_search_curve --regime full_game --sims 1 10 100 1000
 # Actor-shaped throughput against HeuristicBot, no self-play (observation plan O10; WSL)
 python -m tools.bench_actor_demand --checkpoint <bc.kfc> --config tier2_selfplay_within_turn.json
+#   the same with an untrained v2 network: --v2 '{"d_model": 128, "heads": 4, "ff": 512, "layers": 4, "history_arch": "stream"}'
+# v2 network throughput: the network alone, and the server end to end (WSL)
+python -m tools.bench_model_v2 --sizes 128/4,256/8
+python -m tools.bench_infer_v2 --sizes 128/4
 # Tier 2+: self-play (one arm), then the whole bake-off
 python -m ml.selfplay_train --run wt-s1 --config tier2_selfplay_within_turn.json --init <bc.kfc>
 #   (gates run in their own process; a killed learner resumes from learner_state.kfc)

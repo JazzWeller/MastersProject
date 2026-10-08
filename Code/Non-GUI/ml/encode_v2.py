@@ -14,6 +14,7 @@ summaries.
 
 from __future__ import annotations
 
+from array import array
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -21,14 +22,10 @@ import numpy as np
 import torch
 
 from agent import spec_v2 as S
-from agent.history import N_RF, N_RI, ROW_INTS, TURN_FIELDS, summaries, turn_tokens
+from agent.history import (N_RF, N_RI, SUMMARY_ENTITY, SUMMARY_GLOBAL, TURN_SCALARS, HistoryFolded,
+                           HistoryRows)
 
 BLOCK_NAMES = tuple(b.name for b in S.BLOCKS)
-TURN_SCALARS = tuple(f for f in TURN_FIELDS if f not in ("turn", "actor", "house", "played", "discarded", "archived",
-                                                         "hand_start", "hand_end")) + ("hand_start", "hand_end")
-SUMMARY_ENTITY = ("played", "reaped", "fought", "used", "since_seen", "last_public", "left_by", "revealed",
-                  "drawn_turn")
-SUMMARY_GLOBAL = 2 * (7 + 3 + 7 + 2 + 3)  # per side: house counts, last three, since, mulligans + declined, hands
 
 
 @dataclass
@@ -72,104 +69,80 @@ class BatchV2:
         return BatchV2(**kw)
 
 
-def _pad_block(encs, name: str, cols: S.Columns) -> TokenBlock:
-    B = len(encs)
-    R = max(1, max(e[name].n for e in encs))
-    ints = np.zeros((B, R, max(cols.n_int, 1)), dtype=np.int64)
-    floats = np.zeros((B, R, max(cols.n_float, 1)), dtype=np.float32)
-    mask = np.zeros((B, R), dtype=bool)
-    for b, e in enumerate(encs):
-        blk = e[name]
-        n = blk.n
-        if n:
-            if cols.n_int:
-                ints[b, :n, :cols.n_int] = np.frombuffer(blk.ints.tobytes(), dtype=np.int64).reshape(n, cols.n_int)
-            if cols.n_float:
-                floats[b, :n, :cols.n_float] = np.frombuffer(blk.floats.tobytes(), dtype=np.float32).reshape(n, cols.n_float)
-            mask[b, :n] = True
+def _where(ns: np.ndarray):
+    """Rows laid end to end (item b has ns[b]) -> each row's (item, slot)."""
+    total = int(ns.sum())
+    item = np.repeat(np.arange(len(ns)), ns)
+    starts = np.cumsum(ns) - ns
+    return item, np.arange(total) - np.repeat(starts, ns)
+
+
+def _scatter(chunks, ns: np.ndarray, R: int, width: int, dtype, fill=0) -> np.ndarray:
+    """Each item's rows (bytes, `width` wide) into a padded [B, R, width]:
+    one join and one scatter for the whole batch, not one copy per item."""
+    out = np.full((len(ns), R, max(width, 1)), fill, dtype=dtype)
+    if width and ns.sum():
+        flat = np.frombuffer(b"".join(chunks), dtype=dtype).reshape(-1, width)
+        item, slot = _where(ns)
+        out[item, slot, :width] = flat
+    return out
+
+
+def _pad_block(encs, name: str, cols: S.Columns, min_rows: int = 1) -> TokenBlock:
+    blks = [e.blocks[name] for e in encs]
+    ns = np.fromiter((b.n for b in blks), dtype=np.int64, count=len(blks))
+    R = max(1 if name == "global" else min_rows, int(ns.max()))  # (one global token, always)
+    ints = _scatter([b.ints.tobytes() for b in blks], ns, R, cols.n_int, np.int64)
+    floats = _scatter([b.floats.tobytes() for b in blks], ns, R, cols.n_float, np.float32)
+    mask = np.arange(R)[None, :] < ns[:, None]
     return TokenBlock(torch.from_numpy(ints), torch.from_numpy(floats), torch.from_numpy(mask))
 
 
-def _turn_rows(h, turn_now: int):
-    toks = turn_tokens(h)
-    ints = np.zeros((len(toks), 3), dtype=np.int64)
-    floats = np.zeros((len(toks), len(TURN_SCALARS)), dtype=np.float32)
-    sets = np.zeros((len(toks), 3, S.N_ENTITIES), dtype=np.float32)
-    for k, t in enumerate(toks):
-        ints[k] = (turn_now - t["turn"], t["actor"], t["house"])
-        for j, f in enumerate(TURN_SCALARS):
-            v = t[f]
-            if isinstance(v, dict):  # hand sizes: the actor's
-                v = v.get(t["actor"], 0) if t["actor"] else 0
-            floats[k, j] = float(v)
-        for j, f in enumerate(("played", "discarded", "archived")):
-            for p in t[f]:
-                if 0 <= p < S.N_ENTITIES:
-                    sets[k, j, p] = 1.0
-    return ints, floats, sets
-
-
-def _summary_rows(h, turn_now: int):
-    sm = summaries(h, turn_now)
-    ent = np.zeros((S.N_ENTITIES, len(SUMMARY_ENTITY)), dtype=np.float32)
-    for i, e in enumerate(sm["entities"][:S.N_ENTITIES]):
-        for j, f in enumerate(SUMMARY_ENTITY):
-            v = e[f]
-            ent[i, j] = -1.0 if v is None else float(v)
-    glob = []
-    for side in (1, 2):
-        g = sm["global"][side]
-        glob.extend(g["house_counts"])
-        glob.extend((list(g["last_three"]) + [0, 0, 0])[:3])
-        glob.extend(-1.0 if x is None else float(x) for x in g["since"])
-        glob.extend((g["mulligans"], g["declined_archive"]))
-        glob.extend((list(g["hand_at_end_of_last_three"]) + [0, 0, 0])[:3])
-    return ent, np.asarray(glob, dtype=np.float32)
-
-
-def collate_v2(items: Sequence[Tuple[object, Optional[object], int]]) -> BatchV2:
-    """`items`: (EncodedV2, HistoryEncoder or None, current turn number)."""
+def collate_v2(items: Sequence[Tuple[object, Optional[object], int]], min_rows: int = 1) -> BatchV2:
+    """`items`: (EncodedV2, history, current turn number). `history` is a
+    `HistoryEncoder`, `HistoryRows` (bare rows: a cached prefix's suffix --
+    no turn tokens or summaries), `HistoryFolded` (turn tokens and summaries
+    only) or None. `min_rows`: every padded dimension has at least this
+    many rows (2 for a compiled network: a dimension of 0 or 1 would compile
+    a graph of its own)."""
     encs = [it[0] for it in items]
-    blocks = {b.name: _pad_block(encs, b.name, b) for b in S.BLOCKS}
+    blocks = {b.name: _pad_block(encs, b.name, b, min_rows) for b in S.BLOCKS}
     B = len(items)
-    H = max([1] + [it[1].n for it in items if it[1] is not None])
-    Q = max([1] + [len(it[1].pointers) // 3 for it in items if it[1] is not None])
-    hist_ints = np.zeros((B, H, N_RI), dtype=np.int64)
-    hist_floats = np.zeros((B, H, N_RF), dtype=np.float32)
-    hist_mask = np.zeros((B, H), dtype=bool)
-    hist_ptr = np.full((B, Q, 3), -1, dtype=np.int64)
-    turn_parts, summary_ent, summary_glob = [], [], []
-    for b, (enc, h, turn_now) in enumerate(items):
-        if h is None:
-            turn_parts.append((np.zeros((0, 3), np.int64), np.zeros((0, len(TURN_SCALARS)), np.float32),
-                               np.zeros((0, 3, S.N_ENTITIES), np.float32)))
-            summary_ent.append(np.zeros((S.N_ENTITIES, len(SUMMARY_ENTITY)), np.float32))
-            summary_glob.append(np.zeros(SUMMARY_GLOBAL, np.float32))
-            continue
-        n = h.n
-        if n:
-            hist_ints[b, :n] = np.frombuffer(h.ints.tobytes(), dtype=np.int64).reshape(n, N_RI)
-            hist_floats[b, :n] = np.frombuffer(h.floats.tobytes(), dtype=np.float32).reshape(n, N_RF)
-            hist_mask[b, :n] = True
-        p = np.frombuffer(h.pointers.tobytes(), dtype=np.int64).reshape(-1, 3)
-        hist_ptr[b, :len(p)] = p
-        turn_parts.append(_turn_rows(h, turn_now))
-        e, g = _summary_rows(h, turn_now)
-        summary_ent.append(e)
-        summary_glob.append(g)
-    U = max([1] + [len(t[0]) for t in turn_parts])
-    turn_ints = np.zeros((B, U, 3), np.int64)
-    turn_floats = np.zeros((B, U, len(TURN_SCALARS)), np.float32)
+    hists = [it[1] for it in items]
+    rowed = [h is not None and not isinstance(h, HistoryFolded) for h in hists]
+    empty = array("q")
+    ns = np.fromiter((h.n if r else 0 for h, r in zip(hists, rowed)), dtype=np.int64, count=B)
+    qs = np.fromiter((len(h.pointers) // 3 if r else 0 for h, r in zip(hists, rowed)), dtype=np.int64, count=B)
+    H, Q = max(min_rows, int(ns.max())), max(min_rows, int(qs.max()))
+    hist_ints = _scatter([h.ints.tobytes() if r else b"" for h, r in zip(hists, rowed)], ns, H, N_RI, np.int64)
+    hist_floats = _scatter([h.floats.tobytes() if r else b"" for h, r in zip(hists, rowed)], ns, H, N_RF, np.float32)
+    hist_mask = np.arange(H)[None, :] < ns[:, None]
+    hist_ptr = _scatter([(h.pointers if r else empty).tobytes() for h, r in zip(hists, rowed)], qs, Q, 3, np.int64,
+                        fill=-1)
+    folded = [None if h is None or isinstance(h, HistoryRows) else
+              (h if isinstance(h, HistoryFolded) else HistoryFolded.of(h, turn_now))
+              for _e, h, turn_now in items]
+    us = np.fromiter((f.u if f is not None else 0 for f in folded), dtype=np.int64, count=B)
+    U = max(min_rows, int(us.max()))
+    turn_ints = _scatter([f.turn_ints.tobytes() if f is not None else b"" for f in folded], us, U, 3, np.int64)
+    turn_floats = _scatter([f.turn_floats.tobytes() if f is not None else b"" for f in folded], us, U,
+                           len(TURN_SCALARS), np.float32)
+    turn_mask = np.arange(U)[None, :] < us[:, None]
     turn_sets = np.zeros((B, U, 3, S.N_ENTITIES), np.float32)
-    turn_mask = np.zeros((B, U), bool)
-    for b, (ti, tf, ts) in enumerate(turn_parts):
-        u = len(ti)
-        turn_ints[b, :u], turn_floats[b, :u], turn_sets[b, :u], turn_mask[b, :u] = ti, tf, ts, True
+    summary_ent = np.zeros((B, S.N_ENTITIES, len(SUMMARY_ENTITY)), np.float32)
+    summary_glob = np.zeros((B, SUMMARY_GLOBAL), np.float32)
+    for b, f in enumerate(folded):
+        if f is None:
+            continue
+        if len(f.turn_sets):
+            k, j, p = np.frombuffer(f.turn_sets.tobytes(), np.int64).reshape(-1, 3).T
+            turn_sets[b, k, j, p] = 1.0
+        summary_ent[b] = np.frombuffer(f.summary_entity.tobytes(), np.float32).reshape(S.N_ENTITIES, -1)
+        summary_glob[b] = np.frombuffer(f.summary_global.tobytes(), np.float32)
     t = torch.from_numpy
     return BatchV2(blocks=blocks, hist_ints=t(hist_ints), hist_floats=t(hist_floats), hist_mask=t(hist_mask),
                    hist_ptr=t(hist_ptr), turn_ints=t(turn_ints), turn_floats=t(turn_floats), turn_sets=t(turn_sets),
-                   turn_mask=t(turn_mask), summary_entity=t(np.stack(summary_ent)),
-                   summary_global=t(np.stack(summary_glob)),
+                   turn_mask=t(turn_mask), summary_entity=t(summary_ent), summary_global=t(summary_glob),
                    turn_now=torch.tensor([it[2] for it in items], dtype=torch.long))
 
 

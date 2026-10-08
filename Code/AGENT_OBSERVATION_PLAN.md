@@ -1,6 +1,6 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-10-07): O0, Part R and O1–O6 done; O7 built (its throughput table pending)**
+**Status (2026-10-08): O0, Part R and O1–O8 done**
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
@@ -240,7 +240,7 @@
 - Left to O9, where the shards are written: one stream per game and seat with a cursor per position,
   and mirroring of event rows' flank fields.
 
-**O7, built** (2026-10-07).
+**O7, done** (2026-10-07; attention and throughput 2026-10-08).
 - `ml/encode_v2.py`: `collate_v2` pads each token block, the history rows and pointers, turn tokens
   and summaries, with masks; `bucket_by_length`; `static_tables_tensor` (the three static tables).
 - `ml/model_v2.py`, `KeyForgeNetV2` (v1's `ml/model.py` untouched): one input projection per token
@@ -250,12 +250,99 @@
   `stream` (block-causal), `turn_tokens`, `summary`, `none`; `options_in_trunk` either way. Heads:
   policy, value, top-k, Q, multi-select, sequential, belief v2 (O3's prior logits plus a learned
   difference, and P(next draw)), oracle over hand/archive/deck, and the auxiliary heads.
-- `ml/layers.py`: the attention layer and trunk take an optional boolean mask (SDPA, kernel chosen
-  by torch); without one, v1's path is unchanged.
+- `ml/layers.py`, `AttnSpec`: v2 never builds a [B, T, T] mask. Padding is a key mask [B, 1, 1, T],
+  and `stream`'s history is a second, causal SDPA call over the history rows alone. The first version
+  built the dense mask: at batch 512 and 1,345 tokens it "allocated" 21 GiB (spilling past the 8 GiB
+  card) and ran at ~170 evaluations/s. The rewrite equals the dense mask (tested). v1's path is
+  unchanged.
+- Launch overhead: the eager forward issued 613 kernels for ~2 ms of GPU work. `ColumnEmbed` is
+  vectorized across columns (one shared id table per block, one bit unpack, all pointer columns
+  gathered at once; 613 -> 346 kernels, 9.9 -> 5.6 ms at batch 64), and a card's identity (embedding
+  plus static meaning, including its parsed text rows) is computed once per call for the 370-card
+  vocabulary and gathered (bit-identical; batch 512: 20.0 -> 15.7 ms). `subset_size` is continuous
+  (it was an embedding capped at 63).
 - **Acceptance** (`tests/test_agent_observation_o7.py`, WSL): shapes for every architecture, both
   option placements and every decision kind met in fuzz games; padding never changes an output;
-  the stamp carries feature version 2 and the vocabulary hash. Throughput per architecture
-  (`tools/bench_model_v2.py`): see below.
+  the stamp carries feature version 2 and the vocabulary hash.
+- **Throughput** (`tools/bench_model_v2.py`; network only, eager, bf16; 691 fuzz positions with their
+  histories, mean 831 rows, max 3,357; training = a policy + value + belief step, AdamW; — = out of
+  memory on the 8 GiB card):
+
+  | `d_model`/layers, architecture | Tokens | Inference/s, batch 64 / 512 | Training/s, batch 64 / 512 |
+  |---|---|---|---|
+  | 128/4 (1.9M), `none` | 107 | 9.8k / 31.9k | 3.3k / 10.5k |
+  | 128/4, `summary` | 107 | 9.3k / 31.6k | 2.9k / 10.3k |
+  | 128/4, `turn_tokens` | 150–184 | 8.7k / 19.8k | 3.1k / 6.4k |
+  | 128/4, `joint` | 909–1,345 | 2.8k / 1.7k | 788 / — |
+  | 128/4, `stream` (whole sequence) | 909–1,345 | 3.6k / 2.4k | 1.0k / — |
+  | 256/8 (9.2M), `none` | 107 | 7.9k / 10.1k | 2.2k / 3.2k |
+  | 256/8, `summary` | 107 | 7.5k / 10.1k | 2.3k / 3.2k |
+  | 256/8, `turn_tokens` | 150–184 | 7.2k / 6.2k | 2.0k / — |
+  | 256/8, `joint` | 909–1,345 | 941 / — | 116 / — |
+  | 256/8, `stream` (whole sequence) | 909–1,345 | 1.1k / — | 321 / — |
+
+  The full-history architectures train only at small batches without the memory options (O7's
+  checkpointing and micro-batching), and are ~10x the cost of `none` per evaluation when the
+  whole history is sent. `stream` with its prefix cached is O8's.
+
+**O8, done** (2026-10-08).
+- **Request protocol v2** (`agent/agents/requests.py`): `RequestV2` carries an `EncodedV2`, the turn,
+  and its history as a `HistoryRef` (the prefix's digest, which starts from both decklists, plus the
+  request's own suffix rows), whole `HistoryRows` bytes (the naive path, kept as the reference), or a
+  `HistoryFolded` (turn tokens and summaries as flat arrays, built by the workers). A search freezes
+  its prefix on the true game before forking (`capability.history()`, `Search` calls the
+  evaluator's `prepare`); every world carries it, so a leaf sends only what its world added. The
+  prefix's rows go out once per search; a server that lost them answers `PREFIX_MISSING` and the
+  client resends.
+- **The server** (`ml/infer_v2.py`, `TorchModelV2`): an LRU of prefixes bounded by bytes; for
+  `stream`, each layer's keys and values computed once per prefix (`KeyForgeNetV2.history_prefix`),
+  so a leaf runs only its state tokens and suffix (`encode_state(batch, past)`). `stream` needs
+  `history_time: absolute` (a row's features must not change during a search: the current turn
+  goes on the global token instead); `joint` keeps the relative offset by default. The input
+  embedding is compiled (`torch.compile`, dynamic shapes; every padded dimension at least 2 rows and
+  duck sizing off, or each new shape mix recompiles for ~20 s).
+- **The client** (`agent/search/leaf_v2.py`, leaf `student_v2`): encodes v2, sends prefix
+  references, and caches answers under (encoding, head, arguments, the whole history's digest).
+  The opponent's history inside a world follows O3's history option and travels whole.
+- **Acceptance** (`tests/test_agent_observation_o8.py`, WSL):
+  - outputs with and without the prefix cache, through real searches (within-turn and full-game,
+    every answer checked against the same request sent whole): `joint` bit-identical, `stream`
+    within 1.3e-7 (fp32, CPU: the cached path multiplies differently shaped matrices); the cached
+    forward against the whole sequence directly: within 1e-5;
+  - prefix hit rate within a search **98.3–98.6%** (the plan's bar: 95%);
+  - a lost prefix is resent and the search completes;
+  - pipe bytes per request: 29 KB within-turn and 38 KB full-game with the prefix cached (most of
+    it the encoding, as int64 bytes; see below) against 63 KB whole, at the fuzz games' history
+    lengths.
+- **The actor benchmark** (`tools/bench_actor_demand.py --v2`, an untrained 128/4 network; 8 workers x
+  16 within-turn games against HeuristicBot, 60 s warmup, 150 s measured; the server now reports
+  its own batch timing over the measured window):
+
+  | | Searches/s | Evaluations/s | Waiting on inference | Server: requests per batch, ms in the model | Evaluation cache hits |
+  |---|---|---|---|---|---|
+  | v1, Tier 0 (same day) | 74–81 | 3.1–3.4k | 8% | 58, 5.1 ms | 37% |
+  | v2 `none`, first version | 37.8 | 1.7k | 24% | 78, 20 ms | 21% |
+  | v2 `none` | **40.9** | 1.9k | **11%** | 66, 14 ms | 22% |
+  | v2 `stream`, first version | 32.1 | 1.6k | 31% | | 19% |
+  | v2 `stream`, prefix cached | **34.4** | 1.7k | **18%** | 71, 25 ms | 20% |
+  | v2 `summary`, first version | 24.4 | 1.2k | 15% | | 20% |
+  | v2 `joint`, first version | 29.5 | 1.4k | 36% | | 20% |
+
+  - **Waiting falls below v1's 25–28% baseline** (the plan's bar) for `none` and `stream`.
+  - What made the difference was not the network but the pipe. The live server spent half of
+    each batch's model time with its connection threads holding the GIL to rebuild nine pickled
+    blocks per request. An `EncodedV2` now pickles as one bytes payload: 54 requests pickle in
+    2.0 ms instead of 8.8 and unpickle in 0.45 ms instead of 5.5. Narrowing the ints to int16 halved
+    the bytes but converting each value back cost more than sending it, so the ints stay int64.
+    Compiling the server's input embedding made a call 2.5–3.4x faster in isolation and changed
+    nothing live.
+  - **What remains is the workers' own work.** A v2 encode of a fresh world costs ~0.65 ms on
+    CPython 3.14 (v1's extract + encode: ~0.08 ms), about twice per simulation; folding turn tokens
+    and summaries adds ~0.4 ms per request. PyPy is no help here: v2 encodes are 2–6x slower than on
+    CPython and the engine ~4x slower. So v2 actors run at about half v1's searches per second;
+    O10 weighs that against what v2 buys.
+  - The evaluation cache hits less often under v2 (20–22% against 37%): the encoding is lossless, so
+    fewer leaves are identical, and the history digest is part of the key.
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);

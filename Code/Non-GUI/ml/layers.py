@@ -17,11 +17,19 @@ backward pass instead of storing them (`checkpoint = True`, the
 `activation_checkpointing` switch). Real BC steps at batch 512: peak memory
 1/2 to 1/3, for 8-15% fewer samples/s (d=256/8 layers: 2.70 -> 0.97 GiB,
 6.7k -> 5.8k). Inference and `no_grad` passes never recompute.
+
+**v2's attention** (`AttnSpec`, Agent Observation Plan O7/O8) never builds a
+[B, T, T] mask: padding is a key mask [B, 1, 1, T], and `stream`'s
+block-causal history is a second, causal attention call over the history
+rows alone. Its per-layer keys and values can be returned (`want_kv`) and
+passed back as `past`: a search's history prefix is then computed once and
+each leaf runs only its state tokens and its own suffix rows.
 """
 
 from __future__ import annotations
 
-from typing import Optional, Sequence
+from dataclasses import dataclass
+from typing import List, Optional, Sequence, Tuple
 
 import torch
 from torch import nn
@@ -39,6 +47,33 @@ KERNELS = {
     "math": [SDPBackend.MATH],
     "auto": None,  # the dispatcher's own choice
 }
+
+
+@dataclass
+class AttnSpec:
+    """How v2's tokens may attend (no [B, T, T] mask is ever built).
+
+    - `key_valid` [B, P + T]: the keys that exist, `past` keys first.
+    - `hist_from`: `stream` only -- queries from this index on are history
+      rows, which attend causally to history alone (the cached prefix's
+      `past` keys, then the rows before them); the queries before it attend
+      to every valid key.
+    - `past_len` (P): cached prefix keys prepended at every layer.
+    - `hist_mask` [B, 1, S, P + S]: with `past`, which keys each of the S
+      history queries may see (the prefix's real rows, then its own
+      suffix causally)."""
+
+    key_valid: torch.Tensor
+    hist_from: Optional[int] = None
+    past_len: int = 0
+    hist_mask: Optional[torch.Tensor] = None
+
+
+KV = Tuple[torch.Tensor, torch.Tensor]  # [B, heads, rows, d / heads] each
+
+
+def _attend(q, k, v, mask, p: float):
+    return F.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=p)
 
 
 class SelfAttention(nn.Module):
@@ -60,22 +95,42 @@ class SelfAttention(nn.Module):
         nn.init.xavier_uniform_(self.in_proj_weight)
         nn.init.zeros_(self.out_proj.bias)
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """`mask` (v2): bool [B, 1 or T, T], True = may attend (padding and
-        the `stream` block-causal mask); None = full attention (v1)."""
+    def forward(self, x: torch.Tensor, spec: Optional[AttnSpec] = None, past: Optional[KV] = None,
+                want_kv: bool = False):
+        """`spec` None: full attention (v1). Otherwise v2's (`AttnSpec`);
+        `past`: this layer's cached prefix keys and values; `want_kv`: also
+        return this call's own (k, v)."""
         B, T, d = x.shape
         qkv = F.linear(x, self.in_proj_weight, self.in_proj_bias)
         q, k, v = qkv.view(B, T, 3, self.heads, d // self.heads).permute(2, 0, 3, 1, 4)
         p = self.dropout if self.training else 0.0
-        m = None if mask is None else mask.unsqueeze(1)
-        if self.kernels is None or m is not None:
-            # (the flash kernel takes no arbitrary mask: a masked batch runs
-            # on whichever kernel can)
-            a = F.scaled_dot_product_attention(q, k, v, attn_mask=m, dropout_p=p)
-        else:
-            with sdpa_kernel(self.kernels, set_priority=True):
+        if spec is None:
+            if self.kernels is None:
                 a = F.scaled_dot_product_attention(q, k, v, dropout_p=p)
-        return self.out_proj(a.transpose(1, 2).reshape(B, T, d))
+            else:
+                with sdpa_kernel(self.kernels, set_priority=True):
+                    a = F.scaled_dot_product_attention(q, k, v, dropout_p=p)
+        else:
+            K, V = (k, v) if past is None else (torch.cat([past[0], k], 2), torch.cat([past[1], v], 2))
+            kmask = spec.key_valid[:, None, None, :]
+            s = spec.hist_from
+            if s is None:
+                a = _attend(q, K, V, kmask, p)
+            else:
+                parts = []
+                if s > 0:
+                    parts.append(_attend(q[:, :, :s], K, V, kmask, p))
+                if s < T:
+                    if past is None:  # history rows end each item's sequence: causal is exact
+                        parts.append(F.scaled_dot_product_attention(q[:, :, s:], k[:, :, s:], v[:, :, s:],
+                                                                    is_causal=True, dropout_p=p))
+                    else:
+                        kh = torch.cat([past[0], k[:, :, s:]], 2)
+                        vh = torch.cat([past[1], v[:, :, s:]], 2)
+                        parts.append(_attend(q[:, :, s:], kh, vh, spec.hist_mask, p))
+                a = parts[0] if len(parts) == 1 else torch.cat(parts, 2)
+        out = self.out_proj(a.transpose(1, 2).reshape(B, T, d))
+        return (out, (k, v)) if want_kv else out
 
 
 class FastEncoderLayer(nn.Module):
@@ -93,9 +148,14 @@ class FastEncoderLayer(nn.Module):
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        x = x + self.dropout1(self.self_attn(self.norm1(x), mask))
-        return x + self.dropout2(self.linear2(self.dropout(F.gelu(self.linear1(self.norm2(x))))))
+    def forward(self, x: torch.Tensor, spec: Optional[AttnSpec] = None, past: Optional[KV] = None,
+                want_kv: bool = False):
+        a = self.self_attn(self.norm1(x), spec, past, want_kv)
+        if want_kv:
+            a, kv = a
+        x = x + self.dropout1(a)
+        x = x + self.dropout2(self.linear2(self.dropout(F.gelu(self.linear1(self.norm2(x))))))
+        return (x, kv) if want_kv else x
 
 
 class Trunk(nn.Module):
@@ -106,16 +166,25 @@ class Trunk(nn.Module):
         self.layers = nn.ModuleList(layers)
         self.checkpoint = False
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        recompute = self.checkpoint and self.training and torch.is_grad_enabled()
-        for layer in self.layers:
+    def forward(self, x: torch.Tensor, spec: Optional[AttnSpec] = None, past: Optional[List[KV]] = None,
+                want_kv: bool = False):
+        """`past`: one (k, v) per layer (a cached prefix); `want_kv`: also
+        return each layer's own (k, v) -- what `past` is made of."""
+        recompute = self.checkpoint and self.training and torch.is_grad_enabled() and not want_kv and past is None
+        kvs = []
+        for i, layer in enumerate(self.layers):
             # Non-reentrant checkpointing keeps the RNG state, so dropout
             # masks in the recompute match the forward pass exactly.
-            if mask is None:
+            if spec is None:
                 x = checkpoint(layer, x, use_reentrant=False) if recompute else layer(x)
+            elif recompute:
+                x = checkpoint(layer, x, spec, use_reentrant=False)
             else:
-                x = checkpoint(layer, x, mask, use_reentrant=False) if recompute else layer(x, mask)
-        return x
+                x = layer(x, spec, None if past is None else past[i], want_kv)
+                if want_kv:
+                    x, kv = x
+                    kvs.append(kv)
+        return (x, kvs) if want_kv else x
 
 
 def build_trunk(d: int, heads: int, ff: int, layers: int, dropout: float, attention: str, kernel: str) -> nn.Module:

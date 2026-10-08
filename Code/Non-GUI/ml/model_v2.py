@@ -20,8 +20,18 @@ meaning); NO_POINTER / HIDDEN_MINE / HIDDEN_THEIRS have learned vectors.
 text rows (a small set encoder), and the text embedding if its table
 exists.
 
-**Time**: sinusoidal features of the turn offset and the sequence index --
-no table, no cap.
+**Time**: sinusoidal features -- no table, no cap. `history_time`:
+`absolute` (the row's turn and sequence index, with the current turn on the
+global token, so attention can still take the difference) or `relative`
+(the turn offset from now). `stream` needs `absolute`: a row's features
+must not change while a search runs, or its prefix couldn't be cached.
+
+**Attention** (`ml/layers.AttnSpec`): key-padding masks only; `stream`'s
+history is a separate causal attention over the history rows. A cached
+prefix (`history_prefix` -> `PrefixPast`) is each layer's keys and values
+for a search's prefix rows (Agent Observation Plan, O8): `encode_state(batch,
+past)` then runs only the state tokens and the leaf's suffix rows, with the
+same outputs as the whole sequence.
 
 **History** (`model.history_arch`): `joint` (history tokens in the trunk),
 `stream` (block-causal: history attends only to earlier history; state
@@ -51,8 +61,10 @@ from agent.vocab import load_all
 from keyforge.cards.vocabulary import CARD_VOCAB
 from keyforge.enums import Affects, DecisionIntent, DecisionKind
 
-from .encode_v2 import SUMMARY_ENTITY, SUMMARY_GLOBAL, TURN_SCALARS, BatchV2, static_tables_tensor
-from .layers import build_trunk
+from agent.history import SUMMARY_ENTITY, SUMMARY_GLOBAL, TURN_SCALARS
+
+from .encode_v2 import BatchV2, static_tables_tensor
+from .layers import AttnSpec, build_trunk
 
 _V = load_all()
 NZ = S.N_ZONE_CODES + 1
@@ -139,18 +151,25 @@ def sinusoid(x: torch.Tensor, dim: int) -> torch.Tensor:
 
 class ColumnEmbed(nn.Module):
     """A token block's rows -> [B, R, d], pointers excluded (the model adds
-    them, it holds the entity identities)."""
+    them, it holds the entity identities).
+
+    Vectorized across columns: every id column looks up one shared table
+    (each column its own range of rows), every bit column unpacks in one
+    shift, so a block costs a handful of kernel launches, not one per column
+    (the eager v2 forward was launch-bound: 613 kernels for 2 ms of GPU
+    work)."""
 
     def __init__(self, cols: S.Columns, kinds: Dict[str, tuple], d: int):
         super().__init__()
         self.cols = cols
         self.ids, self.bits, self.ptrs, self.nums = [], [], [], []
         width = cols.n_float
+        sizes = []
         for j, name in enumerate(cols.int_names):
             kind = kinds.get(name, ("num",))
             if kind[0] == ID:
                 self.ids.append((j, name))
-                self.add_module(f"emb_{name}", nn.Embedding(kind[1] + 1, d))
+                sizes.append(kind[1] + 1)
             elif kind[0] == BITS:
                 self.bits.append((j, kind[1]))
                 width += kind[1]
@@ -160,19 +179,42 @@ class ColumnEmbed(nn.Module):
                 self.nums.append(j)
                 width += 1
         self.proj = nn.Linear(max(width, 1), d)
+        self.id_table = nn.Embedding(max(1, sum(sizes)), d)
+        offsets = [sum(sizes[:k]) for k in range(len(sizes))]
+        self.register_buffer("id_cols", torch.tensor([j for j, _ in self.ids], dtype=torch.long), persistent=False)
+        self.register_buffer("id_offset", torch.tensor(offsets, dtype=torch.long), persistent=False)
+        self.register_buffer("id_max", torch.tensor([n - 1 for n in sizes], dtype=torch.long), persistent=False)
+        bit_cols = [j for j, n in self.bits for _ in range(n)]
+        bit_shift = [k for _j, n in self.bits for k in range(n)]
+        self.register_buffer("bit_cols", torch.tensor(bit_cols, dtype=torch.long), persistent=False)
+        self.register_buffer("bit_shift", torch.tensor(bit_shift, dtype=torch.long), persistent=False)
+        self.register_buffer("num_cols", torch.tensor(self.nums, dtype=torch.long), persistent=False)
+        self.register_buffer("ptr_cols", torch.tensor([j for j, _ in self.ptrs], dtype=torch.long), persistent=False)
 
     def forward(self, ints: torch.Tensor, floats: torch.Tensor) -> torch.Tensor:
         parts = [floats[..., :self.cols.n_float]] if self.cols.n_float else []
-        for j, n in self.bits:
-            parts.append(_bits(ints[..., j].clamp(min=0), n))
+        if self.bits:
+            parts.append(((ints[..., self.bit_cols].clamp(min=0) >> self.bit_shift) & 1).to(torch.float32))
         if self.nums:
-            parts.append(_signed_log(ints[..., self.nums].to(torch.float32)))
+            parts.append(_signed_log(ints[..., self.num_cols].to(torch.float32)))
         x = torch.cat(parts, dim=-1) if parts else ints.new_zeros(ints.shape[:-1] + (1,), dtype=torch.float32)
         out = self.proj(x)
-        for j, name in self.ids:
-            emb = getattr(self, f"emb_{name}")
-            out = out + emb(ints[..., j].clamp(min=0, max=emb.num_embeddings - 1))
+        if self.ids:
+            idx = torch.minimum(ints[..., self.id_cols].clamp(min=0), self.id_max) + self.id_offset
+            out = out + self.id_table(idx).sum(-2)
         return out
+
+
+@dataclass
+class PrefixPast:
+    """A batch's cached history prefixes: per layer (k, v) [B, heads, P,
+    d / heads], `valid` [B, P] (prefixes padded to the longest), and each
+    item's prefix row count (`n`, [B]) -- its suffix's pointer rows are
+    numbered after it."""
+
+    kv: list
+    valid: torch.Tensor
+    n: torch.Tensor
 
 
 @dataclass
@@ -193,6 +235,12 @@ class KeyForgeNetV2(nn.Module):
         if self.history_arch not in ("joint", "stream", "turn_tokens", "summary", "none"):
             raise ValueError(f"model.history_arch must be joint/stream/turn_tokens/summary/none, not {self.history_arch!r}")
         self.options_in_trunk = bool(net_cfg.get("options_in_trunk", True))
+        default_time = "absolute" if self.history_arch == "stream" else "relative"
+        self.history_time = net_cfg.get("history_time", default_time)
+        if self.history_time not in ("absolute", "relative"):
+            raise ValueError(f"model.history_time must be absolute or relative, not {self.history_time!r}")
+        if self.history_arch == "stream" and self.history_time != "absolute":
+            raise ValueError("model.history_arch 'stream' needs history_time 'absolute' (its prefix is cached)")
         at, sg, tx, tm, em = static_tables_tensor()
         for name, t in (("static_attr", at), ("static_sig", sg), ("static_text", tx), ("static_text_mask", tm)):
             self.register_buffer(name, t, persistent=False)
@@ -222,6 +270,7 @@ class KeyForgeNetV2(nn.Module):
         self.hist_role = nn.Embedding(HISTORY_ROLES, d)
         self.time_dim = int(net_cfg.get("time_dim", 32))
         self.hist_time = nn.Linear(2 * self.time_dim, d)
+        self.now_time = nn.Linear(self.time_dim, d)
         self.turn_in = nn.Linear(len(TURN_SCALARS) + 3 * d, d)
         self.turn_actor = nn.Embedding(3, d)
         self.turn_house = nn.Embedding(HOUSES, d)
@@ -237,7 +286,7 @@ class KeyForgeNetV2(nn.Module):
         self.policy_query = nn.Linear(d, d)
         self.value_head = _mlp(d, d, 1)
         self.subset_attn = nn.Linear(d, 1)
-        self.subset_size = nn.Embedding(64, d)
+        self.subset_size = nn.Linear(self.time_dim, d)  # continuous: no cap
         self.order_position = nn.Linear(self.time_dim, d)
         self.empty_subset = nn.Parameter(torch.zeros(d))
         self.subset_mlp = _mlp(d, d, d)
@@ -255,9 +304,18 @@ class KeyForgeNetV2(nn.Module):
 
     # ------------------------------------------------------- identities
     def identities(self, card_ids: torch.Tensor) -> torch.Tensor:
-        """[B, 72] card ids -> [B, 72, d]: embedding + static meaning."""
+        """[B, 72] card ids -> [B, 72, d]: embedding + static meaning. A
+        card's identity depends on the card alone, so it is computed once per
+        call for every card in the vocabulary and gathered: ~400 rows instead
+        of B x 72 (at batch 512 the per-entity text rows were a third of the
+        forward's GPU time)."""
+        return self.identity_table()[card_ids]
+
+    def identity_table(self) -> torch.Tensor:
+        """[vocab, d]: every card's identity vector."""
+        card_ids = torch.arange(self.static_attr.shape[0], device=self.static_attr.device)
         x = self.card_embedding(card_ids) + self.attr_in(self.static_attr[card_ids]) + self.sig_in(self.static_sig[card_ids])
-        tx = self.static_text[card_ids]  # [B, 72, R, W]
+        tx = self.static_text[card_ids]  # [V, R, W]
         tm = self.static_text_mask[card_ids]
         t = (self.text_trigger(tx[..., 0].long().clamp(0, 31)) + self.text_verb(tx[..., 1].long().clamp(0, 63))
              + self.text_scope(tx[..., 3].long().clamp(0, 31))
@@ -283,18 +341,72 @@ class KeyForgeNetV2(nn.Module):
         blk = batch.blocks[name]
         emb = self.embed[name]
         x = emb(blk.ints, blk.floats)
-        role = self.role[name]
-        for k, (j, _) in enumerate(emb.ptrs):
-            x = x + self._pointed(ident, blk.ints[..., j]) + role.weight[k + 1]
+        if emb.ptrs:  # every pointer column at once: its entity plus its role
+            pointed = self._pointed(ident, blk.ints[..., emb.ptr_cols])  # [B, R, n_ptr, d]
+            x = x + (pointed + self.role[name].weight[1:1 + len(emb.ptrs)]).sum(-2)
         return x + self.type_embedding.weight[type_id]
 
     # ------------------------------------------------------------ trunk
-    def encode_state(self, batch: BatchV2) -> TrunkOutV2:
+    def compile_inputs(self) -> None:
+        """Compiles the input embedding (`embed_tokens`, dynamic shapes): the
+        launch-heavy part of the eager forward (~300 of its ~350 kernels).
+        The trunk stays eager, so a cached prefix's shapes never reach the
+        compiler."""
+        self._embed = torch.compile(self.embed_tokens, dynamic=True)
+
+    def encode_state(self, batch: BatchV2, past: Optional[PrefixPast] = None) -> TrunkOutV2:
+        """`past` (`stream` only): the batch's cached history prefixes; the
+        batch's history rows are then each item's suffix."""
+        if past is not None and self.history_arch != "stream":
+            raise ValueError("a cached prefix needs history_arch 'stream'")
+        embed = self.__dict__.get("_embed", self.embed_tokens)
+        x, valid, opt = embed(batch, None if past is None else past.n)
+        B = x.shape[0]
+        blocks = batch.blocks
+        n_state = 1 + S.N_ENTITIES + sum(blocks[n].mask.shape[1] for n in ("effect", "resolution", "cleanup", "match"))
+        hist_len = batch.hist_mask.shape[1] if self.history_arch in ("joint", "stream") else 0
+        T = x.shape[1]
+        # (the global token is always a valid key, so no query is ever empty)
+        if self.history_arch == "stream":
+            h0 = T - hist_len
+            if past is None:
+                spec = AttnSpec(key_valid=valid, hist_from=h0)
+            else:
+                P = past.valid.shape[1]
+                causal = torch.tril(torch.ones(hist_len, hist_len, dtype=torch.bool, device=x.device))
+                hmask = torch.cat([past.valid[:, None, None, :].expand(B, 1, hist_len, P),
+                                   causal[None, None].expand(B, 1, hist_len, hist_len)], dim=-1)
+                spec = AttnSpec(key_valid=torch.cat([past.valid, valid], dim=1), hist_from=h0, past_len=P,
+                                hist_mask=hmask)
+            y = self.trunk(x, spec, None if past is None else past.kv)
+        else:
+            y = self.trunk(x, AttnSpec(key_valid=valid))
+        y = self.out_norm(y)
+        g_out = y[:, 0]
+        h_out = y[:, 1:1 + S.N_ENTITIES]
+        opt_mask = blocks["option"].mask
+        if self.options_in_trunk:
+            e_opt = y[:, n_state:n_state + opt.shape[1]]
+        else:
+            ptr = blocks["option"].ints[..., S.OPTION.i["pointer"]]
+            pointed = torch.gather(h_out, 1, ptr.clamp(min=0).unsqueeze(-1).expand(-1, -1, self.d))
+            pointed = torch.where((ptr >= 0).unsqueeze(-1), pointed, self.null_entity.expand_as(pointed))
+            e_opt = self.option_mlp(torch.cat([opt, pointed], dim=-1))
+        return TrunkOutV2(g=g_out, h=h_out, e_opt=e_opt, option_mask=opt_mask)
+
+    def embed_tokens(self, batch: BatchV2, first=None):
+        """Every token's input embedding, normalized: (x [B, T, d], valid
+        [B, T], the option tokens [B, K, d]). Token order: global, entities,
+        effects, frames, cleanups, match, options (if in the trunk), then
+        history. `first` [B]: each item's first history row number (a
+        suffix after a cached prefix)."""
         ent_blk = batch.blocks["entity"]
         card_ids = ent_blk.ints[..., S.ENTITY.i["card"]].clamp(min=0)
         ident = self.identities(card_ids)
         B = card_ids.shape[0]
         g = self._block(batch, "global", ident, 0)  # [B, 1, d]
+        if self.history_time == "absolute" and self.history_arch in ("joint", "stream"):
+            g = g + self.now_time(sinusoid(batch.turn_now, self.time_dim)).unsqueeze(1)
         ent = ident + self._block(batch, "entity", ident, 1)
         if self.history_arch == "summary":
             ent = ent + self.summary_entity(_signed_log(batch.summary_entity))
@@ -308,43 +420,18 @@ class KeyForgeNetV2(nn.Module):
         masks = [torch.ones(B, 1, dtype=torch.bool, device=g.device), ent_blk.mask, batch.blocks["effect"].mask,
                  batch.blocks["resolution"].mask, batch.blocks["cleanup"].mask, batch.blocks["match"].mask]
         opt = self._block(batch, "option", ident, 6)
-        n_state = sum(p.shape[1] for p in parts)
         if self.options_in_trunk:
             parts.append(opt)
             masks.append(batch.blocks["option"].mask)
-        hist_len = 0
         if self.history_arch in ("joint", "stream"):
-            hx = self._history_tokens(batch, ident)
+            hx = self._history_tokens(batch.hist_ints, batch.hist_floats, batch.hist_ptr, batch.turn_now, ident, first)
             parts.append(hx)
             masks.append(batch.hist_mask)
-            hist_len = hx.shape[1]
         elif self.history_arch == "turn_tokens":
             tt = self._turn_tokens(batch, ident)
             parts.append(tt)
             masks.append(batch.turn_mask)
-        x = self.norm_in(torch.cat(parts, dim=1))
-        valid = torch.cat(masks, dim=1)
-        T = x.shape[1]
-        attn = valid.unsqueeze(1).expand(B, T, T).clone()
-        if self.history_arch == "stream" and hist_len:
-            h0 = T - hist_len
-            causal = torch.tril(torch.ones(hist_len, hist_len, dtype=torch.bool, device=x.device))
-            attn[:, h0:, :h0] = False
-            attn[:, h0:, h0:] &= causal
-        # a padding query still needs one key (itself) to stay finite
-        attn |= torch.eye(T, dtype=torch.bool, device=x.device).unsqueeze(0)
-        y = self.out_norm(self.trunk(x, attn))
-        g_out = y[:, 0]
-        h_out = y[:, 1:1 + S.N_ENTITIES]
-        opt_mask = batch.blocks["option"].mask
-        if self.options_in_trunk:
-            e_opt = y[:, n_state:n_state + opt.shape[1]]
-        else:
-            ptr = batch.blocks["option"].ints[..., S.OPTION.i["pointer"]]
-            pointed = torch.gather(h_out, 1, ptr.clamp(min=0).unsqueeze(-1).expand(-1, -1, self.d))
-            pointed = torch.where((ptr >= 0).unsqueeze(-1), pointed, self.null_entity.expand_as(pointed))
-            e_opt = self.option_mlp(torch.cat([opt, pointed], dim=-1))
-        return TrunkOutV2(g=g_out, h=h_out, e_opt=e_opt, option_mask=opt_mask)
+        return self.norm_in(torch.cat(parts, dim=1)), torch.cat(masks, dim=1), opt
 
     def _frame_extras(self, batch: BatchV2, ident: torch.Tensor, n_frames: int) -> torch.Tensor:
         """The resolution frames' pointer and operation rows, pooled into
@@ -361,21 +448,37 @@ class KeyForgeNetV2(nn.Module):
             out = out.scatter_add(1, frame.unsqueeze(-1).expand(-1, -1, self.d), x)
         return out
 
-    def _history_tokens(self, batch: BatchV2, ident: torch.Tensor) -> torch.Tensor:
-        ints, floats = batch.hist_ints, batch.hist_floats
-        B, H, _ = ints.shape
+    def _history_tokens(self, ints, floats, hist_ptr, turn_now, ident: torch.Tensor, first=None) -> torch.Tensor:
+        """History rows -> tokens. `first` [B]: the row number of each item's
+        first row (a suffix after a cached prefix), so pointer rows map to
+        their tokens."""
         x = self.hist_embed(ints, floats)
         stream = ints[..., ROW_INTS.index("stream")].clamp(min=0, max=4)
         kind = ints[..., ROW_INTS.index("kind")].clamp(min=0, max=_KIND_MAX)
         x = x + self.hist_kind(stream * (_KIND_MAX + 1) + kind)
-        offset = batch.turn_now.unsqueeze(1) - ints[..., ROW_INTS.index("turn")]
+        turn = ints[..., ROW_INTS.index("turn")]
+        when = turn if self.history_time == "absolute" else turn_now.unsqueeze(1) - turn
         seq = ints[..., ROW_INTS.index("seq")]
-        x = x + self.hist_time(torch.cat([sinusoid(offset, self.time_dim), sinusoid(seq, self.time_dim)], dim=-1))
-        rows, roles, ptrs = batch.hist_ptr[..., 0], batch.hist_ptr[..., 1], batch.hist_ptr[..., 2]
+        x = x + self.hist_time(torch.cat([sinusoid(when, self.time_dim), sinusoid(seq, self.time_dim)], dim=-1))
+        rows, roles, ptrs = hist_ptr[..., 0], hist_ptr[..., 1], hist_ptr[..., 2]
         valid = rows >= 0
+        if first is not None:
+            rows = rows - first.unsqueeze(1)
         pv = (self._pointed(ident, ptrs) + self.hist_role(roles.clamp(0, HISTORY_ROLES - 1))) * valid.unsqueeze(-1)
         x = x.scatter_add(1, rows.clamp(min=0).unsqueeze(-1).expand(-1, -1, self.d), pv.to(x.dtype))
         return x + self.type_embedding.weight[7]
+
+    def history_prefix(self, card_ids: torch.Tensor, ints, floats, hist_ptr, mask) -> PrefixPast:
+        """`stream`'s cached prefix: every layer's keys and values for these
+        history rows ([B, P, ...], `mask` [B, P]; `card_ids` [B, 72], the
+        game's entities). A history row's token depends only on rows before
+        it, so these are the same keys and values a whole sequence computes."""
+        if self.history_arch != "stream":
+            raise ValueError("a cached prefix needs history_arch 'stream'")
+        ident = self.identities(card_ids.clamp(min=0))
+        hx = self._history_tokens(ints, floats, hist_ptr, None, ident)
+        _y, kvs = self.trunk(self.norm_in(hx), AttnSpec(key_valid=mask, hist_from=0), want_kv=True)
+        return PrefixPast(kv=kvs, valid=mask, n=mask.sum(1))
 
     def _turn_tokens(self, batch: BatchV2, ident: torch.Tensor) -> torch.Tensor:
         sets = batch.turn_sets  # [B, U, 3, 72]
@@ -434,7 +537,7 @@ class KeyForgeNetV2(nn.Module):
         empty = size == 0
         w = torch.softmax(att.masked_fill(empty.unsqueeze(-1), 0.0), dim=-1) * valid
         pooled = torch.where(empty.unsqueeze(-1), self.empty_subset.expand(C, self.d), (w.unsqueeze(-1) * mem).sum(1))
-        s = self.subset_mlp(pooled + self.subset_size(size.clamp(max=63)))
+        s = self.subset_mlp(pooled + self.subset_size(sinusoid(size, self.time_dim)))
         return (self.subset_query(out.g[rows]) * s).sum(-1) / math.sqrt(self.d)
 
     def sequential_logits(self, out: TrunkOutV2, rows, prefix, legal) -> torch.Tensor:

@@ -15,6 +15,12 @@ Shaped like `agent/selfplay.py`'s actors:
 The searcher plays HeuristicBot, alternating seats and deck assignments, so
 no game is self-play. Nothing is learned and no shard is written.
 
+`--v2 '<network config JSON>'` measures the v2 network instead (Agent
+Observation Plan, O8): an untrained `KeyForgeNetV2` behind `ml/infer_v2.py`,
+the workers searching with `student_v2` in the request form of its
+`history_arch` (`stream` and `joint` with the history prefix cached). The
+evaluation cache's hit rate is reported either way.
+
 Each worker warms up, then measures over a fixed window: the network
 evaluations it asked for (the evaluator's cache misses, i.e. what actually
 reaches the GPU), the calls carrying them and the time spent waiting on
@@ -47,8 +53,17 @@ class _CountingClient:
         self.calls = 0
         self.requests = 0
         self.wait_seconds = 0.0
+        self.pickle_seconds = 0.0  # estimated: every 10th call's requests pickled once more, x10
+        self.request_bytes = 0
 
     def predict_many(self, requests):
+        if self.calls % 10 == 0 and requests:
+            import pickle
+
+            t = time.perf_counter()
+            blob = pickle.dumps(requests, protocol=pickle.HIGHEST_PROTOCOL)
+            self.pickle_seconds += 10 * (time.perf_counter() - t)
+            self.request_bytes += 10 * len(blob)
         t0 = time.perf_counter()
         answers = self.inner.predict_many(requests)
         self.wait_seconds += time.perf_counter() - t0
@@ -97,6 +112,23 @@ def run_worker(args) -> dict:
     s = SelfPlaySettings.from_config(resolve(args.config))
     concurrency = args.games_per_worker or s.concurrency
     client = _CountingClient(_connect(args.host, args.port, args.authkey))
+    evaluators = []
+
+    def evaluator(seed: int):
+        v2 = getattr(args, "v2", None)  # (callers that build their own arguments predate it)
+        if v2:
+            from agent.search.leaf_v2 import history_form
+
+            ev = make_evaluator("student_v2", seed=seed, history=history_form(json.loads(v2).get("history_arch", "none")))
+        else:
+            ev = make_evaluator(s.leaf, seed=seed)
+        evaluators.append(ev)
+        return ev
+
+    def cache_counts():
+        hits = sum(getattr(getattr(e, "cache", None), "hits", 0) for e in evaluators)
+        misses = sum(getattr(getattr(e, "cache", None), "misses", 0) for e in evaluators)
+        return hits, misses
 
     class Slot:
         __slots__ = ("game", "searcher", "search", "bot", "rng", "decisions")
@@ -128,7 +160,7 @@ def run_worker(args) -> dict:
             root_noise=True, leaves_in_flight=s.leaves_in_flight, resample=Resample(s.resample),
             determinization=s.determinization, enumerate_cap=s.enumerate_cap, reuse=False,
         )
-        sl.search = Search(regime, make_evaluator(s.leaf, seed=seed), policy, settings, seed=seed)
+        sl.search = Search(regime, evaluator(seed), policy, settings, seed=seed)
         sl.bot = HeuristicBot(seed=seed ^ 0x5EED)
         sl.rng = random.Random(seed ^ 0xA5)
         sl.decisions = 0
@@ -149,6 +181,8 @@ def run_worker(args) -> dict:
         now = time.perf_counter()
         if base is None and now >= t_measure:
             base = (now, client.requests, client.calls, client.wait_seconds, searches, simulations, games, rounds)
+            cache0 = cache_counts()
+            pickle0 = (client.pickle_seconds, client.request_bytes)
         if now >= t_end:
             break
         for i in range(len(slots)):
@@ -172,7 +206,15 @@ def run_worker(args) -> dict:
             sl.game.submit(res.choices[k])
             advance(sl)
     t0, r0, c0, w0, se0, si0, g0, ro0 = base if base is not None else (t_start, 0, 0, 0.0, 0, 0, 0, 0)
+    if base is None:
+        cache0 = (0, 0)
+        pickle0 = (0.0, 0)
+    hits, misses = cache_counts()
     return {
+        "pickle_seconds_estimate": client.pickle_seconds - pickle0[0],
+        "request_bytes_estimate": client.request_bytes - pickle0[1],
+        "cache_hits": hits - cache0[0],
+        "cache_misses": misses - cache0[1],
         "worker": args.worker,
         "seconds": time.perf_counter() - t0,
         "requests": client.requests - r0,
@@ -220,9 +262,37 @@ def _gpu_summary(path: str) -> dict:
     }
 
 
+def _server_summary(path: str, start: float, end: float) -> dict:
+    """The server's own timing (`InferenceServer.stats`) over the measured
+    window [start, end] (wall clock): batches, mean batch, time per batch in
+    the model, queueing."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            snaps = [json.loads(line) for line in f if line.strip()]
+    except (OSError, ValueError):
+        return {}
+    inside = [s for s in snaps if start <= s["written"] <= end + 15]
+    if len(inside) < 2:
+        return {}
+    a, z = inside[0], inside[-1]
+    st = {k: z[k] - a[k] for k in ("batches", "calls", "observations", "predict_seconds", "queue_wait_seconds",
+                                   "window_seconds")}
+    span = max(1e-9, z["written"] - a["written"])
+    b = max(1, st["batches"])
+    return {
+        "batches": st["batches"],
+        "calls_per_batch": round(st["calls"] / b, 2),
+        "observations_per_batch": round(st["observations"] / b, 1),
+        "predict_ms_per_batch": round(1000 * st["predict_seconds"] / b, 2),
+        "window_ms_per_batch": round(1000 * st["window_seconds"] / b, 2),
+        "queue_wait_ms_per_call": round(1000 * st["queue_wait_seconds"] / max(1, st["calls"]), 2),
+        "predict_busy_fraction": round(st["predict_seconds"] / span, 3),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--checkpoint", required=True, help="the network the server loads (e.g. the Tier 0 BC checkpoint)")
+    parser.add_argument("--checkpoint", default=None, help="the network the server loads (e.g. the Tier 0 BC checkpoint)")
     parser.add_argument("--config", default="tier2_selfplay_within_turn.json", help="the self-play config whose actors to imitate")
     parser.add_argument("--workers", type=int, default=None, help="default: the config's selfplay.workers")
     parser.add_argument("--games-per-worker", type=int, default=None, help="default: the config's selfplay.games_per_worker")
@@ -233,12 +303,15 @@ def main():
     parser.add_argument("--port", type=int, default=6170)
     parser.add_argument("--authkey", default="keyforge")
     parser.add_argument("--out", default=None, help="result file; default $KEYFORGE_DATA/bench/actor_demand/<config>-<time>.json")
+    parser.add_argument("--v2", default=None, help="a v2 network config (JSON): measure an untrained v2 network (O8)")
     parser.add_argument("--worker", type=int, default=None, help=argparse.SUPPRESS)  # internal: run as one worker
     args = parser.parse_args()
 
     if args.worker is not None:
         print(json.dumps(run_worker(args)), flush=True)
         return
+    if not args.checkpoint and not args.v2:
+        parser.error("--checkpoint (v1) or --v2 (a v2 network config) is required")
 
     from agent.config import resolve
     from keyforge.version import ENGINE_VERSION
@@ -251,24 +324,29 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     stem = out[:-5] if out.endswith(".json") else out
 
+    if args.v2:
+        serve = [sys.executable, "-m", "ml.infer_v2", "--net-cfg", args.v2]
+    else:
+        serve = [sys.executable, "-m", "ml.infer_server", args.checkpoint]
+    server_env = dict(os.environ, KEYFORGE_SERVER_STATS=stem + ".server.json")
     with open(stem + ".server.log", "a") as log:
         server = subprocess.Popen(
-            [sys.executable, "-m", "ml.infer_server", args.checkpoint, "--host", args.host, "--port", str(args.port),
-             "--authkey", args.authkey],
-            cwd=_NON_GUI, stdout=log, stderr=subprocess.STDOUT,
+            serve + ["--host", args.host, "--port", str(args.port), "--authkey", args.authkey],
+            cwd=_NON_GUI, stdout=log, stderr=subprocess.STDOUT, env=server_env,
         )
     procs, sampler, results = [], None, []
     try:
         _connect(args.host, args.port, args.authkey)
         cmd = [
-            sys.executable, "-m", "tools.bench_actor_demand", "--checkpoint", args.checkpoint, "--config", args.config,
+            sys.executable, "-m", "tools.bench_actor_demand", "--config", args.config,
             "--games-per-worker", str(per_worker), "--warmup", str(args.warmup), "--measure", str(args.measure),
             "--seed", str(args.seed), "--host", args.host, "--port", str(args.port), "--authkey", args.authkey,
-        ]
+        ] + (["--v2", args.v2] if args.v2 else ["--checkpoint", args.checkpoint])
         for w in range(workers):
             with open(f"{stem}.worker{w}.log", "a") as err:
                 procs.append(subprocess.Popen(cmd + ["--worker", str(w)], cwd=_NON_GUI, stdout=subprocess.PIPE, stderr=err, text=True))
         time.sleep(args.warmup)
+        t_window = (time.time(), time.time() + args.measure)
         sampler = _start_gpu_sampler(stem + ".gpu.csv")
         for w, p in enumerate(procs):
             stdout, _ = p.communicate()
@@ -297,6 +375,7 @@ def main():
         "config": cfg["name"],
         "regime": cfg["search"]["regime"],
         "checkpoint": args.checkpoint,
+        "v2": json.loads(args.v2) if args.v2 else None,
         "engine_version": ENGINE_VERSION,
         "workers": workers,
         "games_per_worker": per_worker,
@@ -306,15 +385,19 @@ def main():
         "evaluations_per_second_per_worker": round(requests / seconds / workers, 1),
         "requests_per_call": round(requests / total("calls"), 1) if total("calls") else None,
         "inference_wait_fraction": round(total("wait_seconds") / total("seconds"), 3),
+        "pickling_fraction_estimate": round(total("pickle_seconds_estimate") / total("seconds"), 3),
+        "request_bytes_per_request": round(total("request_bytes_estimate") / max(1, requests)),
         "searches_per_second": round(searches / seconds, 2),
         "simulations_per_second": round(total("simulations") / seconds, 1),
         "evaluations_per_simulation": round(requests / total("simulations"), 3) if total("simulations") else None,
+        "evaluation_cache_hit_rate": round(total("cache_hits") / max(1, total("cache_hits") + total("cache_misses")), 3),
         "games_per_hour_vs_heuristic": round(games / seconds * 3600, 1),
         "searches_per_game_one_seat": round(searches_per_game, 1) if searches_per_game else None,
         # Self-play searches both seats' decisions; at the same search rate
         # it finishes roughly half as many games.
         "selfplay_games_per_hour_estimate": round(searches / seconds * 3600 / (2 * searches_per_game), 1) if searches_per_game else None,
         "gpu": _gpu_summary(stem + ".gpu.csv"),
+        "server": _server_summary(stem + ".server.json", t_window[0], t_window[1]),
         "per_worker": results,
     }
     with open(out, "w", encoding="utf-8") as f:

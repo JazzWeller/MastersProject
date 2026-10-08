@@ -100,6 +100,7 @@ class Block:
         return self.n.to_bytes(4, "little") + self.ints.tobytes() + self.floats.tobytes()
 
 
+
 class EncodedV2:
     __slots__ = ("blocks",)
 
@@ -109,8 +110,39 @@ class EncodedV2:
     def __getitem__(self, name: str) -> Block:
         return self.blocks[name]
 
+    @property
+    def n_options(self) -> int:
+        return self.blocks["option"].n
+
     def to_bytes(self) -> bytes:
         return b"".join(self.blocks[b.name].to_bytes() for b in S.BLOCKS)
+
+    def __reduce__(self):
+        # One bytes payload: crossing the inference pipe this pickles and
+        # unpickles as a copy (O8: the live server's connection threads spent
+        # its GIL rebuilding nine pickled blocks per request). The ints stay
+        # int64: narrowing them halved the bytes but converting each value
+        # back cost more than sending it (5 ms per 54 requests).
+        return (_from_wire, (tuple(self.blocks[b.name].n for b in S.BLOCKS),
+                             b"".join(self.blocks[b.name].ints.tobytes() + self.blocks[b.name].floats.tobytes()
+                                      for b in S.BLOCKS)))
+
+
+def _from_wire(ns, data: bytes) -> EncodedV2:
+    blocks = {}
+    at = 0
+    view = memoryview(data)
+    for b, n in zip(S.BLOCKS, ns):
+        blk = Block(b)
+        blk.n = n
+        k = 8 * n * b.n_int
+        blk.ints.frombytes(view[at:at + k])
+        at += k
+        k = 4 * n * b.n_float
+        blk.floats.frombytes(view[at:at + k])
+        at += k
+        blocks[b.name] = blk
+    return EncodedV2(blocks)
 
 
 class _Ctx:

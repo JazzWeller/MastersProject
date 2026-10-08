@@ -45,6 +45,16 @@ class ObservationCapability:
             return build_match_infoset(self._match, self._viewer)
         return build_infoset(self._game, self._viewer, match=self._match)
 
+    def history(self):
+        """The viewer's event-history encoder (`agent/history.py`, Agent
+        Observation Plan O6), kept up to date on the game: a pure function
+        of the viewer's own projection, holding no reference to the game.
+        A search freezes its prefix here, before forking, so every world
+        carries it (O8)."""
+        from agent.history import history_for  # (agent code reads the engine, not the reverse)
+
+        return history_for(self._game, self._viewer)
+
 
 class SearchCapability(ObservationCapability):
     """Adds forking (always determinized -- never the true hidden state)
