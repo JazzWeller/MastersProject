@@ -80,6 +80,7 @@ def main():
     import torch
 
     from agent import config as config_mod
+    from ml import resume
     from keyforge.cards.vocabulary import CARD_VOCAB
     from sim import data_root
     from sim.bc_corpus import held_out_cards
@@ -126,12 +127,14 @@ def main():
         idx = ev.indices()
         inv = _involves_v1(ev, idx, held_ids)
         icfg = config_mod._deep_merge(cfg, {"network": {"identity": "both"}})
-        model, rep = train(icfg, tr, device=device)
+        state = os.path.join(out_dir, "state_v1.pt")  # pausable (ml/resume.py)
+        model, rep = train(icfg, tr, device=device, state_path=state)
         report["v1"] = {"seen": _metrics(evaluate(model, ev, idx[~inv], policy_head="pointer", cap=1024, device=device)),
                         "held_out": _metrics(evaluate(model, ev, idx[inv], policy_head="pointer", cap=1024, device=device)),
                         "value_logloss_unseen_games": rep["value"]["logloss"],
                         "eval_involving_held_out": int(inv.sum()), "eval_positions": int(len(idx))}
         save()
+        resume.finished(state)
 
     if "v2" in stages:
         from ml.bc_train_v2 import evaluate as evaluate_v2
@@ -146,12 +149,14 @@ def main():
                 continue
             vcfg = config_mod.resolve("tier0b_bc.json", {"network": {"history_arch": "none", "static": static},
                                                          "bc": {"epochs": cfg["bc"]["epochs"]}})
-            model, rep = train_v2(vcfg, tr, device=device)
+            state = os.path.join(out_dir, f"state_{name}.pt")
+            model, rep = train_v2(vcfg, tr, device=device, state_path=state)
             report[name] = {"seen": _metrics(evaluate_v2(model, ev, idx[~inv], cap=1024, device=device)),
                             "held_out": _metrics(evaluate_v2(model, ev, idx[inv], cap=1024, device=device)),
                             "value_logloss_unseen_games": rep["value"]["logloss"],
                             "eval_involving_held_out": int(inv.sum()), "eval_positions": int(len(idx))}
             save()
+            resume.finished(state)
     print(json.dumps(report, indent=1, sort_keys=True))
 
 

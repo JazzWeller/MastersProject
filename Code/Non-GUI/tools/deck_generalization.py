@@ -26,6 +26,7 @@ import torch
 
 from agent import config as config_mod
 from agent.telemetry import Run
+from ml import resume
 from ml.bc_train import train
 from ml.dataset import Corpus
 from ml.evaluate import evaluate_model
@@ -60,7 +61,8 @@ def main():
         pool = dict(cfg["pool"], deck_source="fixed_random", n_decks=n, deck_seed=1)
         cfg["bc"]["epochs"] = args.epochs
         data = stage_data(cfg, args.workers, tag=f"decks-{n}", counts={"heuristic": args.games}, pool=pool)
-        model, rep = train(cfg, Corpus.from_dir(data), device=device)
+        state = os.path.join(run.root, f"state_decks_{n}.pt")  # pausable (ml/resume.py)
+        model, rep = train(cfg, Corpus.from_dir(data), device=device, state_path=state)
         tm = TorchModel(model, str(device))
         wins = games = 0.0
         t0 = time.time()
@@ -74,6 +76,7 @@ def main():
         run.journal("deck_generalization_point", game_index=0, **point)
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
+        resume.finished(state)
         print(f"[M11] {n} training decks -> {point['heldout_score']:.3f} on held-out decks ({point['games']} games)", flush=True)
     lines = ["# Held-out-deck generalization (M11)", "", "| Training decks | Score vs HeuristicBot on held-out decks | games |", "|---|---|---|"]
     for n, p in sorted(report["points"].items(), key=lambda kv: int(kv[0])):

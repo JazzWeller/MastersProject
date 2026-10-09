@@ -244,16 +244,22 @@ def evaluate(model: KeyForgeNetV2, corpus: CorpusV2, idx: np.ndarray, *, cap: in
 
 def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(DEFAULT_WEIGHTS), metrics=None,
           log_every: int = 200, max_steps: Optional[int] = None, train_idx: Optional[np.ndarray] = None,
-          val_idx: Optional[np.ndarray] = None) -> Tuple[KeyForgeNetV2, dict]:
-    """`train_idx` / `val_idx` default to the corpus's by-game split."""
+          val_idx: Optional[np.ndarray] = None, state_path: Optional[str] = None,
+          save_minutes: float = 10.0) -> Tuple[KeyForgeNetV2, dict]:
+    """`train_idx` / `val_idx` default to the corpus's by-game split.
+
+    `state_path`: makes the run pausable (`ml/resume.py`) -- its state is
+    saved there every `save_minutes` and on a pause request (then `Paused`
+    is raised), and a run started with a state file there resumes from it."""
     net_cfg = cfg["network"]
     bc = cfg["bc"]
     torch.manual_seed(int(cfg.get("seed", 0)))
     model = KeyForgeNetV2(net_cfg).to(device)
     cap = int(net_cfg.get("enumerate_cap", 1024))
     weights = dict(DEFAULT_WEIGHTS, **(bc.get("loss_weights") or {}))
-    train_idx = corpus.indices(split=0) if train_idx is None else np.asarray(train_idx)
-    val_idx = corpus.indices(split=1) if val_idx is None else np.asarray(val_idx)
+    as_idx = lambda x: x if hasattr(x, "chunks") else np.asarray(x)  # (a packed corpus's Selection stays one)
+    train_idx = corpus.indices(split=0) if train_idx is None else as_idx(train_idx)
+    val_idx = corpus.indices(split=1) if val_idx is None else as_idx(val_idx)
     if bc.get("eval_positions"):  # a fixed subsample of the validation split, for quicker screens
         if hasattr(val_idx, "subsample"):
             val_idx = val_idx.subsample(int(bc["eval_positions"]))
@@ -272,11 +278,33 @@ def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(D
     if bc.get("compile", True) and torch.device(device).type == "cuda":
         model.compile_inputs()
     step, t0, history, seen = 0, time.perf_counter(), [], 0
-    done = False
-    for epoch in range(int(bc["epochs"])):
+    start_epoch, skip, before = 0, 0, 0.0  # (resume: the epoch, batches into it, seconds already trained)
+    pauser = digest = None
+    if state_path is not None:
+        from . import resume
+
+        digest = resume.config_digest(cfg, total_steps, len(train_idx))
+        prog = resume.load_state(state_path, model=model, opt=opt, sched=sched, config_hash=digest)
+        if prog is not None:
+            step, history, seen = prog["step"], prog["history"], prog["seen"]
+            start_epoch, skip, before = prog["epoch"], prog["in_epoch"], prog["seconds"]
+            print(f"resuming at step {step}/{total_steps} (epoch {start_epoch}, batch {skip})", flush=True)
+        pauser = resume.Pauser(state_path, save_minutes)
+    done = step >= total_steps
+    t0 -= before
+    for epoch in range(start_epoch, int(bc["epochs"])):
+        if done:
+            break
         running: Dict[str, float] = defaultdict(float)
         n_run = 0
-        for batch, tg in Prefetcher(corpus.iterate(train_idx, int(bc["batch"]), shuffle=True, seed=epoch, train=True)):
+        in_epoch = skip if epoch == start_epoch else 0
+        it = corpus.iterate(train_idx, int(bc["batch"]), shuffle=True, seed=epoch, train=True,
+                            **({"skip": in_epoch} if in_epoch and isinstance(corpus, PackedCorpusV2) else {}))
+        if in_epoch and not isinstance(corpus, PackedCorpusV2):
+            import itertools
+
+            it = itertools.islice(it, in_epoch, None)  # (a windowed corpus still reads what it skips)
+        for batch, tg in Prefetcher(it):
             batch, tg = batch.to(device), tg.to(device)
             opt.zero_grad(set_to_none=True)
             with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
@@ -286,6 +314,7 @@ def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(D
             opt.step()
             sched.step()
             step += 1
+            in_epoch += 1
             seen += batch.size
             for k, v in losses.items():
                 running[k] += float(v.detach())
@@ -307,10 +336,23 @@ def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(D
             if step >= total_steps:
                 done = True
                 break
-        if done:
-            break
+            asked = pauser is not None and pauser.requested()
+            if asked or (pauser is not None and pauser.save_due()):
+                # (the partial log window since the last line is dropped)
+                resume.save_state(state_path, model=model, opt=opt, sched=sched, config_hash=digest, step=step,
+                                  epoch=epoch, in_epoch=in_epoch, history=history, seen=seen,
+                                  seconds=time.perf_counter() - t0)
+                pauser.saved()
+                if asked:
+                    pauser.close()
+                    print(f"paused at step {step}/{total_steps}: state saved to {state_path}", flush=True)
+                    raise resume.Paused(state_path)
     elapsed = time.perf_counter() - t0
     peak = torch.cuda.max_memory_allocated() / 2 ** 30 if torch.device(device).type == "cuda" else None
+    if pauser is not None:  # trained: a pause from here on resumes at the evaluation
+        resume.save_state(state_path, model=model, opt=opt, sched=sched, config_hash=digest, step=step,
+                          epoch=int(bc["epochs"]), in_epoch=0, history=history, seen=seen, seconds=elapsed)
+        pauser.close()
     report = evaluate(model, corpus, val_idx, cap=cap, device=device)
     report["training"] = {"steps": step, "epochs": int(bc["epochs"]), "train_positions": int(len(train_idx)),
                           "val_positions": int(len(val_idx)), "seconds": round(elapsed, 1),
@@ -330,6 +372,9 @@ def main():
     parser.add_argument("--override", default=None, help="JSON dict merged over the config")
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--save-minutes", type=float, default=10.0,
+                        help="how often the resumable state is saved (ml/resume.py: pause with SIGTERM, Ctrl-C or a "
+                             "PAUSE file in the run directory; rerun the same command to resume)")
     args = parser.parse_args()
     overrides = json.loads(args.override) if args.override else None
     run = Run.resume_or_create(args.run, args.config, overrides)
@@ -345,7 +390,11 @@ def main():
     corpus = (PackedCorpusV2(args.data, history=form, history_dropout=dropout) if packed
               else CorpusV2.from_dir(args.data, history=form, history_dropout=dropout))
     run.journal("bc_train_start", game_index=0, data=args.data, positions=corpus.size, device=str(device))
-    model, report = train(cfg, corpus, device=device, metrics=run.metrics("learner"), max_steps=args.max_steps)
+    from . import resume
+
+    state_path = os.path.join(run.root, "train_state.pt")
+    model, report = train(cfg, corpus, device=device, metrics=run.metrics("learner"), max_steps=args.max_steps,
+                          state_path=state_path, save_minutes=args.save_minutes)
     store = CheckpointStore(os.path.join(run.root, "checkpoints"))
     ckpt, digest = save_model(model, store, config_hash=run.config_hash, extra={"kind": "bc_v2", **checkpoint_stamp()})
     report.update(checkpoint=ckpt, weights_digest=digest, config_hash=run.config_hash)
@@ -353,6 +402,7 @@ def main():
     with open(os.path.join(run.root, "bc_report.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, sort_keys=True)
     run.journal("bc_train_done", game_index=0, checkpoint=ckpt)
+    resume.finished(state_path)
     print(json.dumps({k: report[k] for k in ("top1_by_kind", "belief", "training")}, indent=1, default=str))
 
 

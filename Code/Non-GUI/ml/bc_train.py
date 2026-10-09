@@ -480,7 +480,10 @@ def backward_step(model: KeyForgeNet, batch: Batch, tg: Targets, *, micro: Optio
 def train(
     cfg: dict, corpus: Corpus, *, device, heads: Sequence[str] = tuple(DEFAULT_WEIGHTS), metrics=None, journal=None,
     log_every: int = 200, eval_sources: Optional[Sequence[str]] = None, train_sources: Optional[Sequence[str]] = None,
+    state_path: Optional[str] = None, save_minutes: float = 10.0,
 ) -> Tuple[KeyForgeNet, dict]:
+    """`state_path`: makes the run pausable (`ml/resume.py`), as in
+    `ml/bc_train_v2.train`."""
     net_cfg = cfg["network"]
     bc = cfg["bc"]
     torch.manual_seed(int(cfg.get("seed", 0)))
@@ -503,10 +506,23 @@ def train(
     step = 0
     t0 = time.perf_counter()
     history = []
-    for epoch in range(int(bc["epochs"])):
+    start_epoch, skip = 0, 0
+    pauser = digest = None
+    if state_path is not None:
+        from . import resume
+
+        digest = resume.config_digest(cfg, total_steps, len(train_idx))
+        prog = resume.load_state(state_path, model=model, opt=opt, sched=sched, config_hash=digest)
+        if prog is not None:
+            step, history, start_epoch, skip = prog["step"], prog["history"], prog["epoch"], prog["in_epoch"]
+            t0 -= prog["seconds"]
+            print(f"resuming at step {step}/{total_steps} (epoch {start_epoch}, batch {skip})", flush=True)
+        pauser = resume.Pauser(state_path, save_minutes)
+    for epoch in range(start_epoch, int(bc["epochs"])):
         running: Dict[str, float] = defaultdict(float)
         n_run = 0
-        it = Prefetcher(corpus.iterate(train_idx, int(bc["batch"]), shuffle=True, seed=epoch, device=None))
+        in_epoch = skip if epoch == start_epoch else 0
+        it = Prefetcher(corpus.iterate(train_idx, int(bc["batch"]), shuffle=True, seed=epoch, device=None, skip=in_epoch))
         for batch, tg in it:
             batch = batch.to(device)
             for f in ("kind", "target", "forced", "z", "turn", "source", "min_n", "max_n", "n_opt", "opp_hand", "next_draws"):
@@ -518,6 +534,7 @@ def train(
             opt.step()
             sched.step()
             step += 1
+            in_epoch += 1
             for k, v in losses.items():
                 running[k] += float(v.detach())
             n_run += 1
@@ -535,7 +552,20 @@ def train(
                 history.append({"step": step, **{k: running[k] / n_run for k in running}})
                 running.clear()
                 n_run = 0
+            asked = pauser is not None and pauser.requested()
+            if asked or (pauser is not None and pauser.save_due()):
+                resume.save_state(state_path, model=model, opt=opt, sched=sched, config_hash=digest, step=step,
+                                  epoch=epoch, in_epoch=in_epoch, history=history, seconds=time.perf_counter() - t0)
+                pauser.saved()
+                if asked:
+                    pauser.close()
+                    print(f"paused at step {step}/{total_steps}: state saved to {state_path}", flush=True)
+                    raise resume.Paused(state_path)
     elapsed = time.perf_counter() - t0
+    if pauser is not None:  # trained: a pause from here on resumes at the evaluation
+        resume.save_state(state_path, model=model, opt=opt, sched=sched, config_hash=digest, step=step,
+                          epoch=int(bc["epochs"]), in_epoch=0, history=history, seconds=elapsed)
+        pauser.close()
     report = evaluate(model, corpus, val_idx, policy_head=policy_head, cap=cap, device=device)
     report["training"] = {
         "steps": step, "epochs": int(bc["epochs"]), "train_positions": int(len(train_idx)),
@@ -554,13 +584,20 @@ def main():
     parser.add_argument("--data", required=True, help="encoded shard directory (ml.dataset)")
     parser.add_argument("--override", default=None, help="JSON dict merged over the config (Screen 4 ablations)")
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--save-minutes", type=float, default=10.0,
+                        help="how often the resumable state is saved (ml/resume.py: pause with SIGTERM, Ctrl-C or a "
+                             "PAUSE file in the run directory; rerun the same command to resume)")
     args = parser.parse_args()
     overrides = json.loads(args.override) if args.override else None
     run = Run.resume_or_create(args.run, args.config, overrides)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     corpus = Corpus.from_dir(args.data)
     run.journal("bc_train_start", game_index=0, data=args.data, positions=corpus.size, device=str(device))
-    model, report = train(run.config, corpus, device=device, metrics=run.metrics("learner"))
+    from . import resume
+
+    state_path = os.path.join(run.root, "train_state.pt")
+    model, report = train(run.config, corpus, device=device, metrics=run.metrics("learner"), state_path=state_path,
+                          save_minutes=args.save_minutes)
     store = CheckpointStore(os.path.join(run.root, "checkpoints"))
     ckpt, digest = save_model(model, store, config_hash=run.config_hash, extra={"kind": "bc"})
     report["checkpoint"] = ckpt
@@ -570,6 +607,7 @@ def main():
     with open(os.path.join(run.root, "bc_report.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, sort_keys=True)
     run.journal("bc_train_done", game_index=0, checkpoint=ckpt, report=os.path.basename(path))
+    resume.finished(state_path)
     print(json.dumps({k: report[k] for k in ("top1_by_kind", "multi_select_exact", "belief")}, indent=1))
     print(f"checkpoint {ckpt[:16]} (weights {digest[:16]})")
 

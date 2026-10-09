@@ -632,6 +632,51 @@ class TestBCTrainer(unittest.TestCase):
                 self.assertTrue(all(np.isfinite(v) for _k, v in m.seen))
                 self.assertTrue(report["training"]["history"])
 
+    def test_paused_and_resumed_ends_where_the_uninterrupted_run_does(self):
+        """ml/resume.py on the v1 trainer: a pause mid-epoch 1, resumed from
+        its state file, gives the uninterrupted run's weights."""
+        import contextlib
+        import io
+        import shutil
+        from unittest import mock
+
+        from ml import bc_train, resume
+
+        cfg = {"seed": 0, "network": _net_cfg(), "bc": dict(config_mod.DEFAULTS["bc"], batch=64, epochs=2)}
+        idx = self.corpus.indices(split=0)
+        full = [t.z for _b, t in self.corpus.iterate(idx, 64, shuffle=True, seed=1)]
+        tail = [t.z for _b, t in self.corpus.iterate(idx, 64, shuffle=True, seed=1, skip=2)]
+        self.assertEqual(len(tail), len(full) - 2)
+        self.assertTrue(all(torch.equal(a, b) for a, b in zip(full[2:], tail)))
+
+        def run(state=None):
+            with mock.patch.object(bc_train, "evaluate", return_value={}), contextlib.redirect_stdout(io.StringIO()):
+                return bc_train.train(cfg, self.corpus, device=torch.device("cpu"), log_every=3, state_path=state)
+
+        tmp = tempfile.mkdtemp(prefix="resume_v1_")
+        torch.use_deterministic_algorithms(True)
+        try:
+            net_a, rep_a = run()
+            at = rep_a["training"]["steps"] // 2 + 2
+            calls = {"n": 0}
+
+            class Scripted(resume.Pauser):
+                def requested(self):
+                    calls["n"] += 1
+                    return calls["n"] == at
+
+            state = os.path.join(tmp, "train_state.pt")
+            with mock.patch.object(resume, "Pauser", Scripted):
+                with self.assertRaises(resume.Paused):
+                    run(state)
+                net_b, rep_b = run(state)
+        finally:
+            torch.use_deterministic_algorithms(False)
+            shutil.rmtree(tmp, ignore_errors=True)
+        self.assertEqual(rep_b["training"]["steps"], rep_a["training"]["steps"])
+        for (name, a), (_n, b) in zip(net_a.state_dict().items(), net_b.state_dict().items()):
+            self.assertTrue(torch.allclose(a, b, atol=1e-6), name)
+
     def test_the_prefetcher_raises_what_its_thread_raised(self):
         from ml.bc_train import Prefetcher
 
