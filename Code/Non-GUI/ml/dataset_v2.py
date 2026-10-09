@@ -832,21 +832,39 @@ class PackedCorpusV2:
                 seg[k] = np.concatenate([c[k] for c in cores])
         return seg
 
-    def iterate(self, sel: Selection, batch_size: int, *, shuffle: bool, seed: int = 0, train: bool = False
-                ) -> Iterator[Tuple[BatchV2, TargetsV2]]:
+    def _segment_size(self, chunks: np.ndarray, split: Optional[int]) -> int:
+        return int(self.c["n"][chunks].sum() if split is None else self.c["split_counts"][chunks, split].sum())
+
+    def iterate(self, sel: Selection, batch_size: int, *, shuffle: bool, seed: int = 0, train: bool = False,
+                skip: int = 0) -> Iterator[Tuple[BatchV2, TargetsV2]]:
+        """`skip`: leave out the first `skip` batches (a resumed epoch, see
+        `ml/resume.py`) -- the rest are the ones a full pass would yield
+        (with history dropout off: dropout draws from the same generator).
+        Segments that are skipped whole are never read."""
         rng = np.random.default_rng(seed)
         chunks = rng.permutation(sel.chunks) if shuffle else np.asarray(sel.chunks)
         groups = [chunks[k:k + self.segment_chunks] for k in range(0, len(chunks), self.segment_chunks)]
         dropout = self.history_dropout if train else 0.0
         box = {}
+        first = 0
+        while first < len(groups) and skip:  # whole segments: replay their draws, read nothing
+            n = self._segment_size(groups[first], sel.split)
+            nb = -(-n // batch_size)
+            if nb > skip:
+                break
+            if shuffle and n:
+                rng.permutation(n)
+                rng.permutation(nb)
+            skip -= nb
+            first += 1
 
         def prepare(j):
             box[j] = self._segment(groups[j], sel.split)
 
-        ahead = threading.Thread(target=prepare, args=(0,), daemon=True) if groups else None
+        ahead = threading.Thread(target=prepare, args=(first,), daemon=True) if first < len(groups) else None
         if ahead is not None:
             ahead.start()
-        for j in range(len(groups)):
+        for j in range(first, len(groups)):
             ahead.join()
             seg = box.pop(j)
             if j + 1 < len(groups):
@@ -860,6 +878,9 @@ class PackedCorpusV2:
                 order = order[np.argsort(seg["hist_n"][order], kind="stable")]
             batches = [order[k:k + batch_size] for k in range(0, n, batch_size)]
             for b in (rng.permutation(len(batches)) if shuffle else range(len(batches))):
+                if skip:
+                    skip -= 1
+                    continue
                 local = np.sort(batches[b])
                 yield assemble([(np.arange(len(local)), seg, local)], len(local), self.history, dropout, rng)
 

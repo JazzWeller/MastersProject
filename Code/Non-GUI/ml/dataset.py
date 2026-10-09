@@ -438,15 +438,17 @@ class Corpus:
 
     def iterate(
         self, idx: np.ndarray, batch_size: int, *, shuffle: bool, seed: int = 0, device=None, window_shards: int = 16,
+        skip: int = 0,
     ) -> Iterator[Tuple[Batch, Targets]]:
         """Batches over `idx`. Shuffled iteration goes window by window --
         a random `window_shards` shards at a time, fully shuffled within the
         window -- so the memory-mapped working set stays a few GB even when
         the corpus is bigger than RAM (a fully random order over a 16 GB
-        corpus thrashes the page cache)."""
+        corpus thrashes the page cache). `skip`: leave out the first `skip`
+        batches without assembling them (a resumed epoch, `ml/resume.py`)."""
         idx = np.array(idx)
         if not shuffle:
-            for start in range(0, len(idx), batch_size):
+            for start in range(skip * batch_size, len(idx), batch_size):
                 yield self.batch(idx[start : start + batch_size], device)
             return
         rng = np.random.default_rng(seed)
@@ -457,6 +459,9 @@ class Corpus:
             sel = idx[np.isin(shard_of, window)]
             rng.shuffle(sel)
             for start in range(0, len(sel), batch_size):
+                if skip:
+                    skip -= 1
+                    continue
                 yield self.batch(np.sort(sel[start : start + batch_size]), device)
 
 

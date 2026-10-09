@@ -37,6 +37,7 @@ import torch
 
 from agent import config as config_mod
 from agent.telemetry import Run
+from ml import resume
 from ml.bc_train import evaluate, train
 from ml.checkpoints import CheckpointStore, load_model, save_model
 from ml.dataset import Corpus, encode_corpus
@@ -148,12 +149,14 @@ def main():
     run.journal("screens_data_ready", game_index=0, positions=corpus.size, dir=data_dir)
 
     if "main" in stages and "main" not in report:
-        model, rep = train(cfg, corpus, device=device, metrics=run.metrics("learner"))
+        state = os.path.join(run.root, "state_main.pt")  # pausable (ml/resume.py)
+        model, rep = train(cfg, corpus, device=device, metrics=run.metrics("learner"), state_path=state)
         ckpt, digest = save_model(model, store, config_hash=run.config_hash, extra={"kind": "bc", "stage": "main"})
         rep["checkpoint"] = ckpt
         report["main"] = rep
         run.journal("screens_main_done", game_index=0, checkpoint=ckpt)
         save_report()
+        resume.finished(state)
 
     if "g1" in stages and "g1" not in report:
         net, _meta, _ = load_model((store, report["main"]["checkpoint"][:16]))
@@ -177,10 +180,12 @@ def main():
             acfg = config_mod._deep_merge(cfg, over)
             if args.ablation_epochs:
                 acfg["bc"]["epochs"] = args.ablation_epochs
-            model, rep = train(acfg, corpus, device=device)
+            state = os.path.join(run.root, f"state_ablation_{name}.pt")
+            model, rep = train(acfg, corpus, device=device, state_path=state)
             report["ablations"][name] = {"override": over, **_key_metrics(rep), "params": rep["training"]["params"]}
             run.journal("screen4_ablation", game_index=0, ablation=name, **{k: v for k, v in _key_metrics(rep).items()})
             save_report()
+            resume.finished(state)
 
     identities = ("both", "attr", "id")
     if "generalization" in stages and not all(i in report.get("generalization", {}) for i in identities):
@@ -204,7 +209,8 @@ def main():
             if ident in gen:
                 continue  # resumable one identity at a time
             icfg = config_mod._deep_merge(gcfg, {"network": {"identity": ident}})
-            model, rep_ = train(icfg, tr, device=device)
+            state = os.path.join(run.root, f"state_gen_{ident}.pt")
+            model, rep_ = train(icfg, tr, device=device, state_path=state)
             ph = icfg["network"].get("policy_head", "pointer")
             cap = int(icfg["network"].get("enumerate_cap", 1024))
             seen = evaluate(model, ev, all_idx[~involves], policy_head=ph, cap=cap, device=device)
@@ -218,6 +224,7 @@ def main():
             run.journal("screen5_identity", game_index=0, identity=ident,
                         seen=gen[ident]["seen"]["CHOOSE_ACTION_top1"], held_out=gen[ident]["held_out"]["CHOOSE_ACTION_top1"])
             save_report()
+            resume.finished(state)
 
     save_report()
     print(f"report: {report_path}")

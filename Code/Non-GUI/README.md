@@ -152,7 +152,8 @@ The learned-agent stack from `Code/AGENT_TRAINING_PLAN.md` (see its
   history architecture), `encode_v2.py` (batching), `infer_v2.py` (the
   server: prefix cache, `stream` keys and values cached per prefix),
   `dataset_v2.py` (v2 shards and the packed corpus training reads),
-  `bc_train_v2.py` (behaviour cloning with v2: Tier 0b, O10's BC ladder).
+  `bc_train_v2.py` (behaviour cloning with v2: Tier 0b, O10's BC ladder),
+  `resume.py` (pausing and resuming BC training).
 - `configs/*.json` — one file per experiment; every artifact carries its
   resolved config's hash.
 
@@ -187,7 +188,24 @@ python -m ml.selfplay_train --run wt-s1 --config tier2_selfplay_within_turn.json
 python -m tools.run_bakeoff --name main --bc <bc.kfc> --stages diagnostics,train,matrix
 # Watch any run
 python -m tools.monitor --watch 60
+# Pause everything long-running (training, screens, evaluations, self-play); rerun the same commands to resume
+bash tools/pause_training.sh
 ```
+
+**Pausing.** Every long job can be stopped and picked up later (`ml/resume.py`):
+
+- BC training (`ml.bc_train`, `ml.bc_train_v2`, and the screens that call them: `tools.run_screens`,
+  `tools.screen5_v2`, `tools.deck_generalization`) saves its whole state (weights, optimizer, schedule,
+  RNGs, the place in the epoch) to `train_state.pt` (or `state_<stage>.pt`) in the run directory every
+  10 minutes (`--save-minutes`) and on SIGTERM, Ctrl-C or a `PAUSE` file in the run directory, then exits
+  with code 75. The same command resumes it; the resumed run draws the batches the uninterrupted run would
+  have (`tests/test_training_resume.py`). A pause after the last step resumes at the evaluation.
+- `tools.eval_v2` keeps every finished unit of `--unit` seeds in `<out>.partial.jsonl` and plays only
+  the missing ones when rerun.
+- Self-play (`ml.selfplay_train`) saves `learner_state.kfc` on SIGTERM; actors resume their missing games.
+- Data generation and encoding skip the shards already written.
+
+A chain of jobs should stop at the first non-zero exit, so a pause (75) isn't followed by the next job.
 
 ## Notable design points
 

@@ -10,8 +10,13 @@ A player is `v2:<run id>` (its network-v2 checkpoint, searched with the
 checkpoint, the `student` leaf) or a bot name (`heuristic`). Both searchers
 use the same regime, simulations and O3's `chance_exact` determinization.
 Each seed is played in both seat orders and both deck assignments
-(`ml.arena.play_paired`); seeds are split over `--workers` processes, each
-with its own copy of the networks on the GPU.
+(`ml.arena.play_paired`); seeds are played `--unit` at a time over
+`--workers` processes, each with its own copy of the networks on the GPU.
+
+Pausable: each finished unit is appended to `<out>.partial.jsonl`, so a run
+stopped any way (Ctrl-C, SIGTERM, `tools/pause_training.sh`) and started
+again with the same arguments plays only the units still missing. `--out`
+defaults to `$KEYFORGE_DATA/evals/<a>__<b>__<sims>sims_<seeds>x<first seed>.json`.
 """
 
 from __future__ import annotations
@@ -56,14 +61,32 @@ def _player(spec: str, args, name: str):
     raise ValueError(f"unknown player {spec!r} (v2:<run> | v1:<run> | a bot name)")
 
 
+_PLAYERS = None
+
+
+def _init(args):
+    global _PLAYERS
+    import signal
+
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  # the parent decides when to stop
+    _PLAYERS = (_player(args.a, args, "a"), _player(args.b, args, "b"))
+
+
 def _work(task):
     seeds, args = task
     from ml.arena import play_paired
 
-    a, b = _player(args.a, args, "a"), _player(args.b, args, "b")
+    a, b = _PLAYERS
     rep = play_paired(a, b, seeds, max_turns=args.max_turns, concurrency=args.concurrency)
-    return {"games": rep.games, "a_wins": rep.a_wins, "b_wins": rep.b_wins, "draws": rep.draws, "forfeits": rep.forfeits,
-            "turns": rep.turns, "by_seat": {str(k): v for k, v in rep.by_seat.items()}}
+    return {"seeds": list(seeds), "games": rep.games, "a_wins": rep.a_wins, "b_wins": rep.b_wins, "draws": rep.draws,
+            "forfeits": rep.forfeits, "turns": rep.turns, "by_seat": {str(k): v for k, v in rep.by_seat.items()}}
+
+
+def _default_out(args) -> str:
+    from sim import data_root
+
+    name = f"{args.a}__{args.b}__{args.sims}sims_{args.seeds}x{args.first_seed}".replace(":", "-")
+    return data_root.resolve(os.path.join("evals", f"{name}.json"))
 
 
 def main():
@@ -78,12 +101,35 @@ def main():
     parser.add_argument("--concurrency", type=int, default=16, help="games in flight per worker")
     parser.add_argument("--max-turns", type=int, default=200)
     parser.add_argument("--out", default=None)
+    parser.add_argument("--unit", type=int, default=4, help="seeds per unit of work (the pause granularity)")
     args = parser.parse_args()
+    out = args.out or _default_out(args)
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    partial = out + ".partial.jsonl"
     seeds = list(range(args.first_seed, args.first_seed + args.seeds))
-    chunks = [seeds[k::args.workers] for k in range(args.workers) if seeds[k::args.workers]]
+    parts = []
+    if os.path.exists(partial):
+        with open(partial, "r", encoding="utf-8") as f:
+            parts = [json.loads(line) for line in f if line.strip()]
+    done = {s for p in parts for s in p["seeds"]}
+    todo = [s for s in seeds if s not in done]
+    units = [todo[k:k + args.unit] for k in range(0, len(todo), args.unit)]
+    if done:
+        print(f"resuming: {len(seeds) - len(todo)} of {len(seeds)} seeds already played ({partial})", flush=True)
+    import signal
+
+    def on_term(_signum, _frame):  # leave through the pool's `with` (it terminates the workers)
+        raise SystemExit(75)
+
+    signal.signal(signal.SIGTERM, on_term)
     t0 = time.time()
-    with mp.get_context("spawn").Pool(len(chunks)) as pool:
-        parts = pool.map(_work, [(c, args) for c in chunks])
+    if units:
+        with mp.get_context("spawn").Pool(min(args.workers, len(units)), initializer=_init, initargs=(args,)) as pool:
+            with open(partial, "a", encoding="utf-8") as f:
+                for p in pool.imap_unordered(_work, [(u, args) for u in units]):
+                    f.write(json.dumps(p) + "\n")
+                    f.flush()
+                    parts.append(p)
     tot = {k: sum(p[k] for p in parts) for k in ("games", "a_wins", "b_wins", "draws", "forfeits")}
     score = (tot["a_wins"] + 0.5 * tot["draws"]) / tot["games"] if tot["games"] else 0.0
     from sim.parallel_eval import wilson_interval
@@ -94,9 +140,10 @@ def main():
                interval95=[round(lo, 4), round(hi, 4)], mean_turns=round(sum(turns) / len(turns), 2) if turns else None,
                seconds=round(time.time() - t0, 1))
     print(json.dumps(res, indent=1))
-    if args.out:
-        with open(args.out, "w", encoding="utf-8") as f:
-            json.dump(res, f, indent=1)
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(res, f, indent=1)
+    os.remove(partial)
+    print(f"written to {out}")
 
 
 if __name__ == "__main__":
