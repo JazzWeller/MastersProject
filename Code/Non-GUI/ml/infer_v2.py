@@ -370,7 +370,8 @@ def main():
     import json
 
     parser = argparse.ArgumentParser(description="Run a v2 inference server (O8).")
-    parser.add_argument("--net-cfg", required=True,
+    parser.add_argument("--checkpoint", default=None, help="a network-v2 checkpoint (ml.bc_train_v2)")
+    parser.add_argument("--net-cfg", default=None,
                         help="the network config as JSON: an untrained network, for throughput measurements")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=6150)
@@ -379,7 +380,14 @@ def main():
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     torch.manual_seed(args.seed)
-    net = KeyForgeNetV2(json.loads(args.net_cfg))
+    if args.checkpoint:
+        from .checkpoints import load_model_v2
+
+        net, _meta = load_model_v2(args.checkpoint)
+    elif args.net_cfg:
+        net = KeyForgeNetV2(json.loads(args.net_cfg))
+    else:
+        parser.error("--checkpoint or --net-cfg is required")
     serve_v2(net, (args.host, args.port), args.authkey.encode(), args.device)
 
 

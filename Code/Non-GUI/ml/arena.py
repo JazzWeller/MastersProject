@@ -53,6 +53,11 @@ class Player:
     mode: str = "policy"  # net: policy | q
     quiet_leaves: bool = False
     bot: str = "heuristic"
+    # v2 (Agent Observation Plan): leaf "student_v2" with `model` an
+    # ml.infer_v2.TorchModelV2; `history` is its request form
+    # (agent/search/leaf_v2.history_form of the network's history_arch)
+    history: str = "rows"
+    determinization: str = "uniform"  # uniform | constrained | chance_exact | belief (O3)
     _client: Any = field(default=None, repr=False)
 
     def client(self):
@@ -82,9 +87,10 @@ class _Cap:
 def _make_search(p: Player, seed: int) -> Search:
     policy = make_policy("heuristic", seed=seed)
     regime = WithinTurn(policy) if p.regime == "within_turn" else FullGame(policy, quiet_leaves=p.quiet_leaves)
-    settings = SearchSettings(simulations=p.simulations, resample=Resample(p.resample), reuse=False)
+    settings = SearchSettings(simulations=p.simulations, resample=Resample(p.resample), reuse=False,
+                              determinization=p.determinization)
     leaf = p.leaf if p.model is not None else "heuristic"
-    return Search(regime, make_evaluator(leaf, seed=seed), policy, settings, seed=seed)
+    return Search(regime, make_evaluator(leaf, seed=seed, history=p.history), policy, settings, seed=seed)
 
 
 def play_paired(

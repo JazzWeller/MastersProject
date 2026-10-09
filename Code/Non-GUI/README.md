@@ -150,7 +150,9 @@ The learned-agent stack from `Code/AGENT_TRAINING_PLAN.md` (see its
   checkpoints, the inference server, behaviour cloning, the self-play
   learner, the arena. v2 (Agent Observation Plan): `model_v2.py` (every
   history architecture), `encode_v2.py` (batching), `infer_v2.py` (the
-  server: prefix cache, `stream` keys and values cached per prefix).
+  server: prefix cache, `stream` keys and values cached per prefix),
+  `dataset_v2.py` (v2 shards and the packed corpus training reads),
+  `bc_train_v2.py` (behaviour cloning with v2: Tier 0b, O10's BC ladder).
 - `configs/*.json` — one file per experiment; every artifact carries its
   resolved config's hash.
 
@@ -171,6 +173,14 @@ python -m tools.bench_actor_demand --checkpoint <bc.kfc> --config tier2_selfplay
 # v2 network throughput: the network alone, and the server end to end (WSL)
 python -m tools.bench_model_v2 --sizes 128/4,256/8
 python -m tools.bench_infer_v2 --sizes 128/4
+# v2 behaviour cloning: encode, pack (a shuffle that spreads each game's positions), train one rung
+python -m ml.dataset_v2 bc/<corpus>/records bc/<corpus>/encoded_v2
+python -c "from ml.dataset_v2 import pack_corpus_v2; pack_corpus_v2('bc/<corpus>/encoded_v2', 'bc/<corpus>/packed_v2')"
+python -m ml.bc_train_v2 --run tier0b2-a7 --config tier0b_bc.json --data bc/<corpus>/packed_v2 --override '{"network": {"options_in_trunk": false}, "bc": {"epochs": 1}}'
+# O10: search strength on paired seeds, held-out cards, linear probes
+python -m tools.eval_v2 --a v2:tier0b2-a7 --b heuristic --sims 100 --seeds 100
+python -m tools.screen5_v2 --run screen5-v2
+python -m tools.probe_v2 --runs tier0b-a0,tier0b2-a7
 # Tier 2+: self-play (one arm), then the whole bake-off
 python -m ml.selfplay_train --run wt-s1 --config tier2_selfplay_within_turn.json --init <bc.kfc>
 #   (gates run in their own process; a killed learner resumes from learner_state.kfc)

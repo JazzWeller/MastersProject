@@ -18,7 +18,12 @@ meaning); NO_POINTER / HIDDEN_MINE / HIDDEN_THEIRS have learned vectors.
 
 **Static meaning**: the attribute row, the engine signature, the parsed
 text rows (a small set encoder), and the text embedding if its table
-exists.
+exists. `static` (default all) picks which (O10's rung A7).
+
+**Knowledge** (`knowledge`, default on; O10's rungs A1/A2): off zeroes the
+O2 tracker's knowledge beyond a card's exactly known zone -- the
+possible-zone masks, deck positions, provenance groups, last sightings, how
+a card left view, what the opponent knows -- and O3's priors, at the input.
 
 **Time**: sinusoidal features -- no table, no cap. `history_time`:
 `absolute` (the row's turn and sequence index, with the current turn on the
@@ -205,6 +210,26 @@ class ColumnEmbed(nn.Module):
         return out
 
 
+_KNOWLEDGE_INTS = [S.ENTITY.i[c] for c in ("mask", "deck_pos", "group", "group_size", "since_seen", "last_seen",
+                                           "exit_op", "opp_exact", "opp_mask")]
+_KNOWLEDGE_FLOATS = [S.ENTITY.f[c] for c in ("p_hand", "p_archive", "p_deck", "p_elsewhere", "p_next_draw")]
+
+
+def _without_knowledge(batch: BatchV2) -> BatchV2:
+    """The batch with the tracker's knowledge (beyond exactly known zones)
+    and O3's priors zeroed in the entity block."""
+    import dataclasses
+
+    from .encode_v2 import TokenBlock
+
+    ent = batch.blocks["entity"]
+    ints = ent.ints.clone()
+    ints[..., _KNOWLEDGE_INTS] = 0
+    floats = ent.floats.clone()
+    floats[..., _KNOWLEDGE_FLOATS] = 0
+    return dataclasses.replace(batch, blocks=dict(batch.blocks, entity=TokenBlock(ints, floats, ent.mask)))
+
+
 @dataclass
 class PrefixPast:
     """A batch's cached history prefixes: per layer (k, v) [B, heads, P,
@@ -231,10 +256,16 @@ class KeyForgeNetV2(nn.Module):
         d = int(net_cfg["d_model"])
         self.d = d
         self.net_cfg = dict(net_cfg)
+        self.vocab_size = VOCAB
         self.history_arch = net_cfg.get("history_arch", "none")
         if self.history_arch not in ("joint", "stream", "turn_tokens", "summary", "none"):
             raise ValueError(f"model.history_arch must be joint/stream/turn_tokens/summary/none, not {self.history_arch!r}")
         self.options_in_trunk = bool(net_cfg.get("options_in_trunk", True))
+        self.knowledge = bool(net_cfg.get("knowledge", True))
+        self.static = tuple(net_cfg.get("static", ("attr", "text", "sig", "embedding")))
+        unknown = set(self.static) - {"attr", "text", "sig", "embedding"}
+        if unknown:
+            raise ValueError(f"model.static: unknown tables {sorted(unknown)} (attr | text | sig | embedding)")
         default_time = "absolute" if self.history_arch == "stream" else "relative"
         self.history_time = net_cfg.get("history_time", default_time)
         if self.history_time not in ("absolute", "relative"):
@@ -314,7 +345,15 @@ class KeyForgeNetV2(nn.Module):
     def identity_table(self) -> torch.Tensor:
         """[vocab, d]: every card's identity vector."""
         card_ids = torch.arange(self.static_attr.shape[0], device=self.static_attr.device)
-        x = self.card_embedding(card_ids) + self.attr_in(self.static_attr[card_ids]) + self.sig_in(self.static_sig[card_ids])
+        x = self.card_embedding(card_ids)
+        if "attr" in self.static:
+            x = x + self.attr_in(self.static_attr[card_ids])
+        if "sig" in self.static:
+            x = x + self.sig_in(self.static_sig[card_ids])
+        if "text" not in self.static:
+            if self.emb_in is not None and "embedding" in self.static:
+                x = x + self.emb_in(self.static_emb[card_ids])
+            return x
         tx = self.static_text[card_ids]  # [V, R, W]
         tm = self.static_text_mask[card_ids]
         t = (self.text_trigger(tx[..., 0].long().clamp(0, 31)) + self.text_verb(tx[..., 1].long().clamp(0, 63))
@@ -323,7 +362,7 @@ class KeyForgeNetV2(nn.Module):
         w = tm.unsqueeze(-1).to(t.dtype)
         pooled = (t * w).sum(-2) / w.sum(-2).clamp(min=1.0)
         x = x + self.text_pool(pooled)
-        if self.emb_in is not None:
+        if self.emb_in is not None and "embedding" in self.static:
             x = x + self.emb_in(self.static_emb[card_ids])
         return x
 
@@ -400,6 +439,8 @@ class KeyForgeNetV2(nn.Module):
         effects, frames, cleanups, match, options (if in the trunk), then
         history. `first` [B]: each item's first history row number (a
         suffix after a cached prefix)."""
+        if not self.knowledge:
+            batch = _without_knowledge(batch)
         ent_blk = batch.blocks["entity"]
         card_ids = ent_blk.ints[..., S.ENTITY.i["card"]].clamp(min=0)
         ident = self.identities(card_ids)
@@ -512,6 +553,8 @@ class KeyForgeNetV2(nn.Module):
         F_ = S.ENTITY.f
         prior = ent.floats[..., [F_["p_hand"], F_["p_archive"], F_["p_deck"]]].clamp(1e-6, 1.0)
         nd = ent.floats[..., F_["p_next_draw"]].clamp(1e-6, 1 - 1e-6)
+        if not self.knowledge:  # no prior as an input: none as the starting point either
+            prior, nd = torch.ones_like(prior), torch.full_like(nd, 0.5)
         d = self.belief_head(out.h)
         return torch.log(prior) + d[..., :3], torch.log(nd) - torch.log1p(-nd) + d[..., 3]
 

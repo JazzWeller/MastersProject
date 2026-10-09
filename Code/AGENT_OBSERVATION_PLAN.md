@@ -1,6 +1,6 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-10-08): O0, Part R and O1–O8 done**
+**Status (2026-10-09): O0, Part R and O1–O9 done; O10's BC ladder half run**
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
@@ -343,6 +343,65 @@
     O10 weighs that against what v2 buys.
   - The evaluation cache hits less often under v2 (20–22% against 37%): the encoding is lossless, so
     fewer leaves are identical, and the history digest is part of the key.
+
+**O9, done** (2026-10-09).
+- **Data.** Tier 0's 30,000 games regenerated with today's engine (1.1.2, compiled; the same config and
+  seeds), so v1 and v2 see the same games: 7,463,969 records each, v1's value-only records from the
+  other seat included. `ml/dataset_v2.py` (`DATASET_VERSION` 4): per record the v2 encoding (ints in
+  the narrowest type their columns allow, the zone masks and trigger bits in a side array, floats
+  float16), the event history as a cursor into each game's per-seat stream (stored once per game),
+  the folded turn tokens and summaries, v1's labels, and the privileged labels -- every entity's
+  true zone class, the opponent's deck order (their next draw), my next five draws. 12 KB a record,
+  89 GB; encoded in 29 minutes with 8 workers.
+- **A round trip through the shards equals live encoding** (`tests/test_agent_observation_o9.py`):
+  every block, the history to each cursor, turn tokens and summaries (exact, or to float16 where
+  stored so), and the privileged labels against the true game.
+- **The shuffle had to change.** A window of whole shards puts a game's ~220 positions a few steps
+  apart, and inputs that identify a game let the network memorize its outcome while the window
+  lasts: with turn tokens the training value MSE fell to 0.16–0.18 while the validation log-loss was
+  0.59 (summaries lost v2's policy gain the same way). The **packed corpus** (`pack_corpus_v2`,
+  `PackedCorpusV2`) stores each shard as zlib chunks of 16 records (18x smaller: 12 GB), memory-maps
+  them (read through once so they sit in the page cache), and trains from segments of 4,096 chunks
+  drawn at random across the corpus, decoded on a background thread: a game then contributes at
+  most one chunk per segment. Batches load at ~21,700 samples/s; the event-history streams are read
+  per chunk only for the architectures that use them. Peak memory ~6 GB. A packed corpus yields the
+  same records as the unpacked one (tested).
+- **Learner** (`ml/bc_train_v2.py`): v1's losses plus belief v2 (hand / archive / deck over the
+  opponent's hidden cards, and their next draw, both against O3's prior) and the oracle over the
+  opponent's hand, their archive and my next draws; `bc.history_dropout` (default 0) drops event
+  rows in training. `configs/tier0b_bc.json`. Checkpoints carry the v2 stamp
+  (`ml.checkpoints.load_model_v2`).
+- **The v2 self-play shard format** is the BC format plus v1's search targets per record: the visit
+  distribution over options or multi-select candidates, whether the search was full (playout cap),
+  the search's value, value-only records for the other seat. Nothing is written in it until
+  self-play starts.
+- **Tier 0b training speed** (batch 512, bf16, steady state): no history / summaries ~7k samples/s
+  (one epoch ~16 min), turn tokens ~4k, `stream` ~550 and `joint` ~290 with activation checkpointing
+  (~3.5 h and ~6.5 h an epoch; 5.7 GiB peak). Every rung gets one epoch, so they compare at equal
+  data.
+
+**O10, the BC ladder so far** (2026-10-08; one epoch each on the packed corpus, the same validation
+games; single runs, so a difference of a point or so may be noise). History rungs are trained on top
+of the cheap rungs rather than before them (a departure from the table's order: the expensive
+history runs are then done once, on the best non-history inputs).
+
+| Rung | Adds | CHOOSE_ACTION | CHOOSE_HOUSE | CHOOSE_CARDS (enumerate) | Value log-loss | Belief P(hand) (prior) |
+|---|---|---|---|---|---|---|
+| A0 | v1 (bf16) | 0.909 | 0.942 | 0.863 | **0.4935** | 0.536 (uniform 0.541) |
+| A1 | v2, no knowledge, attributes only, options outside | 0.909 | 0.945 | 0.862 | 0.502 | 0.515 (0.516) |
+| A2 | + knowledge and O3's priors | 0.987 | 0.936 | 0.968 | 0.504 | 0.506 (0.516) |
+| A7 | + all static card meaning | **0.990** | 0.938 | **0.968** | 0.503 | 0.504 (0.516) |
+| A8 | + options in the trunk | 0.941 | 0.939 | 0.935 | 0.504 | 0.504 (0.516) |
+| A3 | A8 + history summaries | 0.907 | 0.945 | 0.850 | 0.498 | 0.503 (0.516) |
+
+- **Knowledge is what moves imitation**: A1 equals v1, A2 adds 7.8 points of CHOOSE_ACTION and 10.6
+  of CHOOSE_CARDS. The belief head beats O3's exact prior from A2 on (0.506 against 0.516).
+- **Options in the trunk cost 5 points** (A8 against A7): under the decision rules it stays built and
+  switched off, and the remaining history rungs are rebased on A7 (A3 to be rerun there).
+- **Value has not improved on v1** (0.4935); the best v2 value so far is with summaries (0.498).
+- Still to run: A3 on A7, A4 (turn tokens), A6 (`stream`), A5 (`joint`), Screen 5 with v2
+  (`tools/screen5_v2.py`), the search rungs (`tools/eval_v2.py`), G3 again, the actor benchmark with
+  trained networks, and the linear probes (`tools/probe_v2.py`).
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
