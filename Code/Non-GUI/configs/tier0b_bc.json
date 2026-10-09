@@ -1,0 +1,9 @@
+{
+  "name": "tier0b-bc",
+  "tier": 0,
+  "notes": "Agent Observation Plan O9, Tier 0b: behaviour cloning with the v2 inputs (ml/bc_train_v2.py) on Tier 0's games, one run per history representation (network.history_arch: none | summary | turn_tokens | joint | stream). bc.history_dropout drops event rows in training.",
+  "pool": {"decks": ["fignor", "igor"], "format": "archon", "deck_source": "presets"},
+  "network": {"d_model": 128, "layers": 4, "heads": 4, "ff": 256, "dropout": 0.1, "history_arch": "none",
+              "attention_kernel": "efficient", "enumerate_cap": 1024},
+  "bc": {"heuristic_games": 20000, "epsilon_games": 5000, "random_games": 5000, "epochs": 4, "history_dropout": 0.0}
+}

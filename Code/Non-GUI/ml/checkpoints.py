@@ -313,3 +313,35 @@ def _grow_fixed(fw: torch.Tensor, fb: torch.Tensor, old_v: int, new_v: int):
     new_fw[VERB_W * new_v :] = fw[VERB_W * old_v :]
     new_fb[VERB_W * new_v :] = fb[VERB_W * old_v :]
     return new_fw, new_fb
+
+
+def load_model_v2(source, *, device="cpu"):
+    """A network-v2 checkpoint (Agent Observation Plan, O9; saved with the v2
+    stamp in `extra`) -> (model, meta). Refuses one whose v2 layout or
+    vocabularies differ from today's: v2 vocabularies are append-only, but a
+    layout change moves columns."""
+    from agent import spec_v2 as S
+
+    from .model_v2 import KeyForgeNetV2
+
+    if isinstance(source, (bytes, bytearray)):
+        data = bytes(source)
+    elif isinstance(source, tuple):
+        store, prefix = source
+        with open(store.path_of(prefix), "rb") as f:
+            data = f.read()
+    else:
+        with open(source, "rb") as f:
+            data = f.read()
+    tensors, meta = deserialize(data)
+    extra = meta.get("extra") or {}
+    if extra.get("feature_version") != 2:
+        raise CheckpointMismatch("not a network-v2 checkpoint (no feature_version 2 in its stamp)")
+    now = S.stamp()
+    for key in ("layout_hash", "vocab_v2_hash"):
+        if extra.get(key) != now.get(key):
+            raise CheckpointMismatch(f"checkpoint {key} {str(extra.get(key))[:12]} != today's {str(now.get(key))[:12]}")
+    _check_vocab(meta["vocab"])
+    model = KeyForgeNetV2(dict(meta["net_cfg"]))
+    model.load_state_dict({k[len("model."):]: v for k, v in tensors.items() if k.startswith("model.")})
+    return model.to(device), meta
