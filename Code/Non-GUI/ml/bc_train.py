@@ -558,7 +558,7 @@ def train(
                                   epoch=epoch, in_epoch=in_epoch, history=history, seconds=time.perf_counter() - t0)
                 pauser.saved()
                 if asked:
-                    pauser.close()
+                    pauser.close(pausing=True)
                     print(f"paused at step {step}/{total_steps}: state saved to {state_path}", flush=True)
                     raise resume.Paused(state_path)
     elapsed = time.perf_counter() - t0

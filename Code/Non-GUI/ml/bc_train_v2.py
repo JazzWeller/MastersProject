@@ -34,6 +34,7 @@ from agent import spec_v2 as S
 from agent.multiselect import decode_topk
 from keyforge.enums import BOUNDARY_KINDS
 
+from .accumulate import backward_accumulated
 from .bc_train import K_ORDER, MultiPrep, Prefetcher, _greedy_sequential, _logloss, reliability
 from .checkpoints import CheckpointStore, save_model
 from .dataset import KINDS, MULTI_KINDS
@@ -123,9 +124,61 @@ def compute_losses(model: KeyForgeNetV2, batch: BatchV2, tg: TargetsV2, *, weigh
     return total, losses, out, prep
 
 
+def pieces_of(batch: BatchV2, max_tokens: Optional[int]) -> List[Tuple[int, int]]:
+    """Row ranges splitting `batch` so each piece holds at most `max_tokens`
+    padded tokens (rows x tokens per row, `BatchV2.tokens`): the memory cap
+    (`bc.max_tokens`). A batch's rows have similar history lengths (the
+    corpora bucket them), so its padded length is the piece's too."""
+    n = batch.size
+    if not max_tokens:
+        return [(0, n)]
+    rows = max(1, int(max_tokens) // max(1, batch.tokens()))
+    return [(a, min(a + rows, n)) for a in range(0, n, rows)]
+
+
+def loss_counts(batch: BatchV2, tg: TargetsV2, prep: MultiPrep, heads: Sequence[str]) -> Dict[str, int]:
+    """Each loss's denominator in `compute_losses` (the rows its mean is
+    over), without a forward pass: what a split batch's pieces are weighted
+    by (ml/accumulate.py)."""
+    B = batch.size
+    n_opt = tg.n_opt.tolist()
+    zone_rows, _cls, draw_rows, _next = _belief_targets(batch, tg)
+    n = {"policy": int((~tg.forced & (tg.target >= 0)).sum()), "value": B, "enumerate": len(prep.spans),
+         "sequential": len(prep.s_rows), "topk": sum(n_opt[b] for b in prep.rows), "belief": int(zone_rows.sum()),
+         "draw": int(draw_rows.sum()), "oracle": B}
+    return {k: v for k, v in n.items() if k in heads}
+
+
+def backward_step(model: KeyForgeNetV2, batch: BatchV2, tg: TargetsV2, *, max_tokens: Optional[int], autocast,
+                  weights: dict, cap: int, heads: Sequence[str]) -> Dict[str, torch.Tensor]:
+    """Forward and backward for one training batch -- in pieces of at most
+    `max_tokens` tokens, with the whole batch's gradient (each piece's loss
+    weighted by its share of that loss's rows). Returns the batch's losses."""
+    spans = pieces_of(batch, max_tokens)
+    if len(spans) == 1:
+        with autocast():
+            total, losses, _out, _prep = compute_losses(model, batch, tg, weights=weights, cap=cap, heads=heads)
+        total.backward()
+        return losses
+    pieces = []
+    for a, b in spans:
+        pb, pt = batch.slice(a, b), tg.slice(a, b)
+        pieces.append((pb, pt, MultiPrep(pt, cap, pt.kind.device)))
+
+    def loss_of(piece):
+        pb, pt, prep = piece
+        total, losses, _out, _prep = compute_losses(model, pb, pt, weights=weights, cap=cap, heads=heads, prep=prep)
+        return total, losses, {}
+
+    losses, _stats = backward_accumulated(pieces, lambda p: loss_counts(p[0], p[1], p[2], heads), loss_of, weights, autocast)
+    return losses
+
+
 @torch.no_grad()
 def evaluate(model: KeyForgeNetV2, corpus: CorpusV2, idx: np.ndarray, *, cap: int, batch_size: int = 256,
-             device=None) -> dict:
+             device=None, max_tokens: Optional[int] = None, log_every: int = 0) -> dict:
+    """`max_tokens`: the memory cap, as in training (`pieces_of`); `log_every`:
+    print progress every that many batches (0: quiet)."""
     model.eval()
     single_hits: Dict[str, List[int]] = defaultdict(lambda: [0, 0])
     multi_hits = {t: {"CHOOSE_CARDS": [0, 0], "ORDER_EFFECTS": [0, 0]} for t in ("enumerate", "sequential", "topk")}
@@ -134,69 +187,76 @@ def evaluate(model: KeyForgeNetV2, corpus: CorpusV2, idx: np.ndarray, *, cap: in
     hand_p, hand_prior, hand_y = [], [], []
     d_model, d_prior, n_draw = 0.0, 0.0, 0
     o_pred = []
-    for batch, tg in Prefetcher(corpus.iterate(idx, batch_size, shuffle=False)):
-        batch, tg = batch.to(device), tg.to(device)
-        out = model.encode_state(batch)
-        kinds = tg.kind.tolist()
-        n_opt = tg.n_opt.tolist()
-        pred = model.policy_logits(out).argmax(-1).tolist()
-        targets = tg.target.tolist()
-        forced = tg.forced.tolist()
-        for b, k in enumerate(kinds):
-            if forced[b] or targets[b] < 0:
-                continue
-            h = single_hits[KINDS[k].name]
-            h[0] += pred[b] == targets[b]
-            h[1] += 1
-        prep = MultiPrep(tg, cap, tg.kind.device)
-        if prep.rows:
-            _l, padded = prep.enumerate_loss(model, out)
-            if padded is not None:
-                best = padded.argmax(-1).tolist()
-                for r, (b, _s, _n, t, _c) in enumerate(prep.spans):
-                    h = multi_hits["enumerate"][KINDS[kinds[b]].name]
-                    h[0] += best[r] == t
+    t0, n_batches = time.perf_counter(), max(1, -(-len(idx) // batch_size))
+    for k_batch, (whole, whole_tg) in enumerate(Prefetcher(corpus.iterate(idx, batch_size, shuffle=False))):
+        whole, whole_tg = whole.to(device), whole_tg.to(device)
+        if log_every and k_batch and k_batch % log_every == 0:
+            el = time.perf_counter() - t0
+            print(f"evaluating: batch {k_batch}/{n_batches} ({el:.0f}s, about {el * (n_batches / k_batch - 1):.0f}s left)",
+                  flush=True)
+        for lo, hi in pieces_of(whole, max_tokens):  # (every number below is per row: pieces change nothing)
+            batch, tg = whole.slice(lo, hi), whole_tg.slice(lo, hi)
+            out = model.encode_state(batch)
+            kinds = tg.kind.tolist()
+            n_opt = tg.n_opt.tolist()
+            pred = model.policy_logits(out).argmax(-1).tolist()
+            targets = tg.target.tolist()
+            forced = tg.forced.tolist()
+            for b, k in enumerate(kinds):
+                if forced[b] or targets[b] < 0:
+                    continue
+                h = single_hits[KINDS[k].name]
+                h[0] += pred[b] == targets[b]
+                h[1] += 1
+            prep = MultiPrep(tg, cap, tg.kind.device)
+            if prep.rows:
+                _l, padded = prep.enumerate_loss(model, out)
+                if padded is not None:
+                    best = padded.argmax(-1).tolist()
+                    for r, (b, _s, _n, t, _c) in enumerate(prep.spans):
+                        h = multi_hits["enumerate"][KINDS[kinds[b]].name]
+                        h[0] += best[r] == t
+                        h[1] += 1
+                tk = model.topk_logits(out)
+                for b in prep.rows:
+                    dec = decode_topk(tk[b, :n_opt[b]].tolist(), kinds[b] == K_ORDER, int(tg.min_n[b]), int(tg.max_n[b]))
+                    h = multi_hits["topk"][KINDS[kinds[b]].name]
+                    h[0] += tuple(dec) == prep.keys[b]
                     h[1] += 1
-            tk = model.topk_logits(out)
-            for b in prep.rows:
-                dec = decode_topk(tk[b, :n_opt[b]].tolist(), kinds[b] == K_ORDER, int(tg.min_n[b]), int(tg.max_n[b]))
-                h = multi_hits["topk"][KINDS[kinds[b]].name]
-                h[0] += tuple(dec) == prep.keys[b]
-                h[1] += 1
-            for b in prep.rows:
-                ordered = kinds[b] == K_ORDER
-                picked = _greedy_sequential(model, out, b, n_opt[b], int(tg.min_n[b]), int(tg.max_n[b]), ordered)
-                key = tuple(picked) if ordered else tuple(sorted(picked))
-                h = multi_hits["sequential"][KINDS[kinds[b]].name]
-                h[0] += key == prep.keys[b]
-                h[1] += 1
-        v_pred.append(model.value(out).float().cpu().numpy())
-        v_z.append(tg.z.cpu().numpy())
-        v_turn.append(tg.turn.cpu().numpy())
-        v_kind.append(np.asarray(kinds))
-        zones, draw = model.belief_v2(out, batch)
-        zone_rows, cls, draw_rows, is_next = _belief_targets(batch, tg)
-        if bool(zone_rows.any()):
-            logp = torch.log_softmax(zones.float(), -1)[zone_rows]
-            prior = batch.blocks["entity"].floats[..., _PRIOR[:3]].float()[zone_rows].clamp(min=1e-6)
-            prior = prior / prior.sum(-1, keepdim=True)
-            c = cls[zone_rows]
-            bz_model += float(-logp.gather(1, c.unsqueeze(1)).sum())
-            bz_prior += float(-torch.log(prior.gather(1, c.unsqueeze(1))).sum())
-            n_zone += int(c.numel())
-        hidden = _hidden_rows(batch)
-        if bool(hidden.any()):
-            # P(in hand) over every hidden card, O3's calibration metric
-            hand_p.append(torch.softmax(zones.float(), -1)[..., 0][hidden].cpu().numpy())
-            hand_prior.append(batch.blocks["entity"].floats[..., _F["p_hand"]].float()[hidden].cpu().numpy())
-            hand_y.append((tg.zone == 1)[hidden].float().cpu().numpy())
-        if bool(draw_rows.any()):
-            y = is_next[draw_rows]
-            d_model += float(F.binary_cross_entropy_with_logits(draw[draw_rows].float(), y, reduction="sum"))
-            pn = batch.blocks["entity"].floats[..., _F["p_next_draw"]].float()[draw_rows].clamp(1e-6, 1 - 1e-6)
-            d_prior += float(F.binary_cross_entropy(pn, y, reduction="sum"))
-            n_draw += int(y.numel())
-        o_pred.append(model.oracle_value(out, oracle_counts(batch, tg)).float().cpu().numpy())
+                for b in prep.rows:
+                    ordered = kinds[b] == K_ORDER
+                    picked = _greedy_sequential(model, out, b, n_opt[b], int(tg.min_n[b]), int(tg.max_n[b]), ordered)
+                    key = tuple(picked) if ordered else tuple(sorted(picked))
+                    h = multi_hits["sequential"][KINDS[kinds[b]].name]
+                    h[0] += key == prep.keys[b]
+                    h[1] += 1
+            v_pred.append(model.value(out).float().cpu().numpy())
+            v_z.append(tg.z.cpu().numpy())
+            v_turn.append(tg.turn.cpu().numpy())
+            v_kind.append(np.asarray(kinds))
+            zones, draw = model.belief_v2(out, batch)
+            zone_rows, cls, draw_rows, is_next = _belief_targets(batch, tg)
+            if bool(zone_rows.any()):
+                logp = torch.log_softmax(zones.float(), -1)[zone_rows]
+                prior = batch.blocks["entity"].floats[..., _PRIOR[:3]].float()[zone_rows].clamp(min=1e-6)
+                prior = prior / prior.sum(-1, keepdim=True)
+                c = cls[zone_rows]
+                bz_model += float(-logp.gather(1, c.unsqueeze(1)).sum())
+                bz_prior += float(-torch.log(prior.gather(1, c.unsqueeze(1))).sum())
+                n_zone += int(c.numel())
+            hidden = _hidden_rows(batch)
+            if bool(hidden.any()):
+                # P(in hand) over every hidden card, O3's calibration metric
+                hand_p.append(torch.softmax(zones.float(), -1)[..., 0][hidden].cpu().numpy())
+                hand_prior.append(batch.blocks["entity"].floats[..., _F["p_hand"]].float()[hidden].cpu().numpy())
+                hand_y.append((tg.zone == 1)[hidden].float().cpu().numpy())
+            if bool(draw_rows.any()):
+                y = is_next[draw_rows]
+                d_model += float(F.binary_cross_entropy_with_logits(draw[draw_rows].float(), y, reduction="sum"))
+                pn = batch.blocks["entity"].floats[..., _F["p_next_draw"]].float()[draw_rows].clamp(1e-6, 1 - 1e-6)
+                d_prior += float(F.binary_cross_entropy(pn, y, reduction="sum"))
+                n_draw += int(y.numel())
+            o_pred.append(model.oracle_value(out, oracle_counts(batch, tg)).float().cpu().numpy())
     model.train()
     v_pred, v_z = np.concatenate(v_pred), np.concatenate(v_z)
     v_turn, v_kind = np.concatenate(v_turn), np.concatenate(v_kind)
@@ -274,6 +334,8 @@ def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(D
                             fused=torch.device(device).type == "cuda")
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=total_steps, eta_min=float(bc["lr_min"]))
     amp = amp_dtype(bc.get("precision", "bf16"), device)
+    autocast = lambda: torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None)
+    max_tokens = bc.get("max_tokens")  # the memory cap: a batch over it trains in pieces (`backward_step`)
     set_activation_checkpointing(model.trunk, bool(bc.get("activation_checkpointing", False)))
     if bc.get("compile", True) and torch.device(device).type == "cuda":
         model.compile_inputs()
@@ -307,9 +369,8 @@ def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(D
         for batch, tg in Prefetcher(it):
             batch, tg = batch.to(device), tg.to(device)
             opt.zero_grad(set_to_none=True)
-            with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
-                total, losses, _out, _prep = compute_losses(model, batch, tg, weights=weights, cap=cap, heads=heads)
-            total.backward()
+            losses = backward_step(model, batch, tg, max_tokens=max_tokens, autocast=autocast, weights=weights, cap=cap,
+                                   heads=heads)
             gnorm = torch.nn.utils.clip_grad_norm_(model.parameters(), float(bc["grad_clip"]))
             opt.step()
             sched.step()
@@ -344,7 +405,7 @@ def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(D
                                   seconds=time.perf_counter() - t0)
                 pauser.saved()
                 if asked:
-                    pauser.close()
+                    pauser.close(pausing=True)
                     print(f"paused at step {step}/{total_steps}: state saved to {state_path}", flush=True)
                     raise resume.Paused(state_path)
     elapsed = time.perf_counter() - t0
@@ -353,7 +414,8 @@ def train(cfg: dict, corpus: CorpusV2, *, device, heads: Sequence[str] = tuple(D
         resume.save_state(state_path, model=model, opt=opt, sched=sched, config_hash=digest, step=step,
                           epoch=int(bc["epochs"]), in_epoch=0, history=history, seen=seen, seconds=elapsed)
         pauser.close()
-    report = evaluate(model, corpus, val_idx, cap=cap, device=device)
+    report = evaluate(model, corpus, val_idx, cap=cap, device=device, max_tokens=max_tokens,
+                      log_every=100 if log_every < 10 ** 6 else 0)
     report["training"] = {"steps": step, "epochs": int(bc["epochs"]), "train_positions": int(len(train_idx)),
                           "val_positions": int(len(val_idx)), "seconds": round(elapsed, 1),
                           "samples_per_second": round(seen / max(elapsed, 1e-9)), "params": param_count(model),

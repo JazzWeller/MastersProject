@@ -58,6 +58,24 @@ class BatchV2:
     def size(self) -> int:
         return self.turn_now.shape[0]
 
+    def tokens(self) -> int:
+        """Padded tokens per item: every block's rows plus history rows plus
+        turn tokens -- what a training piece's memory scales with."""
+        return sum(b.mask.shape[1] for b in self.blocks.values()) + self.hist_mask.shape[1] + self.turn_mask.shape[1]
+
+    def slice(self, a: int, b: int) -> "BatchV2":
+        """Items a..b, with the history, pointer and turn padding trimmed to
+        the longest kept item (valid rows come first in each)."""
+        H = max(1, int(self.hist_mask[a:b].sum(1).max()))
+        Q = max(1, int((self.hist_ptr[a:b, :, 0] >= 0).sum(1).max()))
+        U = max(1, int(self.turn_mask[a:b].sum(1).max()))
+        return BatchV2(
+            blocks={k: TokenBlock(v.ints[a:b], v.floats[a:b], v.mask[a:b]) for k, v in self.blocks.items()},
+            hist_ints=self.hist_ints[a:b, :H], hist_floats=self.hist_floats[a:b, :H], hist_mask=self.hist_mask[a:b, :H],
+            hist_ptr=self.hist_ptr[a:b, :Q], turn_ints=self.turn_ints[a:b, :U], turn_floats=self.turn_floats[a:b, :U],
+            turn_sets=self.turn_sets[a:b, :U], turn_mask=self.turn_mask[a:b, :U],
+            summary_entity=self.summary_entity[a:b], summary_global=self.summary_global[a:b], turn_now=self.turn_now[a:b])
+
     def to(self, device) -> "BatchV2":
         kw = {}
         for f in fields(self):
