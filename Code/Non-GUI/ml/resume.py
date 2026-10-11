@@ -67,9 +67,11 @@ class Pauser:
         self._asked = True
         print(f"pause requested (signal {signum}): saving at the next step", flush=True)
 
-    def close(self) -> None:
+    def close(self, pausing: bool = False) -> None:
+        """Restores the previous handlers -- or, `pausing`, ignores further
+        requests while the process exits, so it still exits with PAUSED."""
         for sig, handler in self._previous.items():
-            signal.signal(sig, handler)
+            signal.signal(sig, signal.SIG_IGN if pausing else handler)
         self._previous = {}
 
     def requested(self) -> bool:

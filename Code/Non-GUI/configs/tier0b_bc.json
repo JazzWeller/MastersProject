@@ -1,9 +1,10 @@
 {
   "name": "tier0b-bc",
   "tier": 0,
-  "notes": "Agent Observation Plan O9, Tier 0b: behaviour cloning with the v2 inputs (ml/bc_train_v2.py) on Tier 0's games, one run per history representation (network.history_arch: none | summary | turn_tokens | joint | stream). bc.history_dropout drops event rows in training.",
+  "notes": "Agent Observation Plan O9, Tier 0b: behaviour cloning with the v2 inputs (ml/bc_train_v2.py) on Tier 0's games, one run per history representation (network.history_arch: none | summary | turn_tokens | joint | stream). bc.history_dropout drops event rows in training. options_in_trunk is off: O10's rung A8 found options attending in the trunk cost CHOOSE_ACTION 0.990 -> 0.941 (the model's own default stays on, for older checkpoints). bc.max_tokens caps a training or evaluation piece at that many padded tokens, so memory never spills past the 8 GiB GPU (WSL then falls back to system memory, ~8x slower): joint peaks at 4.6 GiB on a 1.77M-token batch (2026-10-11).",
   "pool": {"decks": ["fignor", "igor"], "format": "archon", "deck_source": "presets"},
   "network": {"d_model": 128, "layers": 4, "heads": 4, "ff": 256, "dropout": 0.1, "history_arch": "none",
-              "attention_kernel": "efficient", "enumerate_cap": 1024},
-  "bc": {"heuristic_games": 20000, "epsilon_games": 5000, "random_games": 5000, "epochs": 4, "history_dropout": 0.0}
+              "attention_kernel": "efficient", "enumerate_cap": 1024, "options_in_trunk": false},
+  "bc": {"heuristic_games": 20000, "epsilon_games": 5000, "random_games": 5000, "epochs": 4, "history_dropout": 0.0,
+         "max_tokens": 600000}
 }

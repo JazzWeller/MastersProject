@@ -207,6 +207,12 @@ bash tools/pause_training.sh
 
 A chain of jobs should stop at the first non-zero exit, so a pause (75) isn't followed by the next job.
 
+**GPU memory.** Under WSL, CUDA doesn't fail when the 8 GiB GPU fills up: it spills into system memory,
+and every step after that runs several times slower. v2 BC therefore splits any batch over `bc.max_tokens`
+padded tokens (600k in `tier0b_bc.json`) into pieces, in training (the whole batch's gradient, through
+`ml/accumulate.py`) and in evaluation (the same numbers); `tests/test_bc_v2_pieces.py` checks both. The
+evaluation prints its progress every 100 batches.
+
 ## Notable design points
 
 - **Decision-pausing engine**: `Game._run()` is a generator driving the whole
