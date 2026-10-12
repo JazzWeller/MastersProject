@@ -7,3 +7,7 @@ venv/
 
 # Local game history database (GUI)
 Code/GUI/data/
+
+# Cluster launcher (Code/Non-GUI/run.py): site settings and its venv
+Code/Non-GUI/cluster.json
+Code/Non-GUI/.venv-kf/

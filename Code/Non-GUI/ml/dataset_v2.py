@@ -914,8 +914,13 @@ def main():
     parser.add_argument("records")
     parser.add_argument("out")
     parser.add_argument("--workers", type=int, default=10)
+    parser.add_argument("--pack", action="store_true", help="`records` is an encoded v2 shard root: write its packed corpus to `out`")
     args = parser.parse_args()
     t0 = time.perf_counter()
+    if args.pack:
+        paths = pack_corpus_v2(args.records, args.out, args.workers)
+        print(f"{len(paths)} shards packed in {time.perf_counter() - t0:.1f}s", flush=True)
+        return
     paths = encode_corpus_v2(args.records, args.out, args.workers)
     corpus = CorpusV2(paths)
     print(f"{len(paths)} shards, {corpus.size} records in {time.perf_counter() - t0:.1f}s", flush=True)
