@@ -213,6 +213,23 @@ padded tokens (600k in `tier0b_bc.json`) into pieces, in training (the whole bat
 `ml/accumulate.py`) and in evaluation (the same numbers); `tests/test_bc_v2_pieces.py` checks both. The
 evaluation prints its progress every 100 batches.
 
+## Running on a cluster
+
+`python run.py` lists the methods; `python run.py <method>` runs one (on Slurm it submits itself
+with that method's CPU/memory/GPU/time request; elsewhere it runs locally). One-time:
+copy `cluster.example.json` to `cluster.json`, fill in partition/modules/data path, then
+`python run.py setup` (login node) and `python run.py check`. `python run.py ladder` submits the
+whole Tier 0b chain. Jobs are requeued on a time limit and resume where they stopped
+(`python run.py pause` stops them on request; rerun the method to resume).
+
+**Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
+parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for
+1 GPU with >= 16 GB and bf16 (Ampere or newer; an A100/L40S/4090-class card is plenty, an H100 is
+wasted), 32 cores at ~4 GB each (128 GB) for data and search jobs, 8 cores / 64 GB for
+behaviour cloning, and ~150 GB of fast scratch for the corpus. Method rows in `run.py` carry the
+exact numbers; they come from this PC's measurements (6 cores, 8 GiB GPU) and should be revised
+after the first runs there.
+
 ## Notable design points
 
 - **Decision-pausing engine**: `Game._run()` is a generator driving the whole

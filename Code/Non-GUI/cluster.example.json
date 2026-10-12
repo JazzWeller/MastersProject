@@ -1,0 +1,12 @@
+{
+  "partition": "gpu",
+  "cpu_partition": "",
+  "account": "",
+  "qos": "",
+  "gres": "gpu:1",
+  "modules": "python/3.12 cuda",
+  "venv": "",
+  "data": "/scratch/YOURNAME/keyforge-data",
+  "max_time": "2-00:00:00",
+  "torch_index": "https://download.pytorch.org/whl/cu128"
+}
