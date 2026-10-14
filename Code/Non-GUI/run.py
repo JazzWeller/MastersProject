@@ -120,8 +120,13 @@ METHODS = {
 for _a in ARCHS:
     METHODS[f"bc-{_a}"] = _bc(_a)
     METHODS[f"eval-{_a}"] = _eval(_a)
-# Self-play (ml.selfplay_train) is deliberately not here: it is on hold until the observation plan's gate. When it
-# lands it gets its own row (1 GPU, 32 cores, 96+ GB; actors are CPU-bound, so cpus - 3 workers).
+# Self-play: the smoke run only, so far (the observation plan's gate is open for it; Tier 2/3 come after it).
+# "{port}" is a per-job port for the learner's inference server, so two jobs on one node never collide.
+METHODS["smoke-selfplay"] = dict(
+    desc="the training plan's self-play smoke run: server + actors + learner + gating, minutes (run smoke-sp)",
+    cpus=8, mem_gb=32, gpu=True, hours=2,
+    steps=[[PY, "-m", "ml.selfplay_train", "--run", "smoke-sp", "--config", "smoke_selfplay.json", "--port", "{port}"],
+           [PY, "-m", "tools.monitor", "smoke-sp"]])
 
 
 # ---------------------------------------------------------------------- config
@@ -200,7 +205,8 @@ def run_steps(name: str, m: dict, cfg: dict) -> int:
     py = venv_python(cfg)
     print(f"[run.py] {name}: {cpus} cpus, {mem:.0f} GB, workers={w}, data={cfg['data']}", flush=True)
     for step in m["steps"]:
-        argv = [py if a == PY else a.replace("{w}", str(w)) for a in step]
+        port = 20000 + int(os.environ.get("SLURM_JOB_ID") or os.getpid()) % 20000
+        argv = [py if a == PY else a.replace("{w}", str(w)).replace("{port}", str(port)) for a in step]
         if argv[1:3] == ["run.py", "--check"]:
             return check()
         print(f"[run.py] $ {shlex.join(argv)}", flush=True)
