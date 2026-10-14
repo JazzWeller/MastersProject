@@ -1,6 +1,7 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-10-09): O0, Part R and O1–O9 done; O10's BC ladder half run**
+**Status (2026-10-14): O0, Part R and O1–O10 done; O11 closed by its gate. Next: the training plan's
+self-play smoke run**
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
@@ -380,28 +381,107 @@
   (~3.5 h and ~6.5 h an epoch; 5.7 GiB peak). Every rung gets one epoch, so they compare at equal
   data.
 
-**O10, the BC ladder so far** (2026-10-08; one epoch each on the packed corpus, the same validation
-games; single runs, so a difference of a point or so may be noise). History rungs are trained on top
-of the cheap rungs rather than before them (a departure from the table's order: the expensive
-history runs are then done once, on the best non-history inputs).
+**O10, done** (2026-10-14). Every measurement and its decision; the defaults are in the options
+register.
+
+*The BC ladder* (one epoch each on the packed corpus, the same validation games; single runs, so a
+point or so may be noise). History rungs are trained on top of A7 rather than before it (a departure
+from the table's order: the expensive history runs are done once, on the best non-history inputs).
+"o" marks a rung with the options outside the trunk.
 
 | Rung | Adds | CHOOSE_ACTION | CHOOSE_HOUSE | CHOOSE_CARDS (enumerate) | Value log-loss | Belief P(hand) (prior) |
 |---|---|---|---|---|---|---|
 | A0 | v1 (bf16) | 0.909 | 0.942 | 0.863 | **0.4935** | 0.536 (uniform 0.541) |
 | A1 | v2, no knowledge, attributes only, options outside | 0.909 | 0.945 | 0.862 | 0.502 | 0.515 (0.516) |
 | A2 | + knowledge and O3's priors | 0.987 | 0.936 | 0.968 | 0.504 | 0.506 (0.516) |
-| A7 | + all static card meaning | **0.990** | 0.938 | **0.968** | 0.503 | 0.504 (0.516) |
+| A7 | + all static card meaning | **0.990** | 0.938 | **0.968** | 0.5025 | 0.504 (0.516) |
 | A8 | + options in the trunk | 0.941 | 0.939 | 0.935 | 0.504 | 0.504 (0.516) |
-| A3 | A8 + history summaries | 0.907 | 0.945 | 0.850 | 0.498 | 0.503 (0.516) |
+| A3o | A7 + history summaries | 0.988 | | | 0.5017 | |
+| A4o | A7 + turn tokens | 0.990 | | | 0.5595 (overfit) | |
+| A6o | A7 + event history, `stream` | 0.987 | | 0.993 / 0.988 / 0.986 (cards) | 0.5016 | |
+| A5o | A7 + event history, `joint` | 0.988 | | 0.992 / 0.987 / 0.984 (cards) | 0.5004 | |
 
-- **Knowledge is what moves imitation**: A1 equals v1, A2 adds 7.8 points of CHOOSE_ACTION and 10.6
-  of CHOOSE_CARDS. The belief head beats O3's exact prior from A2 on (0.506 against 0.516).
-- **Options in the trunk cost 5 points** (A8 against A7): under the decision rules it stays built and
-  switched off, and the remaining history rungs are rebased on A7 (A3 to be rerun there).
-- **Value has not improved on v1** (0.4935); the best v2 value so far is with summaries (0.498).
-- Still to run: A3 on A7, A4 (turn tokens), A6 (`stream`), A5 (`joint`), Screen 5 with v2
-  (`tools/screen5_v2.py`), the search rungs (`tools/eval_v2.py`), G3 again, the actor benchmark with
-  trained networks, and the linear probes (`tools/probe_v2.py`).
+*Targeted probes* (`tools/probe_targeted.py`, 120,030 validation positions; top-1 on single-choice
+decisions, `evals/o10/probe_targeted.json`):
+
+| Condition (positions) | A1 | A2 | A7 | A3o | A6o | A5o |
+|---|---|---|---|---|---|---|
+| all (120,030) | 0.929 | 0.977 | **0.979** | 0.979 | 0.976 | 0.976 |
+| a card of theirs known in their hand (23,271) | 0.932 | 0.979 | **0.982** | 0.982 | 0.979 | 0.978 |
+| a pending key-cost effect (11,404) | 0.931 | 0.982 | 0.982 | 0.982 | 0.977 | 0.978 |
+| resolution depth ≥ 5 (27,436) | **0.984** | 0.972 | 0.973 | 0.979 | 0.969 | 0.970 |
+
+A known top card never occurs in this corpus (the condition is empty). Value log-loss is 0.47–0.50
+in every cell and does not separate the rungs. The deep-resolution positions are mostly easy choices
+(A1's lead there is not acted on).
+
+*Linear probes on the trunk* (`tools/probe_v2.py`, `evals/o10/probes.json`; log-loss, base rate in
+brackets): the opponent's hand 0.525–0.532 on v2 against 0.543 on v1 (0.574); my next draw and their
+next draw at the base rate on every network (nothing to learn: the deck is shuffled); the outcome
+0.527–0.537 on v2 against 0.498 on v1.
+
+*Screen 5 rerun* (held-out cards, `tools/screen5_v2.py`):
+
+| Network | Seen CHOOSE_ACTION | Held-out CHOOSE_ACTION | Held-out CHOOSE_CARDS | Value, unseen games |
+|---|---|---|---|---|
+| v2, all static meaning | 0.958 | 0.871 | 0.832 | 0.96 |
+| v2, attributes only | 0.958 | 0.865 | 0.847 | 0.86 |
+| v1 | 0.898 | 0.831 | 0.789 | 1.76 |
+
+*Search* (`tools/eval_v2.py`; within-turn, 100 simulations, 400 games on 100 paired seeds, both seat
+orders; 95% intervals):
+
+| Match | Score |
+|---|---|
+| A0 (v1) vs HeuristicBot | 0.730 (0.685–0.771) |
+| A7 vs HeuristicBot | 0.698 (0.651–0.741) |
+| A6o vs HeuristicBot | 0.685 (0.638–0.729) |
+| A7 vs A0 | 0.455 (0.407–0.504) |
+| A6o vs A7 | 0.473 (0.424–0.522) |
+
+*G3, the hidden-information gap* (exact forks minus honest worlds, same seeds): A7 within-turn
++0.000 (0.698 both), A6o within-turn +0.023, A7 full-game +0.015 (0.618 → 0.633), against v1's
++0.005 within-turn and +0.061 full-game.
+
+*Actor throughput, trained networks* (`tools/bench_actor_demand.py --v2-run`, within-turn, 8 × 16):
+A7 35.3 searches/s, 1,593 evaluations/s, 9% waiting on inference, ~638 self-play games/hour; A6o
+30.7 searches/s, 14% waiting, ~548 games/hour. v1 at the same settings: 111–121 searches/s. The GPU
+is far from saturated in both.
+
+*GPU memory.* `joint` uncapped needs ~7.7 GiB per million tokens and spills out of the 8 GiB card
+into system RAM (every later step 3–8× slower). `bc.max_tokens` (600k) splits a batch into pieces
+with the whole batch's gradient: 4.58 GiB peak, identical gradients (tested).
+
+**Decisions, by the rules below.**
+- **Knowledge and priors: on.** +7.8 points of CHOOSE_ACTION and +10.6 of CHOOSE_CARDS (A2 against
+  A1), and the belief head beats the exact prior.
+- **The complete state and the lossless encoding (A1): on.** Neutral on BC against v1 and part of
+  the encoding the knowledge rides on; its throughput cost is the v2 encode, paid once for v2 as a
+  whole.
+- **Static card meaning, all of it: on.** Neutral within noise (A7 against A2: +0.3; Screen 5
+  held-out CHOOSE_ACTION +0.6, CHOOSE_CARDS −1.5) and free at inference (computed once per card).
+- **Options in the trunk: off** (−5 points, A8 against A7). Built and kept.
+- **History: off (`none`).** No history rung beats A7 on any primary metric by 2 standard errors: BC
+  top-1 within 0.3, value within 0.002, probes within 0.3, search 0.473 against A7 (n.s.). `stream`
+  costs 14% of actor throughput and `joint` more, so neither passes the "neutral and under 10%"
+  rule; turn tokens overfit (value 0.5595). Summaries are neutral and the cheapest form; they stay
+  the first candidate if self-play shows a value gap that history could close. All four forms stay
+  built.
+- **Caps and compressions: none adopted.** The GPU never saturates (≤14% waiting, GPU mostly idle),
+  and memory is handled by `bc.max_tokens`, which costs time, not capability. With history off,
+  `history_max_events` and `stream_memory` are moot.
+- **Determinization: `chance_exact` stays.** v2's honest worlds leave at most +0.023 within-turn and
+  +0.015 full-game, against v1's +0.061; the within-turn belief arm stays dropped.
+- **The v2 configuration for Tier 2 and 3** is A7: v2, knowledge and priors, all static meaning,
+  options outside the trunk, no history (`configs/tier0b_bc.json` with `history_arch: none`). **A v1
+  arm is kept:** v1 is at least as strong in search at BC level (A7 against A0: 0.455, the interval
+  touching 0.5) and runs at ~3× the searches per second.
+- **What v2 does not fix is value.** Every v2 rung's value log-loss is 0.500–0.504 against v1's
+  0.4935, the outcome probe agrees, and that is the likely reason v2 is not stronger in search
+  despite much better imitation. Value is what self-play trains; the Tier 2 v1/v2 comparison is
+  where it is decided.
+
+**O11's gate: closed** (see O11).
 
 Written 2026-09-28. Amended 2026-09-30:
 - the engine refactor is scheduled (Part R);
@@ -1517,6 +1597,12 @@ agents (NetAgent and DMC), not for every leaf.
 **Gate.** Build it if A8 (options in the trunk) still leaves a gap in the policy metrics that the
 search-free agents feel. It is measured on the same ladder.
 
+**Closed (2026-10-14).** There is no policy gap left for it to close: A7 imitates its teacher at
+0.990 CHOOSE_ACTION and 0.968 CHOOSE_CARDS, the targeted probes are 0.977–0.982 in every
+information condition, and options in the trunk (A8) made the policy worse, not better. O10's
+remaining gap is value, which these features do not target. Specified here, not built; reopened only
+if self-play shows a search-free policy gap.
+
 ---
 
 ## Part R: the explicit resolution stack (engine refactor)
@@ -1901,14 +1987,14 @@ every throughput number comes from O10's actor-shaped evaluation benchmark.
 | `observation.knowledge` | none / hard / hard+priors | hard+priors | O10 A2 |
 | `observation.effects` | v1 counts / tokens | tokens | O10 A1 |
 | `observation.resolution` | none / frames | frames | O10 A1 |
-| `observation.history` | none / summary / turn_tokens / events | events | O10 A3–A6 |
+| `observation.history` | none / summary / turn_tokens / events | none (O10: no rung beat A7; summaries next) | O10 A3–A6 |
 | `observation.history_max_events` | null / N | null (uncapped) | O10 rule |
 | `observation.match_history` | summaries / full streams | summaries | Adaptive and Reversal runs |
-| `observation.static_semantics` | flags / parsed / signatures / text_embedding (combinable) | parsed + signatures | O10 A7, Screen 5 |
-| `observation.options_in_trunk` | off / on | on | O10 A8 |
+| `observation.static_semantics` | flags / parsed / signatures / text_embedding (combinable) | all (A7) | O10 A7, Screen 5 |
+| `observation.options_in_trunk` | off / on | off (O10: −5 points) | O10 A8 |
 | `observation.unknown_vocab` | error / unknown-id | error | — |
-| `model.history_arch` | joint / stream / turn_tokens / summary / none | joint | O10 rule |
-| `model.stream_memory` | all / K latents | all | O10 rule |
+| `model.history_arch` | joint / stream / turn_tokens / summary / none | none | O10 rule |
+| `model.stream_memory` | all / K latents | all (moot with history off) | O10 rule |
 | `model.aux_opponent_heads` | loss weight | 0 | O10 |
 | `training.history_dropout` | 0–1 | 0 | O10 (memorization) |
 | `search.determinization` | uniform / constrained / chance_exact / belief | chance_exact | O10, the G3 rerun |
@@ -1916,7 +2002,7 @@ every throughput number comes from O10's actor-shaped evaluation benchmark.
 | `search.resample` | own_deck / opponent_private / all | all | the diagnostic's conditions |
 | `search.fork_backend` | replay / copy / process | copy at every decision (from R6) | R6's benchmarks |
 | `engine.execution` | native / compiled | compiled (from R8); native stays as the oracle | R8 |
-| Option-consequence features (O11) | off / K worlds | off | O11's gate |
+| Option-consequence features (O11) | off / K worlds | off (gate closed 2026-10-14) | O11's gate |
 
 **Deliberately not inputs,** because they fall outside entitlement:
 - hidden identities and deck order (available only through privileged training labels);
