@@ -221,6 +221,9 @@ copy `cluster.example.json` to `cluster.json`, fill in partition/modules/data pa
 `python run.py setup` (login node) and `python run.py check`. `python run.py ladder` submits the
 whole Tier 0b chain. Jobs are requeued on a time limit and resume where they stopped
 (`python run.py pause` stops them on request; rerun the method to resume).
+`python run.py smoke-selfplay` is the training plan's self-play smoke run (run id `smoke-sp`, a few
+minutes of server + actors + learner + gating, then its monitor screen); it starts from a fresh
+network, so it needs no data.
 
 **Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
 parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for

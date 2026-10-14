@@ -64,6 +64,7 @@ from .accumulate import backward_accumulated, slices
 from .checkpoints import CheckpointStore, load_model, save_model
 from .encode import Batch, collate
 from .layers import set_activation_checkpointing
+from .resume import PAUSED
 from .model import KeyForgeNet, amp_dtype, candidates_tensor, compile_trunk
 from .selfplay_gate import GATE_SPRT, gate_verdict  # noqa: F401 -- re-exported (tests, tools)
 
@@ -481,7 +482,9 @@ def main():
                 p.terminate()
 
     def on_term(signum, _frame):
-        raise SystemExit(128 + signum)
+        # State is saved on the way out, so this is a pause: the same command
+        # resumes (run.py requeues a Slurm job on this code).
+        raise SystemExit(PAUSED)
 
     signal.signal(signal.SIGTERM, on_term)
 
