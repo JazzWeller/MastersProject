@@ -207,8 +207,8 @@ def run_steps(name: str, m: dict, cfg: dict) -> int:
     for step in m["steps"]:
         port = 20000 + int(os.environ.get("SLURM_JOB_ID") or os.getpid()) % 20000
         argv = [py if a == PY else a.replace("{w}", str(w)).replace("{port}", str(port)) for a in step]
-        if argv[1:3] == ["run.py", "--check"]:
-            return check()
+        if argv[1:3] == ["run.py", "--check"] and argv[0] == sys.executable:
+            return check()  # already the venv's python (or no venv)
         print(f"[run.py] $ {shlex.join(argv)}", flush=True)
         child["p"] = subprocess.Popen(argv, cwd=HERE, env=env)
         while True:
