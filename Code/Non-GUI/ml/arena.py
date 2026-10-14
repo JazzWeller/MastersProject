@@ -49,7 +49,7 @@ class Player:
     regime: str = "within_turn"
     leaf: str = "student"
     simulations: int = 100
-    resample: str = "all"
+    resample: str = "all"  # or "exact": the true hidden state (the G3 diagnostic's upper bound, never an agent)
     mode: str = "policy"  # net: policy | q
     quiet_leaves: bool = False
     bot: str = "heuristic"
@@ -84,10 +84,23 @@ class _Cap:
         return history_for(self._game, self.viewer)
 
 
+class _PrivilegedCap(_Cap):
+    """Adds the exact fork: a `resample="exact"` player's search sees the
+    true hidden state (keyforge/capabilities.PrivilegedCapability's)."""
+
+    def fork(self):
+        return self._game.fork()
+
+
+def _cap(p: Player, game, viewer) -> _Cap:
+    return _PrivilegedCap(game, viewer) if p.resample == "exact" else _Cap(game, viewer)
+
+
 def _make_search(p: Player, seed: int) -> Search:
     policy = make_policy("heuristic", seed=seed)
     regime = WithinTurn(policy) if p.regime == "within_turn" else FullGame(policy, quiet_leaves=p.quiet_leaves)
-    settings = SearchSettings(simulations=p.simulations, resample=Resample(p.resample), reuse=False,
+    settings = SearchSettings(simulations=p.simulations, resample=None if p.resample == "exact" else Resample(p.resample),
+                              reuse=False,
                               determinization=p.determinization)
     leaf = p.leaf if p.model is not None else "heuristic"
     return Search(regime, make_evaluator(leaf, seed=seed, history=p.history), policy, settings, seed=seed)
@@ -159,7 +172,7 @@ def play_paired(
             d = g.pending_decision
             p = slot["seats"][d.player]
             if p.kind == "search":
-                pairs.append((slot["searches"][d.player].search_gen(_Cap(g, d.player), d), p.client()))
+                pairs.append((slot["searches"][d.player].search_gen(_cap(p, g, d.player), d), p.client()))
                 meta.append(slot)
             else:
                 net_batches.setdefault(id(p), []).append(slot)

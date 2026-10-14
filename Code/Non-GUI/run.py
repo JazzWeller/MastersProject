@@ -88,9 +88,11 @@ METHODS = {
         cpus=32, mem_gb=128, gpu=True, hours=48, max_w=16, gb_per_w=4,
         steps=[[PY, "-m", "tools.screen5_v2", "--run", "screen5-v2", "--workers", "{w}"]]),
     "probe": dict(
-        desc="linear probes on the trained hpc-* networks",
-        cpus=8, mem_gb=64, gpu=True, hours=6,
-        steps=[[PY, "-m", "tools.probe_v2", "--runs", ",".join(f"hpc-{a}" for a in ARCHS)]]),
+        desc="linear probes and targeted-position probes on the trained hpc-* networks",
+        cpus=8, mem_gb=64, gpu=True, hours=10,
+        steps=[[PY, "-m", "tools.probe_v2", "--runs", ",".join(f"hpc-{a}" for a in ARCHS)],
+               [PY, "-m", "tools.probe_targeted", "--data", f"{DATA}/packed_v2",
+                "--runs", ",".join(f"hpc-{a}" for a in ARCHS)]]),
     "search-eval": dict(
         desc="gate G2: within-turn search + heuristic evaluator vs HeuristicBot",
         cpus=32, mem_gb=48, gpu=False, hours=12, max_w=32, gb_per_w=2,
