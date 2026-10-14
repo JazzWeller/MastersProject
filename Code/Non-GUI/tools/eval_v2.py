@@ -9,6 +9,9 @@ A player is `v2:<run id>` (its network-v2 checkpoint, searched with the
 `student_v2` leaf in its history's request form), `v1:<run id>` (a v1
 checkpoint, the `student` leaf) or a bot name (`heuristic`). Both searchers
 use the same regime, simulations and O3's `chance_exact` determinization.
+`--a-exact` hands player a's search the true hidden state instead (the G3
+diagnostic: its score minus the honest player's on the same seeds is the
+hidden-information gap).
 Each seed is played in both seat orders and both deck assignments
 (`ml.arena.play_paired`); seeds are played `--unit` at a time over
 `--workers` processes, each with its own copy of the networks on the GPU.
@@ -38,6 +41,10 @@ def _checkpoint(run_id: str) -> str:
     return next(os.path.join(store, n) for n in os.listdir(store) if n.startswith(ckpt))
 
 
+def _resample(args, name: str) -> str:
+    return "exact" if name == "a" and getattr(args, "a_exact", False) else "all"
+
+
 def _player(spec: str, args, name: str):
     from ml.arena import Player
 
@@ -52,12 +59,12 @@ def _player(spec: str, args, name: str):
         net, _meta = load_model_v2(_checkpoint(run_id))
         return Player(name=name, kind="search", model=TorchModelV2(net, "cuda", compile=False), regime=args.regime,
                       leaf="student_v2", history=history_form(net.history_arch), simulations=args.sims,
-                      determinization="chance_exact")
+                      determinization="chance_exact", resample=_resample(args, name))
     if kind == "v1":
         from ml.infer_server import load_torch_model
 
         return Player(name=name, kind="search", model=load_torch_model(_checkpoint(run_id), "cuda"), regime=args.regime,
-                      leaf="student", simulations=args.sims, determinization="chance_exact")
+                      leaf="student", simulations=args.sims, determinization="chance_exact", resample=_resample(args, name))
     raise ValueError(f"unknown player {spec!r} (v2:<run> | v1:<run> | a bot name)")
 
 
@@ -85,7 +92,8 @@ def _work(task):
 def _default_out(args) -> str:
     from sim import data_root
 
-    name = f"{args.a}__{args.b}__{args.sims}sims_{args.seeds}x{args.first_seed}".replace(":", "-")
+    name = f"{args.a}{'-exact' if args.a_exact else ''}__{args.b}__{args.sims}sims_{args.seeds}x{args.first_seed}"
+    name = name.replace(":", "-")
     return data_root.resolve(os.path.join("evals", f"{name}.json"))
 
 
@@ -100,6 +108,9 @@ def main():
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--concurrency", type=int, default=16, help="games in flight per worker")
     parser.add_argument("--max-turns", type=int, default=200)
+    parser.add_argument("--a-exact", action="store_true",
+                        help="player a searches the true hidden state (G3: its score minus the honest one's on the "
+                             "same seeds is the hidden-information gap)")
     parser.add_argument("--out", default=None)
     parser.add_argument("--unit", type=int, default=4, help="seeds per unit of work (the pause granularity)")
     args = parser.parse_args()
@@ -136,7 +147,7 @@ def main():
 
     lo, hi = wilson_interval(tot["a_wins"] + 0.5 * tot["draws"], tot["games"])
     turns = [t for p in parts for t in p["turns"]]
-    res = dict(tot, a=args.a, b=args.b, sims=args.sims, regime=args.regime, seeds=args.seeds, a_score=round(score, 4),
+    res = dict(tot, a=args.a, a_exact=bool(args.a_exact), b=args.b, sims=args.sims, regime=args.regime, seeds=args.seeds, a_score=round(score, 4),
                interval95=[round(lo, 4), round(hi, 4)], mean_turns=round(sum(turns) / len(turns), 2) if turns else None,
                seconds=round(time.time() - t0, 1))
     print(json.dumps(res, indent=1))

@@ -18,8 +18,9 @@ no game is self-play. Nothing is learned and no shard is written.
 `--v2 '<network config JSON>'` measures the v2 network instead (Agent
 Observation Plan, O8): an untrained `KeyForgeNetV2` behind `ml/infer_v2.py`,
 the workers searching with `student_v2` in the request form of its
-`history_arch` (`stream` and `joint` with the history prefix cached). The
-evaluation cache's hit rate is reported either way.
+`history_arch` (`stream` and `joint` with the history prefix cached).
+`--v2-run <run id>` measures a trained v2 BC run's checkpoint the same way.
+The evaluation cache's hit rate is reported either way.
 
 Each worker warms up, then measures over a fixed window: the network
 evaluations it asked for (the evaluator's cache misses, i.e. what actually
@@ -304,14 +305,26 @@ def main():
     parser.add_argument("--authkey", default="keyforge")
     parser.add_argument("--out", default=None, help="result file; default $KEYFORGE_DATA/bench/actor_demand/<config>-<time>.json")
     parser.add_argument("--v2", default=None, help="a v2 network config (JSON): measure an untrained v2 network (O8)")
+    parser.add_argument("--v2-run", default=None, help="a trained v2 BC run id (ml.bc_train_v2): measure its checkpoint")
     parser.add_argument("--worker", type=int, default=None, help=argparse.SUPPRESS)  # internal: run as one worker
     args = parser.parse_args()
 
     if args.worker is not None:
         print(json.dumps(run_worker(args)), flush=True)
         return
+    v2_checkpoint = None
+    if args.v2_run:
+        # the server loads the trained checkpoint; workers only need its request form
+        from tools.eval_v2 import _checkpoint
+
+        v2_checkpoint = _checkpoint(args.v2_run)
+        from ml.checkpoints import load_model_v2
+
+        net, _meta = load_model_v2(v2_checkpoint)
+        args.v2 = json.dumps({"history_arch": net.history_arch, "run": args.v2_run})
+        del net
     if not args.checkpoint and not args.v2:
-        parser.error("--checkpoint (v1) or --v2 (a v2 network config) is required")
+        parser.error("--checkpoint (v1), --v2 (a v2 network config) or --v2-run (a trained v2 run) is required")
 
     from agent.config import resolve
     from keyforge.version import ENGINE_VERSION
@@ -324,7 +337,9 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     stem = out[:-5] if out.endswith(".json") else out
 
-    if args.v2:
+    if v2_checkpoint:
+        serve = [sys.executable, "-m", "ml.infer_v2", "--checkpoint", v2_checkpoint]
+    elif args.v2:
         serve = [sys.executable, "-m", "ml.infer_v2", "--net-cfg", args.v2]
     else:
         serve = [sys.executable, "-m", "ml.infer_server", args.checkpoint]
