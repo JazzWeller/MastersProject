@@ -217,7 +217,7 @@ evaluation prints its progress every 100 batches.
 
 `python run.py` lists the methods; `python run.py <method>` runs one (on Slurm it submits itself
 with that method's CPU/memory/GPU/time request; elsewhere it runs locally). One-time:
-copy `cluster.example.json` to `cluster.json`, fill in partition/modules/data path, then
+copy `cluster.example.json` to `cluster.json`, fill in modules and the data path (leave `partition` empty to let Slurm route by the CPU/memory/GPU request), then
 `python run.py setup` (login node) and `python run.py check`. `python run.py ladder` submits the
 whole Tier 0b chain. Jobs are requeued on a time limit and resume where they stopped
 (`python run.py pause` stops them on request; rerun the method to resume).

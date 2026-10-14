@@ -1,5 +1,5 @@
 {
-  "partition": "gpu",
+  "partition": "",
   "cpu_partition": "",
   "account": "",
   "qos": "",
