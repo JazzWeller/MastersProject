@@ -279,15 +279,39 @@ def sbatch_script(name: str, m: dict, cfg: dict, argv_method: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def gpu_partitions(gres: str) -> list:
+    """Every partition whose nodes offer the GPU `gres` asks for ("gpu:a100:1" -> those with a100s), from
+    sinfo: with no partition configured, a GPU job is offered to all of them and Slurm picks."""
+    parts = gres.split(":")
+    want = f"gpu:{parts[1]}:" if len(parts) == 3 else "gpu:"
+    out = subprocess.run(["sinfo", "-h", "-o", "%P %G"], capture_output=True, text=True).stdout
+    found = []
+    for line in out.splitlines():
+        part, _, g = line.partition(" ")
+        part = part.rstrip("*")
+        if want in g and part not in found:
+            found.append(part)
+    return found
+
+
 def submit(name: str, m: dict, cfg: dict, after: list = None) -> str:
     os.makedirs(cfg["logs"], exist_ok=True)
     cmd = ["sbatch", "--parsable"]
     if after:
         cmd.append("--dependency=afterok:" + ":".join(after))
-    out = subprocess.run(cmd, input=sbatch_script(name, m, cfg, name), text=True, capture_output=True)
-    if out.returncode != 0:
-        sys.exit(f"sbatch failed: {out.stderr.strip()}")
-    return out.stdout.strip().split(";")[0]
+    tries = [[]]
+    if m.get("gpu") and not cfg.get("partition"):
+        # All the GPU partitions at once; if Slurm refuses the list (one of them is closed to this
+        # account), each on its own, in sinfo's order.
+        found = gpu_partitions(cfg["gres"])
+        tries = ([[f"--partition={','.join(found)}"]] + [[f"--partition={p}"] for p in found]) if found else [[]]
+    for extra in tries:
+        out = subprocess.run(cmd + extra, input=sbatch_script(name, m, cfg, name), text=True, capture_output=True)
+        if out.returncode == 0:
+            if extra:
+                print(f"[run.py] {extra[0]}")
+            return out.stdout.strip().split(";")[0]
+    sys.exit(f"sbatch failed: {out.stderr.strip()}")
 
 
 def requeue_if_paused(name: str, code: int, cfg: dict) -> bool:
