@@ -405,6 +405,9 @@ def main():
     parser.add_argument("--config", default="tier2_selfplay_within_turn.json")
     parser.add_argument("--init", default=None, help="warm-start checkpoint (the M3 BC network)")
     parser.add_argument("--init-run", default=None, help="warm-start from a BC run's checkpoint, by run id (v2: ml.bc_train_v2)")
+    parser.add_argument("--override", default=None,
+                        help="JSON merged over the config when the run is created (e.g. a cluster's worker count); "
+                             "a resumed run keeps the config it started with")
     parser.add_argument("--mode", choices=("search", "dmc"), default="search")
     parser.add_argument("--games", type=int, default=None, help="override the config's game budget (journalled)")
     parser.add_argument("--port", type=int, default=6150)
@@ -417,7 +420,7 @@ def main():
 
         args.init = _checkpoint(args.init_run)
 
-    run = Run.resume_or_create(args.run, args.config)
+    run = Run.resume_or_create(args.run, args.config, json.loads(args.override) if args.override else None)
     cfg = run.config
     sp = cfg["selfplay"]
     if args.mode == "search" and cfg["search"]["resample"] != "all":

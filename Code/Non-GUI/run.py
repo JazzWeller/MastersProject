@@ -127,6 +127,18 @@ METHODS["smoke-selfplay"] = dict(
     cpus=8, mem_gb=32, gpu=True, hours=2,
     steps=[[PY, "-m", "ml.selfplay_train", "--run", "smoke-sp", "--config", "smoke_selfplay.json", "--port", "{port}"],
            [PY, "-m", "tools.monitor", "smoke-sp"]])
+# Tier 2 (the training plan's M7, within-turn): O10's v2 network (A7) and its v1 twin (A0), each warm-started from its
+# Tier 0b BC run (copied in as runs/tier0b2-a7 and runs/tier0b-a0, or trained here). Actors are CPU-bound: the node's
+# cores less the learner, the server and (v2) the encoding pool. Workers are fixed when a run is created.
+_TIER2 = {"v2": ("tier2_selfplay_v2.json", "tier0b2-a7", {"workers": 26, "encode_workers": 3}),
+          "v1": ("tier2_selfplay_within_turn.json", "tier0b-a0", {"workers": 28})}
+for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
+    METHODS[f"tier2-{_arm}"] = dict(
+        desc=f"Tier 2 self-play, network {_arm}, 50k games from BC run {_bc_run} (run tier2-{_arm}-s0); resumable",
+        cpus=32, mem_gb=128, gpu=True, hours=72,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"tier2-{_arm}-s0", "--config", _cfg, "--init-run", _bc_run,
+                "--override", json.dumps({"selfplay": _sp}), "--port", "{port}"],
+               [PY, "-m", "tools.monitor", f"tier2-{_arm}-s0"]])
 METHODS["smoke-selfplay-v2"] = dict(
     desc="the smoke run with network v2 (O10's A7 inputs): v2 actors, server, learner, gate; minutes (run smoke-sp-v2)",
     cpus=8, mem_gb=32, gpu=True, hours=2,
