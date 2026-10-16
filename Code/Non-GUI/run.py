@@ -14,7 +14,7 @@ evaluation step is resumable by run id.
 
 Site settings (partition, account, modules, venv, data root, GPU type) live
 in `cluster.json` next to this file (copy `cluster.example.json`), or in the
-environment as KF_PARTITION, KF_CPU_PARTITION, KF_ACCOUNT, KF_QOS, KF_GRES, KF_MODULES, KF_VENV,
+environment as KF_PARTITION, KF_CPU_PARTITION, KF_ACCOUNT, KF_QOS, KF_GRES (empty: --gpus=1), KF_MODULES, KF_VENV,
 KF_DATA, KF_MAX_TIME. Nothing else needs editing.
 
 Keep METHODS current: a new tool or stage gets a row here, with its resources.
@@ -140,7 +140,6 @@ def settings() -> dict:
                      ("modules", "KF_MODULES"), ("venv", "KF_VENV"), ("data", "KF_DATA"), ("max_time", "KF_MAX_TIME")):
         if os.environ.get(env):
             cfg[key] = os.environ[env]
-    cfg.setdefault("gres", "gpu:1")
     cfg.setdefault("venv", os.path.join(HERE, ".venv-kf"))
     cfg.setdefault("data", os.environ.get("KEYFORGE_DATA")
                    or os.path.join(os.environ.get("SCRATCH", os.path.expanduser("~")), "keyforge-data"))
@@ -267,7 +266,9 @@ def sbatch_script(name: str, m: dict, cfg: dict, argv_method: str) -> str:
              f"#SBATCH --time={hhmmss(m['hours'], cfg.get('max_time'))}",
              f"#SBATCH --output={cfg['logs']}/%x-%j.out", "#SBATCH --requeue", "#SBATCH --signal=B:TERM@300"]
     if m.get("gpu"):
-        lines.append(f"#SBATCH --gres={cfg['gres']}")
+        # `gres` (e.g. "gpu:a100:1") only when the site wants it; otherwise --gpus, which a routing
+        # submit plugin (BYU's) places on any GPU partition the account may use.
+        lines.append(f"#SBATCH --gres={cfg['gres']}" if cfg.get("gres") else f"#SBATCH --gpus={cfg.get('gpus', 1)}")
     if cfg.get("partition") or cfg.get("cpu_partition"):  # CPU-only methods go to cpu_partition when one is set
         lines.append(f"#SBATCH --partition={cfg.get('partition') if m.get('gpu') else cfg.get('cpu_partition') or cfg.get('partition')}")
     for key in ("account", "qos"):
@@ -279,39 +280,15 @@ def sbatch_script(name: str, m: dict, cfg: dict, argv_method: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def gpu_partitions(gres: str) -> list:
-    """Every partition whose nodes offer the GPU `gres` asks for ("gpu:a100:1" -> those with a100s), from
-    sinfo: with no partition configured, a GPU job is offered to all of them and Slurm picks."""
-    parts = gres.split(":")
-    want = f"gpu:{parts[1]}:" if len(parts) == 3 else "gpu:"
-    out = subprocess.run(["sinfo", "-h", "-o", "%P %G"], capture_output=True, text=True).stdout
-    found = []
-    for line in out.splitlines():
-        part, _, g = line.partition(" ")
-        part = part.rstrip("*")
-        if want in g and part not in found:
-            found.append(part)
-    return found
-
-
 def submit(name: str, m: dict, cfg: dict, after: list = None) -> str:
     os.makedirs(cfg["logs"], exist_ok=True)
     cmd = ["sbatch", "--parsable"]
     if after:
         cmd.append("--dependency=afterok:" + ":".join(after))
-    tries = [[]]
-    if m.get("gpu") and not cfg.get("partition"):
-        # All the GPU partitions at once; if Slurm refuses the list (one of them is closed to this
-        # account), each on its own, in sinfo's order.
-        found = gpu_partitions(cfg["gres"])
-        tries = ([[f"--partition={','.join(found)}"]] + [[f"--partition={p}"] for p in found]) if found else [[]]
-    for extra in tries:
-        out = subprocess.run(cmd + extra, input=sbatch_script(name, m, cfg, name), text=True, capture_output=True)
-        if out.returncode == 0:
-            if extra:
-                print(f"[run.py] {extra[0]}")
-            return out.stdout.strip().split(";")[0]
-    sys.exit(f"sbatch failed: {out.stderr.strip()}")
+    out = subprocess.run(cmd, input=sbatch_script(name, m, cfg, name), text=True, capture_output=True)
+    if out.returncode != 0:
+        sys.exit(f"sbatch failed: {out.stderr.strip()}")
+    return out.stdout.strip().split(";")[0]
 
 
 def requeue_if_paused(name: str, code: int, cfg: dict) -> bool:
