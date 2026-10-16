@@ -235,18 +235,25 @@ def load_model(source, *, device="cpu", strict_engine: bool = False, net_overrid
     model = KeyForgeNet(net_cfg, vocab_size=new_v)
     model.load_state_dict(model_sd)
     model.to(device)
-    opt = None
-    if "optimizer" in meta:
-        state: Dict[int, dict] = {}
-        for k, v in tensors.items():
-            if k.startswith("opt."):
-                _, pid, name = k.split(".", 2)
-                state.setdefault(int(pid), {})[name] = v
-        for k, v in meta["optimizer"]["scalars"].items():
-            pid, name = k.split(".", 1)
-            state.setdefault(int(pid), {})[name] = v
-        opt = {"state": state, "param_groups": meta["optimizer"]["param_groups"], "grown_from": saved_v if new_v > saved_v else None}
+    opt = _optimizer_state(tensors, meta)
+    if opt is not None:
+        opt["grown_from"] = saved_v if new_v > saved_v else None
     return model, meta, opt
+
+
+def _optimizer_state(tensors: Dict[str, torch.Tensor], meta: dict) -> Optional[dict]:
+    """The optimizer state `save_model` flattened into a checkpoint, or None."""
+    if "optimizer" not in meta:
+        return None
+    state: Dict[int, dict] = {}
+    for k, v in tensors.items():
+        if k.startswith("opt."):
+            _, pid, name = k.split(".", 2)
+            state.setdefault(int(pid), {})[name] = v
+    for k, v in meta["optimizer"]["scalars"].items():
+        pid, name = k.split(".", 1)
+        state.setdefault(int(pid), {})[name] = v
+    return {"state": state, "param_groups": meta["optimizer"]["param_groups"]}
 
 
 def zero_newer_inputs(sd: Dict[str, torch.Tensor], saved_minor: int, card_embed: int) -> None:
@@ -316,6 +323,12 @@ def _grow_fixed(fw: torch.Tensor, fb: torch.Tensor, old_v: int, new_v: int):
 
 
 def load_model_v2(source, *, device="cpu"):
+    """-> (model, meta); `load_model_v2_state` also returns the optimizer state."""
+    model, meta, _opt = load_model_v2_state(source, device=device)
+    return model, meta
+
+
+def load_model_v2_state(source, *, device="cpu", net_overrides: Optional[dict] = None):
     """A network-v2 checkpoint (Agent Observation Plan, O9; saved with the v2
     stamp in `extra`) -> (model, meta). Refuses one whose v2 layout or
     vocabularies differ from today's: v2 vocabularies are append-only, but a
@@ -342,6 +355,6 @@ def load_model_v2(source, *, device="cpu"):
         if extra.get(key) != now.get(key):
             raise CheckpointMismatch(f"checkpoint {key} {str(extra.get(key))[:12]} != today's {str(now.get(key))[:12]}")
     _check_vocab(meta["vocab"])
-    model = KeyForgeNetV2(dict(meta["net_cfg"]))
+    model = KeyForgeNetV2(dict(meta["net_cfg"], **(net_overrides or {})))
     model.load_state_dict({k[len("model."):]: v for k, v in tensors.items() if k.startswith("model.")})
-    return model.to(device), meta
+    return model.to(device), meta, _optimizer_state(tensors, meta)

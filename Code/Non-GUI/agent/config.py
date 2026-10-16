@@ -37,6 +37,10 @@ DEFAULTS: Dict[str, Any] = {
         "deck_source": "presets",  # presets | random | alliance
         "max_turns": 200,
     },
+    # The network's input (Agent Observation Plan): 1 = v1 (KeyForgeNet), 2 =
+    # network v2 (KeyForgeNetV2; its options are the `network` section's, as
+    # configs/tier0b_bc.json's). Self-play only so far; BC v2 is ml.bc_train_v2.
+    "observation": {"version": 1},
     "network": {
         "d_model": 128,
         "layers": 4,
@@ -133,6 +137,11 @@ DEFAULTS: Dict[str, Any] = {
         "resign_exempt_fraction": 0.1,
         "loss_weights": {"policy": 1.0, "value": 1.0, "belief": 0.25, "oracle": 0.25, "distill": 0.0},
         "weight_decay": 1e-4,
+        # v2 only: processes that replay and encode arriving games for the
+        # learner (ml/selfplay_v2.py), and the memory cap per training piece
+        # (as bc.max_tokens; None = whole batches).
+        "encode_workers": 2,
+        "max_tokens": None,
     },
     "dmc": {
         "epsilon_start": 0.3,

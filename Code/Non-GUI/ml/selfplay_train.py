@@ -28,6 +28,13 @@ Promotion only on a pass; every promoted checkpoint is kept (the frozen
 anchors for M9) and journalled. The first gate is against the warm start,
 which is gate G4.
 
+**Network v2** (`observation.version` 2): the actors search with v2 leaves
+and record compact positions; the learner replays each game to encode them
+(`ml/selfplay_v2.py`, in a pool of `selfplay.encode_workers` processes) and
+trains `KeyForgeNetV2` with the soft visit targets plus BC v2's belief,
+next-draw and oracle terms. The server is `ml.infer_v2`, the gate searches
+with v2 leaves. Mirror augmentation is v1 only.
+
 **Variable budgets** (M7): the run is defined by a game budget, is
 resumable after a kill at any point (the learner saves weights, optimizer
 state and its step to `learner_state.kfc` every few minutes and at every
@@ -65,7 +72,7 @@ from .checkpoints import CheckpointStore, load_model, save_model
 from .encode import Batch, collate
 from .layers import set_activation_checkpointing
 from .resume import PAUSED
-from .model import KeyForgeNet, amp_dtype, candidates_tensor, compile_trunk
+from .model import KeyForgeNet, amp_dtype, candidates_tensor, compile_trunk, gpu_generation_ok
 from .selfplay_gate import GATE_SPRT, gate_verdict  # noqa: F401 -- re-exported (tests, tools)
 
 OPP_UNSEEN = ZONE["opp_unseen"]
@@ -322,12 +329,12 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
     return total, L, stats
 
 
-def _start_server(ckpt_path: str, port: int, best_json: str, log_path: str) -> subprocess.Popen:
+def _start_server(ckpt_path: str, port: int, best_json: str, log_path: str, v2: bool = False) -> subprocess.Popen:
+    argv = ([sys.executable, "-m", "ml.infer_v2", "--checkpoint", ckpt_path] if v2
+            else [sys.executable, "-m", "ml.infer_server", ckpt_path])
     with open(log_path, "a") as log:  # the child keeps its own copy of the handle
-        return subprocess.Popen(
-            [sys.executable, "-m", "ml.infer_server", ckpt_path, "--port", str(port), "--watch", best_json],
-            cwd=_NON_GUI, stdout=log, stderr=subprocess.STDOUT,
-        )
+        return subprocess.Popen(argv + ["--port", str(port), "--watch", best_json],
+                                cwd=_NON_GUI, stdout=log, stderr=subprocess.STDOUT)
 
 
 def _start_actor(run: Run, worker: int, games: int, port: int, mode: str) -> subprocess.Popen:
@@ -379,6 +386,13 @@ def cosine_schedule(opt, total_steps: int, lr_min: float, step: int, lr: float):
     return sched
 
 
+def _history_form(cfg: dict) -> str:
+    """What a v2 batch carries for the run's network (`dataset_v2.assemble`)."""
+    from agent.search.leaf_v2 import history_form
+
+    return history_form(cfg["network"].get("history_arch", "none"))
+
+
 def _write_json(path: str, obj: dict) -> None:
     with open(path + ".tmp", "w", encoding="utf-8") as f:
         json.dump(obj, f)
@@ -390,6 +404,7 @@ def main():
     parser.add_argument("--run", required=True)
     parser.add_argument("--config", default="tier2_selfplay_within_turn.json")
     parser.add_argument("--init", default=None, help="warm-start checkpoint (the M3 BC network)")
+    parser.add_argument("--init-run", default=None, help="warm-start from a BC run's checkpoint, by run id (v2: ml.bc_train_v2)")
     parser.add_argument("--mode", choices=("search", "dmc"), default="search")
     parser.add_argument("--games", type=int, default=None, help="override the config's game budget (journalled)")
     parser.add_argument("--port", type=int, default=6150)
@@ -397,6 +412,10 @@ def main():
     parser.add_argument("--gate-sims", type=int, default=50)
     parser.add_argument("--no-actors", action="store_true", help="learn from existing shards only")
     args = parser.parse_args()
+    if args.init_run and not args.init:
+        from tools.eval_v2 import _checkpoint
+
+        args.init = _checkpoint(args.init_run)
 
     run = Run.resume_or_create(args.run, args.config)
     cfg = run.config
@@ -418,6 +437,20 @@ def main():
     torch.manual_seed(int(cfg["seed"]))
 
     # ------------------------------------------------ model, optimizer, resume
+    v2 = int(cfg.get("observation", {}).get("version", 1)) == 2
+    if v2 and args.mode == "dmc":
+        raise SystemExit("DMC self-play is v1 only")
+    if v2:
+        from .checkpoints import load_model_v2_state
+        from .model_v2 import KeyForgeNetV2, checkpoint_stamp
+
+        stamp = {**checkpoint_stamp()}  # load_model_v2 refuses a checkpoint without it
+        load = lambda src, over: load_model_v2_state(src, net_overrides=over)
+        fresh = lambda: KeyForgeNetV2(dict(cfg["network"], dropout=0.0))
+    else:
+        stamp = {}
+        load = lambda src, over: load_model(src, net_overrides=over)
+        fresh = lambda: KeyForgeNet(dict(cfg["network"], dropout=0.0))
     net_over = {"dropout": cfg["network"].get("dropout", 0.0)}
     state = json.load(open(state_json)) if os.path.exists(state_json) else None
     step = 0
@@ -425,16 +458,16 @@ def main():
         # "state_file": the learner's own overwritten state (current format);
         # "checkpoint": an older learner.json that pointed into the store.
         src = os.path.join(run.root, state["state_file"]) if "state_file" in state else store.path_of(state["checkpoint"])
-        model, meta, opt_state = load_model(src, net_overrides=net_over)
+        model, meta, opt_state = load(src, net_over)
         # The step saved *with the weights* wins over learner.json's (a kill
         # between the two writes must not replay or skip steps).
         step = int((meta.get("extra") or {}).get("step", state["step"]))
         run.journal("learner_resumed", game_index=state["games_consumed"], step=step)
     elif args.init:
-        model, _meta, opt_state = load_model(args.init, net_overrides=net_over)
+        model, _meta, opt_state = load(args.init, net_over)
         opt_state = None
     else:
-        model, opt_state = KeyForgeNet(dict(cfg["network"], dropout=0.0)), None
+        model, opt_state = fresh(), None
     model.to(device)
     # Fused: one kernel for the whole update (see ml/bc_train.py).
     opt = torch.optim.AdamW(model.parameters(), lr=float(sp["lr"]), weight_decay=float(sp["weight_decay"]),
@@ -443,13 +476,17 @@ def main():
         opt.load_state_dict({"state": opt_state["state"], "param_groups": opt_state["param_groups"]})
     amp = amp_dtype(sp.get("precision", "fp32"), device)
     set_activation_checkpointing(model.trunk, bool(sp.get("activation_checkpointing", False)))
-    compile_trunk(model, sp.get("compile", False), device)
+    if v2:
+        if sp.get("compile", False) and gpu_generation_ok(device):
+            model.compile_inputs()
+    else:
+        compile_trunk(model, sp.get("compile", False), device)
     positions_per_game = 200.0  # ~140 non-forced decisions + half as many value-only records
     total_steps = max(1, int(budget * positions_per_game / sp["positions_per_step"]))
     sched = cosine_schedule(opt, total_steps, float(sp["lr_min"]), step, float(sp["lr"]))
 
     if not os.path.exists(best_json):
-        h, digest = save_model(model, store, config_hash=run.config_hash, extra={"kind": "warm_start", "step": 0})
+        h, digest = save_model(model, store, config_hash=run.config_hash, extra={"kind": "warm_start", "step": 0, **stamp})
         _write_json(best_json, {"checkpoint": h, "step": 0, "games": 0, "promotions": 0})
         run.journal("promoted", game_index=0, checkpoint=h, reason="warm start")
     best = json.load(open(best_json))
@@ -462,7 +499,7 @@ def main():
 
     def save_state(games: int) -> None:
         path = os.path.join(run.root, STATE_FILE)
-        save_model(model, path + ".tmp", config_hash=run.config_hash, optimizer=opt, extra={"kind": "learner_state", "step": step})
+        save_model(model, path + ".tmp", config_hash=run.config_hash, optimizer=opt, extra={"kind": "learner_state", "step": step, **stamp})
         os.replace(path + ".tmp", path)
         _write_json(state_json, {"state_file": STATE_FILE, "step": step, "games_consumed": games, "gates": gate_count,
                                  "last_gate": last_gate, "gate_pending": pending})
@@ -490,14 +527,27 @@ def main():
 
     # ------------------------------------------------ learning loop
     tailer = Tailer(run.artifact_dir("shards"))
-    buffer = Buffer(int(sp["buffer_positions"]), max(200, int(sp["buffer_positions"] // 150)))
-    for rec in tailer.poll():  # rebuild the buffer (resume) or pick up anything already there
-        buffer.add(rec)
+    max_games = max(200, int(sp["buffer_positions"] // 150))
     metrics = run.metrics("learner")
-    weights = dict(sp["loss_weights"])
+    encoder = None
+    if v2:
+        from .selfplay_v2 import DEFAULT_WEIGHTS as V2_WEIGHTS
+        from .selfplay_v2 import BufferV2, EncodingPool, backward_step_v2
+
+        buffer = BufferV2(int(sp["buffer_positions"]), max_games, _history_form(cfg))
+        encoder = EncodingPool(int(sp.get("encode_workers", 2)))
+        weights = dict(V2_WEIGHTS, **sp["loss_weights"])
+        encoder.submit(tailer.poll())  # rebuild the buffer (resume) or pick up anything already there
+        for arrays, _info in encoder.wait_all():
+            buffer.add(arrays)
+    else:
+        buffer = Buffer(int(sp["buffer_positions"]), max_games)
+        for rec in tailer.poll():  # rebuild the buffer (resume) or pick up anything already there
+            buffer.add(rec)
+        weights = dict(sp["loss_weights"])
     if args.mode == "dmc":
         weights["q"] = 1.0
-    augment = bool(sp.get("mirror_augmentation", True))
+    augment = bool(sp.get("mirror_augmentation", True)) and not v2
     if augment:
         from agent.augment import mirror_safe
 
@@ -517,14 +567,19 @@ def main():
     t_saved = time.time()
     try:
         if not args.no_actors:
-            server = _start_server(store.path_of(best["checkpoint"]), args.port, best_json, os.path.join(run.root, "server.log"))
+            server = _start_server(store.path_of(best["checkpoint"]), args.port, best_json, os.path.join(run.root, "server.log"), v2)
             time.sleep(8)
             for w in range(workers):
                 procs[w] = _start_actor(run, w, per_worker, args.port, args.mode)
         while True:
             new = tailer.poll()
-            for rec in new:
-                n = buffer.add(rec)
+            if v2:
+                encoder.submit(new)
+                arrived = [(buffer.add(arrays), info) for arrays, info in encoder.ready()]
+                new = new or encoder.pending  # still encoding: not finished yet
+            else:
+                arrived = [(buffer.add(rec), rec) for rec in new]
+            for n, rec in arrived:
                 metrics.count("positions_produced", n)
                 metrics.count("games_seen")
                 meta = rec["meta"]
@@ -540,9 +595,17 @@ def main():
             allowed = int(buffer.total_positions / sp["positions_per_step"]) - step
             if buffer.size >= int(sp["batch"]) and allowed > 0:
                 model.train()
-                positions = buffer.sample(int(sp["batch"]), rng)
                 opt.zero_grad(set_to_none=True)
-                L, st = backward_step(model, positions, device, weights, args.mode, augment, rng, sp.get("micro_batch"), amp)
+                if v2:
+                    batch, tg, pis, cands = buffer.sample(int(sp["batch"]), rng)
+                    autocast = lambda: torch.autocast(torch.device(device).type, dtype=amp or torch.float32,
+                                                      enabled=amp is not None)
+                    L, st = backward_step_v2(model, (batch.to(device), tg.to(device), pis, cands), weights=weights,
+                                             max_tokens=sp.get("max_tokens"), autocast=autocast)
+                    positions = pis
+                else:
+                    positions = buffer.sample(int(sp["batch"]), rng)
+                    L, st = backward_step(model, positions, device, weights, args.mode, augment, rng, sp.get("micro_batch"), amp)
                 gn = torch.nn.utils.clip_grad_norm_(model.parameters(), float(sp["grad_clip"]))
                 opt.step()
                 sched.step()
@@ -568,7 +631,7 @@ def main():
             # ---- gating, in its own process: the learner never waits on it.
             if gate_proc is None and gate_out is None and step - last_gate >= int(sp["gate_every_steps"]):
                 last_gate = step
-                h, _d = save_model(model, store, config_hash=run.config_hash, extra={"kind": "candidate", "step": step})
+                h, _d = save_model(model, store, config_hash=run.config_hash, extra={"kind": "candidate", "step": step, **stamp})
                 gate_count += 1
                 pending = {"candidate": h, "best": best["checkpoint"], "number": gate_count, "step": step, "games": games_done}
                 gate_proc, gate_out = _start_gate(run, pending, args)
@@ -624,7 +687,7 @@ def main():
             if server is not None and server.poll() is not None and alive:
                 if _may_restart(restarts.setdefault("server", deque()), now):
                     run.journal("server_restarted", game_index=games_done, exit_code=server.returncode)
-                    server = _start_server(store.path_of(best["checkpoint"]), args.port, best_json, os.path.join(run.root, "server.log"))
+                    server = _start_server(store.path_of(best["checkpoint"]), args.port, best_json, os.path.join(run.root, "server.log"), v2)
                 else:
                     run.journal("server_abandoned", game_index=games_done, exit_code=server.returncode)
                     raise SystemExit("the inference server keeps dying -- see server.log")
@@ -640,8 +703,10 @@ def main():
         raise
     finally:
         stop_children()
+        if encoder is not None:
+            encoder.close()
 
-    h, _d = save_model(model, store, config_hash=run.config_hash, optimizer=opt, extra={"kind": "learner", "step": step, "final": True})
+    h, _d = save_model(model, store, config_hash=run.config_hash, optimizer=opt, extra={"kind": "learner", "step": step, "final": True, **stamp})
     save_state(buffer.total_games)
     run.journal("run_finished", game_index=buffer.total_games, step=step, final=h)
     metrics.flush()

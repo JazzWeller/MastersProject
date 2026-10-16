@@ -355,11 +355,57 @@ class TorchModelV2:
         return results
 
 
+class ReloadingTorchModelV2(TorchModelV2):
+    """`TorchModelV2` following a self-play run's `best.json`, as v1's
+    `ReloadingTorchModel`: a promoted checkpoint is loaded between batches
+    (at most every `poll_seconds`) and swapped in. The prefix cache is
+    dropped with the old network (its keys and values were the old one's)."""
+
+    def __init__(self, net, device, best_json: str, *, poll_seconds: float = 5.0, **kw):
+        super().__init__(net, device, **kw)
+        self.best_json = best_json
+        self.poll_seconds = poll_seconds
+        self._last_poll = 0.0
+        self._current = None
+        self.reloads = 0
+        self._kw = kw
+
+    def _maybe_reload(self) -> None:
+        import json
+        import os
+        import time
+
+        now = time.time()
+        if now - self._last_poll < self.poll_seconds:
+            return
+        self._last_poll = now
+        try:
+            with open(self.best_json, "r", encoding="utf-8") as f:
+                ckpt = json.load(f)["checkpoint"]
+        except (OSError, ValueError, KeyError):
+            return
+        if ckpt == self._current:
+            return
+        from .checkpoints import CheckpointStore, load_model_v2
+
+        store = CheckpointStore(os.path.join(os.path.dirname(self.best_json), "checkpoints"))
+        net, _meta = load_model_v2(store.path_of(ckpt))
+        if self._current is not None:
+            fresh = TorchModelV2(net, str(self.device), prefix_bytes=self.prefixes.max_bytes, **self._kw)
+            self.net, self._encode, self.compiled, self.prefixes = fresh.net, fresh._encode, fresh.compiled, fresh.prefixes
+        self._current = ckpt
+        self.reloads += 1
+
+    def predict_many(self, requests):
+        self._maybe_reload()
+        return super().predict_many(requests)
+
+
 def serve_v2(net: KeyForgeNetV2, address, authkey: bytes, device: str = "cuda", max_batch_size: int = 512,
-             window: float = 0.002):
+             window: float = 0.002, watch: Optional[str] = None):
     from bots.inference_client import InferenceServer
 
-    model = TorchModelV2(net, device)
+    model = ReloadingTorchModelV2(net, device, watch) if watch else TorchModelV2(net, device)
     server = InferenceServer(address, authkey, model, max_batch_size=max_batch_size, batch_window_seconds=window)
     print(f"v2 inference server on {address} ({model.device}, history {net.history_arch})", flush=True)
     server.serve_forever()
@@ -378,7 +424,12 @@ def main():
     parser.add_argument("--authkey", default="keyforge")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--watch", default=None, help="a self-play run's best.json: hot-reload promoted checkpoints")
     args = parser.parse_args()
+    if args.watch:  # started by a run's learner: never outlive it (an orphan keeps the port)
+        from agent.lifecycle import exit_with_parent
+
+        exit_with_parent()
     torch.manual_seed(args.seed)
     if args.checkpoint:
         from .checkpoints import load_model_v2
@@ -388,7 +439,7 @@ def main():
         net = KeyForgeNetV2(json.loads(args.net_cfg))
     else:
         parser.error("--checkpoint or --net-cfg is required")
-    serve_v2(net, (args.host, args.port), args.authkey.encode(), args.device)
+    serve_v2(net, (args.host, args.port), args.authkey.encode(), args.device, watch=args.watch)
 
 
 if __name__ == "__main__":

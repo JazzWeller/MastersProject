@@ -48,21 +48,36 @@ def run_gate(candidate_path: str, best_path: str, cfg: dict, *, sims: int, mode:
     """SPRT of the candidate against the best so far, both searching at
     `sims` (search mode) or both search-free (DMC)."""
     from .arena import Player, play_paired
-    from .checkpoints import load_model
-    from .infer_server import TorchModel
 
     sp, se = cfg["selfplay"], cfg["search"]
-    cand_net, _m, _o = load_model(candidate_path)
-    best_net, _m, _o = load_model(best_path)
-    cand = TorchModel(cand_net, device)
-    incumbent = TorchModel(best_net, device)
+    v2 = int(cfg.get("observation", {}).get("version", 1)) == 2
+    extra = {}
+    if v2:  # network v2: both players search with v2 leaves, in the run's determinization
+        from agent.search.leaf_v2 import history_form
+
+        from .checkpoints import load_model_v2
+        from .infer_v2 import TorchModelV2
+
+        cand_net, _m = load_model_v2(candidate_path)
+        best_net, _m = load_model_v2(best_path)
+        cand, incumbent = TorchModelV2(cand_net, device), TorchModelV2(best_net, device)
+        extra = {"leaf": "student_v2", "history": history_form(cand_net.history_arch),
+                 "determinization": se.get("determinization", "chance_exact")}
+    else:
+        from .checkpoints import load_model
+        from .infer_server import TorchModel
+
+        cand_net, _m, _o = load_model(candidate_path)
+        best_net, _m, _o = load_model(best_path)
+        cand, incumbent = TorchModel(cand_net, device), TorchModel(best_net, device)
+        extra = {"leaf": se["leaf"]}
     kind = "net" if mode == "dmc" else "search"
     head = "q" if mode == "dmc" else "policy"
     quiet = bool(se.get("quiet_leaves", False))
-    a = Player("candidate", kind, cand, regime=se["regime"], leaf=se["leaf"], simulations=sims, resample=se["resample"],
-               mode=head, quiet_leaves=quiet)
-    b = Player("best", kind, incumbent, regime=se["regime"], leaf=se["leaf"], simulations=sims, resample=se["resample"],
-               mode=head, quiet_leaves=quiet)
+    a = Player("candidate", kind, cand, regime=se["regime"], simulations=sims, resample=se["resample"],
+               mode=head, quiet_leaves=quiet, **extra)
+    b = Player("best", kind, incumbent, regime=se["regime"], simulations=sims, resample=se["resample"],
+               mode=head, quiet_leaves=quiet, **extra)
     seeds = gate_seeds(int(cfg["seed"]), number, max(1, int(sp["gate_games"]) // 4))
     rep = play_paired(a, b, seeds, cfg["pool"]["decks"][0], cfg["pool"]["decks"][1],
                       max_turns=200, concurrency=concurrency, sprt=GATE_SPRT, min_games=40)

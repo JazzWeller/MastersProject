@@ -25,11 +25,19 @@ the game's Monte-Carlo return.
 
 **Records.** One frame per finished game appended to the worker's own
 shard (`<run>/shards/actor_<id>.bin`): a 4-byte length plus a pickle of
-{meta, positions, outcome}. Each position holds the decider's compact
-encoding, the target (visit distribution, or the action taken), the
-multi-select candidates if any, and the privileged labels for M6 (the
-opponent's true hand, the decider's next draws) -- the learner, never an
-agent, reads those. A crash loses at most the in-flight games: a
+{meta, positions, outcome, choice_record, config}. Each position holds the
+decider's compact encoding, the target (visit distribution, or the action
+taken), the multi-select candidates if any, and the privileged labels for M6
+(the opponent's true hand, the decider's next draws) -- the learner, never
+an agent, reads those.
+
+**Network v2** (`observation.version` 2, Agent Observation Plan): the
+search's leaves are the v2 network's (`student_v2`, in the request form of
+its `history_arch`), and a position holds no encoding at all -- only its
+seat, its decision's index in the choice record and the search's targets.
+The learner rebuilds each position's v2 encoding, history and privileged
+labels by replaying the game (`ml/selfplay_v2.py`), so a record stays a few
+KB instead of ~12 KB a position. A crash loses at most the in-flight games: a
 half-written last frame is detected and truncated on resume, and games
 already on disk are never replayed (the game index resumes from the count).
 """
@@ -51,6 +59,7 @@ from keyforge.config import GameConfig
 from keyforge.enums import DecisionKind, Resample
 from keyforge.game import Game
 from keyforge.infoset import build_infoset
+from keyforge.replay import config_to_dict
 
 from .features import encode
 from .search.core import Search, SearchSettings, legal_actions, run_searches
@@ -98,6 +107,8 @@ class SelfPlaySettings:
     resign_threshold: Optional[float] = None
     resign_consecutive: int = 3
     resign_exempt_fraction: float = 0.1
+    observation_version: int = 1  # 2: network v2 (see the module docstring)
+    history: str = "none"  # v2: the request form of the network's history_arch (leaf_v2.history_form)
 
     @classmethod
     def from_config(cls, cfg: dict, mode: str = "search") -> "SelfPlaySettings":
@@ -116,7 +127,15 @@ class SelfPlaySettings:
             enumerate_cap=cfg["network"]["enumerate_cap"],
             resign_threshold=sp.get("resign_threshold"), resign_consecutive=int(sp.get("resign_consecutive", 3)),
             resign_exempt_fraction=float(sp.get("resign_exempt_fraction", 0.1)),
+            observation_version=int(cfg.get("observation", {}).get("version", 1)),
+            history=_history_form(cfg["network"].get("history_arch", "none")),
         )
+
+
+def _history_form(arch: str) -> str:
+    from .search.leaf_v2 import history_form
+
+    return history_form(arch)
 
 
 def game_seed(run_seed: int, worker: int, index: int) -> int:
@@ -195,6 +214,22 @@ def _position(game, pid: int, decision, *, target=None, candidates=None, full: b
     }
 
 
+def _position_v2(game, pid: int, decision, *, target=None, candidates=None, full: bool, turn: int,
+                 value_only: bool = False) -> dict:
+    """A v2 position: no encoding -- the learner replays the game to its
+    decision (`decision`: the index in the choice record) and encodes it."""
+    return {
+        "seat": pid,
+        "decision": len(game.choice_record),
+        "kind": decision.kind.name,
+        "target": target,
+        "candidates": candidates,
+        "full": full,
+        "turn": turn,
+        "value_only": value_only,
+    }
+
+
 def _keep(seed: int, n: int, fraction: float) -> bool:
     if fraction >= 1:
         return True
@@ -269,6 +304,10 @@ class Actor:
         self.metrics = metrics
         self.checkpoint_tag: Optional[str] = None
         self._dmc_agent = None
+        self.v2 = settings.observation_version == 2
+        if self.v2 and settings.mode == "dmc":
+            raise ValueError("DMC self-play is v1 only (NetAgent reads v1 encodings)")
+        self._position = _position_v2 if self.v2 else _position
 
     def epsilon_for(self, game_index: int) -> float:
         """DMC exploration, annealed linearly by this worker's game index
@@ -287,7 +326,8 @@ class Actor:
             determinization=s.determinization,
             enumerate_cap=s.enumerate_cap, reuse=False,
         )
-        return Search(regime, make_evaluator(s.leaf, seed=seed), policy, settings, seed=seed)
+        leaf = "student_v2" if self.v2 and s.leaf == "student" else s.leaf
+        return Search(regime, make_evaluator(leaf, seed=seed, history=s.history), policy, settings, seed=seed)
 
     def _new_slot(self, index: int) -> _Slot:
         seed = game_seed(self.run_seed, self.worker, index)
@@ -324,6 +364,7 @@ class Actor:
             "positions": slot.positions,
             "outcome": outcome,
             "choice_record": list(g.choice_record),
+            "config": config_to_dict(g.config),
         }
 
     def play(self, indices, on_game) -> int:
@@ -385,12 +426,12 @@ class Actor:
             # learn, only the value.
             searched = not any(f is None for f in res.index_forms)
             turn = sl.game.turn_number
-            sl.positions.append(_position(
+            sl.positions.append(self._position(
                 sl.game, pid, d, target=target if (full and searched) else None,
                 candidates=list(res.index_forms) if (multi and searched) else None, full=full, turn=turn,
             ))
             if _keep(sl.seed, len(sl.game.choice_record), s.value_only_fraction):
-                sl.positions.append(_position(sl.game, 3 - pid, d, full=False, turn=turn, value_only=True))
+                sl.positions.append(self._position(sl.game, 3 - pid, d, full=False, turn=turn, value_only=True))
             sl.decisions[pid] = n + 1
             if s.resign_threshold is not None and self._resigns(sl, pid, res.value):
                 continue

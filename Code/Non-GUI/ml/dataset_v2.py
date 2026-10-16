@@ -205,6 +205,21 @@ def _ragged(parts: List[np.ndarray], dtype, width: int) -> Tuple[np.ndarray, np.
 def write_shard_v2(out_dir: str, c: _Cols, meta: dict) -> None:
     tmp = out_dir + ".tmp"
     os.makedirs(tmp, exist_ok=True)
+    a = cols_arrays(c)
+    for name, arr in a.items():
+        np.save(os.path.join(tmp, name + ".npy"), arr)
+    with open(os.path.join(tmp, "meta.json"), "w", encoding="utf-8") as f:
+        json.dump(dict(meta, records=int(len(a["kind"])), streams=len(c.streams), stamp=S.stamp(),
+                       dataset_version=DATASET_VERSION), f, sort_keys=True)
+    if os.path.exists(out_dir):
+        import shutil
+
+        shutil.rmtree(out_dir)
+    os.replace(tmp, out_dir)
+
+
+def cols_arrays(c: _Cols) -> Dict[str, np.ndarray]:
+    """`c` as a shard's arrays (what `assemble` reads), in memory."""
     lab = c.lab
     a = {
         "kind": np.asarray(lab["kind"], np.uint8), "n_opt": np.asarray(lab["n_opt"], np.int16),
@@ -232,16 +247,7 @@ def write_shard_v2(out_dir: str, c: _Cols, meta: dict) -> None:
     a["s_off"], a["s_ints"] = _ragged([s[0] for s in c.streams], np.int32, N_RI)
     _, a["s_floats"] = _ragged([s[1] for s in c.streams], np.float32, N_RF)
     a["s_ptr_off"], a["s_ptr"] = _ragged([s[2] for s in c.streams], np.int32, 3)
-    for name, arr in a.items():
-        np.save(os.path.join(tmp, name + ".npy"), arr)
-    with open(os.path.join(tmp, "meta.json"), "w", encoding="utf-8") as f:
-        json.dump(dict(meta, records=int(len(a["kind"])), streams=len(c.streams), stamp=S.stamp(),
-                       dataset_version=DATASET_VERSION), f, sort_keys=True)
-    if os.path.exists(out_dir):
-        import shutil
-
-        shutil.rmtree(out_dir)
-    os.replace(tmp, out_dir)
+    return a
 
 
 def _current(out_dir: str) -> bool:

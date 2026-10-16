@@ -224,6 +224,8 @@ whole Tier 0b chain. Jobs are requeued on a time limit and resume where they sto
 `python run.py smoke-selfplay` is the training plan's self-play smoke run (run id `smoke-sp`, a few
 minutes of server + actors + learner + gating, then its monitor screen); it starts from a fresh
 network, so it needs no data.
+`python run.py smoke-selfplay-v2` is the same with network v2 (O10's A7 inputs, `configs/smoke_selfplay_v2.json`):
+v2 actors record compact positions, and the learner replays each game to encode it (`ml/selfplay_v2.py`).
 
 **Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
 parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for
