@@ -391,7 +391,11 @@ class KeyForgeNetV2(nn.Module):
         launch-heavy part of the eager forward (~300 of its ~350 kernels).
         The trunk stays eager, so a cached prefix's shapes never reach the
         compiler."""
-        self._embed = torch.compile(self.embed_tokens, dynamic=True)
+        from .model import gpu_generation_ok
+
+        dev = next(self.parameters()).device
+        if dev.type != "cuda" or gpu_generation_ok(dev):
+            self._embed = torch.compile(self.embed_tokens, dynamic=True)
 
     def encode_state(self, batch: BatchV2, past: Optional[PrefixPast] = None) -> TrunkOutV2:
         """`past` (`stream` only): the batch's cached history prefixes; the
