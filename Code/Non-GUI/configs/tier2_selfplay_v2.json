@@ -1,0 +1,10 @@
+{
+  "name": "tier2-selfplay-within-turn-v2",
+  "tier": 2,
+  "notes": "M7 with network v2: the within-turn arm on O10's chosen configuration (A7: knowledge and priors, all static card meaning, options outside the trunk, no history), warm-started from its Tier 0b BC checkpoint (--init). Its v1 twin is tier2_selfplay_within_turn.json.",
+  "observation": {"version": 2},
+  "network": {"d_model": 128, "layers": 4, "heads": 4, "ff": 256, "dropout": 0.0, "history_arch": "none",
+              "attention_kernel": "efficient", "enumerate_cap": 1024, "options_in_trunk": false},
+  "search": {"regime": "within_turn", "leaf": "student", "resample": "all", "simulations": 100},
+  "selfplay": {"games": 50000, "max_tokens": 600000}
+}

@@ -127,6 +127,11 @@ METHODS["smoke-selfplay"] = dict(
     cpus=8, mem_gb=32, gpu=True, hours=2,
     steps=[[PY, "-m", "ml.selfplay_train", "--run", "smoke-sp", "--config", "smoke_selfplay.json", "--port", "{port}"],
            [PY, "-m", "tools.monitor", "smoke-sp"]])
+METHODS["smoke-selfplay-v2"] = dict(
+    desc="the smoke run with network v2 (O10's A7 inputs): v2 actors, server, learner, gate; minutes (run smoke-sp-v2)",
+    cpus=8, mem_gb=32, gpu=True, hours=2,
+    steps=[[PY, "-m", "ml.selfplay_train", "--run", "smoke-sp-v2", "--config", "smoke_selfplay_v2.json", "--port", "{port}"],
+           [PY, "-m", "tools.monitor", "smoke-sp-v2"]])
 
 
 # ---------------------------------------------------------------------- config

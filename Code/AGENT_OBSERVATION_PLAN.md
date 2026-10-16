@@ -1,7 +1,10 @@
 # Agent Observation Plan: everything a player may know, losslessly, into the network
 
-**Status (2026-10-14): O0, Part R and O1–O10 done; O11 closed by its gate. Next: the training plan's
-self-play smoke run**
+**Status (2026-10-16): O0, Part R and O1–O10 done; O11 closed by its gate. The v1 self-play smoke run
+passed on the cluster (2026-10-16), and self-play now runs network v2** (`observation.version` 2):
+v2 actors record compact positions, the learner replays each game to encode it with the BC corpus's own
+code (`ml/selfplay_v2.py`), and the server (`ml.infer_v2 --watch`) and gate are v2. Next: the v2 smoke
+run on the cluster, then Tier 2 (`configs/tier2_selfplay_v2.json`, warm-started with `--init-run`).
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
