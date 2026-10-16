@@ -256,8 +256,16 @@ def compile_trunk(model: "KeyForgeNet", enabled: bool, device) -> None:
     launches -- the training step is launch-bound (+18% samples/s,
     2026-10-03). The heads take a different shape every batch and stay
     eager. Needs a C compiler (Triton builds its launcher)."""
-    if enabled and torch.device(device).type == "cuda":
+    if enabled and gpu_generation_ok(device):
         model.trunk.compile()
+
+
+def gpu_generation_ok(device) -> bool:
+    """CUDA, and new enough (compute capability 7.0+) for Triton -- what
+    torch.compile and native bf16 need. A cluster may hand out older cards
+    (P100: 6.0); compilation and bf16 are then skipped, not fatal."""
+    d = torch.device(device)
+    return d.type == "cuda" and torch.cuda.get_device_capability(d) >= (7, 0)
 
 
 def amp_dtype(precision: str, device) -> Optional[torch.dtype]:
@@ -268,7 +276,7 @@ def amp_dtype(precision: str, device) -> Optional[torch.dtype]:
     if precision == "fp32":
         return None
     if precision == "bf16":
-        return torch.bfloat16 if torch.device(device).type == "cuda" else None
+        return torch.bfloat16 if gpu_generation_ok(device) else None
     raise ValueError(f"unknown training precision {precision!r} (fp32 | bf16)")
 
 
