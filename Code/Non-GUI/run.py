@@ -14,7 +14,7 @@ evaluation step is resumable by run id.
 
 Site settings (partition, account, modules, venv, data root, GPU type) live
 in `cluster.json` next to this file (copy `cluster.example.json`), or in the
-environment as KF_PARTITION, KF_CPU_PARTITION, KF_ACCOUNT, KF_QOS, KF_GRES (empty: --gpus=1), KF_MODULES, KF_VENV,
+environment as KF_PARTITION, KF_CPU_PARTITION, KF_ACCOUNT, KF_QOS, KF_GRES (empty: --gpus=1), KF_GPU_CONSTRAINT, KF_MODULES, KF_VENV,
 KF_DATA, KF_MAX_TIME. Nothing else needs editing.
 
 Keep METHODS current: a new tool or stage gets a row here, with its resources.
@@ -136,7 +136,7 @@ def settings() -> dict:
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-    for key, env in (("partition", "KF_PARTITION"), ("cpu_partition", "KF_CPU_PARTITION"), ("account", "KF_ACCOUNT"), ("qos", "KF_QOS"), ("gres", "KF_GRES"),
+    for key, env in (("partition", "KF_PARTITION"), ("cpu_partition", "KF_CPU_PARTITION"), ("account", "KF_ACCOUNT"), ("qos", "KF_QOS"), ("gres", "KF_GRES"), ("gpu_constraint", "KF_GPU_CONSTRAINT"),
                      ("modules", "KF_MODULES"), ("venv", "KF_VENV"), ("data", "KF_DATA"), ("max_time", "KF_MAX_TIME")):
         if os.environ.get(env):
             cfg[key] = os.environ[env]
@@ -271,6 +271,8 @@ def sbatch_script(name: str, m: dict, cfg: dict, argv_method: str) -> str:
         lines.append(f"#SBATCH --gres={cfg['gres']}" if cfg.get("gres") else f"#SBATCH --gpus={cfg.get('gpus', 1)}")
     if cfg.get("partition") or cfg.get("cpu_partition"):  # CPU-only methods go to cpu_partition when one is set
         lines.append(f"#SBATCH --partition={cfg.get('partition') if m.get('gpu') else cfg.get('cpu_partition') or cfg.get('partition')}")
+    if m.get("gpu") and cfg.get("gpu_constraint"):  # node features, e.g. "lovelace|hopper" (a GPU generation)
+        lines.append(f"#SBATCH --constraint={cfg['gpu_constraint']}")
     for key in ("account", "qos"):
         if cfg.get(key):
             lines.append(f"#SBATCH --{key}={cfg[key]}")

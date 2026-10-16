@@ -4,6 +4,7 @@
   "account": "",
   "qos": "",
   "gres": "",
+  "gpu_constraint": "",
   "modules": "python/3.12 cuda",
   "venv": "",
   "data": "/scratch/YOURNAME/keyforge-data",
