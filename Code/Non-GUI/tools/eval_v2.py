@@ -5,7 +5,8 @@ Observation Plan, O10's search rungs). WSL, CUDA.
     python -m tools.eval_v2 --a v2:tier0b2-a8 --b heuristic --sims 100 --seeds 100 --workers 8
     python -m tools.eval_v2 --a v2:tier0b2-a6 --b v1:tier0b-a0 --sims 100 --seeds 100
 
-A player is `v2:<run id>` (its network-v2 checkpoint, searched with the
+A player is `v2:<run id>` (its network-v2 checkpoint -- a BC run's, or a
+self-play run's best promoted one; `<run id>@final` its last -- searched with the
 `student_v2` leaf in its history's request form), `v1:<run id>` (a v1
 checkpoint, the `student` leaf) or a bot name (`heuristic`). Both searchers
 use the same regime, simulations and O3's `chance_exact` determinization.
@@ -32,11 +33,22 @@ import time
 
 
 def _checkpoint(run_id: str) -> str:
+    """A run's network: a BC run's (`bc_report.json`), or a self-play run's
+    best promoted one (`best.json`); `<run>@final` is a self-play run's last
+    learner checkpoint, promoted or not."""
     from sim import data_root
 
+    run_id, _, which = run_id.partition("@")
     root = data_root.resolve(os.path.join("runs", run_id))
-    with open(os.path.join(root, "bc_report.json"), "r", encoding="utf-8") as f:
-        ckpt = json.load(f)["checkpoint"]
+    if which == "final":
+        with open(os.path.join(root, "journal.jsonl"), "r", encoding="utf-8") as f:
+            ckpt = [e for e in map(json.loads, f) if e["event"] == "run_finished"][-1]["final"]
+    elif os.path.exists(os.path.join(root, "bc_report.json")):
+        with open(os.path.join(root, "bc_report.json"), "r", encoding="utf-8") as f:
+            ckpt = json.load(f)["checkpoint"]
+    else:
+        with open(os.path.join(root, "best.json"), "r", encoding="utf-8") as f:
+            ckpt = json.load(f)["checkpoint"]
     store = os.path.join(root, "checkpoints")
     return next(os.path.join(store, n) for n in os.listdir(store) if n.startswith(ckpt))
 
