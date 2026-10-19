@@ -114,6 +114,9 @@ METHODS = {
     "status": dict(desc="login node: every run's derived numbers (tools.monitor)", local=True, steps=[[PY, "-m", "tools.monitor"]]),
     "pause": dict(desc="login node: ask this user's running jobs to save state and stop (rerun a method to resume)",
                   local=True, steps=[]),
+    "export": dict(desc="login node: copy the Tier 2 runs' journals, gates, metrics, best/final networks and evals into "
+                        "results/tier2 (then commit and push)", local=True,
+                   steps=[[PY, "-m", "tools.export_results", "tier2-v2-s0", "tier2-v1-s0"]]),
     "ladder": dict(desc="login node: submit data, then bc-<arch> for every arch in parallel, then probe, with dependencies",
                    local=True, steps=[]),
 }
@@ -139,6 +142,13 @@ for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
         steps=[[PY, "-m", "ml.selfplay_train", "--run", f"tier2-{_arm}-s0", "--config", _cfg, "--init-run", _bc_run,
                 "--override", json.dumps({"selfplay": _sp}), "--port", "{port}"],
                [PY, "-m", "tools.monitor", f"tier2-{_arm}-s0"]])
+METHODS["eval-tier2"] = dict(
+    desc="Tier 2's result: each arm's best network vs HeuristicBot, then v2 vs v1 (100 sims, 100 paired seeds, as O10)",
+    cpus=32, mem_gb=64, gpu=True, hours=24, max_w=16,
+    steps=[[PY, "-m", "tools.eval_v2", "--a", f"{_arm}:tier2-{_arm}-s0", "--b", "heuristic", "--sims", "100",
+            "--seeds", "100", "--workers", "{w}"] for _arm in ("v2", "v1")]
+          + [[PY, "-m", "tools.eval_v2", "--a", "v2:tier2-v2-s0", "--b", "v1:tier2-v1-s0", "--sims", "100",
+              "--seeds", "100", "--workers", "{w}"]])
 METHODS["smoke-selfplay-v2"] = dict(
     desc="the smoke run with network v2 (O10's A7 inputs): v2 actors, server, learner, gate; minutes (run smoke-sp-v2)",
     cpus=8, mem_gb=32, gpu=True, hours=2,
