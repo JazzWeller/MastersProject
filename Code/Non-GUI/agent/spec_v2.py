@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 FEATURE_VERSION = 2
 FEATURE_MINOR = 0
@@ -154,6 +154,30 @@ def layout() -> dict:
 
 
 LAYOUT_HASH = hashlib.sha256(json.dumps(layout(), sort_keys=True).encode("utf-8")).hexdigest()
+
+
+# Hashes taken before line endings were normalized (on this project's Windows
+# checkout, CRLF), and the same files' hashes now: an artifact stamped with
+# the old value was made from the same vocabularies.
+_LEGACY_HASHES = {
+    "vocab_v2_hash": {"be0485ac9f00badf41400837f8b7889b80ea0370c5e9090d56d198fd40a0260f": "8569510badb63e863650da853715efa51f1d295f468a7e6ae8acbca27fee4c24"},
+    "vocab_hash": {"57e8de1f3d2b00bfa9203f37ef9380ebe0e0c3ce6f68e894cc9f0fe4aa4d3390": "ff8f8a2a0cc58d7d4be95e004cc798c9afd971f56028f67ced51374fb9402cfa"},
+}
+
+
+def canonical_stamp(s: dict) -> dict:
+    """`s` with any pre-normalization vocabulary hash replaced by its
+    current value."""
+    s = dict(s or {})
+    for key, alias in _LEGACY_HASHES.items():
+        if s.get(key) in alias:
+            s[key] = alias[s[key]]
+    return s
+
+
+def same_stamp(saved: dict, now: Optional[dict] = None) -> bool:
+    """Whether an artifact's stamp is today's (`stamp()` if `now` is None)."""
+    return canonical_stamp(saved) == canonical_stamp(stamp() if now is None else now)
 
 
 def stamp() -> dict:

@@ -85,5 +85,7 @@ def vocab_hash() -> str:
         if os.path.exists(p):
             with open(p, "rb") as f:
                 h.update(n.encode())
-                h.update(f.read())
+                # line endings normalized: a CRLF checkout (Windows, autocrlf)
+                # and an LF one hold the same vocabulary
+                h.update(f.read().replace(b"\r\n", b"\n"))
     return h.hexdigest()

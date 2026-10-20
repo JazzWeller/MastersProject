@@ -33,8 +33,8 @@ def _load() -> Dict[str, int]:
 def _hash() -> str:
     if not os.path.isfile(VOCAB_JSON_PATH):
         return hashlib.sha256(b"").hexdigest()
-    with open(VOCAB_JSON_PATH, "rb") as f:
-        return hashlib.sha256(f.read()).hexdigest()
+    with open(VOCAB_JSON_PATH, "rb") as f:  # line endings normalized (CRLF and LF checkouts agree)
+        return hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()
 
 
 CARD_VOCAB: Dict[str, int] = _load()
