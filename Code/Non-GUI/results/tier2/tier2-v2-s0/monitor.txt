@@ -1,0 +1,5 @@
+== tier2-v2-s0  (tier 2, config 8729144de861)
+   games 0/50,000   0.0 games/h (projected 1500)   ETA None h
+   actor:learner None   steps 0 (0.0/s)   next gate in None h
+   gates 0, promotions 0, last score None, slope/10k games None
+   losses {}   entropy None

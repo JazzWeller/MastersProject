@@ -1,0 +1,23 @@
+{
+ "run": "tier2-v2-s0",
+ "config_hash": "8729144de861",
+ "tier": 2,
+ "games_done": 0,
+ "budget": 50000,
+ "games_per_hour": 0.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": null,
+ "actor_learner_ratio": null,
+ "gradient_steps": 0,
+ "steps_per_second": 0.0,
+ "hours_to_next_gate": null,
+ "gates": 0,
+ "promotions": 0,
+ "last_gate_score": null,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": false,
+ "losses": {},
+ "policy_entropy": null,
+ "interventions": [],
+ "flags": []
+}

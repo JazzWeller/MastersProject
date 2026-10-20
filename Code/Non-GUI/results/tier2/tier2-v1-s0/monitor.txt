@@ -1,0 +1,8 @@
+== tier2-v1-s0  (tier 2, config 6bcb8317faea)
+   games 50,008/50,000   0.0 games/h (projected 1500)   ETA None h
+   actor:learner 0.0   steps 913,263 (4.621/s)   next gate in 0.044 h
+   gates 63 (one running), promotions 1, last score 0.1818, slope/10k games None
+   losses {'loss_belief': 0.5071, 'loss_multi': 1.0454, 'loss_oracle': 0.0001, 'loss_policy': 1.0508, 'loss_value': 0.0002}   entropy 1.051
+   !! actor:learner 0.00 << 0.5 -- inconsistent (the learner shouldn't outrun its data); check positions_per_step
+   journal @20709: gate_G4 {"step": 58741, "verdict": "PASS"}
+   journal @50008: run_finished {"final": "7dd1154047234d245fc9bac8e0f7a4fd119973d0a5c4271875709d17f2de7593", "step": 913263}

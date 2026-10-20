@@ -1,0 +1,48 @@
+{
+ "run": "tier2-v1-s0",
+ "config_hash": "6bcb8317faea",
+ "tier": 2,
+ "games_done": 50008,
+ "budget": 50000,
+ "games_per_hour": 0.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": null,
+ "actor_learner_ratio": 0.0,
+ "gradient_steps": 913263,
+ "steps_per_second": 4.621,
+ "hours_to_next_gate": 0.044,
+ "gates": 63,
+ "promotions": 1,
+ "last_gate_score": 0.1818,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": true,
+ "losses": {
+  "loss_belief": 0.5071,
+  "loss_multi": 1.0454,
+  "loss_oracle": 0.0001,
+  "loss_policy": 1.0508,
+  "loss_value": 0.0002
+ },
+ "policy_entropy": 1.051,
+ "interventions": [
+  {
+   "config_hash": "6bcb8317faea0fe50af9372abf044201a7b55cfbdc8484482cc40cf2d0cef76d",
+   "event": "gate_G4",
+   "game_index": 20709,
+   "step": 58741,
+   "t": 1792203630.1869495,
+   "verdict": "PASS"
+  },
+  {
+   "config_hash": "6bcb8317faea0fe50af9372abf044201a7b55cfbdc8484482cc40cf2d0cef76d",
+   "event": "run_finished",
+   "final": "7dd1154047234d245fc9bac8e0f7a4fd119973d0a5c4271875709d17f2de7593",
+   "game_index": 50008,
+   "step": 913263,
+   "t": 1792312187.6988282
+  }
+ ],
+ "flags": [
+  "actor:learner 0.00 << 0.5 -- inconsistent (the learner shouldn't outrun its data); check positions_per_step"
+ ]
+}
