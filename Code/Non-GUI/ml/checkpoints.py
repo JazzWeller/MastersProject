@@ -350,9 +350,9 @@ def load_model_v2_state(source, *, device="cpu", net_overrides: Optional[dict] =
     extra = meta.get("extra") or {}
     if extra.get("feature_version") != 2:
         raise CheckpointMismatch("not a network-v2 checkpoint (no feature_version 2 in its stamp)")
-    now = S.stamp()
+    now, saved = S.canonical_stamp(S.stamp()), S.canonical_stamp(extra)
     for key in ("layout_hash", "vocab_v2_hash"):
-        if extra.get(key) != now.get(key):
+        if saved.get(key) != now.get(key):
             raise CheckpointMismatch(f"checkpoint {key} {str(extra.get(key))[:12]} != today's {str(now.get(key))[:12]}")
     _check_vocab(meta["vocab"])
     model = KeyForgeNetV2(dict(meta["net_cfg"], **(net_overrides or {})))

@@ -256,7 +256,7 @@ def _current(out_dir: str) -> bool:
             meta = json.load(f)
     except OSError:
         return False
-    return meta.get("dataset_version") == DATASET_VERSION and meta.get("stamp") == S.stamp()
+    return meta.get("dataset_version") == DATASET_VERSION and S.same_stamp(meta.get("stamp"))
 
 
 def encode_records_v2(record_path: str, out_dir: str) -> Tuple[str, int]:
@@ -301,7 +301,7 @@ class ShardV2:
             self.meta = json.load(f)
         if self.meta.get("dataset_version") != DATASET_VERSION:
             raise ValueError(f"{path}: dataset version {self.meta.get('dataset_version')}, need {DATASET_VERSION}")
-        if self.meta.get("stamp") != S.stamp():
+        if not S.same_stamp(self.meta.get("stamp")):
             raise ValueError(f"{path}: encoded with a different v2 layout or vocabularies -- re-encode it")
         self.mmap = mmap
         self.size = int(self.meta["records"])
@@ -758,7 +758,7 @@ class PackedCorpusV2:
         self._core, self._str = [], []
         for f, stem in enumerate(stems):
             idx = np.load(stem + ".idx.npz")
-            if int(idx["dataset_version"]) != DATASET_VERSION or json.loads(str(idx["stamp"])) != S.stamp():
+            if int(idx["dataset_version"]) != DATASET_VERSION or not S.same_stamp(json.loads(str(idx["stamp"]))):
                 raise ValueError(f"{stem}: packed from a different v2 layout -- re-pack it")
             for k in cols:
                 cols[k].append(idx[k])
