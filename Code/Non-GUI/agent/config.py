@@ -127,7 +127,20 @@ DEFAULTS: Dict[str, Any] = {
         "batch": 1024,
         "grad_clip": 1.0,
         "buffer_positions": 1000000,
-        "positions_per_step": 12,
+        # How hard the learner may use each position: one gradient step per
+        # batch / sample_reuse new positions, so a position is sampled about
+        # `sample_reuse` times while it is in the buffer. Tier 2 round 1 ran
+        # at 85 (positions_per_step 12, batch 1024) and its value head
+        # memorized the buffer's games (train MSE 0.05 -> 0.0002).
+        # `positions_per_step`, if set, overrides (the smoke configs).
+        "sample_reuse": 6.0,
+        "positions_per_step": None,
+        # Games held out of training (by seed), their value and policy loss
+        # logged every `validation_every_steps` steps: memorization shows
+        # as a train/validation gap in the monitor while the run goes.
+        "validation_fraction": 0.02,
+        "validation_games": 400,
+        "validation_every_steps": 250,
         "gate_every_steps": 1000,
         "gate_games": 400,
         "mirror_augmentation": True,
@@ -150,6 +163,24 @@ DEFAULTS: Dict[str, Any] = {
     },
     "telemetry": {"interval_seconds": 60},
 }
+
+
+def positions_per_step(sp: dict) -> float:
+    """New positions per learner step: `selfplay.positions_per_step`, or
+    batch / `sample_reuse`."""
+    if sp.get("positions_per_step"):
+        return float(sp["positions_per_step"])
+    return float(sp["batch"]) / float(sp.get("sample_reuse") or 6.0)
+
+
+def held_out(seed: int, fraction: float) -> bool:
+    """Whether a self-play game (by its seed) is a validation game."""
+    if fraction <= 0:
+        return False
+    import hashlib as _h
+
+    d = _h.blake2b(f"validation|{seed}".encode(), digest_size=4).digest()
+    return int.from_bytes(d, "big") / 2 ** 32 < fraction
 
 
 def _deep_merge(base: dict, override: dict, path: str = "") -> dict:
