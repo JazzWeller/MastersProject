@@ -78,9 +78,12 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
     # positions_per_step of them by design). ~1: the learner keeps pace;
     # >> 1: it can't. It can't run ahead (it waits for new data), so actor
     # starvation shows as ~1 with a low steps/second, not as < 1.
-    pps = float(run.config.get("selfplay", {}).get("positions_per_step", 12))
+    from agent.config import positions_per_step
+
+    pps = positions_per_step(dict(run.config.get("selfplay", {}), batch=run.config.get("selfplay", {}).get("batch", 1024)))
     steps_rate = total_rate("learner", "gradient_steps")
-    ratio = produced / (steps_rate * pps) if steps_rate else None
+    # (no data arriving -- the actors are done, or not started -- says nothing either way)
+    ratio = produced / (steps_rate * pps) if steps_rate and produced else None
     learner = [m for m in metrics if m["source"] == "learner"]
     # The newest record that carries each kind of reading: an idle
     # interval's record has no losses (and older learners wrote no gauges
@@ -124,6 +127,12 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
         flags.append(f"actor:learner {ratio:.2f} << 0.5 -- inconsistent (the learner shouldn't outrun its data); check positions_per_step")
     if games_done >= 25_000 and slope is not None and slope <= 0:
         flags.append("G6: no improvement over the last gates -- bank the promoted checkpoint and stop; spend the time on the matrix")
+    last_val = next((m for m in reversed(learner) if "val_loss_value" in m["means"]), None)
+    validation = {k[4:]: round(v, 4) for k, v in last_val["means"].items() if k.startswith("val_loss_")} if last_val else {}
+    train_v = last_losses["means"].get("loss_value") if last_losses else None
+    if train_v is not None and "loss_value" in validation and validation["loss_value"] > 1.5 * train_v + 0.05:
+        flags.append(f"value loss {train_v:.3f} in training vs {validation['loss_value']:.3f} on held-out games -- "
+                     "memorizing (lower selfplay.sample_reuse)")
     ent = last_losses["means"].get("policy_entropy") if last_losses else None
     if ent is not None and ent < 0.2:
         flags.append(f"policy entropy {ent:.3f} is collapsing -- raise root noise / check the temperature schedule")
@@ -146,6 +155,7 @@ def summarize(run: Run, projected_gph: float = PLAN_GAMES_PER_HOUR, window_minut
         "gate_score_slope_per_10k_games": round(slope, 4) if slope is not None else None,
         "gate_running": bool(last["gauges"].get("gate_running")) if last else False,
         "losses": {k: round(v, 4) for k, v in (last_losses["means"].items() if last_losses else ()) if k.startswith("loss_")},
+        "validation_losses": validation,
         "policy_entropy": round(ent, 4) if ent is not None else None,
         "interventions": [j for j in journal if j["event"] not in ("gate", "promoted", "run_created")][-5:],
         "flags": flags,
@@ -163,6 +173,8 @@ def render(s: Dict[str, object]) -> str:
         f" last score {s['last_gate_score']}, slope/10k games {s['gate_score_slope_per_10k_games']}",
         f"   losses {s['losses']}   entropy {s['policy_entropy']}",
     ]
+    if s.get("validation_losses"):
+        lines.append(f"   held-out {s['validation_losses']}")
     for f in s["flags"]:
         lines.append(f"   !! {f}")
     for j in s["interventions"]:

@@ -226,6 +226,12 @@ minutes of server + actors + learner + gating, then its monitor screen); it star
 network, so it needs no data.
 `python run.py smoke-selfplay-v2` is the same with network v2 (O10's A7 inputs, `configs/smoke_selfplay_v2.json`):
 v2 actors record compact positions, and the learner replays each game to encode it (`ml/selfplay_v2.py`).
+`python run.py tier2-v2` / `tier2-v1` are the Tier 2 runs (50k games each, warm-started from
+`assets/kf-bc-checkpoints.tar.gz` unpacked into the data root); `eval-tier2` scores them and `export`
+copies their results into `results/tier2` to commit. The learner samples each position about
+`selfplay.sample_reuse` (6) times, never keeps more than one buffer of training backlog, and logs value
+and policy loss on held-out games (`selfplay.validation_fraction`, 2%), shown by the monitor next to
+the training losses.
 
 **Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
 parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for

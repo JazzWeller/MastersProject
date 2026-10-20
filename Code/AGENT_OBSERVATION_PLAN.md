@@ -5,6 +5,15 @@ passed on the cluster (2026-10-16), and self-play now runs network v2** (`observ
 v2 actors record compact positions, the learner replays each game to encode it with the BC corpus's own
 code (`ml/selfplay_v2.py`), and the server (`ml.infer_v2 --watch`) and gate are v2. Next: the v2 smoke
 run on the cluster, then Tier 2 (`configs/tier2_selfplay_v2.json`, warm-started with `--init-run`).
+
+**Tier 2, round 1 (2026-10-19, `results/tier2`).** v1 (`tier2-v1-s0`) played 50k games in 9.4 h on an H200 node
+(~5,300 games/h). One promotion, at step 58,741 (game 20,709): gate G4 passed, 0.616 against the BC network.
+Every later candidate lost to it (0.54 falling to 0.15), because the value head memorized its buffer: training
+value MSE ~0.05 during the run and 0.0002 at the end (honest is ~0.5). Two causes: 85 samples per position
+(batch 1024, `positions_per_step` 12), and 685k more steps on the frozen last buffer after the actors finished.
+v2 (`tier2-v2-s0`) never started: the vocabulary hash read CRLF bytes on Windows and LF on the cluster
+(fixed: hashes normalize line endings, old stamps are aliased). **Round 2** (`-s1`): `selfplay.sample_reuse` 6,
+a training backlog capped at one buffer, 2% of games held out with their losses in the monitor.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;

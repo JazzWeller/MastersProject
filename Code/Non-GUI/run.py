@@ -43,6 +43,9 @@ ARCHS = ("none", "summary", "turn_tokens", "joint", "stream")  # network.history
 # and the main process), capped at `max_w`, and at one worker per `gb_per_w` GB.
 # Steps run in order from this directory and stop at the first failure.
 PY = "python"
+# Tier 2's current runs: s0 (2026-10-19) trained at 85 samples per position and its value head memorized the
+# buffer; s1 runs with selfplay.sample_reuse 6, a capped backlog and held-out validation games.
+TIER2_RUN = "s1"
 DATA = "bc/tier0b"  # under $KEYFORGE_DATA
 
 
@@ -116,7 +119,7 @@ METHODS = {
                   local=True, steps=[]),
     "export": dict(desc="login node: copy the Tier 2 runs' journals, gates, metrics, best/final networks and evals into "
                         "results/tier2 (then commit and push)", local=True,
-                   steps=[[PY, "-m", "tools.export_results", "tier2-v2-s0", "tier2-v1-s0"]]),
+                   steps=[[PY, "-m", "tools.export_results", f"tier2-v2-{TIER2_RUN}", f"tier2-v1-{TIER2_RUN}"]]),
     "ladder": dict(desc="login node: submit data, then bc-<arch> for every arch in parallel, then probe, with dependencies",
                    local=True, steps=[]),
 }
@@ -137,17 +140,17 @@ _TIER2 = {"v2": ("tier2_selfplay_v2.json", "tier0b2-a7", {"workers": 26, "encode
           "v1": ("tier2_selfplay_within_turn.json", "tier0b-a0", {"workers": 28})}
 for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
     METHODS[f"tier2-{_arm}"] = dict(
-        desc=f"Tier 2 self-play, network {_arm}, 50k games from BC run {_bc_run} (run tier2-{_arm}-s0); resumable",
+        desc=f"Tier 2 self-play, network {_arm}, 50k games from BC run {_bc_run} (run tier2-{_arm}-{TIER2_RUN}); resumable",
         cpus=32, mem_gb=128, gpu=True, hours=72,
-        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"tier2-{_arm}-s0", "--config", _cfg, "--init-run", _bc_run,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"tier2-{_arm}-{TIER2_RUN}", "--config", _cfg, "--init-run", _bc_run,
                 "--override", json.dumps({"selfplay": _sp}), "--port", "{port}"],
-               [PY, "-m", "tools.monitor", f"tier2-{_arm}-s0"]])
+               [PY, "-m", "tools.monitor", f"tier2-{_arm}-{TIER2_RUN}"]])
 METHODS["eval-tier2"] = dict(
     desc="Tier 2's result: each arm's best network vs HeuristicBot, then v2 vs v1 (100 sims, 100 paired seeds, as O10)",
     cpus=32, mem_gb=64, gpu=True, hours=24, max_w=16,
-    steps=[[PY, "-m", "tools.eval_v2", "--a", f"{_arm}:tier2-{_arm}-s0", "--b", "heuristic", "--sims", "100",
+    steps=[[PY, "-m", "tools.eval_v2", "--a", f"{_arm}:tier2-{_arm}-{TIER2_RUN}", "--b", "heuristic", "--sims", "100",
             "--seeds", "100", "--workers", "{w}"] for _arm in ("v2", "v1")]
-          + [[PY, "-m", "tools.eval_v2", "--a", "v2:tier2-v2-s0", "--b", "v1:tier2-v1-s0", "--sims", "100",
+          + [[PY, "-m", "tools.eval_v2", "--a", f"v2:tier2-v2-{TIER2_RUN}", "--b", f"v1:tier2-v1-{TIER2_RUN}", "--sims", "100",
               "--seeds", "100", "--workers", "{w}"]])
 METHODS["smoke-selfplay-v2"] = dict(
     desc="the smoke run with network v2 (O10's A7 inputs): v2 actors, server, learner, gate; minutes (run smoke-sp-v2)",

@@ -64,6 +64,7 @@ from torch.nn import functional as F
 
 from agent import spec
 from agent.selfplay import EXIT_SHARD_BUSY, read_frames
+from agent.config import held_out, positions_per_step
 from agent.telemetry import Run
 from keyforge.infoset import ZONE
 
@@ -485,7 +486,8 @@ def main():
     else:
         compile_trunk(model, sp.get("compile", False), device)
     positions_per_game = 200.0  # ~140 non-forced decisions + half as many value-only records
-    total_steps = max(1, int(budget * positions_per_game / sp["positions_per_step"]))
+    pps = positions_per_step(sp)
+    total_steps = max(1, int(budget * positions_per_game / pps))
     sched = cosine_schedule(opt, total_steps, float(sp["lr_min"]), step, float(sp["lr"]))
 
     if not os.path.exists(best_json):
@@ -505,7 +507,7 @@ def main():
         save_model(model, path + ".tmp", config_hash=run.config_hash, optimizer=opt, extra={"kind": "learner_state", "step": step, **stamp})
         os.replace(path + ".tmp", path)
         _write_json(state_json, {"state_file": STATE_FILE, "step": step, "games_consumed": games, "gates": gate_count,
-                                 "last_gate": last_gate, "gate_pending": pending})
+                                 "last_gate": last_gate, "gate_pending": pending, "credit": credit})
 
     # ------------------------------------------------ processes
     procs: Dict[int, subprocess.Popen] = {}
@@ -533,21 +535,76 @@ def main():
     max_games = max(200, int(sp["buffer_positions"] // 150))
     metrics = run.metrics("learner")
     encoder = None
+    val_fraction = float(sp.get("validation_fraction", 0.0))
+    val_games = int(sp.get("validation_games", 400))
+    # The training credit (steps the learner may take): +1 per `pps` new
+    # positions, -1 per step, and never more than one buffer's worth -- a
+    # learner that falls behind lets older positions go rather than train
+    # on a frozen buffer once the actors stop (Tier 2 round 1: 685k steps on
+    # the last buffer, the value head memorized it).
+    credit = float(state.get("credit", 0.0)) if state else 0.0
+    fresh_run = state is None
+
+    def take(n: int) -> None:
+        nonlocal credit
+        cap = max(1.0, buffer.size / pps)
+        credit += n / pps
+        if credit > cap:
+            metrics.count("positions_unlearned", int((credit - cap) * pps))
+            credit = cap
+
+    def is_val(meta) -> bool:
+        return held_out(int(meta["seed"]), val_fraction)
+
     if v2:
         from .selfplay_v2 import DEFAULT_WEIGHTS as V2_WEIGHTS
-        from .selfplay_v2 import BufferV2, EncodingPool, backward_step_v2
+        from .selfplay_v2 import BufferV2, EncodingPool, backward_step_v2, losses_v2
 
         buffer = BufferV2(int(sp["buffer_positions"]), max_games, _history_form(cfg))
+        val = BufferV2(val_games * 250, val_games, _history_form(cfg))
         encoder = EncodingPool(int(sp.get("encode_workers", 2)))
         weights = dict(V2_WEIGHTS, **sp["loss_weights"])
         encoder.submit(tailer.poll())  # rebuild the buffer (resume) or pick up anything already there
-        for arrays, _info in encoder.wait_all():
-            buffer.add(arrays)
+        for arrays, info in encoder.wait_all():
+            if is_val(info["meta"]):
+                val.add(arrays)
+            elif fresh_run:
+                take(buffer.add(arrays))
+            else:
+                buffer.add(arrays)
     else:
         buffer = Buffer(int(sp["buffer_positions"]), max_games)
+        val = Buffer(val_games * 250, val_games)
         for rec in tailer.poll():  # rebuild the buffer (resume) or pick up anything already there
-            buffer.add(rec)
+            if is_val(rec["meta"]):
+                val.add(rec)
+            elif fresh_run:
+                take(buffer.add(rec))
+            else:
+                buffer.add(rec)
         weights = dict(sp["loss_weights"])
+
+    @torch.no_grad()
+    def validate() -> None:
+        """Value (and policy) loss on held-out games, the same losses the
+        learner trains -- the memorization check."""
+        if val.size < 64:
+            return
+        vrng = random.Random(step)
+        model.eval()
+        try:
+            with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
+                if v2:
+                    b, t, p, c = val.sample(256, vrng)
+                    _tot, VL, _st = losses_v2(model, b.to(device), t.to(device), p, c, weights, ["policy", "multi", "value"])
+                else:
+                    _tot, VL, _st = losses_for(model, val.sample(256, vrng), device, {"value": 1.0, "policy": 1.0},
+                                               args.mode, False, vrng)
+        finally:
+            model.train()
+        for k in ("value", "policy", "multi"):
+            if k in VL:
+                metrics.observe(f"val_loss_{k}", float(VL[k]))
     if args.mode == "dmc":
         weights["q"] = 1.0
     augment = bool(sp.get("mirror_augmentation", True)) and not v2
@@ -562,7 +619,7 @@ def main():
         # if it finished, otherwise play it again (same seeds).
         out = os.path.join(run.artifact_dir("gates"), f"gate_{pending['number']:04d}.json")
         if not os.path.exists(out):
-            run.journal("gate_resumed", game_index=buffer.total_games, number=pending["number"], candidate=pending["candidate"])
+            run.journal("gate_resumed", game_index=buffer.total_games + val.total_games, number=pending["number"], candidate=pending["candidate"])
             gate_proc, gate_out = _start_gate(run, pending, args)
         else:
             gate_out = out
@@ -576,12 +633,18 @@ def main():
                 procs[w] = _start_actor(run, w, per_worker, args.port, args.mode)
         while True:
             new = tailer.poll()
+            arrived = []
+            for item, rec in ([(a, i) for a, i in encoder.ready()] if v2 else [(r, r) for r in new]):
+                if is_val(rec["meta"]):
+                    n = val.add(item)
+                    metrics.count("validation_games")
+                else:
+                    n = buffer.add(item)
+                    take(n)
+                arrived.append((n, rec))
             if v2:
                 encoder.submit(new)
-                arrived = [(buffer.add(arrays), info) for arrays, info in encoder.ready()]
                 new = new or encoder.pending  # still encoding: not finished yet
-            else:
-                arrived = [(buffer.add(rec), rec) for rec in new]
             for n, rec in arrived:
                 metrics.count("positions_produced", n)
                 metrics.count("games_seen")
@@ -593,10 +656,9 @@ def main():
                     metrics.count("resign_tests")
                     if rec["outcome"][meta["would_resign"]] >= 0:
                         metrics.count("false_resignations")
-            games_done = buffer.total_games
-            # Train at most one step per `positions_per_step` new positions.
-            allowed = int(buffer.total_positions / sp["positions_per_step"]) - step
-            if buffer.size >= int(sp["batch"]) and allowed > 0:
+            games_done = buffer.total_games + val.total_games
+            if buffer.size >= int(sp["batch"]) and credit >= 1:
+                credit -= 1
                 model.train()
                 opt.zero_grad(set_to_none=True)
                 if v2:
@@ -621,6 +683,8 @@ def main():
                 for k, v in st.items():
                     metrics.observe(k, v)
                 metrics.gauge("lr", sched.get_last_lr()[0])
+                if step % int(sp.get("validation_every_steps", 250)) == 0:
+                    validate()
             else:
                 time.sleep(0.5)
             # Gauges every pass, not only on training passes: an idle
@@ -628,6 +692,8 @@ def main():
             metrics.gauge("buffer_positions", buffer.size)
             metrics.gauge("games", games_done)
             metrics.gauge("step", step)
+            metrics.gauge("credit", round(credit, 2))
+            metrics.gauge("validation_positions", val.size)
             metrics.gauge("gate_running", gate_proc is not None)
             metrics.tick()
 
@@ -695,14 +761,14 @@ def main():
                     run.journal("server_abandoned", game_index=games_done, exit_code=server.returncode)
                     raise SystemExit("the inference server keeps dying -- see server.log")
             starved = buffer.size < int(sp["batch"])  # nothing more will ever arrive to fill a batch
-            if (args.no_actors or alive == 0) and (allowed <= 0 or starved) and not new and gate_out is None:
+            if (args.no_actors or alive == 0) and (credit < 1 or starved) and not new and gate_out is None:
                 break
             if time.time() - t_last > 60:
                 t_last = time.time()
                 print(f"[learner] step {step} games {games_done} buffer {buffer.size} alive {alive}"
                       f"{' gate ' + str(pending['number']) + ' running' if pending else ''}", flush=True)
     except (KeyboardInterrupt, SystemExit):
-        save_state(buffer.total_games)
+        save_state(buffer.total_games + val.total_games)
         raise
     finally:
         stop_children()
@@ -710,8 +776,8 @@ def main():
             encoder.close()
 
     h, _d = save_model(model, store, config_hash=run.config_hash, optimizer=opt, extra={"kind": "learner", "step": step, "final": True, **stamp})
-    save_state(buffer.total_games)
-    run.journal("run_finished", game_index=buffer.total_games, step=step, final=h)
+    save_state(buffer.total_games + val.total_games)
+    run.journal("run_finished", game_index=buffer.total_games + val.total_games, step=step, final=h)
     metrics.flush()
 
 
