@@ -14,6 +14,12 @@ value MSE ~0.05 during the run and 0.0002 at the end (honest is ~0.5). Two cause
 v2 (`tier2-v2-s0`) never started: the vocabulary hash read CRLF bytes on Windows and LF on the cluster
 (fixed: hashes normalize line endings, old stamps are aliased). **Round 2** (`-s1`): `selfplay.sample_reuse` 6,
 a training backlog capped at one buffer, 2% of games held out with their losses in the monitor.
+Its early monitor (2026-10-20): G4 passed on both arms (v2 0.613 at step 1,000), but the value head still
+memorized — held-out MSE 1.14 against 0.07 training (v2), 1.04 against 0.13 (v1), worse than predicting 0.
+Each game's ~210 positions share one z and the buffer holds ~4,700 games, so each outcome trains ~1,200
+times. **Next:** cap reuse per target group (`selfplay.policy_reuse` / `value_reuse`) and compare learners
+offline on round 2's own games (`ml.selfplay_train --replay-from`; `run.py replay-<arm>-{reuse6,value1,once}`),
+on every held-out position's losses, before round 3.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;

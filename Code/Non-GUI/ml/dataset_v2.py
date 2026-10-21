@@ -349,17 +349,21 @@ class TargetsV2:
     opp_deck: torch.Tensor  # [B, 40] long, top first, -1 padded (privileged)
     my_draws: torch.Tensor  # [B, 5] long, -1 padded (privileged)
     game: np.ndarray
+    # [B] bool: rows whose outcome targets (value, oracle) train; None = all.
+    # Set by the self-play learner's reuse limits, never by BC.
+    value_on: Optional[torch.Tensor] = None
 
     _TENSORS = ("kind", "target", "forced", "z", "turn", "source", "min_n", "max_n", "n_opt", "value_only", "zone",
-                "opp_deck", "my_draws")
+                "opp_deck", "my_draws", "value_on")
 
     def to(self, device) -> "TargetsV2":
         for f in self._TENSORS:
-            setattr(self, f, getattr(self, f).to(device, non_blocking=True))
+            if getattr(self, f) is not None:
+                setattr(self, f, getattr(self, f).to(device, non_blocking=True))
         return self
 
     def slice(self, a: int, b: int) -> "TargetsV2":
-        return TargetsV2(**{k: getattr(self, k)[a:b] for k in self.__dataclass_fields__})
+        return TargetsV2(**{k: None if getattr(self, k) is None else getattr(self, k)[a:b] for k in self.__dataclass_fields__})
 
 
 def _gather_ragged(off: np.ndarray, flat: np.ndarray, local: np.ndarray):

@@ -152,6 +152,25 @@ METHODS["eval-tier2"] = dict(
             "--seeds", "100", "--workers", "{w}"] for _arm in ("v2", "v1")]
           + [[PY, "-m", "tools.eval_v2", "--a", f"v2:tier2-v2-{TIER2_RUN}", "--b", f"v1:tier2-v1-{TIER2_RUN}", "--sims", "100",
               "--seeds", "100", "--workers", "{w}"]])
+# Learner settings compared offline (after round 2's value memorization): each replays a finished Tier 2 run's games
+# through a new learner from the same BC start -- in arrival order, at the pace its credit allows, no actors, no gates --
+# and ends with its losses on every held-out position (journal "final_validation"). Same games, same held-out split.
+# reuse6 is round 2's learner (the control); value1 trains each position's outcome once; once trains everything once.
+REPLAY_SOURCE = TIER2_RUN
+_REPLAY = {"reuse6": {}, "value1": {"value_reuse": 1}, "once": {"sample_reuse": 1, "policy_reuse": 1, "value_reuse": 1}}
+for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
+    for _var, _over in _REPLAY.items():
+        METHODS[f"replay-{_arm}-{_var}"] = dict(
+            desc=f"offline learner comparison: tier2-{_arm}-{REPLAY_SOURCE}'s games, learner '{_var}' "
+                 f"(run replay-{_arm}-{_var}); resumable",
+            cpus=32 if _arm == "v2" else 8, mem_gb=128, gpu=True, hours=24 if _arm == "v2" else 12,
+            steps=[[PY, "-m", "ml.selfplay_train", "--run", f"replay-{_arm}-{_var}", "--config", _cfg, "--init-run", _bc_run,
+                    "--replay-from", f"tier2-{_arm}-{REPLAY_SOURCE}",
+                    "--override", json.dumps({"selfplay": dict(_over, **({"encode_workers": 28} if _arm == "v2" else {}))})]])
+METHODS["export-replay"] = dict(
+    desc="login node: copy the replay runs' journals, metrics and final networks into results/replay (then commit and push)",
+    local=True, steps=[[PY, "-m", "tools.export_results", *[f"replay-{a}-{v}" for a in _TIER2 for v in _REPLAY],
+                        "--out", os.path.join("results", "replay")]])
 METHODS["smoke-selfplay-v2"] = dict(
     desc="the smoke run with network v2 (O10's A7 inputs): v2 actors, server, learner, gate; minutes (run smoke-sp-v2)",
     cpus=8, mem_gb=32, gpu=True, hours=2,
