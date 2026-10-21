@@ -121,13 +121,16 @@ def encode_task(record: dict) -> dict:
 # ------------------------------------------------------------------- buffer
 class BufferV2:
     """The most recent `max_games` games' encoded positions, sampled
-    uniformly (v1's `Buffer`, over encoded games)."""
+    uniformly (v1's `Buffer`, over encoded games), with v1's reuse limits
+    (`UseCounts`): a spent policy group empties the row's target, a spent
+    outcome group clears it in `TargetsV2.value_on`."""
 
-    def __init__(self, max_positions: int, max_games: int, history: str):
+    def __init__(self, max_positions: int, max_games: int, history: str, limits=None):
         self.games: deque = deque()
         self.max_positions = max_positions
         self.max_games = max_games
         self.history = history
+        self.limits = limits if limits is not None and limits.active else None
         self.size = 0
         self.total_games = 0
         self.total_positions = 0
@@ -138,31 +141,60 @@ class BufferV2:
         self.total_positions += n
         if n:
             self.games.append(arrays)
+            if self.limits:
+                self.limits.add(np.diff(arrays["pi_off"]) > 0)
             self.size += n
         while self.games and (len(self.games) > self.max_games or self.size > self.max_positions):
             self.size -= int(self.games.popleft()["n"])
+            if self.limits:
+                self.limits.drop_oldest()
         return n
+
+    def trainable(self) -> int:
+        return self.limits.trainable() if self.limits else self.size
 
     def sample(self, n: int, rng: random.Random):
         """A batch of `n` positions (fewer if the buffer holds fewer):
         (BatchV2, TargetsV2, pi per row, candidates per row)."""
-        sizes = [int(g["n"]) for g in self.games]
-        cum = np.cumsum(sizes)
-        picks = sorted(rng.sample(range(int(cum[-1])), min(n, int(cum[-1]))))
-        by_game: Dict[int, List[int]] = {}
-        for k in picks:
-            gi = int(np.searchsorted(cum, k, side="right"))
-            by_game.setdefault(gi, []).append(k - (int(cum[gi - 1]) if gi else 0))
-        groups, pis, cands, row = [], [], [], 0
-        for gi, local in by_game.items():
-            g = self.games[gi]
-            local = np.asarray(local, dtype=np.int64)
+        if self.limits:
+            by_game: Dict[int, List[Tuple[int, bool, bool]]] = {}
+            for gi, j, pol, val in self.limits.pick(n, rng):
+                by_game.setdefault(gi, []).append((j, pol, val))
+        else:
+            sizes = [int(g["n"]) for g in self.games]
+            cum = np.cumsum(sizes)
+            picks = sorted(rng.sample(range(int(cum[-1])), min(n, int(cum[-1]))))
+            by_game = {}
+            for k in picks:
+                gi = int(np.searchsorted(cum, k, side="right"))
+                by_game.setdefault(gi, []).append((k - (int(cum[gi - 1]) if gi else 0), True, True))
+        return self._rows([(self.games[gi], rows) for gi, rows in by_game.items()],
+                          with_value_on=self.limits is not None)
+
+    def batches(self, n: int):
+        """Every position in buffer order, `n` at a time (full validation)."""
+        flat = [(g, j) for g in self.games for j in range(int(g["n"]))]
+        for a in range(0, len(flat), n):
+            by_game: Dict[int, Tuple[dict, list]] = {}
+            for g, j in flat[a:a + n]:
+                by_game.setdefault(id(g), (g, []))[1].append((j, True, True))
+            yield self._rows(list(by_game.values()), with_value_on=False)
+
+    def _rows(self, games, with_value_on: bool):
+        """`games`: (a game's arrays, [(position, policy on, value on)])."""
+        groups, pis, cands, value_on, row = [], [], [], [], 0
+        empty = np.zeros(0, np.float32)
+        for g, rows in games:
+            local = np.asarray([j for j, _p, _v in rows], dtype=np.int64)
             groups.append((np.arange(row, row + len(local)), g, local))
-            for j in local:
-                pis.append(g["pi"][g["pi_off"][j]:g["pi_off"][j + 1]])
-                cands.append(g["cands"][j])
+            for j, pol, val in rows:
+                pis.append(g["pi"][g["pi_off"][j]:g["pi_off"][j + 1]] if pol else empty)
+                cands.append(g["cands"][j] if pol else None)
+                value_on.append(val)
             row += len(local)
         batch, tg = assemble(groups, row, self.history)
+        if with_value_on and not all(value_on):
+            tg.value_on = torch.tensor(value_on, dtype=torch.bool)
         return batch, tg, pis, cands
 
 
@@ -188,8 +220,9 @@ def loss_counts(batch: BatchV2, tg, pis, cands, heads: Sequence[str]) -> Dict[st
 
     single, multi = target_rows(tg, pis, cands)
     zone_rows, _cls, draw_rows, _next = _belief_targets(batch, tg)
-    n = {"policy": len(single), "multi": len(multi), "value": batch.size, "belief": int(zone_rows.sum()),
-         "draw": int(draw_rows.sum()), "oracle": batch.size, "distill": batch.size if "oracle" in heads else 0}
+    outcome = batch.size if tg.value_on is None else int(tg.value_on.sum())
+    n = {"policy": len(single), "multi": len(multi), "value": outcome, "belief": int(zone_rows.sum()),
+         "draw": int(draw_rows.sum()), "oracle": outcome, "distill": outcome if "oracle" in heads else 0}
     return {k: v for k, v in n.items() if k in heads}
 
 
@@ -238,10 +271,14 @@ def losses_v2(model, batch: BatchV2, tg, pis, cands, weights: dict, heads: Seque
         padded[torch.tensor(r_idx, device=dev), torch.tensor(c_idx, device=dev)] = scores[torch.tensor(s_idx, device=dev)]
         t = torch.from_numpy(tgt).to(dev)
         L["multi"] = -(t * torch.log_softmax(padded, -1).masked_fill(t == 0, 0.0)).sum(-1).mean()
-    v = model.value(out).float()
-    if "value" in heads:
-        L["value"] = F.mse_loss(v, tg.z)
-        stats["value_calibration"] = float((v.detach() - tg.z).abs().mean())
+    on = None if tg.value_on is None else tg.value_on.nonzero().squeeze(-1)
+    rows = (lambda x: x) if on is None else (lambda x: x[on])
+    outcome = on is None or bool(on.numel())
+    v = rows(model.value(out).float())
+    z = rows(tg.z)
+    if "value" in heads and outcome:
+        L["value"] = F.mse_loss(v, z)
+        stats["value_calibration"] = float((v.detach() - z).abs().mean())
     if "belief" in heads or "draw" in heads:
         zones, draw = model.belief_v2(out, batch)
         zone_rows, cls, draw_rows, is_next = _belief_targets(batch, tg)
@@ -249,9 +286,9 @@ def losses_v2(model, batch: BatchV2, tg, pis, cands, weights: dict, heads: Seque
             L["belief"] = F.cross_entropy(zones[zone_rows].float(), cls[zone_rows])
         if "draw" in heads and bool(draw_rows.any()):
             L["draw"] = F.binary_cross_entropy_with_logits(draw[draw_rows].float(), is_next[draw_rows])
-    if "oracle" in heads:
-        oracle = model.oracle_value(out, oracle_counts(batch, tg)).float()
-        L["oracle"] = F.mse_loss(oracle, tg.z)
+    if "oracle" in heads and outcome:
+        oracle = rows(model.oracle_value(out, oracle_counts(batch, tg)).float())
+        L["oracle"] = F.mse_loss(oracle, z)
         if "distill" in heads:
             L["distill"] = F.mse_loss(v, oracle.detach())
     total = sum(weights.get(k, 1.0) * x for k, x in L.items())

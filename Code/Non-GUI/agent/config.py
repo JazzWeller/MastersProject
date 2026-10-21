@@ -135,6 +135,17 @@ DEFAULTS: Dict[str, Any] = {
         # `positions_per_step`, if set, overrides (the smoke configs).
         "sample_reuse": 6.0,
         "positions_per_step": None,
+        # How many times one position may train each group of targets (None:
+        # no limit). The policy group is the search's visit target (options
+        # or multi-select); the outcome group is everything regressed onto
+        # the game's result z (value, oracle, distillation). A position past
+        # its limit drops that group's targets, and one past both is no
+        # longer sampled -- so 1 / 1 with sample_reuse 1 trains every
+        # position exactly once. Tier 2 round 2 (reuse 6, no limits): the
+        # value head still memorized games (held-out MSE 1.1 vs 0.07), as
+        # each game's ~210 positions share one z.
+        "policy_reuse": None,
+        "value_reuse": None,
         # Games held out of training (by seed), their value and policy loss
         # logged every `validation_every_steps` steps: memorization shows
         # as a train/validation gap in the monitor while the run goes.

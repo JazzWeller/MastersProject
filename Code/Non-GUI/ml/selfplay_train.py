@@ -35,6 +35,14 @@ trains `KeyForgeNetV2` with the soft visit targets plus BC v2's belief,
 next-draw and oracle terms. The server is `ml.infer_v2`, the gate searches
 with v2 leaves. Mirror augmentation is v1 only.
 
+**Reuse limits and replay** (after Tier 2 round 2): `selfplay.policy_reuse`
+and `value_reuse` cap how often one position trains its policy target and its
+outcome targets (`UseCounts`; the value head memorized whole games when
+every position's z trained ~6 times). `--replay-from RUN` trains a new
+learner on another run's games in the order they arrived, at the pace its
+own credit allows, without actors or gates, and ends with the losses on
+every held-out position: learner settings compared on the same games.
+
 **Variable budgets** (M7): the run is defined by a game budget, is
 resumable after a kill at any point (the learner saves weights, optimizer
 state and its step to `learner_state.kfc` every few minutes and at every
@@ -113,15 +121,68 @@ def mirror(batch: Batch, which: torch.Tensor) -> None:
     batch.options[rows] = op
 
 
+class UseCounts:
+    """`selfplay.policy_reuse` / `value_reuse`: how many times one position
+    may train its policy target and its outcome targets (None: no limit).
+    Kept for a buffer's positions in buffer order, in one array (games leave
+    oldest first, so dropping one is a slice): whether each has a policy
+    target, and how often each group has trained. `pick` samples uniformly
+    among positions with a group left and spends what it takes."""
+
+    def __init__(self, policy: Optional[int] = None, value: Optional[int] = None):
+        self.policy = None if policy is None else int(policy)
+        self.value = None if value is None else int(value)
+        self.u = np.zeros((3, 0), dtype=np.int32)  # rows: has a policy target, policy uses, value uses
+        self.lengths: deque = deque()
+
+    @property
+    def active(self) -> bool:
+        return self.policy is not None or self.value is not None
+
+    def add(self, has_policy) -> None:
+        g = np.zeros((3, len(has_policy)), dtype=np.int32)
+        g[0] = has_policy
+        self.u = np.concatenate([self.u, g], axis=1)
+        self.lengths.append(len(has_policy))
+
+    def drop_oldest(self) -> None:
+        self.u = self.u[:, self.lengths.popleft():]
+
+    def _open(self) -> Tuple[np.ndarray, np.ndarray]:
+        pol = self.u[0] > 0 if self.policy is None else (self.u[0] > 0) & (self.u[1] < self.policy)
+        val = np.ones(self.u.shape[1], dtype=bool) if self.value is None else self.u[2] < self.value
+        return pol, val
+
+    def trainable(self) -> int:
+        """Positions with a group left to train."""
+        pol, val = self._open()
+        return int(np.count_nonzero(pol | val))
+
+    def pick(self, n: int, rng: random.Random) -> List[Tuple[int, int, bool, bool]]:
+        """Up to `n` positions as (game, position in it, policy on, value
+        on), in buffer order; the groups they train are counted as spent."""
+        pol, val = self._open()
+        elig = np.flatnonzero(pol | val)
+        flat = elig[sorted(rng.sample(range(len(elig)), min(n, len(elig))))]
+        self.u[1, flat] += pol[flat]
+        self.u[2, flat] += val[flat]
+        starts = np.concatenate([[0], np.cumsum(self.lengths)])
+        gi = np.searchsorted(starts, flat, side="right") - 1
+        return [(int(g), int(k - starts[g]), bool(pol[k]), bool(val[k])) for g, k in zip(gi, flat)]
+
+
 class Buffer:
     """The most recent `max_games` games' positions, sampled uniformly.
     Measured in games, not positions (M11: buffer composition), with a
-    position cap as a memory backstop."""
+    position cap as a memory backstop. With reuse limits (`UseCounts`),
+    only positions with a target group left are sampled, and a spent
+    group's targets are dropped from the sampled copy."""
 
-    def __init__(self, max_positions: int, max_games: int):
+    def __init__(self, max_positions: int, max_games: int, limits: Optional[UseCounts] = None):
         self.games: deque = deque()
         self.max_positions = max_positions
         self.max_games = max_games
+        self.limits = limits if limits is not None and limits.active else None
         self.size = 0
         self.total_games = 0
         self.total_positions = 0
@@ -133,14 +194,37 @@ class Buffer:
             p["z"] = float(record["outcome"][p["seat"]])
             pos.append(p)
         self.games.append(pos)
+        if self.limits:
+            self.limits.add([p["target"] is not None and not p["value_only"] for p in pos])
         self.size += len(pos)
         self.total_games += 1
         self.total_positions += len(pos)
         while self.games and (len(self.games) > self.max_games or self.size > self.max_positions):
             self.size -= len(self.games.popleft())
+            if self.limits:
+                self.limits.drop_oldest()
         return len(pos)
 
+    def trainable(self) -> int:
+        return self.limits.trainable() if self.limits else self.size
+
+    def batches(self, n: int):
+        """Every position in buffer order, `n` at a time (full validation)."""
+        flat = [p for g in self.games for p in g]
+        for a in range(0, len(flat), n):
+            yield flat[a:a + n]
+
     def sample(self, n: int, rng: random.Random) -> List[dict]:
+        if self.limits:
+            out = []
+            for gi, j, pol, val in self.limits.pick(n, rng):
+                p = self.games[gi][j]
+                if not pol and p["target"] is not None:
+                    p = dict(p, target=None)
+                if not val:
+                    p = dict(p, value_on=False)
+                out.append(p)
+            return out
         flat_sizes = [len(g) for g in self.games]
         out = []
         cum = np.cumsum(flat_sizes)
@@ -174,6 +258,64 @@ class Tailer:
         return out
 
 
+def count_frames(path: str) -> int:
+    """Complete frames in a shard, from the length prefixes alone."""
+    from agent.selfplay import FRAME
+
+    size, n, at = os.path.getsize(path), 0, 0
+    with open(path, "rb") as f:
+        while True:
+            f.seek(at)
+            head = f.read(4)
+            if len(head) < 4:
+                return n
+            at += 4 + FRAME.unpack(head)[0]
+            if at > size:
+                return n
+            n += 1
+
+
+class ReplayReader:
+    """Another run's shards, as the games arrived, a few at a time
+    (`--replay-from`): the learner trains on them as it would have while
+    they came in, without actors. A shard is one actor's games in the order
+    they finished and the actors play at one rate, so frame k of a shard of
+    N arrived about k/N of the way through the run; the shards are merged on
+    that. Only the frames complete when the reader opens are read (a source
+    run still playing is a snapshot)."""
+
+    def __init__(self, directory: str):
+        import heapq
+
+        self._heapq = heapq
+        self._heap = []
+        self.total = 0
+        for name in sorted(os.listdir(directory)):
+            if not name.endswith(".bin"):
+                continue
+            path = os.path.join(directory, name)
+            n = count_frames(path)
+            if n:
+                self.total += n
+                frames = (rec for _end, rec in read_frames(path))
+                heapq.heappush(self._heap, (0.5 / n, name, 0, n, frames))
+        self.read = 0
+
+    @property
+    def done(self) -> bool:
+        return not self._heap
+
+    def poll(self, limit: int = 64) -> List[dict]:
+        out = []
+        while self._heap and len(out) < limit:
+            _at, name, k, n, frames = self._heapq.heappop(self._heap)
+            out.append(next(frames))
+            if k + 1 < n:
+                self._heapq.heappush(self._heap, ((k + 1.5) / n, name, k + 1, n, frames))
+        self.read += len(out)
+        return out
+
+
 def _hidden_counts(positions: List[dict], vocab: int, device) -> torch.Tensor:
     """[B, 2*vocab] count vectors of the opponent's true hand and my next
     draws. Index pairs are gathered on the CPU from each position's own
@@ -201,10 +343,10 @@ def loss_counts(positions: List[dict], weights: dict, mode: str) -> Dict[str, in
     over), without a forward pass: what `micro_batch` weights pieces by.
     Kept in step with `losses_for` by the accumulation test."""
     n: Dict[str, int] = defaultdict(int)
-    B = len(positions)
-    n["rows"] = n["value"] = n["oracle"] = B
+    n["rows"] = len(positions)
+    n["value"] = n["oracle"] = sum(1 for p in positions if p.get("value_on", True))
     if weights.get("distill", 0.0) > 0:
-        n["distill"] = B
+        n["distill"] = n["value"]
     for p in positions:
         n["belief"] += sum(1 for z in p["enc"].zones if z == OPP_UNSEEN)
         if p["target"] is None or p["value_only"]:
@@ -309,8 +451,10 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
             tg = torch.from_numpy(tgt).to(device)
             L["multi"] = -(tg * logp.masked_fill(tg == 0, 0.0)).sum(-1).mean()
     v = model.value(out)
-    L["value"] = F.mse_loss(v, z)
-    stats["value_calibration"] = float((v.detach() - z).abs().mean())
+    on = value_rows([p.get("value_on", True) for p in positions], device)
+    if on is None or on.numel():
+        L["value"] = F.mse_loss(_rows(v, on), _rows(z, on))
+        stats["value_calibration"] = float((_rows(v, on).detach() - _rows(z, on)).abs().mean())
     unseen = batch.zones == OPP_UNSEEN
     if bool(unseen.any()):
         hand_np = np.zeros(tuple(batch.zones.shape), dtype=np.float32)
@@ -319,15 +463,29 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
                 hand_np[b, p["priv"]["opp_hand"]] = 1.0
         in_hand = torch.from_numpy(hand_np).to(device)
         L["belief"] = F.binary_cross_entropy_with_logits(model.belief_logits(out)[unseen], in_hand[unseen])
-    oracle = model.oracle_value(out, _hidden_counts(positions, model.vocab_size, device))
-    L["oracle"] = F.mse_loss(oracle, z)
-    if weights.get("distill", 0.0) > 0:
-        # Suphx-style oracle guidance, the distillation route (M6): the
-        # student value regresses onto the oracle's (a far less noisy
-        # target than the outcome), never the other way round.
-        L["distill"] = F.mse_loss(v, oracle.detach())
+    if on is None or on.numel():
+        oracle = _rows(model.oracle_value(out, _hidden_counts(positions, model.vocab_size, device)), on)
+        L["oracle"] = F.mse_loss(oracle, _rows(z, on))
+        if weights.get("distill", 0.0) > 0:
+            # Suphx-style oracle guidance, the distillation route (M6): the
+            # student value regresses onto the oracle's (a far less noisy
+            # target than the outcome), never the other way round.
+            L["distill"] = F.mse_loss(_rows(v, on), oracle.detach())
     total = sum(weights.get(k, 1.0) * x for k, x in L.items())
     return total, L, stats
+
+
+def value_rows(flags, device) -> Optional[torch.Tensor]:
+    """The row indices whose outcome targets train (`UseLimits`), or None
+    when every row's do."""
+    flags = [bool(f) for f in flags]
+    if all(flags):
+        return None
+    return torch.tensor([b for b, f in enumerate(flags) if f], dtype=torch.long, device=device)
+
+
+def _rows(x: torch.Tensor, on: Optional[torch.Tensor]) -> torch.Tensor:
+    return x if on is None else x[on]
 
 
 def _start_server(ckpt_path: str, port: int, best_json: str, log_path: str, v2: bool = False) -> subprocess.Popen:
@@ -415,7 +573,12 @@ def main():
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--gate-sims", type=int, default=50)
     parser.add_argument("--no-actors", action="store_true", help="learn from existing shards only")
+    parser.add_argument("--replay-from", default=None, metavar="RUN",
+                        help="learn from another run's games, in arrival order and at the pace its config's credit "
+                             "allows, with no actors and no gates: learner settings compared offline on the same games")
     args = parser.parse_args()
+    if args.replay_from:
+        args.no_actors = True
     if args.init_run and not args.init:
         from tools.eval_v2 import _checkpoint
 
@@ -430,7 +593,15 @@ def main():
         raise SystemExit(f"run {args.run!r} searches with resample={cfg['search']['resample']!r}, which leaves true hidden "
                          "cards in every world (plan status, departure 4) -- its data can't train an honest agent. "
                          "Start a new run id with resample 'all'.")
-    budget = args.games or int(sp["games"])
+    reader = None
+    if args.replay_from:
+        from agent.telemetry import runs_root
+
+        reader = ReplayReader(os.path.join(runs_root(), args.replay_from, "shards"))
+        if not reader.total:
+            raise SystemExit(f"run {args.replay_from!r} has no games to replay")
+        run.journal("replay", game_index=0, source=args.replay_from, games=reader.total)
+    budget = args.games or (reader.total if reader else int(sp["games"]))
     if args.games:
         run.journal("budget_override", game_index=0, games=budget)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
@@ -531,7 +702,14 @@ def main():
     signal.signal(signal.SIGTERM, on_term)
 
     # ------------------------------------------------ learning loop
-    tailer = Tailer(run.artifact_dir("shards"))
+    tailer = reader or Tailer(run.artifact_dir("shards"))
+    limits = UseCounts(sp.get("policy_reuse"), sp.get("value_reuse"))
+    # A replay that resumes reads its source again from the start: the games
+    # it had consumed refill the buffer without earning credit (their use
+    # counts start over).
+    catch_up = int(state["games_consumed"]) if state and reader else 0
+    inbox: deque = deque()  # arrived games not yet in a buffer (a replay takes them as its credit runs out)
+    lookahead = 4 * max(1, int(sp.get("encode_workers", 2))) + 16
     max_games = max(200, int(sp["buffer_positions"] // 150))
     metrics = run.metrics("learner")
     encoder = None
@@ -559,12 +737,14 @@ def main():
     if v2:
         from .selfplay_v2 import DEFAULT_WEIGHTS as V2_WEIGHTS
         from .selfplay_v2 import BufferV2, EncodingPool, backward_step_v2, losses_v2
+        from .selfplay_v2 import loss_counts as loss_counts_v2
 
-        buffer = BufferV2(int(sp["buffer_positions"]), max_games, _history_form(cfg))
+        buffer = BufferV2(int(sp["buffer_positions"]), max_games, _history_form(cfg), limits)
         val = BufferV2(val_games * 250, val_games, _history_form(cfg))
         encoder = EncodingPool(int(sp.get("encode_workers", 2)))
         weights = dict(V2_WEIGHTS, **sp["loss_weights"])
-        encoder.submit(tailer.poll())  # rebuild the buffer (resume) or pick up anything already there
+        if not reader:
+            encoder.submit(tailer.poll())  # rebuild the buffer (resume) or pick up anything already there
         for arrays, info in encoder.wait_all():
             if is_val(info["meta"]):
                 val.add(arrays)
@@ -573,9 +753,9 @@ def main():
             else:
                 buffer.add(arrays)
     else:
-        buffer = Buffer(int(sp["buffer_positions"]), max_games)
+        buffer = Buffer(int(sp["buffer_positions"]), max_games, limits)
         val = Buffer(val_games * 250, val_games)
-        for rec in tailer.poll():  # rebuild the buffer (resume) or pick up anything already there
+        for rec in ([] if reader else tailer.poll()):  # rebuild the buffer (resume) or pick up anything already there
             if is_val(rec["meta"]):
                 val.add(rec)
             elif fresh_run:
@@ -605,6 +785,32 @@ def main():
         for k in ("value", "policy", "multi"):
             if k in VL:
                 metrics.observe(f"val_loss_{k}", float(VL[k]))
+
+    @torch.no_grad()
+    def validate_all() -> Dict[str, float]:
+        """Every held-out position's losses at the end of the run, each a
+        mean over its own rows (as training reports it)."""
+        sums: Dict[str, float] = defaultdict(float)
+        counts: Dict[str, int] = defaultdict(int)
+        heads = ["policy", "multi", "value"]
+        model.eval()
+        try:
+            with torch.autocast(torch.device(device).type, dtype=amp or torch.float32, enabled=amp is not None):
+                for chunk in val.batches(512):
+                    if v2:
+                        b, t, p, c = chunk
+                        n = loss_counts_v2(b, t, p, c, heads)
+                        _tot, VL, _st = losses_v2(model, b.to(device), t.to(device), p, c, weights, heads)
+                    else:
+                        n = loss_counts(chunk, {}, args.mode)
+                        _tot, VL, _st = losses_for(model, chunk, device, {}, args.mode, False, random.Random(0))
+                    for k in heads:
+                        if k in VL:
+                            sums[k] += float(VL[k]) * n[k]
+                            counts[k] += n[k]
+        finally:
+            model.train()
+        return {k: round(sums[k] / counts[k], 5) for k in sums if counts[k]}
     if args.mode == "dmc":
         weights["q"] = 1.0
     augment = bool(sp.get("mirror_augmentation", True)) and not v2
@@ -623,6 +829,7 @@ def main():
             gate_proc, gate_out = _start_gate(run, pending, args)
         else:
             gate_out = out
+    gate_every = float("inf") if reader else int(sp["gate_every_steps"])  # a replay is compared on held-out loss
     t_last = time.time()
     t_saved = time.time()
     try:
@@ -632,19 +839,28 @@ def main():
             for w in range(workers):
                 procs[w] = _start_actor(run, w, per_worker, args.port, args.mode)
         while True:
-            new = tailer.poll()
+            if reader:  # keep the encoders a little ahead of what the credit will take
+                new = reader.poll(max(0, lookahead - len(inbox) - (len(encoder.pending) if v2 else 0)))
+            else:
+                new = tailer.poll()
+            inbox.extend(encoder.ready() if v2 else [(r, r) for r in new])
+            if v2:
+                encoder.submit(new)
             arrived = []
-            for item, rec in ([(a, i) for a, i in encoder.ready()] if v2 else [(r, r) for r in new]):
+            while inbox and (not reader or credit < 1 or buffer.total_games + val.total_games < catch_up
+                             or buffer.trainable() < int(sp["batch"])):
+                catching = buffer.total_games + val.total_games < catch_up
+                item, rec = inbox.popleft()
                 if is_val(rec["meta"]):
                     n = val.add(item)
                     metrics.count("validation_games")
                 else:
                     n = buffer.add(item)
-                    take(n)
+                    if not catching:
+                        take(n)
                 arrived.append((n, rec))
-            if v2:
-                encoder.submit(new)
-                new = new or encoder.pending  # still encoding: not finished yet
+            # Games still to come: read this pass, waiting, encoding, or unread in a replay's source.
+            more = bool(new) or bool(inbox) or bool(v2 and encoder.pending) or bool(reader and not reader.done)
             for n, rec in arrived:
                 metrics.count("positions_produced", n)
                 metrics.count("games_seen")
@@ -657,7 +873,7 @@ def main():
                     if rec["outcome"][meta["would_resign"]] >= 0:
                         metrics.count("false_resignations")
             games_done = buffer.total_games + val.total_games
-            if buffer.size >= int(sp["batch"]) and credit >= 1:
+            if credit >= 1 and buffer.trainable() >= int(sp["batch"]):
                 credit -= 1
                 model.train()
                 opt.zero_grad(set_to_none=True)
@@ -686,7 +902,7 @@ def main():
                 if step % int(sp.get("validation_every_steps", 250)) == 0:
                     validate()
             else:
-                time.sleep(0.5)
+                time.sleep(0.02 if reader else 0.5)
             # Gauges every pass, not only on training passes: an idle
             # interval's record must still say where the run is.
             metrics.gauge("buffer_positions", buffer.size)
@@ -698,7 +914,7 @@ def main():
             metrics.tick()
 
             # ---- gating, in its own process: the learner never waits on it.
-            if gate_proc is None and gate_out is None and step - last_gate >= int(sp["gate_every_steps"]):
+            if gate_proc is None and gate_out is None and step - last_gate >= gate_every:
                 last_gate = step
                 h, _d = save_model(model, store, config_hash=run.config_hash, extra={"kind": "candidate", "step": step, **stamp})
                 gate_count += 1
@@ -760,8 +976,8 @@ def main():
                 else:
                     run.journal("server_abandoned", game_index=games_done, exit_code=server.returncode)
                     raise SystemExit("the inference server keeps dying -- see server.log")
-            starved = buffer.size < int(sp["batch"])  # nothing more will ever arrive to fill a batch
-            if (args.no_actors or alive == 0) and (credit < 1 or starved) and not new and gate_out is None:
+            starved = buffer.trainable() < int(sp["batch"])  # nothing more will ever arrive to fill a batch
+            if (args.no_actors or alive == 0) and (credit < 1 or starved) and not more and gate_out is None:
                 break
             if time.time() - t_last > 60:
                 t_last = time.time()
@@ -778,6 +994,10 @@ def main():
     h, _d = save_model(model, store, config_hash=run.config_hash, optimizer=opt, extra={"kind": "learner", "step": step, "final": True, **stamp})
     save_state(buffer.total_games + val.total_games)
     run.journal("run_finished", game_index=buffer.total_games + val.total_games, step=step, final=h)
+    held = validate_all()  # the comparison a replay is run for; a self-play run's last word on memorization
+    run.journal("final_validation", game_index=buffer.total_games + val.total_games, step=step,
+                games=val.total_games, positions=val.size, **{f"val_loss_{k}": x for k, x in held.items()})
+    print(f"[learner] held-out losses over {val.size} positions: {held}", flush=True)
     metrics.flush()
 
 

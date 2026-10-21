@@ -231,7 +231,10 @@ v2 actors record compact positions, and the learner replays each game to encode 
 copies their results into `results/tier2` to commit. The learner samples each position about
 `selfplay.sample_reuse` (6) times, never keeps more than one buffer of training backlog, and logs value
 and policy loss on held-out games (`selfplay.validation_fraction`, 2%), shown by the monitor next to
-the training losses.
+the training losses. `selfplay.policy_reuse` / `value_reuse` cap how often one position trains its
+policy and its outcome targets. `replay-<arm>-<learner>` trains a learner offline on a finished Tier 2
+run's games (`--replay-from`), ending with every held-out position's losses; `export-replay` copies
+those runs into `results/replay`.
 
 **Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
 parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for
