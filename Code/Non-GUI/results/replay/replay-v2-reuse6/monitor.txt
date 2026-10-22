@@ -1,6 +1,6 @@
 == replay-v2-reuse6  (tier 2, config 93b020ee138f)
    games 50,024/50,000   0.0 games/h (projected 1500)   ETA None h
-   actor:learner 1.018   steps 63,541 (3.776/s)   next gate in 0.034 h
+   actor:learner 1.017   steps 63,541 (3.782/s)   next gate in 0.034 h
    gates 0, promotions 0, last score None, slope/10k games None
    losses {'loss_belief': 0.5293, 'loss_draw': 0.1722, 'loss_multi': 1.3088, 'loss_oracle': 0.4903, 'loss_policy': 1.3046, 'loss_value': 0.4805}   entropy 1.3038
    held-out {'loss_multi': 1.5731, 'loss_policy': 1.3613, 'loss_value': 1.1085}
