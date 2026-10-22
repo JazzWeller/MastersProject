@@ -1,0 +1,5 @@
+{"config_hash":"8c99a77d05a7c2a5444d4a386d6d5e50a121416e82f5e17f9d155a810dbed2fa","event":"run_created","game_index":0,"t":1792608449.0053673}
+{"config_hash":"8c99a77d05a7c2a5444d4a386d6d5e50a121416e82f5e17f9d155a810dbed2fa","event":"replay","game_index":0,"games":50008,"source":"tier2-v1-s1","t":1792608480.3354151}
+{"checkpoint":"77e2a1178fa22fe7d2ba0b874e03b201746164687e6e4a022ba9a00f6aec8775","config_hash":"8c99a77d05a7c2a5444d4a386d6d5e50a121416e82f5e17f9d155a810dbed2fa","event":"promoted","game_index":0,"reason":"warm start","t":1792608491.1838124}
+{"config_hash":"8c99a77d05a7c2a5444d4a386d6d5e50a121416e82f5e17f9d155a810dbed2fa","event":"run_finished","final":"f2f3d6ffd2b7f05f9596fbb06d425612d0814135e89aa5076b0934c9b217907d","game_index":50008,"step":61934,"t":1792611733.8627727}
+{"config_hash":"8c99a77d05a7c2a5444d4a386d6d5e50a121416e82f5e17f9d155a810dbed2fa","event":"final_validation","game_index":50008,"games":947,"positions":86143,"step":61934,"t":1792611735.682364,"val_loss_multi":1.27479,"val_loss_policy":1.28137,"val_loss_value":0.71038}

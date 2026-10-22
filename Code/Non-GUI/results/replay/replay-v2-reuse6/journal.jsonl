@@ -1,0 +1,8 @@
+{"config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"run_created","game_index":0,"t":1792632745.8116302}
+{"config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"replay","game_index":0,"games":50024,"source":"tier2-v2-s1","t":1792632747.5441794}
+{"checkpoint":"6c98c77c8bbd646d1dbb051a18a7a880ea54e96ca44b4d6e6a8654e9b01ec72a","config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"promoted","game_index":0,"reason":"warm start","t":1792632753.194531}
+{"config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"run_reopened","game_index":0,"t":1792637016.7806108}
+{"config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"replay","game_index":0,"games":50024,"source":"tier2-v2-s1","t":1792637018.2923641}
+{"config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"learner_resumed","game_index":8879,"step":11135,"t":1792637019.0680263}
+{"config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"run_finished","final":"7fb7030b148e37bf5d74a9a5925a9fc70a658fe86bc396fcd50cc788dab88fac","game_index":50024,"step":63541,"t":1792651077.455363}
+{"config_hash":"93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3","event":"final_validation","game_index":50024,"games":948,"positions":88301,"step":63541,"t":1792651081.5988247,"val_loss_multi":1.2949,"val_loss_policy":1.29916,"val_loss_value":0.96731}

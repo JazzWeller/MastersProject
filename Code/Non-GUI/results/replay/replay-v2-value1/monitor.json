@@ -1,0 +1,64 @@
+{
+ "run": "replay-v2-value1",
+ "config_hash": "d173906a7c83",
+ "tier": 2,
+ "games_done": 50024,
+ "budget": 50000,
+ "games_per_hour": 0.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": null,
+ "actor_learner_ratio": 1.012,
+ "gradient_steps": 63541,
+ "steps_per_second": 3.676,
+ "hours_to_next_gate": 0.035,
+ "gates": 0,
+ "promotions": 0,
+ "last_gate_score": null,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.553,
+  "loss_draw": 0.1722,
+  "loss_multi": 1.3033,
+  "loss_oracle": 0.6422,
+  "loss_policy": 1.3002,
+  "loss_value": 0.6403
+ },
+ "validation_losses": {
+  "loss_multi": 1.5791,
+  "loss_policy": 1.3581,
+  "loss_value": 0.8071
+ },
+ "policy_entropy": 1.3001,
+ "interventions": [
+  {
+   "config_hash": "d173906a7c83ea149260ec2d813ce5e012f2d139d2268213dc98a50f003f6d6b",
+   "event": "replay",
+   "game_index": 0,
+   "games": 50024,
+   "source": "tier2-v2-s1",
+   "t": 1792632760.739833
+  },
+  {
+   "config_hash": "d173906a7c83ea149260ec2d813ce5e012f2d139d2268213dc98a50f003f6d6b",
+   "event": "run_finished",
+   "final": "8b74fb240e8d4c2ceb5481d831210cea32a303b16885faac3f403e80309d6c16",
+   "game_index": 50024,
+   "step": 63541,
+   "t": 1792649659.104307
+  },
+  {
+   "config_hash": "d173906a7c83ea149260ec2d813ce5e012f2d139d2268213dc98a50f003f6d6b",
+   "event": "final_validation",
+   "game_index": 50024,
+   "games": 948,
+   "positions": 88301,
+   "step": 63541,
+   "t": 1792649663.2633872,
+   "val_loss_multi": 1.29385,
+   "val_loss_policy": 1.29931,
+   "val_loss_value": 0.79309
+  }
+ ],
+ "flags": []
+}

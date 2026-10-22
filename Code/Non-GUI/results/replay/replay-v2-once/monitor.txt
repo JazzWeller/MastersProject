@@ -1,0 +1,9 @@
+== replay-v2-once  (tier 2, config c7003bc00fe1)
+   games 50,024/50,000   0.0 games/h (projected 1500)   ETA None h
+   actor:learner 1.019   steps 10,590 (10.228/s)   next gate in 0.011 h
+   gates 0, promotions 0, last score None, slope/10k games None
+   losses {'loss_belief': 0.5266, 'loss_draw': 0.1744, 'loss_multi': 1.2931, 'loss_oracle': 0.7518, 'loss_policy': 1.2985, 'loss_value': 0.7596}   entropy 1.2984
+   held-out {'loss_multi': 1.3032, 'loss_policy': 1.2829, 'loss_value': 0.7183}
+   journal @0: replay {"games": 50024, "source": "tier2-v2-s1"}
+   journal @50024: run_finished {"final": "9faf917ddb75a1cad1666dd05d55a61c4a5bba8a08b2b634dd0f3cfd7a8babe9", "step": 10590}
+   journal @50024: final_validation {"games": 948, "positions": 88301, "step": 10590, "val_loss_multi": 1.28963, "val_loss_policy": 1.29712, "val_loss_value": 0.69341}

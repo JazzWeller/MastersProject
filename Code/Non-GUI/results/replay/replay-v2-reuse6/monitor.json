@@ -1,0 +1,79 @@
+{
+ "run": "replay-v2-reuse6",
+ "config_hash": "93b020ee138f",
+ "tier": 2,
+ "games_done": 50024,
+ "budget": 50000,
+ "games_per_hour": 0.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": null,
+ "actor_learner_ratio": 1.018,
+ "gradient_steps": 63541,
+ "steps_per_second": 3.776,
+ "hours_to_next_gate": 0.034,
+ "gates": 0,
+ "promotions": 0,
+ "last_gate_score": null,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5293,
+  "loss_draw": 0.1722,
+  "loss_multi": 1.3088,
+  "loss_oracle": 0.4903,
+  "loss_policy": 1.3046,
+  "loss_value": 0.4805
+ },
+ "validation_losses": {
+  "loss_multi": 1.5731,
+  "loss_policy": 1.3613,
+  "loss_value": 1.1085
+ },
+ "policy_entropy": 1.3038,
+ "interventions": [
+  {
+   "config_hash": "93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3",
+   "event": "run_reopened",
+   "game_index": 0,
+   "t": 1792637016.7806108
+  },
+  {
+   "config_hash": "93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3",
+   "event": "replay",
+   "game_index": 0,
+   "games": 50024,
+   "source": "tier2-v2-s1",
+   "t": 1792637018.2923641
+  },
+  {
+   "config_hash": "93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3",
+   "event": "learner_resumed",
+   "game_index": 8879,
+   "step": 11135,
+   "t": 1792637019.0680263
+  },
+  {
+   "config_hash": "93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3",
+   "event": "run_finished",
+   "final": "7fb7030b148e37bf5d74a9a5925a9fc70a658fe86bc396fcd50cc788dab88fac",
+   "game_index": 50024,
+   "step": 63541,
+   "t": 1792651077.455363
+  },
+  {
+   "config_hash": "93b020ee138fef5fdc500eeda33e9b2d8b79d65fd2ce37ac35d5bdbd61bb73a3",
+   "event": "final_validation",
+   "game_index": 50024,
+   "games": 948,
+   "positions": 88301,
+   "step": 63541,
+   "t": 1792651081.5988247,
+   "val_loss_multi": 1.2949,
+   "val_loss_policy": 1.29916,
+   "val_loss_value": 0.96731
+  }
+ ],
+ "flags": [
+  "value loss 0.481 in training vs 1.109 on held-out games -- memorizing (lower selfplay.sample_reuse)"
+ ]
+}
