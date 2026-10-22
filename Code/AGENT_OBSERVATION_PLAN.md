@@ -20,6 +20,13 @@ Each game's ~210 positions share one z and the buffer holds ~4,700 games, so eac
 times. **Next:** cap reuse per target group (`selfplay.policy_reuse` / `value_reuse`) and compare learners
 offline on round 2's own games (`ml.selfplay_train --replay-from`; `run.py replay-<arm>-{reuse6,value1,once}`),
 on every held-out position's losses, before round 3.
+**Round 2 results** (2026-10-22, `results/tier2`, `results/replay`): v1-s1 scored 0.830 against the heuristic
+(BC A0 0.730; 3 promotions); v2-s1 scored 0.628 (BC A7 0.698; 2 promotions, then H0 or no verdict); v2 vs v1
+0.348. Replays on s1's games, final held-out value / policy loss: v1 reuse6 0.729 / 1.282, value1 0.710 / 1.281,
+**once 0.657 / 1.278**; v2 reuse6 0.967 / 1.299, value1 0.793 / 1.299, **once 0.693 / 1.297**. Only `once`
+(every position trained once, 1/6 the steps) has no train/held-out gap at any point; reuse6's held-out value
+sat at ~1.1 until the learning rate decayed. Policy is no worse. Round 3 (`-s2`) uses `once` on both arms,
+after `run.py eval-replay` checks the replays' final networks against the heuristic.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;

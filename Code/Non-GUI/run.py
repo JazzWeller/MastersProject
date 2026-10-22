@@ -44,8 +44,10 @@ ARCHS = ("none", "summary", "turn_tokens", "joint", "stream")  # network.history
 # Steps run in order from this directory and stop at the first failure.
 PY = "python"
 # Tier 2's current runs: s0 (2026-10-19) trained at 85 samples per position and its value head memorized the
-# buffer; s1 runs with selfplay.sample_reuse 6, a capped backlog and held-out validation games.
-TIER2_RUN = "s1"
+# buffer; s1 (sample_reuse 6, a capped backlog, held-out validation games) still memorized games (held-out value MSE
+# ~1.1); s2 trains every position exactly once (`_ROUND3`), the learner the replays on s1's games chose.
+TIER2_RUN = "s2"
+_ROUND3 = {"sample_reuse": 1, "policy_reuse": 1, "value_reuse": 1}
 DATA = "bc/tier0b"  # under $KEYFORGE_DATA
 
 
@@ -136,8 +138,8 @@ METHODS["smoke-selfplay"] = dict(
 # Tier 2 (the training plan's M7, within-turn): O10's v2 network (A7) and its v1 twin (A0), each warm-started from its
 # Tier 0b BC run (copied in as runs/tier0b2-a7 and runs/tier0b-a0, or trained here). Actors are CPU-bound: the node's
 # cores less the learner, the server and (v2) the encoding pool. Workers are fixed when a run is created.
-_TIER2 = {"v2": ("tier2_selfplay_v2.json", "tier0b2-a7", {"workers": 26, "encode_workers": 3}),
-          "v1": ("tier2_selfplay_within_turn.json", "tier0b-a0", {"workers": 28})}
+_TIER2 = {"v2": ("tier2_selfplay_v2.json", "tier0b2-a7", {"workers": 26, "encode_workers": 3, **_ROUND3}),
+          "v1": ("tier2_selfplay_within_turn.json", "tier0b-a0", {"workers": 28, **_ROUND3})}
 for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
     METHODS[f"tier2-{_arm}"] = dict(
         desc=f"Tier 2 self-play, network {_arm}, 50k games from BC run {_bc_run} (run tier2-{_arm}-{TIER2_RUN}); resumable",
@@ -156,7 +158,7 @@ METHODS["eval-tier2"] = dict(
 # through a new learner from the same BC start -- in arrival order, at the pace its credit allows, no actors, no gates --
 # and ends with its losses on every held-out position (journal "final_validation"). Same games, same held-out split.
 # reuse6 is round 2's learner (the control); value1 trains each position's outcome once; once trains everything once.
-REPLAY_SOURCE = TIER2_RUN
+REPLAY_SOURCE = "s1"
 _REPLAY = {"reuse6": {}, "value1": {"value_reuse": 1}, "once": {"sample_reuse": 1, "policy_reuse": 1, "value_reuse": 1}}
 for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
     for _var, _over in _REPLAY.items():
@@ -167,6 +169,11 @@ for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
             steps=[[PY, "-m", "ml.selfplay_train", "--run", f"replay-{_arm}-{_var}", "--config", _cfg, "--init-run", _bc_run,
                     "--replay-from", f"tier2-{_arm}-{REPLAY_SOURCE}",
                     "--override", json.dumps({"selfplay": dict(_over, **({"encode_workers": 28} if _arm == "v2" else {}))})]])
+METHODS["eval-replay"] = dict(
+    desc="each replay's final network vs HeuristicBot (100 sims, 100 paired seeds, as eval-tier2): the learners' strength",
+    cpus=32, mem_gb=64, gpu=True, hours=12, max_w=16,
+    steps=[[PY, "-m", "tools.eval_v2", "--a", f"{a}:replay-{a}-{v}@final", "--b", "heuristic", "--sims", "100",
+            "--seeds", "100", "--workers", "{w}"] for a in _TIER2 for v in _REPLAY])
 METHODS["export-replay"] = dict(
     desc="login node: copy the replay runs' journals, metrics and final networks into results/replay (then commit and push)",
     local=True, steps=[[PY, "-m", "tools.export_results", *[f"replay-{a}-{v}" for a in _TIER2 for v in _REPLAY],
