@@ -27,6 +27,9 @@ on every held-out position's losses, before round 3.
 (every position trained once, 1/6 the steps) has no train/held-out gap at any point; reuse6's held-out value
 sat at ~1.1 until the learning rate decayed. Policy is no worse. Round 3 (`-s2`) uses `once` on both arms,
 after `run.py eval-replay` checks the replays' final networks against the heuristic.
+**eval-replay** (2026-10-22, `results/replay/evals`, vs heuristic, 100 sims, 400 games): v1 reuse6 0.900, value1
+0.940, **once 0.960**; v2 reuse6 0.680, value1 0.868, **once 0.945** -- once is strongest on both arms, and v2's
+round 2 deficit was mostly its memorized value head. Round 3 (`-s2`, once) started.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
