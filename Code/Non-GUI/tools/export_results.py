@@ -11,8 +11,8 @@ For each run, `<out>/<run id>/` gets:
   actors' are most of `metrics.jsonl`, and the monitor already sums them);
 - `checkpoints/`, the best promoted network and the final one.
 
-Every evaluation result under `$KEYFORGE_DATA/evals/` naming one of these runs
-goes to `<out>/evals/`. Shards, logs and other checkpoints stay where they
+Every evaluation result under `$KEYFORGE_DATA/evals/` naming one of these runs,
+and every rating ladder (`tools.ladder`), goes to `<out>/evals/`. Shards, logs and other checkpoints stay where they
 are. Run it again to refresh: files are overwritten.
 """
 
@@ -96,7 +96,7 @@ def main():
     n = 0
     if os.path.isdir(evals):
         for name in sorted(os.listdir(evals)):
-            if name.endswith(".json") and any(r.replace(":", "-") in name for r in args.runs):
+            if name.endswith(".json") and (name.startswith("ladder-") or any(r.replace(":", "-") in name for r in args.runs)):
                 _copy(os.path.join(evals, name), os.path.join(args.out, "evals", name))
                 n += 1
     print(f"{n} evaluation results; written under {args.out}")

@@ -234,7 +234,9 @@ and policy loss on held-out games (`selfplay.validation_fraction`, 2%), shown by
 the training losses. `selfplay.policy_reuse` / `value_reuse` cap how often one position trains its
 policy and its outcome targets. `replay-<arm>-<learner>` trains a learner offline on a finished Tier 2
 run's games (`--replay-from`), ending with every held-out position's losses; `export-replay` copies
-those runs into `results/replay`.
+those runs into `results/replay`. `eval-ladder` plays a round robin of the BC, round 2, 3 and 4 networks and
+HeuristicBot (`tools.ladder`) and fits Elo ratings, reusing matches already played; `selfplay.gate_workers`
+spreads a gate over that many processes.
 
 **Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
 parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for

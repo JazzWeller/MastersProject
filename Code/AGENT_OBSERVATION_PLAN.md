@@ -36,6 +36,10 @@ round 2 deficit was mostly its memorized value head. Round 3 (`-s2`, once) start
 yardstick (needs stronger opponents: BC, round 2, earlier promotions, a rating ladder); gates take 1-4.4 h
 beside 28 actors, so only 6 / 8 ran in 50k games; the monitor's G6 flag misreads falling scores against an
 improving best, and its G5 rate reads the idle tail. v2 plays at ~1,900 games/h against v1's ~5,000.
+**Round 4 setup** (2026-10-24): a rating ladder (`tools.ladder`, `run.py eval-ladder`: round robin, Bradley-Terry
+Elo with HeuristicBot at 0); gates over `selfplay.gate_workers` (6) processes, the SPRT read after each unit of
+seeds; the monitor's G6 now reads 3 gates without a promotion, and a finished run's rate is the whole run's;
+round 4 (`-s3`) carries each arm on from its round 3 best for 100k more games.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;

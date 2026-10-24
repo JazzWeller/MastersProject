@@ -154,6 +154,9 @@ DEFAULTS: Dict[str, Any] = {
         "validation_every_steps": 250,
         "gate_every_steps": 1000,
         "gate_games": 400,
+        # Processes a gate plays over (ml.selfplay_gate.run_gate); 1 = the gate process alone. In Tier 2 round 3
+        # one-process gates took 1-4.4 h beside 28 actors.
+        "gate_workers": 1,
         "mirror_augmentation": True,
         "training_max_turns": 60,
         "resign_threshold": None,

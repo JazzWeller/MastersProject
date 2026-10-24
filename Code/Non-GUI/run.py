@@ -45,9 +45,13 @@ ARCHS = ("none", "summary", "turn_tokens", "joint", "stream")  # network.history
 PY = "python"
 # Tier 2's current runs: s0 (2026-10-19) trained at 85 samples per position and its value head memorized the
 # buffer; s1 (sample_reuse 6, a capped backlog, held-out validation games) still memorized games (held-out value MSE
-# ~1.1); s2 trains every position exactly once (`_ROUND3`), the learner the replays on s1's games chose.
-TIER2_RUN = "s2"
+# ~1.1); s2 trains every position exactly once (`_ROUND3`), the learner the replays on s1's games chose (vs
+# HeuristicBot: v1 0.968, v2 0.960). s3 (round 4) carries on from s2's best for 100k more games, with the gate over
+# `gate_workers` processes (s2's gates took 1-4.4 h as one process beside the actors).
+TIER2_RUN = "s3"
 _ROUND3 = {"sample_reuse": 1, "policy_reuse": 1, "value_reuse": 1}
+_ROUND4 = {**_ROUND3, "games": 100_000, "gate_workers": 6}
+TIER2_INIT = {"v1": "tier2-v1-s2", "v2": "tier2-v2-s2"}  # the run each arm's TIER2_RUN warm-starts from (its best network)
 DATA = "bc/tier0b"  # under $KEYFORGE_DATA
 
 
@@ -138,13 +142,15 @@ METHODS["smoke-selfplay"] = dict(
 # Tier 2 (the training plan's M7, within-turn): O10's v2 network (A7) and its v1 twin (A0), each warm-started from its
 # Tier 0b BC run (copied in as runs/tier0b2-a7 and runs/tier0b-a0, or trained here). Actors are CPU-bound: the node's
 # cores less the learner, the server and (v2) the encoding pool. Workers are fixed when a run is created.
-_TIER2 = {"v2": ("tier2_selfplay_v2.json", "tier0b2-a7", {"workers": 26, "encode_workers": 3, **_ROUND3}),
-          "v1": ("tier2_selfplay_within_turn.json", "tier0b-a0", {"workers": 28, **_ROUND3})}
+_TIER2 = {"v2": ("tier2_selfplay_v2.json", "tier0b2-a7", {"workers": 26, "encode_workers": 3, **_ROUND4}),
+          "v1": ("tier2_selfplay_within_turn.json", "tier0b-a0", {"workers": 28, **_ROUND4})}
 for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
     METHODS[f"tier2-{_arm}"] = dict(
-        desc=f"Tier 2 self-play, network {_arm}, 50k games from BC run {_bc_run} (run tier2-{_arm}-{TIER2_RUN}); resumable",
+        desc=f"Tier 2 self-play, network {_arm}, {_sp['games']:,} games from {TIER2_INIT[_arm]}'s best network "
+             f"(run tier2-{_arm}-{TIER2_RUN}); resumable",
         cpus=32, mem_gb=128, gpu=True, hours=72,
-        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"tier2-{_arm}-{TIER2_RUN}", "--config", _cfg, "--init-run", _bc_run,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"tier2-{_arm}-{TIER2_RUN}", "--config", _cfg,
+                "--init-run", TIER2_INIT[_arm],
                 "--override", json.dumps({"selfplay": _sp}), "--port", "{port}"],
                [PY, "-m", "tools.monitor", f"tier2-{_arm}-{TIER2_RUN}"]])
 METHODS["eval-tier2"] = dict(
@@ -154,6 +160,16 @@ METHODS["eval-tier2"] = dict(
             "--seeds", "100", "--workers", "{w}"] for _arm in ("v2", "v1")]
           + [[PY, "-m", "tools.eval_v2", "--a", f"v2:tier2-v2-{TIER2_RUN}", "--b", f"v1:tier2-v1-{TIER2_RUN}", "--sims", "100",
               "--seeds", "100", "--workers", "{w}"]])
+# The rating ladder (after round 3 saturated HeuristicBot): every pair of these plays eval_v2's match (100 sims, 100
+# paired seeds), one Bradley-Terry fit gives Elo with HeuristicBot at 0. Matches already played (here or by
+# eval-tier2) are reused, and runs not there yet are skipped -- rerun it after each round to add the new networks.
+LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s1", "v2:tier2-v2-s1", "v1:tier2-v1-s2",
+          "v2:tier2-v2-s2", "v1:tier2-v1-s3", "v2:tier2-v2-s3"]
+METHODS["eval-ladder"] = dict(
+    desc="rating ladder: round robin of BC, round 2, 3 and 4 networks and HeuristicBot -> Elo (evals/ladder-tier2.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=24, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "tier2", "--players", *LADDER, "--sims", "100", "--seeds", "100",
+            "--workers", "{w}", "--skip-missing"]])
 # Learner settings compared offline (after round 2's value memorization): each replays a finished Tier 2 run's games
 # through a new learner from the same BC start -- in arrival order, at the pace its credit allows, no actors, no gates --
 # and ends with its losses on every held-out position (journal "final_validation"). Same games, same held-out split.

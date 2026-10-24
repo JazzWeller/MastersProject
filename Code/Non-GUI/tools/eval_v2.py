@@ -35,7 +35,8 @@ import time
 def _checkpoint(run_id: str) -> str:
     """A run's network: a BC run's (`bc_report.json`), or a self-play run's
     best promoted one (`best.json`); `<run>@final` is a self-play run's last
-    learner checkpoint, promoted or not."""
+    learner checkpoint, promoted or not, and `<run>@p<N>` its N-th promoted
+    one (`@p0`: the warm start)."""
     from sim import data_root
 
     run_id, _, which = run_id.partition("@")
@@ -43,6 +44,12 @@ def _checkpoint(run_id: str) -> str:
     if which == "final":
         with open(os.path.join(root, "journal.jsonl"), "r", encoding="utf-8") as f:
             ckpt = [e for e in map(json.loads, f) if e["event"] == "run_finished"][-1]["final"]
+    elif which.startswith("p") and which[1:].isdigit():
+        with open(os.path.join(root, "journal.jsonl"), "r", encoding="utf-8") as f:
+            promoted = [e["checkpoint"] for e in map(json.loads, f) if e["event"] == "promoted"]
+        if int(which[1:]) >= len(promoted):
+            raise FileNotFoundError(f"{run_id} has {len(promoted) - 1} promotions, not {which[1:]}")
+        ckpt = promoted[int(which[1:])]
     elif os.path.exists(os.path.join(root, "bc_report.json")):
         with open(os.path.join(root, "bc_report.json"), "r", encoding="utf-8") as f:
             ckpt = json.load(f)["checkpoint"]
