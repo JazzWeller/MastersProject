@@ -30,6 +30,12 @@ after `run.py eval-replay` checks the replays' final networks against the heuris
 **eval-replay** (2026-10-22, `results/replay/evals`, vs heuristic, 100 sims, 400 games): v1 reuse6 0.900, value1
 0.940, **once 0.960**; v2 reuse6 0.680, value1 0.868, **once 0.945** -- once is strongest on both arms, and v2's
 round 2 deficit was mostly its memorized value head. Round 3 (`-s2`, once) started.
+**Round 3 results** (2026-10-24, `results/tier2/*-s2`): vs heuristic v1 **0.968**, v2 **0.960** (round 2: 0.830 /
+0.628; BC: 0.730 / 0.698); v2 vs v1 0.513 (level). Train and held-out value stayed together (final held-out
+0.684 / 0.676); 4 / 5 promotions, v1's last gate still promoting. Open: the heuristic is saturated as a
+yardstick (needs stronger opponents: BC, round 2, earlier promotions, a rating ladder); gates take 1-4.4 h
+beside 28 actors, so only 6 / 8 ran in 50k games; the monitor's G6 flag misreads falling scores against an
+improving best, and its G5 rate reads the idle tail. v2 plays at ~1,900 games/h against v1's ~5,000.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
