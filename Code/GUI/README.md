@@ -31,6 +31,16 @@ python main.py --p1 human --p2 bot --p1-deck fignor --p2-deck igor --seed 1
 `--p1`/`--p2` accept `human` or `bot`; the other flags mirror the text UI's
 (`--p1-deck`, `--p2-deck`, `--first p1|p2`, `--seed`, `--max-turns`).
 
+**Against the trained network.** `play_best.ps1` starts the best Tier 2 network (`results/tier2`, run
+`tier2-v1-s3` unless `-Run` says otherwise) in WSL's torch environment as `ml.infer_server`, then opens
+the GUI with you as player 1 and the network's search (`--bot search-net@6150/100`, ~0.7 s a decision)
+as player 2. `-Sims 400` makes it stronger and slower; `-Deck`, `-BotDeck`, `-First`, `-Seed` set up the
+match; the server stops when the GUI closes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File play_best.ps1
+```
+
 ## Playing
 
 - **Click a glowing card** to play/discard/reap/fight/use it. A card with
