@@ -1,0 +1,20 @@
+{
+ "games": 400,
+ "a_wins": 388,
+ "b_wins": 12,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v2:tier2-v2-s3",
+ "a_exact": false,
+ "b": "heuristic",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 100,
+ "a_score": 0.97,
+ "interval95": [
+  0.9483,
+  0.9828
+ ],
+ "mean_turns": 15.93,
+ "seconds": 1002.1
+}

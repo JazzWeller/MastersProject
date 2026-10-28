@@ -1,0 +1,65 @@
+{
+ "run": "tier2-v1-s3",
+ "config_hash": "031fea43e1a3",
+ "tier": 2,
+ "games_done": 100015,
+ "budget": 100000,
+ "games_per_hour": 4441.6,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": 0.0,
+ "actor_learner_ratio": 1.015,
+ "gradient_steps": 20975,
+ "steps_per_second": 0.066,
+ "hours_to_next_gate": null,
+ "gates": 20,
+ "promotions": 4,
+ "last_gate_score": 0.5275,
+ "gate_score_slope_per_10k_games": -0.0128,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5369,
+  "loss_multi": 1.349,
+  "loss_oracle": 0.6398,
+  "loss_policy": 1.266,
+  "loss_value": 0.685
+ },
+ "validation_losses": {
+  "loss_multi": 1.338,
+  "loss_policy": 1.2679,
+  "loss_value": 0.7063
+ },
+ "policy_entropy": 1.2737,
+ "interventions": [
+  {
+   "config_hash": "031fea43e1a3e55131b3b05c4447c9378b733bc9f91fb577b06d4fef3db26bcd",
+   "event": "gate_G4",
+   "game_index": 30489,
+   "step": 6000,
+   "t": 1792983022.3292603,
+   "verdict": "PASS"
+  },
+  {
+   "config_hash": "031fea43e1a3e55131b3b05c4447c9378b733bc9f91fb577b06d4fef3db26bcd",
+   "event": "run_finished",
+   "final": "42e7015e3599bb2dad8f2a879193436a56e946cacbf09978cd8b4ab962c7572a",
+   "game_index": 100015,
+   "step": 20975,
+   "t": 1793039638.3752315
+  },
+  {
+   "config_hash": "031fea43e1a3e55131b3b05c4447c9378b733bc9f91fb577b06d4fef3db26bcd",
+   "event": "final_validation",
+   "game_index": 100015,
+   "games": 1946,
+   "positions": 87982,
+   "step": 20975,
+   "t": 1793039640.2015939,
+   "val_loss_multi": 1.29081,
+   "val_loss_policy": 1.23124,
+   "val_loss_value": 0.68882
+  }
+ ],
+ "flags": [
+  "G6: no promotion in the last 3 gates -- bank the promoted checkpoint and stop; spend the time on the matrix"
+ ]
+}
