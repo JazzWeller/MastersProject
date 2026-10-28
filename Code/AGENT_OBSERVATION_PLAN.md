@@ -47,6 +47,15 @@ games/h against v1's 4,442. Parallel gates took 22 min (v1) / 48 min (v2), so 20
 15 of v1's 20 ended undecided at 400 games with scores 0.50-0.55: GATE_SPRT's elo1 of 35 is larger than the
 gain per 1,000 steps, so promotions (4 each) lag the learner and the actors play a stale network.
 `Code/GUI/play_best.ps1` plays the best network (v1-s3) in the GUI through the WSL inference server.
+**After round 4, built** (2026-10-28): the promotion rule is configurable (`selfplay.gate_sprt`,
+`gate_fallback_z`; new runs use a (0, 15) SPRT and promote at one standard error, 0.525 at 400 games); M9's
+bake-off (`run.py m9-{wt,fg}-{1,2}`: both regimes x two seeds, v1, 50k games from BC A0, round 3's learner;
+`eval-m9`, a ladder of the 8 train x play x leaf cells, seed 2's matched cells and the anchors; `diag-m9`,
+the search curve at 10-300 simulations and the hidden-information gap on v1-s3) -- full-game search measured
+at the same cost per game as within-turn (26 s on one process), the belief-oracle leaf 1.55x; M11's next
+curriculum stage (`m11-{v1,v2}`: random legal decks over all 370 cards from each arm's round 4 best; actors
+and gates draw decks from the game's seed, `sim.bc_corpus.decks_for`; `eval-m11`, a ladder on 32 held-out
+random deck pairs, `eval_v2 --deck-set`). Players take `#regime=,leaf=,sims=,resample=exact,search=none`.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;

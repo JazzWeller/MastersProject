@@ -194,6 +194,76 @@ METHODS["export-replay"] = dict(
     desc="login node: copy the replay runs' journals, metrics and final networks into results/replay (then commit and push)",
     local=True, steps=[[PY, "-m", "tools.export_results", *[f"replay-{a}-{v}" for a in _TIER2 for v in _REPLAY],
                         "--out", os.path.join("results", "replay")]])
+# ---- after Tier 2 round 4 -----------------------------------------------------------------------------------------
+# The promotion rule for new runs: round 4's (0, 35) SPRT left 15 of v1's 20 gates undecided at 0.50-0.55, the learner
+# gaining ~10-20 Elo per 1,000 steps. A (0, 15) SPRT stops clear cases early; at 400 games a candidate is promoted at
+# one standard error over 0.5 (0.525). An equal candidate passes ~16% of the time -- cheap, as the learner's latest is
+# almost never worse (the ladder) -- and the actors stop playing a network several promotions stale.
+_GATE = {"gate_sprt": [0, 15], "gate_fallback_z": 1.0}
+_LEARNER = {**_ROUND3, "gate_workers": 6, **_GATE}
+
+# M9, the bake-off (AGENT_TRAINING_PLAN.md): the two search regimes, two seeds each, network v1 (level with v2 in
+# strength at 2.4x the games/hour), every arm from the same BC network for 50k games with round 3's learner -- run
+# tier2-v1-s2 is the same recipe (seed 0, the older gate). Full-game search costs what within-turn does per game
+# (26 s each on one process, tier2-v1-s3 at 100 sims, 2026-10-28); the belief-oracle leaf 1.55x.
+M9_ARMS = {"wt": "tier2_selfplay_within_turn.json", "fg": "tier3_selfplay_full_game.json"}
+M9_SEEDS = (1, 2)
+for _arm, _cfg in M9_ARMS.items():
+    for _seed in M9_SEEDS:
+        METHODS[f"m9-{_arm}-{_seed}"] = dict(
+            desc=f"M9 bake-off: {'within-turn' if _arm == 'wt' else 'full-game'} self-play, seed {_seed}, 50k games "
+                 f"from BC run tier0b-a0 (run m9-{_arm}-{_seed}); resumable",
+            cpus=32, mem_gb=128, gpu=True, hours=72,
+            steps=[[PY, "-m", "ml.selfplay_train", "--run", f"m9-{_arm}-{_seed}", "--config", _cfg, "--init-run", "tier0b-a0",
+                    "--override", json.dumps({"seed": _seed, "selfplay": {"workers": 28, "games": 50_000, **_LEARNER}}),
+                    "--port", "{port}"],
+                   [PY, "-m", "tools.monitor", f"m9-{_arm}-{_seed}"]])
+# The evaluation matrix: train regime x play regime x leaf estimator on seed 1 (8 cells), the matched cells of seed 2,
+# and the anchors (HeuristicBot, the BC network with and without search). One ladder, Elo with HeuristicBot at 0.
+_CELLS = [f"v1:m9-{t}-1#regime={r},leaf={leaf}" for t in M9_ARMS for r in ("within_turn", "full_game")
+          for leaf in ("student", "belief_oracle")]
+M9_LADDER = (["heuristic", "v1:tier0b-a0", "v1:tier0b-a0#search=none"] + _CELLS
+             + ["v1:m9-wt-2#regime=within_turn,leaf=student", "v1:m9-fg-2#regime=full_game,leaf=student"])
+METHODS["eval-m9"] = dict(
+    desc="M9's evaluation matrix: 8 train x play x leaf cells, seed 2's matched cells, anchors -> Elo (ladder-m9.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=72, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "m9", "--players", *M9_LADDER, "--sims", "100", "--seeds", "50",
+            "--workers", "{w}", "--skip-missing"]])
+# M9's two diagnostics on the strongest network so far: the search curve (one network at 10-300 simulations) and the
+# hidden-information gap (the same network searching the true hidden state).
+_BEST = "v1:tier2-v1-s3"
+DIAG_LADDER = ["heuristic", f"{_BEST}#sims=10", f"{_BEST}#sims=30", _BEST, f"{_BEST}#sims=300", f"{_BEST}#resample=exact"]
+METHODS["diag-m9"] = dict(
+    desc="M9 diagnostics on tier2-v1-s3: the search curve (10/30/100/300 sims) and the hidden-information gap (ladder-diag.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "diag", "--players", *DIAG_LADDER, "--sims", "100", "--seeds", "100",
+            "--workers", "{w}", "--skip-missing"]])
+
+# M11, the curriculum's next stage: random legal decks over all 370 cards, each arm warm-started from its round 4 best.
+# Evaluated on 32 deck pairs never used in training (deck seed 2), where v2's card meaning should earn its cost.
+for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
+    METHODS[f"m11-{_arm}"] = dict(
+        desc=f"M11: {_arm} self-play on random legal decks, 50k games from tier2-{_arm}-s3's best (run m11-{_arm}); resumable",
+        cpus=32, mem_gb=128, gpu=True, hours=72,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"m11-{_arm}", "--config", _cfg, "--init-run", f"tier2-{_arm}-s3",
+                "--override", json.dumps({"pool": {"deck_source": "random"},
+                                          "selfplay": {**{k: v for k, v in _sp.items() if k in ("workers", "encode_workers")},
+                                                       "games": 50_000, **_LEARNER}}),
+                "--port", "{port}"],
+               [PY, "-m", "tools.monitor", f"m11-{_arm}"]])
+M11_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3", "v1:m11-v1", "v2:m11-v2"]
+METHODS["eval-m11"] = dict(
+    desc="M11: BC, round 4 and random-deck networks on 32 held-out random deck pairs -> Elo (ladder-m11.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "m11", "--players", *M11_LADDER, "--sims", "100", "--seeds", "64",
+            "--deck-set", "32", "--workers", "{w}", "--skip-missing"]])
+METHODS["export-m9"] = dict(
+    desc="login node: copy the M9 runs, ladders and evals into results/m9 (then commit and push)", local=True,
+    steps=[[PY, "-m", "tools.export_results", *[f"m9-{a}-{s}" for a in M9_ARMS for s in M9_SEEDS],
+            "--out", os.path.join("results", "m9")]])
+METHODS["export-m11"] = dict(
+    desc="login node: copy the M11 runs, ladders and evals into results/m11 (then commit and push)", local=True,
+    steps=[[PY, "-m", "tools.export_results", "m11-v1", "m11-v2", "--out", os.path.join("results", "m11")]])
 METHODS["smoke-selfplay-v2"] = dict(
     desc="the smoke run with network v2 (O10's A7 inputs): v2 actors, server, learner, gate; minutes (run smoke-sp-v2)",
     cpus=8, mem_gb=32, gpu=True, hours=2,

@@ -22,17 +22,27 @@ import os
 import time
 from typing import Optional, Tuple
 
-GATE_SPRT = (0.0, 35.0)  # elo: "no better" vs "~55% against the best"
+GATE_SPRT = (0.0, 35.0)  # elo: "no better" vs "~55% against the best" (the default: `selfplay.gate_sprt`)
+GATE_FALLBACK_Z = 2.0  # the fixed-N test's standard errors (`selfplay.gate_fallback_z`)
 
 
-def gate_verdict(rep) -> Optional[str]:
+def gate_rule(cfg: dict) -> Tuple[Tuple[float, float], float]:
+    """A run's (SPRT elo bounds, fixed-N z). Tier 2 round 4 gained ~10-20
+    Elo per 1,000 steps: against (0, 35) and z 2, 15 of v1's 20 gates ended
+    undecided at 0.50-0.55, and the actors played a stale network."""
+    sp = cfg.get("selfplay", {})
+    elo0, elo1 = sp.get("gate_sprt") or GATE_SPRT
+    return (float(elo0), float(elo1)), float(sp.get("gate_fallback_z", GATE_FALLBACK_Z))
+
+
+def gate_verdict(rep, sprt: Tuple[float, float] = GATE_SPRT, z: float = GATE_FALLBACK_Z) -> Optional[str]:
     """The SPRT's verdict if it decided within the game budget; otherwise a
     fixed-N test at the budget -- promote only if the score clears 0.5 by
-    two standard errors. Returns "H1" (promote), "H0" or None."""
-    v = rep.sprt(*GATE_SPRT)
+    `z` standard errors. Returns "H1" (promote), "H0" or None."""
+    v = rep.sprt(*sprt)
     if v is not None:
         return v
-    if rep.games and rep.score - 0.5 > 2 * rep.standard_error:
+    if rep.games and rep.score - 0.5 > z * rep.standard_error:
         return "H1"
     return None
 
@@ -80,7 +90,7 @@ def _players(candidate_path: str, best_path: str, cfg: dict, sims: int, mode: st
     return a, b
 
 
-_WORKER = None  # (candidate, best, decks) in a gate worker process
+_WORKER = None  # (candidate, best, pool) in a gate worker process
 UNIT_SEEDS = 4  # seeds per unit of work in a parallel gate (16 games; the SPRT is read after each)
 
 
@@ -90,14 +100,31 @@ def _worker_init(spec) -> None:
 
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # the gate process decides when to stop
     candidate_path, best_path, cfg, sims, mode, device = spec
-    _WORKER = (*_players(candidate_path, best_path, cfg, sims, mode, device), cfg["pool"]["decks"])
+    _WORKER = (*_players(candidate_path, best_path, cfg, sims, mode, device), cfg["pool"])
+
+
+def unit_decks(pool: dict, first_seed: int):
+    """A unit's deck pair: the run's two decks, or (any other deck source,
+    M11) a pair drawn from the unit's first seed, the same on every replay."""
+    import random
+
+    from sim.bc_corpus import decks_for
+
+    if pool.get("deck_source", "presets") == "presets":
+        return tuple(pool["decks"])
+    return decks_for(pool, 0, random.Random(f"gate-decks|{first_seed}"))
+
+
+def _play_unit(a, b, pool: dict, seeds):
+    from .arena import play_paired
+
+    dx, dy = unit_decks(pool, seeds[0])
+    return play_paired(a, b, seeds, dx, dy, max_turns=200, concurrency=4 * len(seeds))
 
 
 def _worker_unit(seeds):
-    from .arena import play_paired
-
-    a, b, decks = _WORKER
-    return play_paired(a, b, seeds, decks[0], decks[1], max_turns=200, concurrency=4 * len(seeds))
+    a, b, pool = _WORKER
+    return _play_unit(a, b, pool, seeds)
 
 
 def merge_reports(into, rep) -> None:
@@ -114,33 +141,42 @@ def merge_reports(into, rep) -> None:
 
 def run_gate(candidate_path: str, best_path: str, cfg: dict, *, sims: int, mode: str, number: int,
              device: str = "cuda", concurrency: int = 64, workers: int = 1) -> Tuple[Optional[str], object]:
-    """SPRT of the candidate against the best so far. With `workers` > 1
-    (`selfplay.gate_workers`) the seeds are played `UNIT_SEEDS` at a time
-    over that many processes -- a gate beside the actors was one process
-    among ~30 and took 1-4 h in Tier 2 round 3 -- and the test is read
-    after each finished unit, on whole seeds only as in `play_paired`."""
+    """SPRT of the candidate against the best so far (`gate_rule`), the
+    seeds played `UNIT_SEEDS` at a time -- each unit on its own deck pair
+    when the pool isn't two fixed decks -- and the test read after each
+    finished unit, on whole seeds only as in `play_paired`. With `workers`
+    > 1 (`selfplay.gate_workers`) the units run over that many processes: a
+    gate beside the actors was one process among ~30 and took 1-4 h in Tier
+    2 round 3."""
     from sim.paired import PairedReport
 
-    from .arena import play_paired
-
     sp = cfg["selfplay"]
+    sprt, z = gate_rule(cfg)
     seeds = list(gate_seeds(int(cfg["seed"]), number, max(1, int(sp["gate_games"]) // 4)))
+    # One process plays bigger units, so as many games share its GPU batches as before (`concurrency`).
+    size = UNIT_SEEDS if workers > 1 else max(UNIT_SEEDS, concurrency // 4)
+    units = [seeds[k:k + size] for k in range(0, len(seeds), size)]
+    total = PairedReport(games=0, a_wins=0, b_wins=0, draws=0, forfeits=0)
+
+    def decided() -> bool:
+        return total.games >= 40 and total.sprt(*sprt) is not None
+
     if workers <= 1:
         a, b = _players(candidate_path, best_path, cfg, sims, mode, device)
-        rep = play_paired(a, b, seeds, cfg["pool"]["decks"][0], cfg["pool"]["decks"][1],
-                          max_turns=200, concurrency=concurrency, sprt=GATE_SPRT, min_games=40)
-        return gate_verdict(rep), rep
+        for unit in units:
+            merge_reports(total, _play_unit(a, b, cfg["pool"], unit))
+            if decided():
+                break
+        return gate_verdict(total, sprt, z), total
     import multiprocessing as mp
 
-    units = [seeds[k:k + UNIT_SEEDS] for k in range(0, len(seeds), UNIT_SEEDS)]
-    total = PairedReport(games=0, a_wins=0, b_wins=0, draws=0, forfeits=0)
     spec = (candidate_path, best_path, cfg, sims, mode, device)
     with mp.get_context("spawn").Pool(min(workers, len(units)), initializer=_worker_init, initargs=(spec,)) as pool:
         for rep in pool.imap_unordered(_worker_unit, units):  # leaving the `with` stops the rest
             merge_reports(total, rep)
-            if total.games >= 40 and total.sprt(*GATE_SPRT) is not None:
+            if decided():
                 break
-    return gate_verdict(total), total
+    return gate_verdict(total, sprt, z), total
 
 
 def main():

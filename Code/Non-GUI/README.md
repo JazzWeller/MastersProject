@@ -236,7 +236,10 @@ policy and its outcome targets. `replay-<arm>-<learner>` trains a learner offlin
 run's games (`--replay-from`), ending with every held-out position's losses; `export-replay` copies
 those runs into `results/replay`. `eval-ladder` plays a round robin of the BC, round 2, 3 and 4 networks and
 HeuristicBot (`tools.ladder`) and fits Elo ratings, reusing matches already played; `selfplay.gate_workers`
-spreads a gate over that many processes.
+spreads a gate over that many processes. After round 4: `m9-{wt,fg}-{1,2}` are M9's bake-off runs and
+`eval-m9` / `diag-m9` its evaluation matrix and diagnostics; `m11-v1` / `m11-v2` train on random legal decks
+and `eval-m11` rates every network on held-out random decks; `export-m9` / `export-m11` copy them into
+`results/`. An `eval_v2` / ladder player may carry options (`v1:<run>#regime=full_game,leaf=belief_oracle`).
 
 **Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
 parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for

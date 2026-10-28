@@ -8,7 +8,8 @@ and that one opponent stopped telling networks apart).
         --sims 100 --seeds 100 --workers 16
 
 Players are `eval_v2`'s (`v1:<run>`, `v2:<run>`, `<run>@final`, `<run>@p<N>`,
-a bot name). Each pair is one `eval_v2` run with its default output under
+a bot name, any of them with `#regime=...,leaf=...,sims=...` options), and
+`--deck-set N` plays every match on held-out random decks (M11). Each pair is one `eval_v2` run with its default output under
 `$KEYFORGE_DATA/evals/`, so a pair already played -- by an earlier ladder or
 an earlier evaluation, in either order -- is read, not replayed, and an
 interrupted ladder resumes where it stopped (SIGTERM ends the running match,
@@ -38,30 +39,31 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAUSED = 75
 
 
-def _out_name(a: str, b: str, sims: int, seeds: int, first_seed: int) -> str:
+def _out_name(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set: int = 0, deck_seed: int = 2) -> str:
     """`eval_v2`'s default output file for a against b."""
     from sim import data_root
+    from tools.eval_v2 import out_name
 
-    name = f"{a}__{b}__{sims}sims_{seeds}x{first_seed}".replace(":", "-")
-    return data_root.resolve(os.path.join("evals", f"{name}.json"))
+    return data_root.resolve(os.path.join("evals", out_name(a, b, sims, seeds, first_seed, False, deck_set, deck_seed)))
 
 
 def _available(player: str) -> bool:
     if ":" not in player:
         return True
-    from tools.eval_v2 import _checkpoint
+    from tools.eval_v2 import _checkpoint, player_options
 
     try:
-        _checkpoint(player.split(":", 1)[1])
+        _checkpoint(player_options(player)[0].split(":", 1)[1])
         return True
     except (FileNotFoundError, StopIteration, KeyError, IndexError, json.JSONDecodeError):
         return False
 
 
-def result_for(a: str, b: str, sims: int, seeds: int, first_seed: int) -> Optional[Tuple[float, int]]:
+def result_for(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set: int = 0,
+               deck_seed: int = 2) -> Optional[Tuple[float, int]]:
     """(a's points, games) from a finished match in either order, or None."""
     for x, y, flip in ((a, b, False), (b, a, True)):
-        path = _out_name(x, y, sims, seeds, first_seed)
+        path = _out_name(x, y, sims, seeds, first_seed, deck_set, deck_seed)
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
                 r = json.load(f)
@@ -141,6 +143,8 @@ def main():
     parser.add_argument("--first-seed", type=int, default=3_000_000)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--skip-missing", action="store_true")
+    parser.add_argument("--deck-set", type=int, default=0, help="every match on N held-out random deck pairs (eval_v2)")
+    parser.add_argument("--deck-seed", type=int, default=2)
     args = parser.parse_args()
 
     players = [p for p in args.players if not args.skip_missing or _available(p)]
@@ -160,18 +164,20 @@ def main():
     results: Dict[Tuple[int, int], Tuple[float, int]] = {}
     for k, (i, j) in enumerate(pairs, 1):
         a, b = players[i], players[j]
-        r = result_for(a, b, args.sims, args.seeds, args.first_seed)
+        where = (args.sims, args.seeds, args.first_seed, args.deck_set, args.deck_seed)
+        r = result_for(a, b, *where)
         if r is None:
             print(f"[ladder] {k}/{len(pairs)}: {a} vs {b}", flush=True)
             child[0] = subprocess.Popen(
                 [sys.executable, "-m", "tools.eval_v2", "--a", a, "--b", b, "--sims", str(args.sims),
-                 "--seeds", str(args.seeds), "--first-seed", str(args.first_seed), "--workers", str(args.workers)],
+                 "--seeds", str(args.seeds), "--first-seed", str(args.first_seed), "--workers", str(args.workers),
+                 "--deck-set", str(args.deck_set), "--deck-seed", str(args.deck_seed)],
                 cwd=HERE)
             code = child[0].wait()
             child[0] = None
             if code != 0:
                 raise SystemExit(code)
-            r = result_for(a, b, args.sims, args.seeds, args.first_seed)
+            r = result_for(a, b, *where)
         else:
             print(f"[ladder] {k}/{len(pairs)}: {a} vs {b} already played ({r[0] / r[1]:.3f})", flush=True)
         results[(i, j)] = r
@@ -181,7 +187,7 @@ def main():
     table = [{"player": players[i], "elo": round(elo[i], 1), "se": round(se[i], 1)} for i in order]
     matches = [{"a": players[i], "b": players[j], "a_score": round(p / g, 4), "games": g}
                for (i, j), (p, g) in results.items()]
-    report = {"name": args.name, "anchor": players[0], "sims": args.sims, "seeds": args.seeds,
+    report = {"name": args.name, "anchor": players[0], "sims": args.sims, "seeds": args.seeds, "deck_set": args.deck_set,
               "first_seed": args.first_seed, "ratings": table, "matches": matches, "skipped": dropped}
     from sim import data_root
 
