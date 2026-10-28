@@ -26,7 +26,8 @@ def main(argv=None) -> None:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max-turns", type=int, default=None)
     parser.add_argument("--bot", default="heuristic",
-                        help="the bot seat's agent, by registry name: heuristic, random, search-within-turn, search-full-game")
+                        help="the bot seat's agent, by registry name: heuristic, random, search-within-turn, search-full-game, "
+                             "search-net@<port>[/<simulations>] (a trained network served from WSL; see play_best.ps1)")
     args = parser.parse_args(argv)
 
     from gui.app import App

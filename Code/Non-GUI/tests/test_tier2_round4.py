@@ -25,6 +25,22 @@ def _write_eval(root, a, b, a_wins, b_wins, draws=0, sims=100, seeds=100, first=
         json.dump({"a": a, "b": b, "games": a_wins + b_wins + draws, "a_wins": a_wins, "b_wins": b_wins, "draws": draws}, f)
 
 
+class TestNetworkSearchAgent(unittest.TestCase):
+    def test_search_net_is_registered_torch_free_and_reads_port_and_simulations(self):
+        import agent.agents.registry_entries  # noqa: F401
+        from bots.registry import make_agent, privilege_of
+        from keyforge.enums import PrivilegeLevel
+
+        a = make_agent("search-net@6150/40", seed=1)  # the client connects on first use, not here
+        self.assertEqual(a.search.settings.simulations, 40)
+        self.assertEqual(a.search.settings.determinization, "chance_exact")
+        self.assertFalse(a.search.settings.reuse)
+        self.assertEqual(a.client._address, ("127.0.0.1", 6150))
+        self.assertEqual(make_agent("search-net@otherhost:7000").client._address, ("otherhost", 7000))
+        self.assertEqual(make_agent("search-net@7000").search.settings.simulations, 100)
+        self.assertEqual(privilege_of("search-net@6150"), PrivilegeLevel.SEARCH)
+
+
 class TestLadder(unittest.TestCase):
     def test_the_fit_recovers_elo_differences_with_the_anchor_at_zero(self):
         from tools.ladder import fit

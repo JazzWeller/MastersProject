@@ -40,6 +40,13 @@ improving best, and its G5 rate reads the idle tail. v2 plays at ~1,900 games/h 
 Elo with HeuristicBot at 0); gates over `selfplay.gate_workers` (6) processes, the SPRT read after each unit of
 seeds; the monitor's G6 now reads 3 gates without a promotion, and a finished run's rate is the whole run's;
 round 4 (`-s3`) carries each arm on from its round 3 best for 100k more games.
+**Round 4 and the ladder** (2026-10-28, `results/tier2`): Elo with HeuristicBot at 0 (100 sims, 400 games a
+match, +/- ~12): v1-s3 **619**, v2-s3 **598**, v2-s2 537, v1-s2 531, v1-s1 264, BC A0 163, BC A7 137, v2-s1 131.
+Round 4 gained ~90 Elo on round 3 (v1-s2 vs v1-s3 0.355); v1 and v2 are level (0.510) but v2 plays 1,833
+games/h against v1's 4,442. Parallel gates took 22 min (v1) / 48 min (v2), so 20-21 gates ran per arm, but
+15 of v1's 20 ended undecided at 400 games with scores 0.50-0.55: GATE_SPRT's elo1 of 35 is larger than the
+gain per 1,000 steps, so promotions (4 each) lag the learner and the actors play a stale network.
+`Code/GUI/play_best.ps1` plays the best network (v1-s3) in the GUI through the WSL inference server.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;
