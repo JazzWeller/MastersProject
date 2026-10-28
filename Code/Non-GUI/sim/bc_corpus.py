@@ -108,7 +108,10 @@ def held_out_cards(seed: int, fraction: float = 0.2) -> frozenset:
     return frozenset(rng.sample(names, k))
 
 
-def _decks_for(pool: dict, index: int, rng: random.Random, excluded: frozenset, required: frozenset) -> Tuple:
+def decks_for(pool: dict, index: int, rng: random.Random, excluded: frozenset = frozenset(),
+              required: frozenset = frozenset()) -> Tuple:
+    """Game `index`'s two decks from `pool`'s `deck_source`; also the
+    self-play actors' and gates' decks (M11)."""
     source = pool.get("deck_source", "presets")
     if source == "presets":
         a, b = pool["decks"]
@@ -187,7 +190,7 @@ def _shard_task(args) -> Tuple[str, int, float]:
         for index in range(start, start + count):
             seed = game_seed(run_seed, source, index)
             rng = random.Random(seed)
-            decks = _decks_for(pool, index, rng, frozenset(excluded), frozenset(required))
+            decks = decks_for(pool, index, rng, frozenset(excluded), frozenset(required))
             config = GameConfig(decks=decks, seed=seed, max_turns=pool.get("max_turns", 200))
             rec = play_labelled(config, source, seed, epsilon)
             rec["index"] = index

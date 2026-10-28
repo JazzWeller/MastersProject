@@ -157,6 +157,11 @@ DEFAULTS: Dict[str, Any] = {
         # Processes a gate plays over (ml.selfplay_gate.run_gate); 1 = the gate process alone. In Tier 2 round 3
         # one-process gates took 1-4.4 h beside 28 actors.
         "gate_workers": 1,
+        # The promotion rule (ml.selfplay_gate.gate_rule): an SPRT between these
+        # Elo bounds, else at `gate_games` a fixed-N test at this many standard
+        # errors over 0.5.
+        "gate_sprt": [0.0, 35.0],
+        "gate_fallback_z": 2.0,
         "mirror_augmentation": True,
         "training_max_turns": 60,
         "resign_threshold": None,

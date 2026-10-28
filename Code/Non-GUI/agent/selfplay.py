@@ -95,6 +95,10 @@ class SelfPlaySettings:
     max_turns: int = 60  # training-only cap (never in evaluation)
     concurrency: int = 16
     decks: tuple = ("fignor", "igor")
+    # The config's `pool`: a `deck_source` other than "presets" (random,
+    # fixed_random, alliance -- sim.bc_corpus.decks_for) draws each game's
+    # decks from the game's seed (M11).
+    pool: Optional[dict] = None
     epsilon: float = 0.3  # DMC exploration: start ...
     epsilon_end: float = 0.01  # ... end ...
     epsilon_decay_games: int = 20000  # ... over this many of a worker's games
@@ -121,7 +125,7 @@ class SelfPlaySettings:
             tau_high=se["temperature_high"], tau_low=se["temperature_low"], c_puct=se["c_puct"],
             dirichlet_alpha=se["dirichlet_alpha"], dirichlet_eps=se["dirichlet_eps"],
             leaves_in_flight=se["leaves_in_flight"], max_turns=sp["training_max_turns"],
-            concurrency=sp["games_per_worker"], decks=tuple(cfg["pool"]["decks"]),
+            concurrency=sp["games_per_worker"], decks=tuple(cfg["pool"]["decks"]), pool=dict(cfg["pool"]),
             epsilon=cfg["dmc"]["epsilon_start"], epsilon_end=cfg["dmc"]["epsilon_end"],
             epsilon_decay_games=max(1, cfg["dmc"]["epsilon_decay_games"] // max(1, sp["workers"])),
             enumerate_cap=cfg["network"]["enumerate_cap"],
@@ -331,7 +335,12 @@ class Actor:
 
     def _new_slot(self, index: int) -> _Slot:
         seed = game_seed(self.run_seed, self.worker, index)
-        decks = self.s.decks if index % 2 == 0 else (self.s.decks[1], self.s.decks[0])
+        if self.s.pool and self.s.pool.get("deck_source", "presets") != "presets":
+            from sim.bc_corpus import decks_for
+
+            decks = decks_for(self.s.pool, index, random.Random(f"decks|{seed}"))
+        else:
+            decks = self.s.decks if index % 2 == 0 else (self.s.decks[1], self.s.decks[0])
         game = Game(GameConfig(decks=decks, seed=seed, max_turns=self.s.max_turns))
         searches = {pid: self._new_search(seed + pid) for pid in (1, 2)} if self.s.mode == "search" else {}
         slot = _Slot(index=index, seed=seed, game=game, rng=random.Random(seed ^ 0xA5), searches=searches)
@@ -356,7 +365,7 @@ class Actor:
             outcome = {pid: g.outcome_for(pid) for pid in (1, 2)}
         return {
             "meta": {
-                "seed": slot.seed, "index": slot.index, "worker": self.worker, "decks": [str(d) for d in g.config.decks],
+                "seed": slot.seed, "index": slot.index, "worker": self.worker, "decks": [getattr(d, "name", str(d)) for d in g.config.decks],
                 "turns": g.turn_number, "reason": (g.result or {}).get("reason"), "checkpoint": self.checkpoint_tag,
                 "mode": self.s.mode, "regime": self.s.regime, "seconds": time.time() - slot.t0,
                 "resigned_by": slot.resigned_by, "resign_exempt": slot.exempt, "would_resign": slot.would_resign,

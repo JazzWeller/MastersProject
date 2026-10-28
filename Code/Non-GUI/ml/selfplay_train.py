@@ -817,7 +817,11 @@ def main():
     if augment:
         from agent.augment import mirror_safe
 
-        if not mirror_safe(cfg["pool"]["decks"]):
+        if cfg["pool"].get("deck_source", "presets") != "presets":
+            # Random decks (M11): checking every game's cards isn't worth it; v2 never mirrors anyway.
+            augment = False
+            run.journal("mirror_augmentation_off", game_index=0, reason="decks vary by game")
+        elif not mirror_safe(cfg["pool"]["decks"]):
             augment = False
             run.journal("mirror_augmentation_off", game_index=0, reason="a card in the pool breaks the left/right symmetry")
     if pending is not None:
