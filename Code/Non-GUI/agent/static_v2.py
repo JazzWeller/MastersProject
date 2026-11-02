@@ -129,7 +129,9 @@ def _state_attributes() -> List[str]:
     names = set()
     for cls in ("Game", "Player", "Card", "CreatureType"):
         names.update(REGISTRY[cls])
-    return sorted(names)
+    # These are columns of every saved network's signature input: an attribute
+    # added since, which no card's effect touches, stays out of them.
+    return sorted(names - {"_world_deals"})
 
 
 _ATTRS = _state_attributes()
