@@ -588,6 +588,11 @@ class Game:
             if world is None:
                 world = sample_world(self, viewer, rng, resample, sampler, weights)
             sigma = apply_world(self, viewer, *world)
+        # a hand revealed inside the world shows the world's cards
+        from .determinize import _zones_now
+
+        self.__dict__["_world_deals"] = self.__dict__.get("_world_deals", ()) + (
+            (len(self.journal.entries), len(self.journal.decisions), _zones_now(self)),)
         # what the opponent knew before the world began is the true game's:
         # inside the world, their projection leaves it out (O3's "drop"),
         # unless their history can be relabelled to the world's cards
@@ -794,6 +799,8 @@ class Game:
                 new.__dict__[name] = {v: x.copy() for v, x in cache.items() if caches is True or v == caches}
         if "_world_cut" in self.__dict__:
             new.__dict__["_world_cut"] = self.__dict__["_world_cut"]
+        if "_world_deals" in self.__dict__:
+            new.__dict__["_world_deals"] = self.__dict__["_world_deals"]
         new._player_houses_cache = dict(self._player_houses_cache)
         new._fork_snapshot = None  # a branch builds its own if it is ever forked
 

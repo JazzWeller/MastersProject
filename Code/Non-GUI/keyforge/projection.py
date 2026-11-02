@@ -72,6 +72,11 @@ class Projector:
         self.where: Dict[int, tuple] = {}
         self.hands: Dict[int, Set[int]] = {1: set(), 2: set()}
         self.revealed: Dict[int, Set[int]] = {1: set(), 2: set()}
+        # A re-deal isn't journaled, so `where` and `hands` alone would still
+        # say the true game's inside a world: `Game._redeal`'s (journal
+        # entries, decisions, each card's zone) at each re-deal.
+        self.deals: tuple = ()
+        self.dealt = 0
 
     def copy(self) -> "Projector":
         new = Projector.__new__(Projector)
@@ -81,6 +86,7 @@ class Projector:
         new.where = dict(self.where)
         new.hands = {p: set(s) for p, s in self.hands.items()}
         new.revealed = {p: set(s) for p, s in self.revealed.items()}
+        new.deals, new.dealt = self.deals, self.dealt
         return new
 
     # ------------------------------------------------------ visibility ----
@@ -120,6 +126,9 @@ class Projector:
         decisions = records() if records is not None else journal.decisions
         ne, nl, nd = len(entries), len(log_events), len(decisions)
         while True:
+            if self.dealt < len(self.deals) and self.i >= self.deals[self.dealt][0] and self.d >= self.deals[self.dealt][1]:
+                self._deal(self.deals[self.dealt][2])
+                continue
             if self.d < nd:
                 rec = decisions[self.d]
                 if rec[0] <= self.i and rec[1] <= self.k:
@@ -136,6 +145,11 @@ class Projector:
                 continue
             break
         return self.items
+
+    def _deal(self, zones) -> None:
+        self.dealt += 1
+        self.where.update(zones)
+        self.hands = {p: {iid for iid, z in zones.items() if z == ("hand", p)} for p in self.hands}
 
     def _entry(self, e) -> None:
         v, o = self.viewer, self.other
@@ -266,4 +280,5 @@ def projected(game, viewer: Optional[int]) -> List[tuple]:
     if p is None:
         cut = game.__dict__.get("_world_cut")
         p = cache[viewer] = Projector(viewer, cut if cut is not None and cut[0] != viewer else None)
+    p.deals = game.__dict__.get("_world_deals", ())
     return p.update(game.journal, game.log.events)
