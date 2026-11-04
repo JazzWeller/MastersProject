@@ -4,12 +4,15 @@ survived (an order of effects that share a key) is gone."""
 
 from __future__ import annotations
 
+import json
 import os
 import shlex
 import signal
 import subprocess
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 import run
 from agent.search.core import legal_actions, map_choice
@@ -62,6 +65,32 @@ class Baseline(unittest.TestCase):
         self.assertEqual(step[step.index("--seeds") + 1], run.METHODS["eval-ladder"]["steps"][0][run.METHODS["eval-ladder"]["steps"][0].index("--seeds") + 1])
         for player in ("heuristic", "v1:m11-v1", "v2:m11-v2", "v1:tier2-v1-s3", "v2:tier2-v2-s3"):
             self.assertIn(player, step)
+
+
+class LadderPlayers(unittest.TestCase):
+    """A ladder skips a run still training, whose result would be reused as the finished run's."""
+
+    def _run(self, root, name, events):
+        run_dir = os.path.join(root, "runs", name)
+        os.makedirs(os.path.join(run_dir, "checkpoints"))
+        with open(os.path.join(run_dir, "checkpoints", "abc.kfc"), "w"):
+            pass
+        with open(os.path.join(run_dir, "best.json"), "w") as f:
+            json.dump({"checkpoint": "abc"}, f)
+        with open(os.path.join(run_dir, "journal.jsonl"), "w") as f:
+            for e in events:
+                print(json.dumps({"event": e}), file=f)
+
+    def test_only_a_finished_run_is_available(self):
+        from tools.ladder import _available
+
+        with tempfile.TemporaryDirectory() as root, mock.patch.dict(os.environ, {"KEYFORGE_DATA": root}):
+            self._run(root, "training", ["run_created", "promoted"])
+            self._run(root, "finished", ["run_created", "run_finished"])
+            self.assertFalse(_available("v1:training"))
+            self.assertTrue(_available("v1:finished"))
+            self.assertFalse(_available("v1:missing"))
+            self.assertTrue(_available("heuristic"))
 
 
 class MapChoice(unittest.TestCase):
