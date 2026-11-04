@@ -219,8 +219,10 @@ evaluation prints its progress every 100 batches.
 with that method's CPU/memory/GPU/time request; elsewhere it runs locally). One-time:
 copy `cluster.example.json` to `cluster.json`, fill in modules and the data path (leave `partition` empty to let Slurm route by the CPU/memory/GPU request), then
 `python run.py setup` (login node) and `python run.py check`. `python run.py ladder` submits the
-whole Tier 0b chain. Jobs are requeued on a time limit and resume where they stopped
-(`python run.py pause` stops them on request; rerun the method to resume).
+whole Tier 0b chain. Jobs save as they go and never requeue themselves: at a time limit, or on
+`python run.py pause`, they save and end, and rerunning the method resumes where they stopped.
+Self-play stops early, with the reason in its journal (`run_stopped`) and its log, when its actors
+keep crashing: more than half given up on, or crashes with no new game for 30 minutes.
 `python run.py smoke-selfplay` is the training plan's self-play smoke run (run id `smoke-sp`, a few
 minutes of server + actors + learner + gating, then its monitor screen); it starts from a fresh
 network, so it needs no data.
