@@ -39,12 +39,13 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAUSED = 75
 
 
-def _out_name(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set: int = 0, deck_seed: int = 2) -> str:
+def _out_name(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set: int = 0, deck_seed: int = 2,
+              deck_list: str = "", deck_split: str = "test") -> str:
     """`eval_v2`'s default output file for a against b."""
     from sim import data_root
     from tools.eval_v2 import out_name
 
-    return data_root.resolve(os.path.join("evals", out_name(a, b, sims, seeds, first_seed, False, deck_set, deck_seed)))
+    return data_root.resolve(os.path.join("evals", out_name(a, b, sims, seeds, first_seed, False, deck_set, deck_seed, deck_list, deck_split)))
 
 
 def _available(player: str) -> bool:
@@ -60,10 +61,10 @@ def _available(player: str) -> bool:
 
 
 def result_for(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set: int = 0,
-               deck_seed: int = 2) -> Optional[Tuple[float, int]]:
+               deck_seed: int = 2, deck_list: str = "", deck_split: str = "test") -> Optional[Tuple[float, int]]:
     """(a's points, games) from a finished match in either order, or None."""
     for x, y, flip in ((a, b, False), (b, a, True)):
-        path = _out_name(x, y, sims, seeds, first_seed, deck_set, deck_seed)
+        path = _out_name(x, y, sims, seeds, first_seed, deck_set, deck_seed, deck_list, deck_split)
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
                 r = json.load(f)
@@ -145,6 +146,8 @@ def main():
     parser.add_argument("--skip-missing", action="store_true")
     parser.add_argument("--deck-set", type=int, default=0, help="every match on N held-out random deck pairs (eval_v2)")
     parser.add_argument("--deck-seed", type=int, default=2)
+    parser.add_argument("--deck-list", default="", help="every match on a real deck list's pairs, one pair a seed")
+    parser.add_argument("--deck-split", default="test", choices=("train", "test"))
     args = parser.parse_args()
 
     players = [p for p in args.players if not args.skip_missing or _available(p)]
@@ -164,14 +167,15 @@ def main():
     results: Dict[Tuple[int, int], Tuple[float, int]] = {}
     for k, (i, j) in enumerate(pairs, 1):
         a, b = players[i], players[j]
-        where = (args.sims, args.seeds, args.first_seed, args.deck_set, args.deck_seed)
+        where = (args.sims, args.seeds, args.first_seed, args.deck_set, args.deck_seed, args.deck_list, args.deck_split)
         r = result_for(a, b, *where)
         if r is None:
             print(f"[ladder] {k}/{len(pairs)}: {a} vs {b}", flush=True)
             child[0] = subprocess.Popen(
                 [sys.executable, "-m", "tools.eval_v2", "--a", a, "--b", b, "--sims", str(args.sims),
                  "--seeds", str(args.seeds), "--first-seed", str(args.first_seed), "--workers", str(args.workers),
-                 "--deck-set", str(args.deck_set), "--deck-seed", str(args.deck_seed)],
+                 "--deck-set", str(args.deck_set), "--deck-seed", str(args.deck_seed),
+                 "--deck-list", args.deck_list, "--deck-split", args.deck_split, "--unit", "1" if args.deck_list else "4"],
                 cwd=HERE)
             code = child[0].wait()
             child[0] = None
@@ -188,7 +192,7 @@ def main():
     matches = [{"a": players[i], "b": players[j], "a_score": round(p / g, 4), "games": g}
                for (i, j), (p, g) in results.items()]
     report = {"name": args.name, "anchor": players[0], "sims": args.sims, "seeds": args.seeds, "deck_set": args.deck_set,
-              "first_seed": args.first_seed, "ratings": table, "matches": matches, "skipped": dropped}
+              "deck_list": args.deck_list, "deck_split": args.deck_split if args.deck_list else None, "first_seed": args.first_seed, "ratings": table, "matches": matches, "skipped": dropped}
     from sim import data_root
 
     out = data_root.resolve(os.path.join("evals", f"ladder-{args.name}.json"))

@@ -116,6 +116,12 @@ def decks_for(pool: dict, index: int, rng: random.Random, excluded: frozenset = 
     if source == "presets":
         a, b = pool["decks"]
         return (a, b) if index % 2 == 0 else (b, a)
+    if source == "list":
+        # Real decks (sim/decklists.py): training plays the list's train split only.
+        from .decklists import decklist
+
+        a, b = rng.sample(decklist(pool["deck_list"], pool.get("split", "train")), 2)
+        return a, b
     if source == "random":
         return (
             restricted_random_deck(rng, "R1", excluded, required),

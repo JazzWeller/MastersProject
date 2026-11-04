@@ -67,12 +67,11 @@ class TestDeckValidation(unittest.TestCase):
         errors = validate_deck(deck)
         self.assertTrue(any("Not A Real Card" in e for e in errors))
 
-    def test_card_in_wrong_house_pod_is_an_error(self):
+    def test_card_in_another_houses_pod_is_a_maverick(self):
         pods = self._valid_pods()
         pods[House.DIS][0] = "Doc Bookton"  # a Logos card
         deck = Deck(name="Test", pods=pods)
-        errors = validate_deck(deck)
-        self.assertTrue(any("Doc Bookton" in e and "not Dis" in e for e in errors))
+        self.assertEqual(validate_deck(deck), [])
 
     def test_duplicate_card_names_within_a_pod_are_legal(self):
         deck = Deck(name="Test", pods=self._valid_pods())  # already all duplicates

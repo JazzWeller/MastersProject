@@ -185,7 +185,7 @@ No card-specific MRB 18.3 ruling; standard rules apply.
 
 **Rulings (MRB 18.3):**
 - Pitlord (must choose Dis) against Restringuntus naming Dis (cannot choose Dis): cannot wins, so the player chooses one of their other houses. Tested by `tests/test_rules_phase2.py::test_cannot_beats_must_and_falls_back_to_normal_choice`.
-- A player can never be forced to choose a house that isn't on their identity card and that they control no card of. The engine can't reach this: mavericks are out of scope, so a deck with Pitlord always has Dis. *(no test)*
+- A player can never be forced to choose a house that isn't on their identity card and that they control no card of. A maverick Pitlord in a deck without Dis reaches this, and the effect is ignored. Tested by `tests/test_rules_phase2.py::test_must_choose_a_house_outside_the_deck_is_ignored`.
 
 ### 094 Restringuntus
 

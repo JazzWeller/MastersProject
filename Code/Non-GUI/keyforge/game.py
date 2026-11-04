@@ -1351,7 +1351,11 @@ class Game:
         player = self.players[pid]
         forced = player.get_house_selection(self)
         cannot = player.get_cannot_choose_houses(self)
-        if forced is not None and forced not in cannot:
+        # A player can't be made to choose a house that's neither on their identity card nor
+        # of a card they control (a maverick Pitlord, with no Dis in the deck): the effect is ignored.
+        if forced is not None and forced not in cannot and (
+            forced in self.player_houses(pid) or any(self.get_effective_house(c) == forced for c in player.play_area.all_cards())
+        ):
             house = forced
             self.log.add("house_forced", player=pid, house=house.value, source=self._effect_source("HouseSelection", pid))
         else:

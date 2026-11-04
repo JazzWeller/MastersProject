@@ -95,7 +95,7 @@ class SelfPlaySettings:
     max_turns: int = 60  # training-only cap (never in evaluation)
     concurrency: int = 16
     decks: tuple = ("fignor", "igor")
-    # The config's `pool`: a `deck_source` other than "presets" (random,
+    # The config's `pool`: a `deck_source` other than "presets" (list, random,
     # fixed_random, alliance -- sim.bc_corpus.decks_for) draws each game's
     # decks from the game's seed (M11).
     pool: Optional[dict] = None

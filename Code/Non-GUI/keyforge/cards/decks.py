@@ -82,9 +82,9 @@ def build_alliance_deck(name: str, house_sources: Dict[House, "DeckSource"]) -> 
 
 def validate_deck(deck: Deck) -> List[str]:
     """Human-readable problems with `deck`, or [] if it's legal: exactly 3
-    distinct houses (of the 7), 12 cards per pod, every name in the pool and
-    of the right house. Duplicate card names within a pod are legal, as in
-    real KeyForge."""
+    distinct houses (of the 7), 12 cards per pod, every name in the pool.
+    Duplicate card names within a pod are legal, as in real KeyForge, and so is
+    a card printed in another house: a maverick, of the pod's house in play."""
     errors: List[str] = []
     houses = set(deck.pods.keys())
     if len(houses) != PODS_PER_DECK:
@@ -96,8 +96,6 @@ def validate_deck(deck: Deck) -> List[str]:
             cdef = CARD_DEFS.get(name)
             if cdef is None:
                 errors.append(f"{name!r} is not in the card pool")
-            elif cdef.house != house:
-                errors.append(f"{name!r} is a {cdef.house.value} card, not {house.value}")
     return errors
 
 
@@ -164,7 +162,13 @@ def resolve_deck(source: DeckSource) -> Deck:
 
 def build_deck(source: DeckSource, owner: int) -> List[Card]:
     deck = resolve_deck(source)
-    return [Card(get_card_def(name), owner) for name in deck.all_card_names()]
+    cards = []
+    for house in deck.houses():
+        for name in deck.pods[house]:
+            card = Card(get_card_def(name), owner)
+            card.house = house  # (a maverick's differs from its printed house)
+            cards.append(card)
+    return cards
 
 
 def deck_label(source: DeckSource) -> str:
