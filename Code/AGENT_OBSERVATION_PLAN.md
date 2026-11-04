@@ -56,6 +56,24 @@ at the same cost per game as within-turn (26 s on one process), the belief-oracl
 curriculum stage (`m11-{v1,v2}`: random legal decks over all 370 cards from each arm's round 4 best; actors
 and gates draw decks from the game's seed, `sim.bc_corpus.decks_for`; `eval-m11`, a ladder on 32 held-out
 random deck pairs, `eval_v2 --deck-set`). Players take `#regime=,leaf=,sims=,resample=exact,search=none`.
+**M9 and M11 results** (2026-11-04; Elo with HeuristicBot at 0, +/- one standard error of the fit, which
+leaves out run-to-run variance; `results/m9`, `results/m11`). *Regimes:* within-turn beats full-game, matched
+cells +50 +/- 8 over both seeds (+76 seed 1, +23 seed 2; full-game's seeds differ by 40 +/- 11, so two seeds
+understate the noise). Playing within-turn is worth +39 +/- 5, training within-turn +30 +/- 5 on seed 1 only,
+no interaction (+1 +/- 8); full-game's gates were still passing at 50k games while within-turn's had levelled
+off. *Hidden information:* searching the exact state scores 60.3% against the same network (+84 +/- 11), above
+the plan's 3-point line, so the belief arm stays open, but the belief-oracle leaf gains +7 +/- 5 at 1.55x the
+cost: student stays the default. *Search curve* (v1-s3): 10 sims -54 +/- 11, 30 -21 +/- 11, 300 +35 +/- 11
+against 100: neither flat nor steep, 1 and 1,000 sims not measured. *Decks:* on held-out random decks (16 pairs
+of 17 decks from the set of 32, as `eval-m11` ran 64 seeds in units of 4, so few decks for a deck-level claim)
+m11-v1 **381**, m11-v2 **352**, v1-s3 289, v2-s3 256, BC -3 and -32. Random-deck training gained +92 and +96;
+v1 leads v2 by about 30 at all three stages (+29 +/- 14 for m11, 53.1% head to head), including the round 4
+networks, whose self-play never met most of these cards, so v2's card meaning has not shown its hoped-for
+advantage, and m11-v2 took 32 h against v1's 11.5 h. m11-v2's first run played 0 games: hand reveals inside a
+determinized world showed the true game's hand, crashing the chance filter and leaking real cards to the search;
+Fignor and Igor hold no such card, so earlier results stand. One actor (14) still crashed 17 times in the fixed
+run: an order of 7 effects, over `enumerate_cap`, 6 of them sharing an option key, was mapped back to one effect
+repeated (`map_choice`, fixed). Jobs no longer requeue themselves, and self-play stops when its actors keep crashing.
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;

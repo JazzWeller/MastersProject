@@ -520,6 +520,33 @@ def _start_gate(run: Run, pending: dict, args) -> Tuple[subprocess.Popen, str]:
 STATE_FILE = "learner_state.kfc"  # one overwritten file -- not a store entry per save
 SAVE_EVERY_SECONDS = 300.0
 RESTART_LIMIT = (5, 600.0)  # at most 5 restarts of one child per 10 minutes; after that it stays down (journalled)
+CRASH_STALL_SECONDS = 1800.0
+
+
+class ActorWatch:
+    """When a run whose actors keep crashing should stop, rather than idle to
+    its time limit: more than half of them given up on, or crashes with no
+    new game for `CRASH_STALL_SECONDS`. (`RESTART_LIMIT` alone misses a slow
+    crash: one actor every 130 s, under it, kept a run alive 3 days at 0
+    games.) An actor crashing while the others play doesn't stop a run."""
+
+    def __init__(self, actors: int, now: float):
+        self.actors = actors
+        self.abandoned = 0
+        self.crashes = 0  # since the last new game
+        self.games = 0
+        self.t_game = now
+
+    def progress(self, games: int, now: float) -> None:
+        if games > self.games:
+            self.games, self.t_game, self.crashes = games, now, 0
+
+    def stop_reason(self, now: float) -> Optional[str]:
+        if self.abandoned * 2 > self.actors:
+            return f"{self.abandoned} of {self.actors} actors abandoned"
+        if self.crashes and now - self.t_game > CRASH_STALL_SECONDS:
+            return f"{self.crashes} actor crashes and no new game for {(now - self.t_game) / 60:.0f} min"
+        return None
 
 
 def _may_restart(history: deque, now: float) -> bool:
@@ -836,6 +863,7 @@ def main():
     gate_every = float("inf") if reader else int(sp["gate_every_steps"])  # a replay is compared on held-out loss
     t_last = time.time()
     t_saved = time.time()
+    watch = ActorWatch(workers, t_saved)
     try:
         if not args.no_actors:
             server = _start_server(store.path_of(best["checkpoint"]), args.port, best_json, os.path.join(run.root, "server.log"), v2)
@@ -956,6 +984,7 @@ def main():
             # finish when every actor is done and the buffer is consumed.
             alive = 0
             now = time.time()
+            watch.progress(games_done, now)
             for w, p in list(procs.items()):
                 code = p.poll()
                 if code is None:
@@ -966,13 +995,19 @@ def main():
                     run.journal("actor_refused", game_index=games_done, worker=w, reason="shard held by another live process")
                     del procs[w]
                 elif _may_restart(restarts.setdefault(w, deque()), now):
+                    watch.crashes += 1
                     run.journal("actor_restarted", game_index=games_done, worker=w, exit_code=code)
                     procs[w] = _start_actor(run, w, per_worker, args.port, args.mode)
                     alive += 1
                 else:
                     run.journal("actor_abandoned", game_index=games_done, worker=w, exit_code=code,
                                 reason=f"{RESTART_LIMIT[0]} restarts in {RESTART_LIMIT[1]:.0f}s")
+                    watch.abandoned += 1
                     del procs[w]
+            why = watch.stop_reason(now)
+            if why:
+                run.journal("run_stopped", game_index=games_done, reason=why)
+                raise SystemExit(f"[learner] stopping: {why} -- see the actor_*.log files in {run.root}")
             if server is not None and server.poll() is not None and alive:
                 if _may_restart(restarts.setdefault("server", deque()), now):
                     run.journal("server_restarted", game_index=games_done, exit_code=server.returncode)

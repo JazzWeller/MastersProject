@@ -93,11 +93,14 @@ def legal_actions(decision, enumerate_cap: int) -> Optional[List[Tuple[Any, Any,
 
 def map_choice(decision, fork_choice: Any) -> Any:
     """A choice made against a *fork's* copy of `decision` (different Card
-    objects), mapped onto `decision`'s own options by option key."""
-    by_key = {option_key(decision, o): o for o in decision.options}
+    objects), mapped onto `decision`'s own options by option key. Options can
+    share a key (triggers of one card on one event); each is used once."""
     if isinstance(fork_choice, list):
-        return [by_key[option_key(None, c)] for c in fork_choice]
-    return by_key[option_key(None, fork_choice)]
+        by_key: Dict[Any, List[Any]] = {}
+        for o in decision.options:
+            by_key.setdefault(option_key(decision, o), []).append(o)
+        return [by_key[option_key(None, c)].pop(0) for c in fork_choice]
+    return {option_key(decision, o): o for o in decision.options}[option_key(None, fork_choice)]
 
 
 def _release(world) -> None:

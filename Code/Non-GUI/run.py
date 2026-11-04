@@ -7,10 +7,10 @@
 On a Slurm machine (`sbatch` on PATH) a method submits itself as a batch job
 with that method's CPU / memory / GPU / time request; anywhere else it runs
 right here with the same worker counts scaled to the machine. Inside a job
-the same file runs the steps, forwards SIGTERM to the running step, and on a
-pause (exit 75, see ml/resume.py) requeues the job, so a time limit costs a
-few minutes, not the run. Rerunning a method resumes it: every training and
-evaluation step is resumable by run id.
+the same file runs the steps and forwards SIGTERM to the running step, which
+saves and exits (exit 75, see ml/resume.py). A job never requeues itself: at
+a time limit it saves and ends, and rerunning the method resumes it (every
+training and evaluation step is resumable by run id, and saves as it goes).
 
 Site settings (partition, account, modules, venv, data root, GPU type) live
 in `cluster.json` next to this file (copy `cluster.example.json`), or in the
@@ -34,7 +34,6 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXIT_PAUSED = 75  # ml/resume.py: state saved, same command resumes
-MAX_REQUEUES = 50
 ARCHS = ("none", "summary", "turn_tokens", "joint", "stream")  # network.history_arch (configs/tier0b_bc.json)
 
 # --------------------------------------------------------------------- methods
@@ -257,6 +256,15 @@ METHODS["eval-m11"] = dict(
     cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
     steps=[[PY, "-m", "tools.ladder", "--name", "m11", "--players", *M11_LADDER, "--sims", "100", "--seeds", "64",
             "--deck-set", "32", "--workers", "{w}", "--skip-missing"]])
+# The fixed yardstick: Fignor and Igor, so a network that generalizes shows if it gets worse there. Every network that
+# matters goes on this list. 100 seeds, like eval-ladder, whose finished matches among these players it reuses.
+BASELINE_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3",
+                   "v1:m9-wt-1", "v1:m9-wt-2", "v1:m9-fg-1", "v1:m9-fg-2", "v1:m11-v1", "v2:m11-v2"]
+METHODS["eval-baseline"] = dict(
+    desc="every network that matters on Fignor and Igor, the fixed yardstick -> Elo (ladder-baseline.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "baseline", "--players", *BASELINE_LADDER, "--sims", "100", "--seeds", "100",
+            "--workers", "{w}", "--skip-missing"]])
 METHODS["export-m9"] = dict(
     desc="login node: copy the M9 runs, ladders and evals into results/m9 (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"m9-{a}-{s}" for a in M9_ARMS for s in M9_SEEDS],
@@ -406,7 +414,7 @@ def sbatch_script(name: str, m: dict, cfg: dict, argv_method: str) -> str:
     lines = ["#!/bin/bash", f"#SBATCH --job-name=kf-{name}", "#SBATCH --nodes=1", "#SBATCH --ntasks=1",
              f"#SBATCH --cpus-per-task={m['cpus']}", f"#SBATCH --mem={int(m['mem_gb'])}G",
              f"#SBATCH --time={hhmmss(m['hours'], cfg.get('max_time'))}",
-             f"#SBATCH --output={cfg['logs']}/%x-%j.out", "#SBATCH --requeue", "#SBATCH --signal=B:TERM@300"]
+             f"#SBATCH --output={cfg['logs']}/%x-%j.out", "#SBATCH --no-requeue", "#SBATCH --signal=B:TERM@300"]
     if m.get("gpu"):
         # `gres` (e.g. "gpu:a100:1") only when the site wants it; otherwise --gpus, which a routing
         # submit plugin (BYU's) places on any GPU partition the account may use.
@@ -420,7 +428,8 @@ def sbatch_script(name: str, m: dict, cfg: dict, argv_method: str) -> str:
             lines.append(f"#SBATCH --{key}={cfg[key]}")
     for mod in str(cfg.get("modules", "")).replace(",", " ").split():
         lines.append(f"module load {mod}")
-    lines += [f"cd {shlex.quote(HERE)}", f"KF_IN_JOB=1 python3 run.py {argv_method}"]
+    # `exec`: --signal=B: signals only the batch shell, which would die of it, with nothing saved
+    lines += [f"cd {shlex.quote(HERE)}", "export KF_IN_JOB=1", f"exec python3 run.py {argv_method}"]
     return "\n".join(lines) + "\n"
 
 
@@ -435,29 +444,12 @@ def submit(name: str, m: dict, cfg: dict, after: list = None) -> str:
     return out.stdout.strip().split(";")[0]
 
 
-def requeue_if_paused(name: str, code: int, cfg: dict) -> bool:
-    jid = os.environ.get("SLURM_JOB_ID")
-    if code != EXIT_PAUSED or not jid:
-        return False
-    marker = os.path.join(cfg["logs"], f"pause-{jid}")
-    if os.path.exists(marker):
-        print("[run.py] paused on request; rerun the method to resume", flush=True)
-        os.remove(marker)
-        return True
-    if int(os.environ.get("SLURM_RESTART_COUNT", "0")) >= MAX_REQUEUES:
-        return False
-    print("[run.py] state saved; requeueing", flush=True)
-    return subprocess.call(["scontrol", "requeue", jid]) == 0
-
-
 def pause(cfg: dict) -> int:
     out = subprocess.run(["squeue", "-u", os.environ.get("USER", ""), "-h", "-t", "R", "-o", "%i %j"],
                          capture_output=True, text=True).stdout.split("\n")
-    os.makedirs(cfg["logs"], exist_ok=True)
     for line in filter(None, out):
         jid, jname = line.split(None, 1)
         if jname.startswith("kf-"):
-            open(os.path.join(cfg["logs"], f"pause-{jid}"), "w").close()
             subprocess.call(["scancel", "--signal=TERM", "--batch", jid])
             print("pausing", jid, jname)
     return 0
@@ -500,8 +492,8 @@ def main(argv) -> int:
         print(f"submitted batch job {submit(name, m, cfg)} ({name}); log: {cfg['logs']}/kf-{name}-<jobid>.out")
         return 0
     code = run_steps(name, m, cfg)
-    if in_job and requeue_if_paused(name, code, cfg):
-        return 0
+    if in_job and code == EXIT_PAUSED:
+        print(f"[run.py] state saved; python3 run.py {name} resumes it", flush=True)
     return code
 
 
