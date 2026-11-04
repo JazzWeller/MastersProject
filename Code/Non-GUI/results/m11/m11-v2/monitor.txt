@@ -1,0 +1,13 @@
+== m11-v2  (tier 2, config 6cdf4353059d)
+   games 50,024/50,000   419.4 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.059   steps 11,847 (0.008/s)   next gate in None h
+   gates 11, promotions 5, last score 0.475, slope/10k games -0.036
+   losses {'loss_belief': 0.5119, 'loss_draw': 0.1812, 'loss_multi': 1.3265, 'loss_oracle': 0.7089, 'loss_policy': 1.3388, 'loss_value': 0.7454}   entropy 1.338
+   held-out {'loss_multi': 0.9957, 'loss_policy': 1.2123, 'loss_value': 0.7264}
+   !! G5: games/hour 419 is under 60% of the projected 1500 -- re-plan the tier
+   !! G6: no promotion in the last 3 gates -- bank the promoted checkpoint and stop; spend the time on the matrix
+   journal @25822: actor_restarted {"exit_code": 1, "worker": 14}
+   journal @26468: actor_restarted {"exit_code": 1, "worker": 14}
+   journal @27096: actor_restarted {"exit_code": 1, "worker": 14}
+   journal @50024: run_finished {"final": "378566850d1e0b229e9e466e2af5980dba15ebda1ac3a726cd049c13b7eb0bf1", "step": 11847}
+   journal @50024: final_validation {"games": 948, "positions": 99843, "step": 11847, "val_loss_multi": 1.33712, "val_loss_policy": 1.27624, "val_loss_value": 0.74358}

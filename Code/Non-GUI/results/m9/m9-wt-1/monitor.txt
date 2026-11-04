@@ -1,0 +1,9 @@
+== m9-wt-1  (tier 2, config 99cc2c121e4e)
+   games 50,007/50,000   5140.0 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.037   steps 10,404 (0.144/s)   next gate in None h
+   gates 10, promotions 7, last score 0.4475, slope/10k games -0.0177
+   losses {'loss_belief': 0.5537, 'loss_multi': 1.2321, 'loss_oracle': 0.6419, 'loss_policy': 1.2089, 'loss_value': 0.6651}   entropy 1.2084
+   held-out {'loss_multi': 1.4689, 'loss_policy': 1.2272, 'loss_value': 0.6697}
+   journal @5599: gate_G4 {"step": 1000, "verdict": "PASS"}
+   journal @50007: run_finished {"final": "f7f274a3e08607c7b14cafec8caa9c414d2c2efe1fe7fce828a60536517deb3a", "step": 10404}
+   journal @50007: final_validation {"games": 1038, "positions": 87075, "step": 10404, "val_loss_multi": 1.33566, "val_loss_policy": 1.22502, "val_loss_value": 0.71517}

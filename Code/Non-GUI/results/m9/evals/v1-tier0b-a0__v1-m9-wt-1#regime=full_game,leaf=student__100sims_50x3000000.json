@@ -1,0 +1,22 @@
+{
+ "games": 200,
+ "a_wins": 24,
+ "b_wins": 176,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v1:tier0b-a0",
+ "a_exact": false,
+ "b": "v1:m9-wt-1#regime=full_game,leaf=student",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 50,
+ "deck_set": 0,
+ "deck_seed": null,
+ "a_score": 0.12,
+ "interval95": [
+  0.082,
+  0.1723
+ ],
+ "mean_turns": 16.82,
+ "seconds": 499.6
+}

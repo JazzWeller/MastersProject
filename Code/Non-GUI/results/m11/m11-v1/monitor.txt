@@ -1,0 +1,10 @@
+== m11-v1  (tier 2, config 99f78213f2d5)
+   games 50,007/50,000   4365.7 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.021   steps 11,694 (0.113/s)   next gate in None h
+   gates 11, promotions 4, last score 0.5, slope/10k games -0.0022
+   losses {'loss_belief': 0.5404, 'loss_multi': 1.3529, 'loss_oracle': 0.6915, 'loss_policy': 1.3298, 'loss_value': 0.7082}   entropy 1.3227
+   held-out {'loss_multi': 1.2532, 'loss_policy': 1.3019, 'loss_value': 0.7847}
+   journal @0: mirror_augmentation_off {"reason": "decks vary by game"}
+   journal @5855: gate_G4 {"step": 1000, "verdict": "PASS"}
+   journal @50007: run_finished {"final": "f52ffc762b530f098927095dc400be7f6fe422599752d985f4b7de952967c218", "step": 11694}
+   journal @50007: final_validation {"games": 947, "positions": 99393, "step": 11694, "val_loss_multi": 1.31109, "val_loss_policy": 1.29067, "val_loss_value": 0.70448}

@@ -1,0 +1,83 @@
+{
+ "run": "m11-v2",
+ "config_hash": "6cdf4353059d",
+ "tier": 2,
+ "games_done": 50024,
+ "budget": 50000,
+ "games_per_hour": 419.4,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": 0.0,
+ "actor_learner_ratio": 1.059,
+ "gradient_steps": 11847,
+ "steps_per_second": 0.008,
+ "hours_to_next_gate": null,
+ "gates": 11,
+ "promotions": 5,
+ "last_gate_score": 0.475,
+ "gate_score_slope_per_10k_games": -0.036,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5119,
+  "loss_draw": 0.1812,
+  "loss_multi": 1.3265,
+  "loss_oracle": 0.7089,
+  "loss_policy": 1.3388,
+  "loss_value": 0.7454
+ },
+ "validation_losses": {
+  "loss_multi": 0.9957,
+  "loss_policy": 1.2123,
+  "loss_value": 0.7264
+ },
+ "policy_entropy": 1.338,
+ "interventions": [
+  {
+   "config_hash": "6cdf4353059d182bc422005bf1812c17ecbcbe83e6571e2f11fe7c7c3db38240",
+   "event": "actor_restarted",
+   "exit_code": 1,
+   "game_index": 25822,
+   "t": 1793666180.0865655,
+   "worker": 14
+  },
+  {
+   "config_hash": "6cdf4353059d182bc422005bf1812c17ecbcbe83e6571e2f11fe7c7c3db38240",
+   "event": "actor_restarted",
+   "exit_code": 1,
+   "game_index": 26468,
+   "t": 1793667679.815844,
+   "worker": 14
+  },
+  {
+   "config_hash": "6cdf4353059d182bc422005bf1812c17ecbcbe83e6571e2f11fe7c7c3db38240",
+   "event": "actor_restarted",
+   "exit_code": 1,
+   "game_index": 27096,
+   "t": 1793669132.9207487,
+   "worker": 14
+  },
+  {
+   "config_hash": "6cdf4353059d182bc422005bf1812c17ecbcbe83e6571e2f11fe7c7c3db38240",
+   "event": "run_finished",
+   "final": "378566850d1e0b229e9e466e2af5980dba15ebda1ac3a726cd049c13b7eb0bf1",
+   "game_index": 50024,
+   "step": 11847,
+   "t": 1793723609.7091537
+  },
+  {
+   "config_hash": "6cdf4353059d182bc422005bf1812c17ecbcbe83e6571e2f11fe7c7c3db38240",
+   "event": "final_validation",
+   "game_index": 50024,
+   "games": 948,
+   "positions": 99843,
+   "step": 11847,
+   "t": 1793723614.3817573,
+   "val_loss_multi": 1.33712,
+   "val_loss_policy": 1.27624,
+   "val_loss_value": 0.74358
+  }
+ ],
+ "flags": [
+  "G5: games/hour 419 is under 60% of the projected 1500 -- re-plan the tier",
+  "G6: no promotion in the last 3 gates -- bank the promoted checkpoint and stop; spend the time on the matrix"
+ ]
+}

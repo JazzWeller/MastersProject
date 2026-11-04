@@ -1,0 +1,9 @@
+== m9-fg-1  (tier 3, config 82a82f9aff4e)
+   games 50,005/50,000   5373.8 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.029   steps 9,867 (0.145/s)   next gate in None h
+   gates 9, promotions 7, last score 0.5525, slope/10k games 0.0075
+   losses {'loss_belief': 0.5446, 'loss_multi': 1.3565, 'loss_oracle': 0.704, 'loss_policy': 1.2614, 'loss_value': 0.7191}   entropy 1.2576
+   held-out {'loss_multi': 1.1363, 'loss_policy': 1.2576, 'loss_value': 0.8466}
+   journal @5897: gate_G4 {"step": 1000, "verdict": "PASS"}
+   journal @50005: run_finished {"final": "9915d9e11be35f35839739792ee06cc5a245802874a5f20f044329625e815ce0", "step": 9867}
+   journal @50005: final_validation {"games": 1037, "positions": 81989, "step": 9867, "val_loss_multi": 1.37344, "val_loss_policy": 1.25336, "val_loss_value": 0.74869}

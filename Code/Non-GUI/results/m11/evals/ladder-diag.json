@@ -1,0 +1,133 @@
+{
+ "name": "diag",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:tier2-v1-s3#resample=exact",
+   "elo": 776.3,
+   "se": 30.3
+  },
+  {
+   "player": "v1:tier2-v1-s3#sims=300",
+   "elo": 726.6,
+   "se": 30.1
+  },
+  {
+   "player": "v1:tier2-v1-s3",
+   "elo": 691.9,
+   "se": 30.1
+  },
+  {
+   "player": "v1:tier2-v1-s3#sims=30",
+   "elo": 671.0,
+   "se": 30.0
+  },
+  {
+   "player": "v1:tier2-v1-s3#sims=10",
+   "elo": 638.1,
+   "se": 29.9
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#sims=10",
+   "a_score": 0.03,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#sims=30",
+   "a_score": 0.0175,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0125,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.025,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.005,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3#sims=30",
+   "a_score": 0.475,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.4025,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.36,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.33,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=30",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.495,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=30",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.4375,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=30",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.33,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.4325,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.3975,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=300",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.4225,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

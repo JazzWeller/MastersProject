@@ -1,0 +1,22 @@
+{
+ "games": 256,
+ "a_wins": 26,
+ "b_wins": 230,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "heuristic",
+ "a_exact": false,
+ "b": "v1:m11-v1",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 64,
+ "deck_set": 32,
+ "deck_seed": 2,
+ "a_score": 0.1016,
+ "interval95": [
+  0.0703,
+  0.1447
+ ],
+ "mean_turns": 19.88,
+ "seconds": 448.9
+}

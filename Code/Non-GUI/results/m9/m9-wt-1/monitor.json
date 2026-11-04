@@ -1,0 +1,63 @@
+{
+ "run": "m9-wt-1",
+ "config_hash": "99cc2c121e4e",
+ "tier": 2,
+ "games_done": 50007,
+ "budget": 50000,
+ "games_per_hour": 5140.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": 0.0,
+ "actor_learner_ratio": 1.037,
+ "gradient_steps": 10404,
+ "steps_per_second": 0.144,
+ "hours_to_next_gate": null,
+ "gates": 10,
+ "promotions": 7,
+ "last_gate_score": 0.4475,
+ "gate_score_slope_per_10k_games": -0.0177,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5537,
+  "loss_multi": 1.2321,
+  "loss_oracle": 0.6419,
+  "loss_policy": 1.2089,
+  "loss_value": 0.6651
+ },
+ "validation_losses": {
+  "loss_multi": 1.4689,
+  "loss_policy": 1.2272,
+  "loss_value": 0.6697
+ },
+ "policy_entropy": 1.2084,
+ "interventions": [
+  {
+   "config_hash": "99cc2c121e4e2cd1c837df7934fc31e364f901d5ad8c9c2e25f7957bb733f724",
+   "event": "gate_G4",
+   "game_index": 5599,
+   "step": 1000,
+   "t": 1793246919.6786714,
+   "verdict": "PASS"
+  },
+  {
+   "config_hash": "99cc2c121e4e2cd1c837df7934fc31e364f901d5ad8c9c2e25f7957bb733f724",
+   "event": "run_finished",
+   "final": "f7f274a3e08607c7b14cafec8caa9c414d2c2efe1fe7fce828a60536517deb3a",
+   "game_index": 50007,
+   "step": 10404,
+   "t": 1793278208.3338907
+  },
+  {
+   "config_hash": "99cc2c121e4e2cd1c837df7934fc31e364f901d5ad8c9c2e25f7957bb733f724",
+   "event": "final_validation",
+   "game_index": 50007,
+   "games": 1038,
+   "positions": 87075,
+   "step": 10404,
+   "t": 1793278211.0487268,
+   "val_loss_multi": 1.33566,
+   "val_loss_policy": 1.22502,
+   "val_loss_value": 0.71517
+  }
+ ],
+ "flags": []
+}

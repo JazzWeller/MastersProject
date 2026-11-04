@@ -1,0 +1,22 @@
+{
+ "games": 200,
+ "a_wins": 111,
+ "b_wins": 89,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v1:m9-fg-1#regime=within_turn,leaf=belief_oracle",
+ "a_exact": false,
+ "b": "v1:m9-fg-1#regime=full_game,leaf=belief_oracle",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 50,
+ "deck_set": 0,
+ "deck_seed": null,
+ "a_score": 0.555,
+ "interval95": [
+  0.4857,
+  0.6222
+ ],
+ "mean_turns": 16.91,
+ "seconds": 815.8
+}
