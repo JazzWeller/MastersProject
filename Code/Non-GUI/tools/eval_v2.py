@@ -146,6 +146,10 @@ def unit_decks(args, first_seed: int):
     or (`--deck-set N`) the unit's pair from a fixed set of N random decks
     -- a function of the seed alone, so a resumed evaluation and every
     player pairing meet the same decks."""
+    if getattr(args, "deck_list", ""):
+        from sim.decklists import pair_for
+
+        return pair_for(args.deck_list, args.deck_split, (first_seed - args.first_seed) // args.unit)
     if not getattr(args, "deck_set", 0):
         return "fignor", "igor"
     from sim.bc_corpus import fixed_deck_set
@@ -156,11 +160,13 @@ def unit_decks(args, first_seed: int):
 
 
 def out_name(a: str, b: str, sims: int, seeds: int, first_seed: int, a_exact: bool = False, deck_set: int = 0,
-             deck_seed: int = 2) -> str:
+             deck_seed: int = 2, deck_list: str = "", deck_split: str = "test") -> str:
     """The default output file's name (also how `tools.ladder` finds a match)."""
     name = f"{a}{'-exact' if a_exact else ''}__{b}__{sims}sims_{seeds}x{first_seed}"
     if deck_set:
         name += f"_decks{deck_set}s{deck_seed}"
+    if deck_list:
+        name += f"_{deck_list}-{deck_split}"
     return name.replace(":", "-") + ".json"
 
 
@@ -168,7 +174,8 @@ def _default_out(args) -> str:
     from sim import data_root
 
     return data_root.resolve(os.path.join("evals", out_name(args.a, args.b, args.sims, args.seeds, args.first_seed,
-                                                            args.a_exact, args.deck_set, args.deck_seed)))
+                                                            args.a_exact, args.deck_set, args.deck_seed,
+                                                            args.deck_list, args.deck_split)))
 
 
 def main():
@@ -187,6 +194,8 @@ def main():
                              "same seeds is the hidden-information gap)")
     parser.add_argument("--deck-set", type=int, default=0, help="play on N held-out random deck pairs (M11)")
     parser.add_argument("--deck-seed", type=int, default=2, help="the deck set's seed (training sets use others)")
+    parser.add_argument("--deck-list", default="", help="play on a real deck list's pairs (sim/decklists.py)")
+    parser.add_argument("--deck-split", default="test", choices=("train", "test"))
     parser.add_argument("--out", default=None)
     parser.add_argument("--unit", type=int, default=4, help="seeds per unit of work (the pause granularity)")
     args = parser.parse_args()
@@ -224,7 +233,8 @@ def main():
     lo, hi = wilson_interval(tot["a_wins"] + 0.5 * tot["draws"], tot["games"])
     turns = [t for p in parts for t in p["turns"]]
     res = dict(tot, a=args.a, a_exact=bool(args.a_exact), b=args.b, sims=args.sims, regime=args.regime, seeds=args.seeds,
-               deck_set=args.deck_set, deck_seed=args.deck_seed if args.deck_set else None, a_score=round(score, 4),
+               deck_set=args.deck_set, deck_seed=args.deck_seed if args.deck_set else None, deck_list=args.deck_list,
+               deck_split=args.deck_split if args.deck_list else None, a_score=round(score, 4),
                interval95=[round(lo, 4), round(hi, 4)], mean_turns=round(sum(turns) / len(turns), 2) if turns else None,
                seconds=round(time.time() - t0, 1))
     print(json.dumps(res, indent=1))

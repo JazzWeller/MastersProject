@@ -34,7 +34,7 @@ DEFAULTS: Dict[str, Any] = {
     "pool": {
         "decks": ["fignor", "igor"],
         "format": "archon",
-        "deck_source": "presets",  # presets | random | alliance
+        "deck_source": "presets",  # presets | list (real decks: `deck_list`, `split`) | random | alliance
         "max_turns": 200,
     },
     # The network's input (Agent Observation Plan): 1 = v1 (KeyForgeNet), 2 =

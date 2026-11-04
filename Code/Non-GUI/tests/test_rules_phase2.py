@@ -235,6 +235,23 @@ class TestHouseMustCannot(unittest.TestCase):
             pass
         self.assertNotEqual(game.players[1].selected_house, House.DIS)
 
+    def test_must_choose_a_house_outside_the_deck_is_ignored(self):
+        game = new_game()
+        absent = next(h for h in House if h not in game.player_houses(1))
+        must_card = put_creature(game, 1, "Old Bruno")
+        game.active_effects.add(DurationEffect(must_card, 1, INFINITE, 1, "HouseSelection", "=", absent))
+        d = next(game._choose_house_step(1))
+        self.assertEqual(d.options, game.player_houses(1))
+
+    def test_must_choose_a_house_of_a_controlled_card_holds(self):
+        game = new_game()
+        absent = next(h for h in House if h not in game.player_houses(1))
+        must_card = put_creature(game, 1, "Old Bruno")
+        put_creature(game, 1, "Titan Mechanic").house = absent
+        game.active_effects.add(DurationEffect(must_card, 1, INFINITE, 1, "HouseSelection", "=", absent))
+        drive(game._choose_house_step(1))
+        self.assertEqual(game.players[1].selected_house, absent)
+
     def test_no_legal_house_leaves_player_with_no_active_house(self):
         game = new_game()
         p1 = game.players[1]

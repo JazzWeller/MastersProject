@@ -259,12 +259,40 @@ METHODS["eval-m11"] = dict(
 # The fixed yardstick: Fignor and Igor, so a network that generalizes shows if it gets worse there. Every network that
 # matters goes on this list. 100 seeds, like eval-ladder, whose finished matches among these players it reuses.
 BASELINE_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3",
-                   "v1:m9-wt-1", "v1:m9-wt-2", "v1:m9-fg-1", "v1:m9-fg-2", "v1:m11-v1", "v2:m11-v2"]
+                   "v1:m9-wt-1", "v1:m9-wt-2", "v1:m9-fg-1", "v1:m9-fg-2", "v1:m11-v1", "v2:m11-v2",
+                   "v1:real-v1", "v2:real-v2"]
+_BASELINE_STEP = [PY, "-m", "tools.ladder", "--name", "baseline", "--players", *BASELINE_LADDER, "--sims", "100", "--seeds", "100",
+                  "--workers", "{w}", "--skip-missing"]
 METHODS["eval-baseline"] = dict(
     desc="every network that matters on Fignor and Igor, the fixed yardstick -> Elo (ladder-baseline.json)",
     cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
-    steps=[[PY, "-m", "tools.ladder", "--name", "baseline", "--players", *BASELINE_LADDER, "--sims", "100", "--seeds", "100",
-            "--workers", "{w}", "--skip-missing"]])
+    steps=[_BASELINE_STEP])
+# Real decks only from here on (keyforge/cards/data/decklists/phase3.json, Decks of KeyForge exports across the whole
+# SAS range, mavericks included): each arm warm-started from its random-deck best, training on the train split.
+for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
+    METHODS[f"real-{_arm}"] = dict(
+        desc=f"{_arm} self-play on the real Phase 3 decks' train split, 50k games from m11-{_arm}'s best (run real-{_arm}); resumable",
+        cpus=32, mem_gb=128, gpu=True, hours=72,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"real-{_arm}", "--config", _cfg, "--init-run", f"m11-{_arm}",
+                "--override", json.dumps({"pool": {"deck_source": "list", "deck_list": "phase3", "split": "train"},
+                                          "selfplay": {**{k: v for k, v in _sp.items() if k in ("workers", "encode_workers")},
+                                                       "games": 50_000, **_LEARNER}}),
+                "--port", "{port}"],
+               [PY, "-m", "tools.monitor", f"real-{_arm}"]])
+REAL_TEST_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3", "v1:m11-v1", "v2:m11-v2",
+                    "v1:real-v1", "v2:real-v2"]
+REAL_TRAIN_LADDER = ["heuristic", "v1:m11-v1", "v2:m11-v2", "v1:real-v1", "v2:real-v2"]
+METHODS["eval-real"] = dict(
+    desc="real decks: every network on the held-out split, the gap to the train split, then Fignor and Igor (ladder-real-test, -train, -baseline)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "real-test", "--players", *REAL_TEST_LADDER, "--sims", "100", "--seeds", "100",
+            "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"],
+           [PY, "-m", "tools.ladder", "--name", "real-train", "--players", *REAL_TRAIN_LADDER, "--sims", "100", "--seeds", "100",
+            "--deck-list", "phase3", "--deck-split", "train", "--workers", "{w}", "--skip-missing"],
+           _BASELINE_STEP])
+METHODS["export-real"] = dict(
+    desc="login node: copy the real-deck runs, ladders and evals into results/real (then commit and push)", local=True,
+    steps=[[PY, "-m", "tools.export_results", "real-v1", "real-v2", "--out", os.path.join("results", "real")]])
 METHODS["export-m9"] = dict(
     desc="login node: copy the M9 runs, ladders and evals into results/m9 (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"m9-{a}-{s}" for a in M9_ARMS for s in M9_SEEDS],

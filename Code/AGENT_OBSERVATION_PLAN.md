@@ -74,6 +74,7 @@ determinized world showed the true game's hand, crashing the chance filter and l
 Fignor and Igor hold no such card, so earlier results stand. One actor (14) still crashed 17 times in the fixed
 run: an order of 7 effects, over `enumerate_cap`, 6 of them sharing an option key, was mapped back to one effect
 repeated (`map_choice`, fixed). Jobs no longer requeue themselves, and self-play stops when its actors keep crashing.
+**Real decks from here on** (2026-11-04): random decks are retired for new runs, which ignore rarity (real decks run about 24 common, 8.5 uncommon, 3.3 rare). `keyforge/cards/data/decklists/phase3.json` holds 1,200 Call of the Archons decks exported from Decks of KeyForge (https://decksofkeyforge.com), 200 per SAS band from 44 to 100, so the bands are equal but not in proportion to real decks; 61 hold a maverick. `tools/import_decks.py` splits them by deck id within each band, 1,002 train and 198 test. A maverick takes its pod's house when built, and a forced house outside the deck and the cards in play is ignored (maverick Pitlord). v1's static features and hand counts still see a maverick's printed house; v2 sees the real one. `real-v1`, `real-v2` train on the train split; `eval-real` rates on the test split, the train split for the gap, and Fignor and Igor (`eval-baseline`, the fixed yardstick; Fignor and Igor are not in this list).
 (details under "Progress" below). Built before that:
 - O10's actor benchmark, with its v1 baseline;
 - O8's persistent inference connection and its faster server result handling;

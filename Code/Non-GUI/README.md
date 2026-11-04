@@ -223,6 +223,9 @@ whole Tier 0b chain. Jobs save as they go and never requeue themselves: at a tim
 `python run.py pause`, they save and end, and rerunning the method resumes where they stopped.
 Self-play stops early, with the reason in its journal (`run_stopped`) and its log, when its actors
 keep crashing: more than half given up on, or crashes with no new game for 30 minutes.
+Real decks: `python -m tools.import_decks <export.csv> <name>` turns a Decks of KeyForge CSV export into
+`keyforge/cards/data/decklists/<name>.json` with a fixed train/test split; `real-v1`, `real-v2` train on the
+train split, and `eval-real` rates the networks on the held-out split, the train split, and Fignor and Igor.
 `python run.py smoke-selfplay` is the training plan's self-play smoke run (run id `smoke-sp`, a few
 minutes of server + actors + learner + gating, then its monitor screen); it starts from a fresh
 network, so it needs no data.
