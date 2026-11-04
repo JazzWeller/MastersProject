@@ -55,6 +55,15 @@ class BatchScript(unittest.TestCase):
         self.assertIn("run.py t resumes it", out)
 
 
+class Baseline(unittest.TestCase):
+    def test_it_plays_fignor_and_igor_and_reuses_the_ladders_matches(self):
+        step = run.METHODS["eval-baseline"]["steps"][0]
+        self.assertNotIn("--deck-set", step)
+        self.assertEqual(step[step.index("--seeds") + 1], run.METHODS["eval-ladder"]["steps"][0][run.METHODS["eval-ladder"]["steps"][0].index("--seeds") + 1])
+        for player in ("heuristic", "v1:m11-v1", "v2:m11-v2", "v1:tier2-v1-s3", "v2:tier2-v2-s3"):
+            self.assertIn(player, step)
+
+
 class MapChoice(unittest.TestCase):
     """Worker 14's crash in m11-v2: 7 triggers, 6 of one card on one event, are
     past `enumerate_cap`, and the fixed policy's order was mapped back by key."""

@@ -256,6 +256,15 @@ METHODS["eval-m11"] = dict(
     cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
     steps=[[PY, "-m", "tools.ladder", "--name", "m11", "--players", *M11_LADDER, "--sims", "100", "--seeds", "64",
             "--deck-set", "32", "--workers", "{w}", "--skip-missing"]])
+# The fixed yardstick: Fignor and Igor, so a network that generalizes shows if it gets worse there. Every network that
+# matters goes on this list. 100 seeds, like eval-ladder, whose finished matches among these players it reuses.
+BASELINE_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3",
+                   "v1:m9-wt-1", "v1:m9-wt-2", "v1:m9-fg-1", "v1:m9-fg-2", "v1:m11-v1", "v2:m11-v2"]
+METHODS["eval-baseline"] = dict(
+    desc="every network that matters on Fignor and Igor, the fixed yardstick -> Elo (ladder-baseline.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "baseline", "--players", *BASELINE_LADDER, "--sims", "100", "--seeds", "100",
+            "--workers", "{w}", "--skip-missing"]])
 METHODS["export-m9"] = dict(
     desc="login node: copy the M9 runs, ladders and evals into results/m9 (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"m9-{a}-{s}" for a in M9_ARMS for s in M9_SEEDS],
