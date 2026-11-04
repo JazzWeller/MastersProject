@@ -14,8 +14,8 @@ a bot name, any of them with `#regime=...,leaf=...,sims=...` options), and
 an earlier evaluation, in either order -- is read, not replayed, and an
 interrupted ladder resumes where it stopped (SIGTERM ends the running match,
 which resumes from its own partial file). `--skip-missing` drops a player
-whose run or checkpoint doesn't exist yet, so one ladder definition can name
-runs still to come.
+whose run or checkpoint doesn't exist yet, or whose run is still training, so
+one ladder definition can name runs still to come.
 
 The fit: the strength of each player maximizes the likelihood of every
 pair's score (wins plus half the draws, over games), with the first player
@@ -53,11 +53,22 @@ def _available(player: str) -> bool:
         return True
     from tools.eval_v2 import _checkpoint, player_options
 
+    run_id = player_options(player)[0].split(":", 1)[1]
     try:
-        _checkpoint(player_options(player)[0].split(":", 1)[1])
-        return True
+        _checkpoint(run_id)
     except (FileNotFoundError, StopIteration, KeyError, IndexError, json.JSONDecodeError):
         return False
+    # A self-play run still training has a best network too, but its match would be kept, and reused, under the
+    # run's name as if it were the finished one. (`@p<N>`, a fixed checkpoint, is fine.)
+    if "@" in run_id:
+        return True
+    from sim import data_root
+
+    root = data_root.resolve(os.path.join("runs", run_id))
+    if os.path.exists(os.path.join(root, "bc_report.json")):
+        return True
+    with open(os.path.join(root, "journal.jsonl"), "r", encoding="utf-8") as f:
+        return any(json.loads(line)["event"] == "run_finished" for line in f if line.strip())
 
 
 def result_for(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set: int = 0,
