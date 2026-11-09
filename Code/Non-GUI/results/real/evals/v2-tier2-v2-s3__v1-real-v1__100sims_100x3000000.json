@@ -1,0 +1,24 @@
+{
+ "games": 400,
+ "a_wins": 223,
+ "b_wins": 177,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v2:tier2-v2-s3",
+ "a_exact": false,
+ "b": "v1:real-v1",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_seed": null,
+ "deck_list": "",
+ "deck_split": null,
+ "a_score": 0.5575,
+ "interval95": [
+  0.5085,
+  0.6054
+ ],
+ "mean_turns": 17.34,
+ "seconds": 1904.4
+}

@@ -1,0 +1,11 @@
+== real-v1  (tier 2, config 150bb6e7da0e)
+   games 50,008/50,000   3294.1 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.022   steps 13,287 (0.089/s)   next gate in None h
+   gates 13, promotions 2, last score 0.5175, slope/10k games 0.0006
+   losses {'loss_belief': 0.5521, 'loss_multi': 1.509, 'loss_oracle': 0.6963, 'loss_policy': 1.2707, 'loss_value': 0.7112}   entropy 1.2853
+   held-out {'loss_multi': 1.7375, 'loss_policy': 1.1166, 'loss_value': 0.788}
+   !! G6: no promotion in the last 3 gates -- bank the promoted checkpoint and stop; spend the time on the matrix
+   journal @0: mirror_augmentation_off {"reason": "decks vary by game"}
+   journal @20955: gate_G4 {"step": 5000, "verdict": "PASS"}
+   journal @50008: run_finished {"final": "45c2dda6058f9d1c8b51332364dbf602d2a1afde57cac6f39b10cc44d3c22dc9", "step": 13287}
+   journal @50008: final_validation {"games": 947, "positions": 99981, "step": 13287, "val_loss_multi": 1.43646, "val_loss_policy": 1.27956, "val_loss_value": 0.73204}

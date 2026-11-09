@@ -10,53 +10,63 @@
  "ratings": [
   {
    "player": "v1:tier2-v1-s3",
-   "elo": 664.8,
-   "se": 13.5
+   "elo": 664.7,
+   "se": 12.5
   },
   {
    "player": "v2:tier2-v2-s3",
-   "elo": 642.2,
-   "se": 13.5
+   "elo": 641.2,
+   "se": 12.4
   },
   {
    "player": "v1:m9-fg-2",
-   "elo": 640.9,
-   "se": 13.5
+   "elo": 638.7,
+   "se": 12.4
   },
   {
    "player": "v1:m9-wt-2",
-   "elo": 630.9,
-   "se": 13.4
+   "elo": 628.1,
+   "se": 12.4
   },
   {
    "player": "v1:m9-wt-1",
-   "elo": 627.2,
-   "se": 13.4
+   "elo": 627.6,
+   "se": 12.4
   },
   {
    "player": "v1:m9-fg-1",
-   "elo": 622.1,
-   "se": 13.4
+   "elo": 620.8,
+   "se": 12.4
+  },
+  {
+   "player": "v1:real-v1",
+   "elo": 595.7,
+   "se": 12.4
   },
   {
    "player": "v1:m11-v1",
-   "elo": 581.0,
-   "se": 13.3
+   "elo": 580.1,
+   "se": 12.3
+  },
+  {
+   "player": "v2:real-v2",
+   "elo": 559.6,
+   "se": 12.3
   },
   {
    "player": "v2:m11-v2",
-   "elo": 540.5,
-   "se": 13.3
+   "elo": 544.7,
+   "se": 12.3
   },
   {
    "player": "v1:tier0b-a0",
-   "elo": 189.1,
-   "se": 12.7
+   "elo": 195.2,
+   "se": 12.1
   },
   {
    "player": "v2:tier0b2-a7",
-   "elo": 155.7,
-   "se": 12.7
+   "elo": 156.5,
+   "se": 12.1
   },
   {
    "player": "heuristic",
@@ -126,6 +136,18 @@
    "games": 400
   },
   {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0225,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:real-v2",
+   "a_score": 0.04,
+   "games": 400
+  },
+  {
    "a": "v1:tier0b-a0",
    "b": "v2:tier0b2-a7",
    "a_score": 0.545,
@@ -180,6 +202,18 @@
    "games": 400
   },
   {
+   "a": "v1:tier0b-a0",
+   "b": "v1:real-v1",
+   "a_score": 0.105,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:real-v2",
+   "a_score": 0.13,
+   "games": 400
+  },
+  {
    "a": "v2:tier0b2-a7",
    "b": "v1:tier2-v1-s3",
    "a_score": 0.0625,
@@ -228,6 +262,18 @@
    "games": 400
   },
   {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:real-v1",
+   "a_score": 0.06,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:real-v2",
+   "a_score": 0.1,
+   "games": 400
+  },
+  {
    "a": "v1:tier2-v1-s3",
    "b": "v2:tier2-v2-s3",
    "a_score": 0.51,
@@ -270,6 +316,18 @@
    "games": 400
   },
   {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:real-v1",
+   "a_score": 0.6225,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v2:real-v2",
+   "a_score": 0.625,
+   "games": 400
+  },
+  {
    "a": "v2:tier2-v2-s3",
    "b": "v1:m9-wt-1",
    "a_score": 0.5125,
@@ -306,6 +364,18 @@
    "games": 400
   },
   {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:real-v1",
+   "a_score": 0.5575,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v2:real-v2",
+   "a_score": 0.615,
+   "games": 400
+  },
+  {
    "a": "v1:m9-wt-1",
    "b": "v1:m9-wt-2",
    "a_score": 0.5075,
@@ -336,6 +406,18 @@
    "games": 400
   },
   {
+   "a": "v1:m9-wt-1",
+   "b": "v1:real-v1",
+   "a_score": 0.555,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v2:real-v2",
+   "a_score": 0.595,
+   "games": 400
+  },
+  {
    "a": "v1:m9-wt-2",
    "b": "v1:m9-fg-1",
    "a_score": 0.505,
@@ -360,6 +442,18 @@
    "games": 400
   },
   {
+   "a": "v1:m9-wt-2",
+   "b": "v1:real-v1",
+   "a_score": 0.515,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-2",
+   "b": "v2:real-v2",
+   "a_score": 0.5975,
+   "games": 400
+  },
+  {
    "a": "v1:m9-fg-1",
    "b": "v1:m9-fg-2",
    "a_score": 0.505,
@@ -378,6 +472,18 @@
    "games": 400
   },
   {
+   "a": "v1:m9-fg-1",
+   "b": "v1:real-v1",
+   "a_score": 0.5125,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-1",
+   "b": "v2:real-v2",
+   "a_score": 0.5975,
+   "games": 400
+  },
+  {
    "a": "v1:m9-fg-2",
    "b": "v1:m11-v1",
    "a_score": 0.5825,
@@ -390,14 +496,53 @@
    "games": 400
   },
   {
+   "a": "v1:m9-fg-2",
+   "b": "v1:real-v1",
+   "a_score": 0.5925,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-2",
+   "b": "v2:real-v2",
+   "a_score": 0.5575,
+   "games": 400
+  },
+  {
    "a": "v1:m11-v1",
    "b": "v2:m11-v2",
    "a_score": 0.575,
    "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:real-v1",
+   "a_score": 0.47,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v2:real-v2",
+   "a_score": 0.5275,
+   "games": 400
+  },
+  {
+   "a": "v2:m11-v2",
+   "b": "v1:real-v1",
+   "a_score": 0.4625,
+   "games": 400
+  },
+  {
+   "a": "v2:m11-v2",
+   "b": "v2:real-v2",
+   "a_score": 0.495,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v2:real-v2",
+   "a_score": 0.5725,
+   "games": 400
   }
  ],
- "skipped": [
-  "v1:real-v1",
-  "v2:real-v2"
- ]
+ "skipped": []
 }
