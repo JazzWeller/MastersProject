@@ -182,7 +182,7 @@ def _kfmk_lights_out(_kfN, _kfR):
         if n < 2:
             steps.shortfall(game, card, 'returns only 1 creature: it was the only enemy creature in play', 'Only 1 enemy creature')
     if not _pc:
-        _sent = (_kfgm_choose_cards(game, card.controller, f"Lights Out: return {n} enemy creature{('s' if n != 1 else '')}", options, n, n, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f"Lights Out: return {n} enemy creature{('s' if n != 1 else '')}", options, n, n, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY))
+        _sent = (_kfgm_choose_cards(game, card.controller, f'Lights Out: return {n} enemy creature{('s' if n != 1 else '')}', options, n, n, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(card.controller, f'Lights Out: return {n} enemy creature{('s' if n != 1 else '')}', options, n, n, source_card=card, intent=DecisionIntent.RETURN_TO_HAND, affects=Affects.ENEMY))
         if type(_sent) is _kf_S:
             if _kfF is None:
                 _kfF = _kf_Frame(_kfR, [game, card, c, choice, n, opponent, options])
