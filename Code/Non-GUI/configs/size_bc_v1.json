@@ -1,0 +1,8 @@
+{
+  "name": "size-bc-v1",
+  "tier": 0,
+  "notes": "Does a larger network help on the real decks? Behaviour cloning (v1) on the phase3 train split; run.py's size-bc-<d_model> set network size by override, heads 4 and ff 4 x d_model as the capacity measurements (AGENT_OBSERVATION_PLAN.md). 60k games, twice Tier 0's, for 370 cards rather than 49.",
+  "pool": {"format": "archon", "deck_source": "list", "deck_list": "phase3", "split": "train"},
+  "network": {"d_model": 256, "layers": 8, "heads": 4, "ff": 1024, "identity": "both", "policy_head": "pointer", "multi_select": "enumerate"},
+  "bc": {"heuristic_games": 40000, "epsilon_games": 10000, "random_games": 10000, "epochs": 4}
+}

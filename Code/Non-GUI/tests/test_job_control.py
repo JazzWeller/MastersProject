@@ -67,6 +67,36 @@ class Baseline(unittest.TestCase):
             self.assertIn(player, step)
 
 
+class SizeTest(unittest.TestCase):
+    """Only the size differs between the two arms: same corpus, same games."""
+
+    @staticmethod
+    def _arg(step, flag):
+        return step[step.index(flag) + 1]
+
+    def test_the_arms_differ_only_in_size(self):
+        small, big = (run.METHODS[f"size-bc-{d}"]["steps"][0] for d in (128, 256))
+        self.assertEqual(self._arg(small, "--data"), self._arg(big, "--data"))
+        self.assertEqual(self._arg(small, "--config"), self._arg(big, "--config"))
+        self.assertEqual(json.loads(self._arg(big, "--override")), {"network": {"d_model": 256, "layers": 8, "ff": 1024}})
+        self.assertEqual(json.loads(self._arg(small, "--override")), {"network": {"d_model": 128, "layers": 4, "ff": 512}})
+        for d in (128, 256):
+            step = run.METHODS[f"size-{d}"]["steps"][0]
+            self.assertEqual(self._arg(step, "--init-run"), f"size-bc-{d}")
+            self.assertEqual(self._arg(step, "--replay-from"), "real-v1")
+
+    def test_the_corpus_is_the_train_split(self):
+        from agent import config
+
+        pool = config.resolve("size_bc_v1.json")["pool"]
+        self.assertEqual((pool["deck_source"], pool["deck_list"], pool["split"]), ("list", "phase3", "train"))
+
+    def test_the_ladder_holds_out_the_test_split(self):
+        step = run.METHODS["eval-size"]["steps"][0]
+        self.assertEqual(self._arg(step, "--deck-split"), "test")
+        self.assertIn("v1:size-256@final", step)
+
+
 class LadderPlayers(unittest.TestCase):
     """A ladder skips a run still training, whose result would be reused as the finished run's."""
 
