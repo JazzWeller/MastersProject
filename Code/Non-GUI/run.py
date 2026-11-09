@@ -293,6 +293,45 @@ METHODS["eval-real"] = dict(
 METHODS["export-real"] = dict(
     desc="login node: copy the real-deck runs, ladders and evals into results/real (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", "real-v1", "real-v2", "--out", os.path.join("results", "real")]])
+# Does size help? Two networks, one corpus, one set of games: BC on the real decks' train split, then each learns from
+# real-v1's 50k self-play games (no actors, no gates). Only the size differs, so the ladder answers it in a day or so
+# rather than a fresh 300k-game lineage. size-256 then continues in self-play as big-v1.
+SIZE_DATA = "bc/size"  # under $KEYFORGE_DATA
+SIZES = {128: 4, 256: 8}
+METHODS["size-data"] = dict(
+    desc="real-deck BC corpus for the size test: 60k games -> v1 shards (bc/size; resumable)",
+    cpus=32, mem_gb=128, gpu=False, hours=12, max_w=32, gb_per_w=4,
+    steps=[[PY, "-m", "sim.bc_corpus", "--config", "size_bc_v1.json", "--out", f"{SIZE_DATA}/records", "--workers", "{w}"],
+           [PY, "-m", "ml.dataset", f"{SIZE_DATA}/records", f"{SIZE_DATA}/encoded", "--workers", "{w}"]])
+for _d, _layers in SIZES.items():
+    METHODS[f"size-bc-{_d}"] = dict(
+        desc=f"size test: behaviour cloning at {_d}/{_layers} on the real-deck corpus (run size-bc-{_d}); needs size-data; resumable",
+        cpus=8, mem_gb=64, gpu=True, hours=24,
+        steps=[[PY, "-m", "ml.bc_train", "--config", "size_bc_v1.json", "--run", f"size-bc-{_d}", "--data", f"{SIZE_DATA}/encoded",
+                "--override", json.dumps({"network": {"d_model": _d, "layers": _layers, "ff": 4 * _d}})]])
+    METHODS[f"size-{_d}"] = dict(
+        desc=f"size test: {_d}/{_layers} from its BC network learns from real-v1's games (run size-{_d}); resumable",
+        cpus=8, mem_gb=128, gpu=True, hours=24,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"size-{_d}", "--config", "tier2_selfplay_within_turn.json",
+                "--init-run", f"size-bc-{_d}", "--replay-from", "real-v1", "--override", json.dumps({"selfplay": _ROUND3})]])
+SIZE_LADDER = ["heuristic", "v1:m11-v1", "v1:real-v1", "v1:size-bc-128", "v1:size-bc-256", "v1:size-128@final", "v1:size-256@final"]
+METHODS["eval-size"] = dict(
+    desc="size test: both sizes, BC and after real-v1's games, on the held-out real decks -> Elo (ladder-size.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=24, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "size", "--players", *SIZE_LADDER, "--sims", "100", "--seeds", "100",
+            "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"]])
+METHODS["export-size"] = dict(
+    desc="login node: copy the size-test runs, ladders and evals into results/size (then commit and push)", local=True,
+    steps=[[PY, "-m", "tools.export_results", *[f"size-bc-{d}" for d in SIZES], *[f"size-{d}" for d in SIZES],
+            "--out", os.path.join("results", "size")]])
+METHODS["big-v1"] = dict(
+    desc="256/8 self-play on the real decks' train split, 50k games from size-256's final network (run big-v1); resumable",
+    cpus=32, mem_gb=128, gpu=True, hours=72,
+    steps=[[PY, "-m", "ml.selfplay_train", "--run", "big-v1", "--config", "tier2_selfplay_within_turn.json", "--init-run", "size-256@final",
+            "--override", json.dumps({"pool": {"deck_source": "list", "deck_list": "phase3", "split": "train"},
+                                      "selfplay": {"workers": 28, "games": 50_000, **_LEARNER}}),
+            "--port", "{port}"],
+           [PY, "-m", "tools.monitor", "big-v1"]])
 METHODS["export-m9"] = dict(
     desc="login node: copy the M9 runs, ladders and evals into results/m9 (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"m9-{a}-{s}" for a in M9_ARMS for s in M9_SEEDS],
