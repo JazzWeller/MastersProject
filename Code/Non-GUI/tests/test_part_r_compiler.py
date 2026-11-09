@@ -333,7 +333,13 @@ class TestGeneratedModules(unittest.TestCase):
             with self.subTest(module=rel):
                 src, _ = compile_engine.compile_module(rel)
                 with open(compile_engine.out_path(rel), encoding="utf-8") as f:
-                    self.assertEqual(f.read(), src, f"run python -m tools.compile_engine ({rel} is stale)")
+                    self.assertTrue(compile_engine.same_code(f.read(), src), f"run python -m tools.compile_engine ({rel} is stale)")
+
+    def test_quote_style_is_not_staleness(self):
+        self.assertTrue(compile_engine.same_code("x = 'a'\n", 'x = "a"\n'))
+        self.assertFalse(compile_engine.same_code("x = 'a'\n", 'x = "b"\n'))
+        self.assertFalse(compile_engine.same_code(None, "x = 1\n"))
+        self.assertFalse(compile_engine.same_code("x = (\n", "x = 1\n"))
 
     def test_every_generator_function_in_the_engine_compiles(self):
         vm.load_compiled()

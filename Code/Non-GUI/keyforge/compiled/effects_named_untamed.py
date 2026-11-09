@@ -354,7 +354,7 @@ def _kfmk_lost_in_the_woods(_kfN, _kfR):
         if not _pc:
             n = min(2, len(friendly_options))
         if not _pc:
-            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose {n} friendly creature{('s' if n != 1 else '')}', friendly_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose {n} friendly creature{('s' if n != 1 else '')}', friendly_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY))
+            _sent = (_kfgm_choose_cards(game, player.id, f"{card.name}: choose {n} friendly creature{('s' if n != 1 else '')}", friendly_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f"{card.name}: choose {n} friendly creature{('s' if n != 1 else '')}", friendly_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.FRIENDLY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, area, c, enemy_choice, enemy_options, friendly_choice, friendly_options, n, opponent, owner, player])
@@ -375,7 +375,7 @@ def _kfmk_lost_in_the_woods(_kfN, _kfR):
         if not _pc:
             n = min(2, len(enemy_options))
         if not _pc:
-            _sent = (_kfgm_choose_cards(game, player.id, f'{card.name}: choose {n} enemy creature{('s' if n != 1 else '')}', enemy_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f'{card.name}: choose {n} enemy creature{('s' if n != 1 else '')}', enemy_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY))
+            _sent = (_kfgm_choose_cards(game, player.id, f"{card.name}: choose {n} enemy creature{('s' if n != 1 else '')}", enemy_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY) if type(game) is _kfGame else _kf_step(game.choose_cards)(player.id, f"{card.name}: choose {n} enemy creature{('s' if n != 1 else '')}", enemy_options, n, n, source_card=card, intent=DecisionIntent.SHUFFLE_IN, affects=Affects.ENEMY))
             if type(_sent) is _kf_S:
                 if _kfF is None:
                     _kfF = _kf_Frame(_kfR, [game, card, area, c, enemy_choice, enemy_options, friendly_choice, friendly_options, n, opponent, owner, player])

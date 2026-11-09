@@ -953,6 +953,20 @@ def build_all() -> Dict[str, str]:
     return {rel: compile_module(rel)[0] for rel in MODULES}
 
 
+def same_code(current: Optional[str], generated: str) -> bool:
+    """Whether a generated module on disk is `generated`, ignoring how this
+    Python's `ast.unparse` quotes strings: a checkout must not go stale, or
+    get rewritten, because a machine runs a different Python."""
+    if current is None:
+        return False
+    if current == generated:
+        return True
+    try:
+        return ast.dump(ast.parse(current)) == ast.dump(ast.parse(generated))
+    except SyntaxError:
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true", help="exit 1 if any generated module is out of date")
@@ -964,7 +978,7 @@ def main():
         total += len(names)
         path = out_path(rel)
         current = open(path, encoding="utf-8").read() if os.path.exists(path) else None
-        if current != src:
+        if not same_code(current, src):
             stale.append(rel)
             if not args.check:
                 os.makedirs(OUT_DIR, exist_ok=True)
