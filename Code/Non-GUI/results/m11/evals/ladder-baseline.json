@@ -1,0 +1,403 @@
+{
+ "name": "baseline",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "",
+ "deck_split": null,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:tier2-v1-s3",
+   "elo": 664.8,
+   "se": 13.5
+  },
+  {
+   "player": "v2:tier2-v2-s3",
+   "elo": 642.2,
+   "se": 13.5
+  },
+  {
+   "player": "v1:m9-fg-2",
+   "elo": 640.9,
+   "se": 13.5
+  },
+  {
+   "player": "v1:m9-wt-2",
+   "elo": 630.9,
+   "se": 13.4
+  },
+  {
+   "player": "v1:m9-wt-1",
+   "elo": 627.2,
+   "se": 13.4
+  },
+  {
+   "player": "v1:m9-fg-1",
+   "elo": 622.1,
+   "se": 13.4
+  },
+  {
+   "player": "v1:m11-v1",
+   "elo": 581.0,
+   "se": 13.3
+  },
+  {
+   "player": "v2:m11-v2",
+   "elo": 540.5,
+   "se": 13.3
+  },
+  {
+   "player": "v1:tier0b-a0",
+   "elo": 189.1,
+   "se": 12.7
+  },
+  {
+   "player": "v2:tier0b2-a7",
+   "elo": 155.7,
+   "se": 12.7
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0",
+   "a_score": 0.2775,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier0b2-a7",
+   "a_score": 0.305,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0125,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.03,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m9-wt-1",
+   "a_score": 0.0225,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.0125,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.025,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.02,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m11-v1",
+   "a_score": 0.03,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:m11-v2",
+   "a_score": 0.0325,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier0b2-a7",
+   "a_score": 0.545,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0475,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.0825,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:m9-wt-1",
+   "a_score": 0.075,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.0725,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.0725,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.06,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:m11-v1",
+   "a_score": 0.1125,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:m11-v2",
+   "a_score": 0.14,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0625,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.055,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:m9-wt-1",
+   "a_score": 0.0625,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.055,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.0575,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.0575,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:m11-v1",
+   "a_score": 0.09,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:m11-v2",
+   "a_score": 0.1025,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.51,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:m9-wt-1",
+   "a_score": 0.57,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.5175,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.565,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.56,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:m11-v1",
+   "a_score": 0.6375,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v2:m11-v2",
+   "a_score": 0.65,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:m9-wt-1",
+   "a_score": 0.5125,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.52,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.5425,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.5075,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:m11-v1",
+   "a_score": 0.575,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v2:m11-v2",
+   "a_score": 0.635,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.5075,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.5125,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.4725,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v1:m11-v1",
+   "a_score": 0.565,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v2:m11-v2",
+   "a_score": 0.6175,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-2",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.505,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-2",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.4675,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-2",
+   "b": "v1:m11-v1",
+   "a_score": 0.5675,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-2",
+   "b": "v2:m11-v2",
+   "a_score": 0.6225,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-1",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.505,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-1",
+   "b": "v1:m11-v1",
+   "a_score": 0.5525,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-1",
+   "b": "v2:m11-v2",
+   "a_score": 0.5925,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-2",
+   "b": "v1:m11-v1",
+   "a_score": 0.5825,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-2",
+   "b": "v2:m11-v2",
+   "a_score": 0.6675,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v2:m11-v2",
+   "a_score": 0.575,
+   "games": 400
+  }
+ ],
+ "skipped": [
+  "v1:real-v1",
+  "v2:real-v2"
+ ]
+}
