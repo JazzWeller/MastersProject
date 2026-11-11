@@ -131,6 +131,34 @@ def _init(args):
     _PLAYERS = (_player(args.a, args, "a"), _player(args.b, args, "b"))
 
 
+def _safe(task):
+    """`_work`, its failure as a plain RuntimeError carrying the traceback: an exception the parent can't unpickle
+    (torch.AcceleratorError, a GPU's ECC fault, 2026-11-10) left `multiprocessing.Pool` waiting 17 hours."""
+    try:
+        return _work(task)
+    except BaseException:
+        import traceback
+
+        raise RuntimeError("evaluation worker failed:\n" + traceback.format_exc()) from None
+
+
+def run_units(workers: int, tasks, initializer, initargs, work, sink) -> None:
+    """Every task through `work` in `workers` spawned processes, each result to `sink` as it finishes. A worker that
+    raises, or dies outright, ends this with an error rather than a wait (a pool would wait for it forever)."""
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+
+    ex = ProcessPoolExecutor(workers, mp_context=mp.get_context("spawn"), initializer=initializer, initargs=initargs)
+    try:
+        for fut in as_completed([ex.submit(work, t) for t in tasks]):
+            sink(fut.result())
+    finally:
+        procs = list((getattr(ex, "_processes", None) or {}).values())
+        ex.shutdown(wait=False, cancel_futures=True)
+        for proc in procs:
+            if proc.is_alive():
+                proc.terminate()
+
+
 def _work(task):
     seeds, args = task
     from ml.arena import play_paired
@@ -214,18 +242,19 @@ def main():
         print(f"resuming: {len(seeds) - len(todo)} of {len(seeds)} seeds already played ({partial})", flush=True)
     import signal
 
-    def on_term(_signum, _frame):  # leave through the pool's `with` (it terminates the workers)
+    def on_term(_signum, _frame):  # leave through run_units' `finally` (it terminates the workers)
         raise SystemExit(75)
 
     signal.signal(signal.SIGTERM, on_term)
     t0 = time.time()
     if units:
-        with mp.get_context("spawn").Pool(min(args.workers, len(units)), initializer=_init, initargs=(args,)) as pool:
-            with open(partial, "a", encoding="utf-8") as f:
-                for p in pool.imap_unordered(_work, [(u, args) for u in units]):
-                    f.write(json.dumps(p) + "\n")
-                    f.flush()
-                    parts.append(p)
+        with open(partial, "a", encoding="utf-8") as f:
+            def keep(p):
+                f.write(json.dumps(p) + "\n")
+                f.flush()
+                parts.append(p)
+
+            run_units(min(args.workers, len(units)), [(u, args) for u in units], _init, (args,), _safe, keep)
     tot = {k: sum(p[k] for p in parts) for k in ("games", "a_wins", "b_wins", "draws", "forfeits")}
     score = (tot["a_wins"] + 0.5 * tot["draws"]) / tot["games"] if tot["games"] else 0.0
     from sim.parallel_eval import wilson_interval
