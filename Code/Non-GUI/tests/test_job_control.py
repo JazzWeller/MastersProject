@@ -97,6 +97,71 @@ class SizeTest(unittest.TestCase):
         self.assertIn("v1:size-256@final", step)
 
 
+def _double(x):
+    return 2 * x
+
+
+def _die(x):
+    if x == 3:
+        os._exit(1)  # as a CUDA fault can end a process
+    return x
+
+
+class _Unpicklable(Exception):
+    def __init__(self, a, b):  # what torch.AcceleratorError does to multiprocessing: unpickles with one argument
+        super().__init__(a)
+
+
+class EvalWorkers(unittest.TestCase):
+    """eval-size hung 17 hours after a GPU memory fault in one evaluation worker; now the evaluation ends with an error."""
+
+    def _run(self, work, tasks):
+        import threading
+
+        from tools.eval_v2 import run_units
+
+        out, err = [], []
+
+        def go():
+            try:
+                run_units(2, tasks, None, (), work, out.append)
+            except BaseException as e:
+                err.append(e)
+
+        t = threading.Thread(target=go, daemon=True)
+        t.start()
+        t.join(120)
+        self.assertFalse(t.is_alive(), "run_units waited on a dead worker")
+        return out, err
+
+    def test_results_arrive(self):
+        out, err = self._run(_double, [1, 2, 3])
+        self.assertEqual((sorted(out), err), ([2, 4, 6], []))
+
+    def test_a_dead_worker_ends_it(self):
+        _out, err = self._run(_die, [1, 2, 3, 4])
+        self.assertEqual(len(err), 1)
+
+    def test_a_failure_reaches_the_parent_as_text(self):
+        import pickle
+
+        from tools import eval_v2
+
+        with mock.patch.object(eval_v2, "_work", side_effect=_Unpicklable("ECC", 1)):
+            with self.assertRaises(RuntimeError) as cm:
+                eval_v2._safe(None)
+        again = pickle.loads(pickle.dumps(cm.exception))
+        self.assertIn("_Unpicklable: ECC", str(again))
+
+
+class ExcludeNodes(unittest.TestCase):
+    def test_an_excluded_node_reaches_the_batch_script(self):
+        cfg = dict(run.settings(), exclude="bad-node-1")
+        script = run.sbatch_script("eval-size", run.METHODS["eval-size"], cfg, "eval-size")
+        self.assertIn("#SBATCH --exclude=bad-node-1", script)
+        self.assertNotIn("--exclude", run.sbatch_script("eval-size", run.METHODS["eval-size"], dict(run.settings(), exclude=""), "eval-size"))
+
+
 class LadderPlayers(unittest.TestCase):
     """A ladder skips a run still training, whose result would be reused as the finished run's."""
 
