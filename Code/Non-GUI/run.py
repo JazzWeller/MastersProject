@@ -332,6 +332,42 @@ METHODS["big-v1"] = dict(
                                       "selfplay": {"workers": 28, "games": 50_000, **_LEARNER}}),
             "--port", "{port}"],
            [PY, "-m", "tools.monitor", "big-v1"]])
+# Round 1 of the last three (2026-11-12). A: where the final agent's strength comes from, on the held-out real decks
+# -- real-v1 at 10/30/100/300 simulations, its network alone, and searching the true hidden state. B: why training
+# stopped improving -- three continuations of real-v1, 20k games each on the train split: the control, three times
+# the search per move in self-play (both playout caps), and no gate (the actors always play the newest network).
+# Every arm is rated at 100 simulations, so a difference is the training, not the play.
+_R1 = "v1:real-v1"
+ANATOMY_LADDER = ["heuristic", f"{_R1}#search=none", f"{_R1}#sims=10", f"{_R1}#sims=30", _R1, f"{_R1}#sims=300",
+                  f"{_R1}#resample=exact"]
+METHODS["eval-anatomy"] = dict(
+    desc="real-v1 on the held-out real decks: 10-300 simulations, no search, true hidden state -> Elo (ladder-anatomy.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "anatomy", "--players", *ANATOMY_LADDER, "--sims", "100", "--seeds", "100",
+            "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"]])
+PLATEAU_ARMS = {"ctrl": {}, "sims300": {"playout_cap_full": 300, "playout_cap_small": 75}, "nogate": {"gate_mode": "always"}}
+for _arm, _over in PLATEAU_ARMS.items():
+    METHODS[f"plateau-{_arm}"] = dict(
+        desc=f"why training plateaued, arm '{_arm}': 20k games on the real train split from real-v1's best (run plateau-{_arm}); resumable",
+        cpus=32, mem_gb=128, gpu=True, hours=72,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"plateau-{_arm}", "--config", "tier2_selfplay_within_turn.json",
+                "--init-run", "real-v1",
+                "--override", json.dumps({"pool": {"deck_source": "list", "deck_list": "phase3", "split": "train"},
+                                          "selfplay": {"workers": 28, "games": 20_000, **_LEARNER, **_over}}),
+                "--port", "{port}"],
+               [PY, "-m", "tools.monitor", f"plateau-{_arm}"]])
+# Each arm's last network (@final): a gated arm's best is the warm start until a gate passes, which would rate real-v1 again.
+PLATEAU_LADDER = ["heuristic", _R1, *[f"v1:plateau-{a}@final" for a in PLATEAU_ARMS]]
+METHODS["eval-plateau"] = dict(
+    desc="the three plateau arms and real-v1 on the held-out real decks, then on Fignor and Igor (ladder-plateau, -plateau-fi)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "plateau", "--players", "v1:m11-v1", *PLATEAU_LADDER, "--sims", "100",
+            "--seeds", "100", "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"],
+           [PY, "-m", "tools.ladder", "--name", "plateau-fi", "--players", "v1:tier2-v1-s3", *PLATEAU_LADDER, "--sims", "100",
+            "--seeds", "100", "--workers", "{w}", "--skip-missing"]])
+METHODS["export-plateau"] = dict(
+    desc="login node: copy the plateau runs, ladders and evals into results/plateau (then commit and push)", local=True,
+    steps=[[PY, "-m", "tools.export_results", *[f"plateau-{a}" for a in PLATEAU_ARMS], "--out", os.path.join("results", "plateau")]])
 METHODS["export-m9"] = dict(
     desc="login node: copy the M9 runs, ladders and evals into results/m9 (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"m9-{a}-{s}" for a in M9_ARMS for s in M9_SEEDS],

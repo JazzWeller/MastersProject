@@ -142,6 +142,16 @@ class EvalWorkers(unittest.TestCase):
         _out, err = self._run(_die, [1, 2, 3, 4])
         self.assertEqual(len(err), 1)
 
+    @unittest.skipUnless(os.name == "posix", "POSIX signals")
+    def test_a_dead_worker_ends_it_when_the_rest_ignore_sigterm(self):
+        """Workers inherit an ignored SIGTERM (a paused run earlier in the same process): the suite hung here."""
+        previous = signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        try:
+            _out, err = self._run(_die, [1, 2, 3, 4])
+        finally:
+            signal.signal(signal.SIGTERM, previous)
+        self.assertEqual(len(err), 1)
+
     def test_a_failure_reaches_the_parent_as_text(self):
         import pickle
 
@@ -160,6 +170,44 @@ class ExcludeNodes(unittest.TestCase):
         script = run.sbatch_script("eval-size", run.METHODS["eval-size"], cfg, "eval-size")
         self.assertIn("#SBATCH --exclude=bad-node-1", script)
         self.assertNotIn("--exclude", run.sbatch_script("eval-size", run.METHODS["eval-size"], dict(run.settings(), exclude=""), "eval-size"))
+
+
+class PlateauArms(unittest.TestCase):
+    """Round 1: three continuations of real-v1 that differ only in the one setting each tests."""
+
+    @staticmethod
+    def _over(arm):
+        step = run.METHODS[f"plateau-{arm}"]["steps"][0]
+        return step, json.loads(step[step.index("--override") + 1])
+
+    def test_each_arm_differs_from_the_control_in_one_setting(self):
+        _s, ctrl = self._over("ctrl")
+        for arm, extra in (("sims300", {"playout_cap_full": 300, "playout_cap_small": 75}), ("nogate", {"gate_mode": "always"})):
+            step, over = self._over(arm)
+            self.assertEqual(over["selfplay"], {**ctrl["selfplay"], **extra})
+            self.assertEqual(over["pool"], ctrl["pool"])
+            self.assertEqual(step[step.index("--init-run") + 1], "real-v1")
+        self.assertEqual(ctrl["pool"], {"deck_source": "list", "deck_list": "phase3", "split": "train"})
+
+    def test_the_default_still_gates(self):
+        from agent.config import DEFAULTS
+
+        self.assertEqual(DEFAULTS["selfplay"]["gate_mode"], "sprt")
+
+    def test_arms_are_rated_by_their_last_network_on_held_out_decks(self):
+        real, fignor = run.METHODS["eval-plateau"]["steps"]
+        for arm in run.PLATEAU_ARMS:
+            self.assertIn(f"v1:plateau-{arm}@final", real)
+            self.assertIn(f"v1:plateau-{arm}@final", fignor)
+        self.assertEqual(real[real.index("--deck-split") + 1], "test")
+        self.assertNotIn("--deck-list", fignor)
+
+    def test_the_anatomy_ladder_varies_only_real_v1s_search(self):
+        step = run.METHODS["eval-anatomy"]["steps"][0]
+        players = step[step.index("--players") + 1:step.index("--sims")]
+        self.assertEqual(players[0], "heuristic")
+        self.assertTrue(all(p.split("#")[0] == "v1:real-v1" for p in players[1:]))
+        self.assertEqual(step[step.index("--deck-split") + 1], "test")
 
 
 class LadderPlayers(unittest.TestCase):
