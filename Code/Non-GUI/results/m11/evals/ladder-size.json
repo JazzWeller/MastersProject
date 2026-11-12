@@ -1,0 +1,176 @@
+{
+ "name": "size",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:real-v1",
+   "elo": 407.1,
+   "se": 12.5
+  },
+  {
+   "player": "v1:m11-v1",
+   "elo": 391.8,
+   "se": 12.4
+  },
+  {
+   "player": "v1:size-128@final",
+   "elo": 367.7,
+   "se": 12.2
+  },
+  {
+   "player": "v1:size-256@final",
+   "elo": 350.7,
+   "se": 12.2
+  },
+  {
+   "player": "v1:size-bc-256",
+   "elo": 83.6,
+   "se": 11.5
+  },
+  {
+   "player": "v1:size-bc-128",
+   "elo": 69.9,
+   "se": 11.5
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:m11-v1",
+   "a_score": 0.08,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0775,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:size-bc-128",
+   "a_score": 0.4138,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:size-bc-256",
+   "a_score": 0.3912,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:size-128@final",
+   "a_score": 0.1075,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:size-256@final",
+   "a_score": 0.12,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:real-v1",
+   "a_score": 0.4662,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:size-bc-128",
+   "a_score": 0.8575,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:size-bc-256",
+   "a_score": 0.8575,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:size-128@final",
+   "a_score": 0.5425,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:size-256@final",
+   "a_score": 0.5525,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:size-bc-128",
+   "a_score": 0.8875,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:size-bc-256",
+   "a_score": 0.8675,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:size-128@final",
+   "a_score": 0.535,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:size-256@final",
+   "a_score": 0.565,
+   "games": 400
+  },
+  {
+   "a": "v1:size-bc-128",
+   "b": "v1:size-bc-256",
+   "a_score": 0.4738,
+   "games": 400
+  },
+  {
+   "a": "v1:size-bc-128",
+   "b": "v1:size-128@final",
+   "a_score": 0.1475,
+   "games": 400
+  },
+  {
+   "a": "v1:size-bc-128",
+   "b": "v1:size-256@final",
+   "a_score": 0.1963,
+   "games": 400
+  },
+  {
+   "a": "v1:size-bc-256",
+   "b": "v1:size-128@final",
+   "a_score": 0.16,
+   "games": 400
+  },
+  {
+   "a": "v1:size-bc-256",
+   "b": "v1:size-256@final",
+   "a_score": 0.1875,
+   "games": 400
+  },
+  {
+   "a": "v1:size-128@final",
+   "b": "v1:size-256@final",
+   "a_score": 0.5025,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

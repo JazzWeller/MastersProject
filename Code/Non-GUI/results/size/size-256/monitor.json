@@ -1,0 +1,63 @@
+{
+ "run": "size-256",
+ "config_hash": "4b7bf4358afa",
+ "tier": 2,
+ "games_done": 50008,
+ "budget": 50000,
+ "games_per_hour": 0.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": null,
+ "actor_learner_ratio": 1.019,
+ "gradient_steps": 13287,
+ "steps_per_second": 7.064,
+ "hours_to_next_gate": null,
+ "gates": 0,
+ "promotions": 0,
+ "last_gate_score": null,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5676,
+  "loss_multi": 1.4409,
+  "loss_oracle": 0.7688,
+  "loss_policy": 1.2977,
+  "loss_value": 0.7791
+ },
+ "validation_losses": {
+  "loss_multi": 1.7143,
+  "loss_policy": 1.2505,
+  "loss_value": 0.8093
+ },
+ "policy_entropy": 1.2978,
+ "interventions": [
+  {
+   "config_hash": "4b7bf4358afa70fbdce097590d90dbb11105a5e540ceff45a20a6a6593ae64b9",
+   "event": "replay",
+   "game_index": 0,
+   "games": 50008,
+   "source": "real-v1",
+   "t": 1794275751.5103571
+  },
+  {
+   "config_hash": "4b7bf4358afa70fbdce097590d90dbb11105a5e540ceff45a20a6a6593ae64b9",
+   "event": "run_finished",
+   "final": "6f4c518357e4f7ba2f8d4db9e9c84262637008ed784d2ac94351625866f1920e",
+   "game_index": 50008,
+   "step": 13287,
+   "t": 1794277635.3965428
+  },
+  {
+   "config_hash": "4b7bf4358afa70fbdce097590d90dbb11105a5e540ceff45a20a6a6593ae64b9",
+   "event": "final_validation",
+   "game_index": 50008,
+   "games": 947,
+   "positions": 99753,
+   "step": 13287,
+   "t": 1794277638.941613,
+   "val_loss_multi": 1.44361,
+   "val_loss_policy": 1.29309,
+   "val_loss_value": 0.77618
+  }
+ ],
+ "flags": []
+}

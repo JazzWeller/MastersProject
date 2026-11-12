@@ -1,0 +1,73 @@
+{
+ "run": "size-bc-128",
+ "config_hash": "d4b3393a028f",
+ "tier": 0,
+ "games_done": 0,
+ "budget": 50000,
+ "games_per_hour": 0.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": null,
+ "actor_learner_ratio": null,
+ "gradient_steps": 0,
+ "steps_per_second": 46.788,
+ "hours_to_next_gate": 0.006,
+ "gates": 0,
+ "promotions": 0,
+ "last_gate_score": null,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5323,
+  "loss_enumerate": 0.1197,
+  "loss_oracle": 0.4784,
+  "loss_policy": 0.1516,
+  "loss_sequential": 0.1141,
+  "loss_topk": 0.0538,
+  "loss_value": 0.5112
+ },
+ "validation_losses": {},
+ "policy_entropy": null,
+ "interventions": [
+  {
+   "config_hash": "d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f",
+   "event": "run_reopened",
+   "game_index": 0,
+   "t": 1794259520.819139
+  },
+  {
+   "config_hash": "d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f",
+   "data": "bc/size/encoded",
+   "device": "cuda",
+   "event": "bc_train_start",
+   "game_index": 0,
+   "positions": 20075676,
+   "t": 1794259559.8713906
+  },
+  {
+   "config_hash": "d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f",
+   "event": "run_reopened",
+   "game_index": 0,
+   "t": 1794295057.256136
+  },
+  {
+   "config_hash": "d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f",
+   "data": "bc/size/encoded",
+   "device": "cuda",
+   "event": "bc_train_start",
+   "game_index": 0,
+   "positions": 20075676,
+   "t": 1794295096.9457674
+  },
+  {
+   "checkpoint": "626d923e5ffd624e6a6e7baa66189658e1592b06d1135c28b663f43845193ad0",
+   "config_hash": "d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f",
+   "event": "bc_train_done",
+   "game_index": 0,
+   "report": "a52ef873bf3fd5a7d10f5a6b20af2c6894b90c7d590c4da075f225bc9c4ba387.json",
+   "t": 1794298164.9899976
+  }
+ ],
+ "flags": [
+  "learner silent for 2528 min -- blocked or dead (actors may still be writing shards)"
+ ]
+}

@@ -1,0 +1,9 @@
+== size-256  (tier 2, config 4b7bf4358afa)
+   games 50,008/50,000   0.0 games/h (projected 1500)   ETA None h
+   actor:learner 1.019   steps 13,287 (7.064/s)   next gate in None h
+   gates 0, promotions 0, last score None, slope/10k games None
+   losses {'loss_belief': 0.5676, 'loss_multi': 1.4409, 'loss_oracle': 0.7688, 'loss_policy': 1.2977, 'loss_value': 0.7791}   entropy 1.2978
+   held-out {'loss_multi': 1.7143, 'loss_policy': 1.2505, 'loss_value': 0.8093}
+   journal @0: replay {"games": 50008, "source": "real-v1"}
+   journal @50008: run_finished {"final": "6f4c518357e4f7ba2f8d4db9e9c84262637008ed784d2ac94351625866f1920e", "step": 13287}
+   journal @50008: final_validation {"games": 947, "positions": 99753, "step": 13287, "val_loss_multi": 1.44361, "val_loss_policy": 1.29309, "val_loss_value": 0.77618}

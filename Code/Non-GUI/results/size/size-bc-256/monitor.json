@@ -1,0 +1,58 @@
+{
+ "run": "size-bc-256",
+ "config_hash": "4ec14d910c81",
+ "tier": 0,
+ "games_done": 0,
+ "budget": 50000,
+ "games_per_hour": 0.0,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": null,
+ "actor_learner_ratio": null,
+ "gradient_steps": 0,
+ "steps_per_second": 22.516,
+ "hours_to_next_gate": 0.012,
+ "gates": 0,
+ "promotions": 0,
+ "last_gate_score": null,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5598,
+  "loss_enumerate": 0.1384,
+  "loss_oracle": 0.5272,
+  "loss_policy": 0.1655,
+  "loss_sequential": 0.136,
+  "loss_topk": 0.0788,
+  "loss_value": 0.621
+ },
+ "validation_losses": {},
+ "policy_entropy": null,
+ "interventions": [
+  {
+   "config_hash": "4ec14d910c810a197e3de8c156481101c6f4499d91d68f0d860ec98b9fe704f3",
+   "event": "run_reopened",
+   "game_index": 0,
+   "t": 1794259520.2856693
+  },
+  {
+   "config_hash": "4ec14d910c810a197e3de8c156481101c6f4499d91d68f0d860ec98b9fe704f3",
+   "data": "bc/size/encoded",
+   "device": "cuda",
+   "event": "bc_train_start",
+   "game_index": 0,
+   "positions": 20075676,
+   "t": 1794259560.2023582
+  },
+  {
+   "checkpoint": "929634c2c5c240fd78b8322c198f8a9db6e3b1e512fbaf128091606d2d11318a",
+   "config_hash": "4ec14d910c810a197e3de8c156481101c6f4499d91d68f0d860ec98b9fe704f3",
+   "event": "bc_train_done",
+   "game_index": 0,
+   "report": "395b88332d55e13b67fc28c81e25b1e6a0fd22533e0325cf3de87b3dac310ce0.json",
+   "t": 1794266133.9392765
+  }
+ ],
+ "flags": [
+  "learner silent for 3063 min -- blocked or dead (actors may still be writing shards)"
+ ]
+}

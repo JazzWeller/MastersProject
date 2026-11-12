@@ -1,0 +1,4 @@
+{"config_hash":"4ec14d910c810a197e3de8c156481101c6f4499d91d68f0d860ec98b9fe704f3","event":"run_created","game_index":0,"t":1794259188.4364283}
+{"config_hash":"4ec14d910c810a197e3de8c156481101c6f4499d91d68f0d860ec98b9fe704f3","event":"run_reopened","game_index":0,"t":1794259520.2856693}
+{"config_hash":"4ec14d910c810a197e3de8c156481101c6f4499d91d68f0d860ec98b9fe704f3","data":"bc/size/encoded","device":"cuda","event":"bc_train_start","game_index":0,"positions":20075676,"t":1794259560.2023582}
+{"checkpoint":"929634c2c5c240fd78b8322c198f8a9db6e3b1e512fbaf128091606d2d11318a","config_hash":"4ec14d910c810a197e3de8c156481101c6f4499d91d68f0d860ec98b9fe704f3","event":"bc_train_done","game_index":0,"report":"395b88332d55e13b67fc28c81e25b1e6a0fd22533e0325cf3de87b3dac310ce0.json","t":1794266133.9392765}

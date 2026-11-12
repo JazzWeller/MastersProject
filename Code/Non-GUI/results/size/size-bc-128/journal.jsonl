@@ -1,0 +1,6 @@
+{"config_hash":"d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f","event":"run_created","game_index":0,"t":1794259188.3611958}
+{"config_hash":"d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f","event":"run_reopened","game_index":0,"t":1794259520.819139}
+{"config_hash":"d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f","data":"bc/size/encoded","device":"cuda","event":"bc_train_start","game_index":0,"positions":20075676,"t":1794259559.8713906}
+{"config_hash":"d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f","event":"run_reopened","game_index":0,"t":1794295057.256136}
+{"config_hash":"d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f","data":"bc/size/encoded","device":"cuda","event":"bc_train_start","game_index":0,"positions":20075676,"t":1794295096.9457674}
+{"checkpoint":"626d923e5ffd624e6a6e7baa66189658e1592b06d1135c28b663f43845193ad0","config_hash":"d4b3393a028fd583d25929017699e34c9c4955149dc6213fa20ac6c63a82051f","event":"bc_train_done","game_index":0,"report":"a52ef873bf3fd5a7d10f5a6b20af2c6894b90c7d590c4da075f225bc9c4ba387.json","t":1794298164.9899976}

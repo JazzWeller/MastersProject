@@ -1,0 +1,9 @@
+== size-bc-256  (tier 0, config 4ec14d910c81)
+   games 0/50,000   0.0 games/h (projected 1500)   ETA None h
+   actor:learner None   steps 0 (22.516/s)   next gate in 0.012 h
+   gates 0, promotions 0, last score None, slope/10k games None
+   losses {'loss_belief': 0.5598, 'loss_enumerate': 0.1384, 'loss_oracle': 0.5272, 'loss_policy': 0.1655, 'loss_sequential': 0.136, 'loss_topk': 0.0788, 'loss_value': 0.621}   entropy None
+   !! learner silent for 3063 min -- blocked or dead (actors may still be writing shards)
+   journal @0: run_reopened {}
+   journal @0: bc_train_start {"data": "bc/size/encoded", "device": "cuda", "positions": 20075676}
+   journal @0: bc_train_done {"checkpoint": "929634c2c5c240fd78b8322c198f8a9db6e3b1e512fbaf128091606d2d11318a", "report": "395b88332d55e13b67fc28c81e25b1e6a0fd22533e0325
