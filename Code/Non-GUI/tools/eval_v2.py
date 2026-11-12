@@ -148,15 +148,20 @@ def run_units(workers: int, tasks, initializer, initargs, work, sink) -> None:
     from concurrent.futures import ProcessPoolExecutor, as_completed
 
     ex = ProcessPoolExecutor(workers, mp_context=mp.get_context("spawn"), initializer=initializer, initargs=initargs)
+    procs = []
     try:
-        for fut in as_completed([ex.submit(work, t) for t in tasks]):
+        futures = [ex.submit(work, t) for t in tasks]
+        procs = list((getattr(ex, "_processes", None) or {}).values())  # (taken now: a broken pool clears it)
+        for fut in as_completed(futures):
             sink(fut.result())
     finally:
-        procs = list((getattr(ex, "_processes", None) or {}).values())
-        ex.shutdown(wait=False, cancel_futures=True)
+        # Killed, and before the shutdown: when a worker dies, the pool's own thread holds the lock `shutdown` needs
+        # while it terminates and joins the rest -- and a worker that ignores SIGTERM (inherited SIG_IGN, as after a
+        # paused run in the same process: the test suite, 2026-11-12) kept both waiting for good.
         for proc in procs:
             if proc.is_alive():
-                proc.terminate()
+                proc.kill()
+        ex.shutdown(wait=False, cancel_futures=True)
 
 
 def _work(task):

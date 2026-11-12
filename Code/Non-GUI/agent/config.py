@@ -162,6 +162,9 @@ DEFAULTS: Dict[str, Any] = {
         # errors over 0.5.
         "gate_sprt": [0.0, 35.0],
         "gate_fallback_z": 2.0,
+        # "sprt": promote only on a pass (above). "always": every `gate_every_steps` the learner's network is promoted
+        # without a match, so the actors always play the newest one (AlphaZero's way; round 1's no-gate arm).
+        "gate_mode": "sprt",
         "mirror_augmentation": True,
         "training_max_turns": 60,
         "resign_threshold": None,

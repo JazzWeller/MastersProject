@@ -26,7 +26,8 @@ its own process while the learner keeps training; at most one gate is in
 flight, and the next is due `gate_every_steps` after the last one started.
 Promotion only on a pass; every promoted checkpoint is kept (the frozen
 anchors for M9) and journalled. The first gate is against the warm start,
-which is gate G4.
+which is gate G4. `gate_mode: "always"` skips the match: every
+`gate_every_steps` the learner's network is promoted as it stands.
 
 **Network v2** (`observation.version` 2): the actors search with v2 leaves
 and record compact positions; the learner replays each game to encode them
@@ -946,7 +947,15 @@ def main():
             metrics.tick()
 
             # ---- gating, in its own process: the learner never waits on it.
-            if gate_proc is None and gate_out is None and step - last_gate >= gate_every:
+            if gate_proc is None and gate_out is None and step - last_gate >= gate_every and sp.get("gate_mode", "sprt") == "always":
+                last_gate = step
+                h, _d = save_model(model, store, config_hash=run.config_hash, extra={"kind": "candidate", "step": step, **stamp})
+                best = {"checkpoint": h, "step": step, "games": games_done, "promotions": best.get("promotions", 0) + 1}
+                _write_json(best_json, best)
+                run.journal("promoted", game_index=games_done, checkpoint=h, step=step, reason="no gate")
+                save_state(games_done)
+                t_saved = time.time()
+            elif gate_proc is None and gate_out is None and step - last_gate >= gate_every:
                 last_gate = step
                 h, _d = save_model(model, store, config_hash=run.config_hash, extra={"kind": "candidate", "step": step, **stamp})
                 gate_count += 1
