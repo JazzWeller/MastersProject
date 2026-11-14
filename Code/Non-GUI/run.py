@@ -368,6 +368,36 @@ METHODS["eval-plateau"] = dict(
 METHODS["export-plateau"] = dict(
     desc="login node: copy the plateau runs, ladders and evals into results/plateau (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"plateau-{a}" for a in PLATEAU_ARMS], "--out", os.path.join("results", "plateau")]])
+# The plateau arms again, each with its outcome targets weighted by how surprising the result was given the decks'
+# SAS (ml/sas_weight.py; Elo per SAS point fitted on real-v1's own games), so a weak deck's expected loss moves the
+# value head less and an upset more. Compared with the unweighted arms by eval-plateau-sasw.
+SASW = {"sas_weighting": {"deck_list": "phase3", "elo_per_sas": "fit:real-v1"}}
+for _arm, _over in PLATEAU_ARMS.items():
+    METHODS[f"plateau-sasw-{_arm}"] = dict(
+        desc=f"plateau arm '{_arm}' with SAS-surprise-weighted outcome targets: 20k games from real-v1 (run plateau-sasw-{_arm}); resumable",
+        cpus=32, mem_gb=128, gpu=True, hours=72,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"plateau-sasw-{_arm}", "--config", "tier2_selfplay_within_turn.json",
+                "--init-run", "real-v1",
+                "--override", json.dumps({"pool": {"deck_source": "list", "deck_list": "phase3", "split": "train"},
+                                          "selfplay": {"workers": 28, "games": 20_000, **_LEARNER, **_over, **SASW}}),
+                "--port", "{port}"],
+               [PY, "-m", "tools.monitor", f"plateau-sasw-{_arm}"]])
+PLATEAU_SASW_LADDER = ["heuristic", _R1, *[f"v1:plateau-{a}@final" for a in PLATEAU_ARMS],
+                       *[f"v1:plateau-sasw-{a}@final" for a in PLATEAU_ARMS]]
+METHODS["eval-plateau-sasw"] = dict(
+    desc="the weighted and unweighted plateau arms and real-v1, held-out real decks then Fignor and Igor (ladder-plateau-sasw, -fi)",
+    cpus=32, mem_gb=64, gpu=True, hours=72, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "plateau-sasw", "--players", "v1:m11-v1", *PLATEAU_SASW_LADDER, "--sims", "100",
+            "--seeds", "100", "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"],
+           [PY, "-m", "tools.ladder", "--name", "plateau-sasw-fi", "--players", "v1:tier2-v1-s3", *PLATEAU_SASW_LADDER,
+            "--sims", "100", "--seeds", "100", "--workers", "{w}", "--skip-missing"]])
+METHODS["export-plateau-sasw"] = dict(
+    desc="login node: copy the weighted plateau runs, ladders and evals into results/plateau-sasw (then commit and push)",
+    local=True,
+    steps=[[PY, "-m", "tools.export_results", *[f"plateau-sasw-{a}" for a in PLATEAU_ARMS], "--out",
+            os.path.join("results", "plateau-sasw")]])
+
+
 # What a SAS advantage is worth (2026-11-13): real-v1 on pairs of held-out real decks grouped by SAS gap, against
 # itself (the deck's advantage alone) and against HeuristicBot (its skill against a deck deficit), single games and
 # Adaptive matches (own decks, swapped decks, then a chain bid for the deck that won both). One deck pair per seed.

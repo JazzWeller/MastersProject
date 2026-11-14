@@ -165,6 +165,9 @@ DEFAULTS: Dict[str, Any] = {
         # "sprt": promote only on a pass (above). "always": every `gate_every_steps` the learner's network is promoted
         # without a match, so the actors always play the newest one (AlphaZero's way; round 1's no-gate arm).
         "gate_mode": "sprt",
+        # Outcome targets weighted by how surprising the result was given the decks' SAS (ml/sas_weight.py): None, or
+        # {"deck_list": "phase3", "elo_per_sas": <Elo per SAS point> | "fit:<run>"}. Network v1 only.
+        "sas_weighting": None,
         "mirror_augmentation": True,
         "training_max_turns": 60,
         "resign_threshold": None,
