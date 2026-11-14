@@ -1,0 +1,176 @@
+{
+ "name": "anatomy",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:real-v1#sims=300",
+   "elo": 426.9,
+   "se": 13.3
+  },
+  {
+   "player": "v1:real-v1#resample=exact",
+   "elo": 414.7,
+   "se": 13.3
+  },
+  {
+   "player": "v1:real-v1",
+   "elo": 407.3,
+   "se": 13.2
+  },
+  {
+   "player": "v1:real-v1#sims=30",
+   "elo": 374.0,
+   "se": 13.1
+  },
+  {
+   "player": "v1:real-v1#sims=10",
+   "elo": 341.1,
+   "se": 13.0
+  },
+  {
+   "player": "v1:real-v1#search=none",
+   "elo": 259.2,
+   "se": 12.8
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1#search=none",
+   "a_score": 0.2013,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1#sims=10",
+   "a_score": 0.1375,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1#sims=30",
+   "a_score": 0.1,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0775,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1#sims=300",
+   "a_score": 0.075,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1#resample=exact",
+   "a_score": 0.07,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#search=none",
+   "b": "v1:real-v1#sims=10",
+   "a_score": 0.3975,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#search=none",
+   "b": "v1:real-v1#sims=30",
+   "a_score": 0.3275,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#search=none",
+   "b": "v1:real-v1",
+   "a_score": 0.3125,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#search=none",
+   "b": "v1:real-v1#sims=300",
+   "a_score": 0.2825,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#search=none",
+   "b": "v1:real-v1#resample=exact",
+   "a_score": 0.2875,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=10",
+   "b": "v1:real-v1#sims=30",
+   "a_score": 0.47,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=10",
+   "b": "v1:real-v1",
+   "a_score": 0.3975,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=10",
+   "b": "v1:real-v1#sims=300",
+   "a_score": 0.395,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=10",
+   "b": "v1:real-v1#resample=exact",
+   "a_score": 0.3987,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=30",
+   "b": "v1:real-v1",
+   "a_score": 0.4425,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=30",
+   "b": "v1:real-v1#sims=300",
+   "a_score": 0.4263,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=30",
+   "b": "v1:real-v1#resample=exact",
+   "a_score": 0.45,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:real-v1#sims=300",
+   "a_score": 0.4612,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:real-v1#resample=exact",
+   "a_score": 0.485,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#sims=300",
+   "b": "v1:real-v1#resample=exact",
+   "a_score": 0.5275,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

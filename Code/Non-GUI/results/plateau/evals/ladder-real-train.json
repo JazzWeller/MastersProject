@@ -1,0 +1,100 @@
+{
+ "name": "real-train",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "phase3",
+ "deck_split": "train",
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:real-v1",
+   "elo": 458.0,
+   "se": 18.3
+  },
+  {
+   "player": "v2:real-v2",
+   "elo": 441.7,
+   "se": 18.2
+  },
+  {
+   "player": "v1:m11-v1",
+   "elo": 440.0,
+   "se": 18.2
+  },
+  {
+   "player": "v2:m11-v2",
+   "elo": 429.3,
+   "se": 18.2
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:m11-v1",
+   "a_score": 0.0675,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:m11-v2",
+   "a_score": 0.07,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0625,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:real-v2",
+   "a_score": 0.0912,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v2:m11-v2",
+   "a_score": 0.51,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:real-v1",
+   "a_score": 0.4662,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v2:real-v2",
+   "a_score": 0.505,
+   "games": 400
+  },
+  {
+   "a": "v2:m11-v2",
+   "b": "v1:real-v1",
+   "a_score": 0.45,
+   "games": 400
+  },
+  {
+   "a": "v2:m11-v2",
+   "b": "v2:real-v2",
+   "a_score": 0.4775,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v2:real-v2",
+   "a_score": 0.5025,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

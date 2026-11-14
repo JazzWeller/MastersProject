@@ -1,0 +1,24 @@
+{
+ "games": 400,
+ "a_wins": 196,
+ "b_wins": 204,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v1:m11-v1",
+ "a_exact": false,
+ "b": "v1:plateau-nogate@final",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_seed": null,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "a_score": 0.49,
+ "interval95": [
+  0.4413,
+  0.5389
+ ],
+ "mean_turns": 20.71,
+ "seconds": 1179.1
+}

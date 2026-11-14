@@ -1,0 +1,135 @@
+{
+ "name": "plateau-fi",
+ "anchor": "v1:tier2-v1-s3",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "",
+ "deck_split": null,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:tier2-v1-s3",
+   "elo": 0.0,
+   "se": 0.0
+  },
+  {
+   "player": "v1:plateau-sims300@final",
+   "elo": -71.3,
+   "se": 11.1
+  },
+  {
+   "player": "v1:real-v1",
+   "elo": -79.2,
+   "se": 11.1
+  },
+  {
+   "player": "v1:plateau-nogate@final",
+   "elo": -93.0,
+   "se": 11.1
+  },
+  {
+   "player": "v1:plateau-ctrl@final",
+   "elo": -94.0,
+   "se": 11.1
+  },
+  {
+   "player": "heuristic",
+   "elo": -714.3,
+   "se": 26.5
+  }
+ ],
+ "matches": [
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "heuristic",
+   "a_score": 0.9875,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:real-v1",
+   "a_score": 0.6225,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:plateau-ctrl@final",
+   "a_score": 0.625,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.6175,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.6075,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0225,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-ctrl@final",
+   "a_score": 0.0325,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.035,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.0175,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-ctrl@final",
+   "a_score": 0.52,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.49,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.5275,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-ctrl@final",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.45,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-ctrl@final",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.5125,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sims300@final",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.5425,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

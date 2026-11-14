@@ -1,0 +1,24 @@
+{
+ "games": 400,
+ "a_wins": 193,
+ "b_wins": 207,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v1:m11-v1",
+ "a_exact": false,
+ "b": "v1:plateau-sims300@final",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_seed": null,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "a_score": 0.4825,
+ "interval95": [
+  0.4339,
+  0.5314
+ ],
+ "mean_turns": 20.49,
+ "seconds": 1177.8
+}

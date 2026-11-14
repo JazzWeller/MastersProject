@@ -1,0 +1,24 @@
+{
+ "games": 400,
+ "a_wins": 13,
+ "b_wins": 387,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "heuristic",
+ "a_exact": false,
+ "b": "v1:plateau-ctrl@final",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_seed": null,
+ "deck_list": "",
+ "deck_split": null,
+ "a_score": 0.0325,
+ "interval95": [
+  0.0191,
+  0.0548
+ ],
+ "mean_turns": 16.09,
+ "seconds": 525.1
+}

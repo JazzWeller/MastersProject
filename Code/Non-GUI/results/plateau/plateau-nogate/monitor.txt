@@ -1,0 +1,9 @@
+== plateau-nogate  (tier 2, config 1e39711c17d9)
+   games 20,019/20,000   3299.9 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.025   steps 5,521 (0.126/s)   next gate in None h
+   gates 0, promotions 5, last score None, slope/10k games None
+   losses {'loss_belief': 0.5476, 'loss_multi': 1.4822, 'loss_oracle': 1.03, 'loss_policy': 1.3013, 'loss_value': 1.0371}   entropy 1.291
+   held-out {'loss_multi': 1.5631, 'loss_policy': 1.2165, 'loss_value': 0.745}
+   journal @0: mirror_augmentation_off {"reason": "decks vary by game"}
+   journal @20019: run_finished {"final": "b0e9637fd09cd3fbb99241799fb68018aaee7ff7061f67e514a23a9a045f6612", "step": 5521}
+   journal @20019: final_validation {"games": 384, "positions": 99735, "step": 5521, "val_loss_multi": 1.40299, "val_loss_policy": 1.29028, "val_loss_value": 0.6969}
