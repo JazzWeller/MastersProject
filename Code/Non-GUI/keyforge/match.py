@@ -86,6 +86,7 @@ class MatchView:
     format: str
     games: List[GameRecord] = field(default_factory=list)
     score: Dict[int, int] = field(default_factory=dict)
+    bid: Optional[BidRecord] = None  # game 3's bid, once settled (who pilots the proven deck, with how many chains)
 
 
 class Match:
@@ -164,7 +165,7 @@ class Match:
     def view_for(self, pid: int):
         if self.current_game is not None and not self.current_game.is_over:
             return self.current_game.view_for(pid)
-        return MatchView(viewer=pid, format=self.format, games=list(self.games), score=dict(self.score))
+        return MatchView(viewer=pid, format=self.format, games=list(self.games), score=dict(self.score), bid=self.bid)
 
     def fork(self) -> "Match":
         """An independent `Match` at this exact point -- match-level choices

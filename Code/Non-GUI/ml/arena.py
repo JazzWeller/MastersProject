@@ -38,6 +38,7 @@ from keyforge.config import GameConfig
 from keyforge.enums import Resample
 from keyforge.game import Game
 from keyforge.infoset import build_infoset
+from keyforge.match import Match, MatchConfig
 from sim.paired import PairedReport, _label, arrangements
 
 
@@ -106,10 +107,29 @@ def _make_search(p: Player, seed: int) -> Search:
     return Search(regime, make_evaluator(leaf, seed=seed, history=p.history), policy, settings, seed=seed)
 
 
+def _match_policy(p: Player, seed: int):
+    """Who makes a player's between-game decisions (bid, first or second) in a match: a v1 network's value head
+    (agent/match_policy.py), else HeuristicBot."""
+    if p.kind in ("search", "net") and p.model is not None and p.leaf != "student_v2":
+        from agent.match_policy import NetMatchPolicy
+
+        return NetMatchPolicy(p.client(), seed=seed)
+    return make_agent(p.bot if p.kind == "bot" else "heuristic", seed=seed)
+
+
+def _game_of(obj):
+    return obj.current_game if isinstance(obj, Match) else obj
+
+
 def play_paired(
     a: Player, b: Player, seeds, deck_x="fignor", deck_y="igor", *, max_turns: int = 200, concurrency: int = 32,
-    sprt: Optional[Tuple[float, float]] = None, min_games: int = 40, log=None,
+    sprt: Optional[Tuple[float, float]] = None, min_games: int = 40, log=None, fmt: str = "archon",
 ) -> PairedReport:
+    """`fmt` "archon" plays single games; "adaptive" plays a whole Adaptive match per arrangement (keyforge/match.py:
+    own decks, swapped decks, then a chain bid for the deck that won both if 1-1), a match counting as one result.
+    Every result is also kept in `rep.records` (the decks, seats, winners; a match's games and bid)."""
+    from agent.match_policy import MATCH_KINDS
+
     arr = arrangements(list(seeds), deck_x, deck_y)
     per_seed = len(arr) // max(1, len(set(x.seed for x in arr)))  # 4
     rep = PairedReport(games=0, a_wins=0, b_wins=0, draws=0, forfeits=0)
@@ -122,10 +142,15 @@ def play_paired(
 
     def start(i: int) -> dict:
         ar = arr[i]
-        game = Game(GameConfig(decks=ar.decks, seed=ar.seed, max_turns=max_turns))
+        if fmt == "archon":
+            game = Game(GameConfig(decks=ar.decks, seed=ar.seed, max_turns=max_turns))
+        else:
+            game = Match(MatchConfig(format=fmt, decks=ar.decks, seed=ar.seed, max_turns=max_turns))
         seats = {ar.a_seat: a, 3 - ar.a_seat: b}
-        slot = {"i": i, "game": game, "seats": seats, "searches": {}, "bots": {}}
+        slot = {"i": i, "game": game, "seats": seats, "searches": {}, "bots": {}, "match": {}}
         for seat, p in seats.items():
+            if fmt != "archon":
+                slot["match"][seat] = _match_policy(p, ar.seed * 2 + seat)
             if p.kind == "search":
                 slot["searches"][seat] = _make_search(p, ar.seed * 2 + seat)
             elif p.kind == "bot":
@@ -136,6 +161,10 @@ def play_paired(
         g = slot["game"]
         while not g.is_over:
             d = g.pending_decision
+            if d.kind in MATCH_KINDS:
+                pol = slot["match"][d.player]
+                g.submit(pol.decide(g.view_for(d.player), d))
+                continue
             acts = legal_actions(d, 1024)
             if acts is not None and len(acts) == 1:
                 g.submit(acts[0][1])
@@ -155,9 +184,11 @@ def play_paired(
             active.remove(slot)
             g = slot["game"]
             winner = (g.result or {}).get("winner")
-            _tally(rep, arr[slot["i"]], winner, g.turn_number)
+            turns = sum(r.turns for r in g.games) if isinstance(g, Match) else g.turn_number
+            _tally(rep, arr[slot["i"]], winner, turns)
+            rep.records.append(_record(arr[slot["i"]], g, winner))
             group = pending.setdefault(arr[slot["i"]].seed, [])
-            group.append((slot["i"], winner, g.turn_number))
+            group.append((slot["i"], winner, turns))
             if len(group) == per_seed:
                 for i, w, t in pending.pop(arr[slot["i"]].seed):
                     _tally(complete, arr[i], w, t)
@@ -172,7 +203,7 @@ def play_paired(
             d = g.pending_decision
             p = slot["seats"][d.player]
             if p.kind == "search":
-                pairs.append((slot["searches"][d.player].search_gen(_cap(p, g, d.player), d), p.client()))
+                pairs.append((slot["searches"][d.player].search_gen(_cap(p, _game_of(g), d.player), d), p.client()))
                 meta.append(slot)
             else:
                 net_batches.setdefault(id(p), []).append(slot)
@@ -182,13 +213,32 @@ def play_paired(
                 advance(slot)
         for pid, slots in net_batches.items():
             agent = net_agents[pid]
-            reqs = [(None, s["game"].pending_decision, None, _Cap(s["game"], s["game"].pending_decision.player)) for s in slots]
+            reqs = [(None, s["game"].pending_decision, None, _Cap(_game_of(s["game"]), s["game"].pending_decision.player))
+                    for s in slots]
             for s, choice in zip(slots, agent.decide_many(reqs)):
                 s["game"].submit(choice)
                 advance(s)
         if log is not None and rep.games and rep.games % 50 == 0:
             log(f"[arena] {a.name} vs {b.name}: {rep.games} games, score {rep.score:.3f} ({time.time() - t0:.0f}s)")
     return rep
+
+
+def _side(pid: Optional[int], a_seat: int) -> Optional[str]:
+    return None if pid is None else ("a" if pid == a_seat else "b")
+
+
+def _record(ar, g, winner: Optional[int]) -> dict:
+    """One result for `rep.records`, from player a's side: a's deck, the opponent's, a's seat, who won; for a match
+    also each game's winner and a's deck in it, and game 3's bid."""
+    rec = {"seed": ar.seed, "a_seat": ar.a_seat, "a_deck": _label(ar.a_deck),
+           "b_deck": _label(ar.decks[1] if ar.a_seat == 1 else ar.decks[0]), "winner": _side(winner, ar.a_seat)}
+    if isinstance(g, Match):
+        rec["games"] = [{"winner": _side(r.winner, ar.a_seat), "a_deck": _label(r.seat_decks[ar.a_seat]),
+                         "turns": r.turns} for r in g.games]
+        if g.bid is not None:
+            rec["bid"] = {"owner": _side(g.bid.owner, ar.a_seat), "winner": _side(g.bid.winner, ar.a_seat),
+                          "chains": g.bid.amount, "deck": g.bid.deck}
+    return rec
 
 
 def _tally(rep: PairedReport, ar, winner: Optional[int], turns: int) -> None:

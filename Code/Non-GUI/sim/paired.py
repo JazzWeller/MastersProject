@@ -51,6 +51,7 @@ class PairedReport:
     by_seat: Dict[int, List[int]] = field(default_factory=dict)  # a_seat -> [wins, games]
     by_deck: Dict[str, List[int]] = field(default_factory=dict)
     turns: List[int] = field(default_factory=list)
+    records: List[dict] = field(default_factory=list)  # ml.arena: one per game (or match), from a's side
 
     @property
     def score(self) -> float:
