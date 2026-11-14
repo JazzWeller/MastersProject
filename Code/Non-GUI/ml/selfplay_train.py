@@ -179,8 +179,9 @@ class Buffer:
     only positions with a target group left are sampled, and a spent
     group's targets are dropped from the sampled copy."""
 
-    def __init__(self, max_positions: int, max_games: int, limits: Optional[UseCounts] = None):
+    def __init__(self, max_positions: int, max_games: int, limits: Optional[UseCounts] = None, weigher=None):
         self.games: deque = deque()
+        self.weigher = weigher  # ml.sas_weight.SasWeigher: each game's outcome-target weight (None: unweighted)
         self.max_positions = max_positions
         self.max_games = max_games
         self.limits = limits if limits is not None and limits.active else None
@@ -190,9 +191,12 @@ class Buffer:
 
     def add(self, record: dict) -> int:
         pos = []
+        w = self.weigher.game_weight(record) if self.weigher is not None else None
         for p in record["positions"]:
             p = dict(p)
             p["z"] = float(record["outcome"][p["seat"]])
+            if w is not None:
+                p["w"] = w
             pos.append(p)
         self.games.append(pos)
         if self.limits:
@@ -453,8 +457,17 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
             L["multi"] = -(tg * logp.masked_fill(tg == 0, 0.0)).sum(-1).mean()
     v = model.value(out)
     on = value_rows([p.get("value_on", True) for p in positions], device)
+    # selfplay.sas_weighting: outcome targets weighted by the result's surprise (ml/sas_weight.py), a weighted mean
+    w = torch.tensor([p.get("w", 1.0) for p in positions], device=device) if any("w" in p for p in positions) else None
+
+    def _mse(pred, target):
+        if w is None:
+            return F.mse_loss(pred, target)
+        ww = _rows(w, on)
+        return (ww * (pred.float() - target.float()) ** 2).sum() / ww.sum().clamp_min(1e-8)
+
     if on is None or on.numel():
-        L["value"] = F.mse_loss(_rows(v, on), _rows(z, on))
+        L["value"] = _mse(_rows(v, on), _rows(z, on))
         stats["value_calibration"] = float((_rows(v, on).detach() - _rows(z, on)).abs().mean())
     unseen = batch.zones == OPP_UNSEEN
     if bool(unseen.any()):
@@ -466,7 +479,7 @@ def losses_for(model: KeyForgeNet, positions: List[dict], device, weights: dict,
         L["belief"] = F.binary_cross_entropy_with_logits(model.belief_logits(out)[unseen], in_hand[unseen])
     if on is None or on.numel():
         oracle = _rows(model.oracle_value(out, _hidden_counts(positions, model.vocab_size, device)), on)
-        L["oracle"] = F.mse_loss(oracle, _rows(z, on))
+        L["oracle"] = _mse(oracle, _rows(z, on))
         if weights.get("distill", 0.0) > 0:
             # Suphx-style oracle guidance, the distillation route (M6): the
             # student value regresses onto the oracle's (a far less noisy
@@ -762,6 +775,17 @@ def main():
     def is_val(meta) -> bool:
         return held_out(int(meta["seed"]), val_fraction)
 
+    from agent.telemetry import runs_root as _runs_root
+
+    from .sas_weight import resolve as _sas_weigher
+
+    weigher = _sas_weigher(sp.get("sas_weighting"), _runs_root())
+    if weigher is not None:
+        if v2:
+            raise SystemExit("selfplay.sas_weighting is for network v1 only")
+        if not any(e.get("event") == "sas_weighting" for e in run.journal_entries()):
+            run.journal("sas_weighting", game_index=0, deck_list=weigher.deck_list, elo_per_sas=weigher.k)
+
     if v2:
         from .selfplay_v2 import DEFAULT_WEIGHTS as V2_WEIGHTS
         from .selfplay_v2 import BufferV2, EncodingPool, backward_step_v2, losses_v2
@@ -781,8 +805,8 @@ def main():
             else:
                 buffer.add(arrays)
     else:
-        buffer = Buffer(int(sp["buffer_positions"]), max_games, limits)
-        val = Buffer(val_games * 250, val_games)
+        buffer = Buffer(int(sp["buffer_positions"]), max_games, limits, weigher=weigher)
+        val = Buffer(val_games * 250, val_games)  # unweighted: held-out losses stay comparable
         for rec in ([] if reader else tailer.poll()):  # rebuild the buffer (resume) or pick up anything already there
             if is_val(rec["meta"]):
                 val.add(rec)
