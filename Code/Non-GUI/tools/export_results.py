@@ -87,7 +87,9 @@ def main():
     from sim import data_root
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("runs", nargs="+")
+    parser.add_argument("runs", nargs="*")
+    parser.add_argument("--match", action="append", default=[],
+                        help="also copy every evaluation whose file name contains this text (repeatable)")
     parser.add_argument("--out", default=os.path.join(HERE, "results", "tier2"))
     args = parser.parse_args()
     for rid in args.runs:
@@ -96,7 +98,8 @@ def main():
     n = 0
     if os.path.isdir(evals):
         for name in sorted(os.listdir(evals)):
-            if name.endswith(".json") and (name.startswith("ladder-") or any(r.replace(":", "-") in name for r in args.runs)):
+            wanted = any(r.replace(":", "-") in name for r in args.runs) or any(m in name for m in args.match)
+            if name.endswith(".json") and (wanted or (args.runs and name.startswith("ladder-"))):
                 _copy(os.path.join(evals, name), os.path.join(args.out, "evals", name))
                 n += 1
     print(f"{n} evaluation results; written under {args.out}")

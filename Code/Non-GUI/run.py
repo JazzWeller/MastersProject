@@ -368,6 +368,31 @@ METHODS["eval-plateau"] = dict(
 METHODS["export-plateau"] = dict(
     desc="login node: copy the plateau runs, ladders and evals into results/plateau (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"plateau-{a}" for a in PLATEAU_ARMS], "--out", os.path.join("results", "plateau")]])
+# What a SAS advantage is worth (2026-11-13): real-v1 on pairs of held-out real decks grouped by SAS gap, against
+# itself (the deck's advantage alone) and against HeuristicBot (its skill against a deck deficit), single games and
+# Adaptive matches (own decks, swapped decks, then a chain bid for the deck that won both). One deck pair per seed.
+SAS_GAPS = ["0-5", "5-10", "10-20", "20-60"]
+SAS_PAIRS = [(_R1, _R1), (_R1, "heuristic")]
+
+
+def _sas_steps(fmt):
+    return [[PY, "-m", "tools.eval_v2", "--a", a, "--b", b, "--sims", "100", "--seeds", "100", "--unit", "1",
+             "--deck-list", "phase3", "--deck-split", "test", "--sas-gap", gap, "--format", fmt, "--workers", "{w}"]
+            for a, b in SAS_PAIRS for gap in SAS_GAPS]
+
+
+METHODS["eval-sas"] = dict(
+    desc="real-v1 vs itself and vs HeuristicBot on held-out real deck pairs by SAS gap (0-5/5-10/10-20/20-60), single games",
+    cpus=32, mem_gb=64, gpu=True, hours=24, max_w=16, steps=_sas_steps("archon"))
+METHODS["eval-sas-adaptive"] = dict(
+    desc="the same pairs as eval-sas, as Adaptive matches (best of three, chain bid for the deck that won both)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16, steps=_sas_steps("adaptive"))
+METHODS["export-sas"] = dict(
+    desc="login node: copy eval-sas(-adaptive)'s evals into results/sas and write results/sas/sas_report.json (then commit and push)",
+    local=True,
+    steps=[[PY, "-m", "tools.export_results", "--match", "_gap", "--out", os.path.join("results", "sas")],
+           [PY, "-m", "tools.sas_report", os.path.join("results", "sas", "evals"), "--out",
+            os.path.join("results", "sas", "sas_report.json")]])
 METHODS["export-m9"] = dict(
     desc="login node: copy the M9 runs, ladders and evals into results/m9 (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"m9-{a}-{s}" for a in M9_ARMS for s in M9_SEEDS],

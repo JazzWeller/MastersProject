@@ -28,6 +28,13 @@ command line's settings (the M9 matrix and its diagnostics):
 a fixed deck set (`sim.bc_corpus.fixed_deck_set`, seed `--deck-seed`, 2 by
 default: never a training deck, M11) instead of Fignor and Igor.
 
+`--sas-gap LO-HI` (with `--deck-list`) plays each unit on a pair of the
+split's decks whose SAS ratings differ by at least LO and less than HI
+(`sim.decklists.pair_in_gap`). `--format adaptive` plays a whole Adaptive match
+per arrangement instead of one game (own decks, swapped decks, then a chain bid
+for the deck that won both if 1-1); a match is one result. The output keeps
+every unit's decks and results (`units`), each game or match from a's side.
+
 Pausable: each finished unit is appended to `<out>.partial.jsonl`, so a run
 stopped any way (Ctrl-C, SIGTERM, `tools/pause_training.sh`) and started
 again with the same arguments plays only the units still missing. `--out`
@@ -169,9 +176,22 @@ def _work(task):
     from ml.arena import play_paired
 
     a, b = _PLAYERS
-    rep = play_paired(a, b, seeds, *unit_decks(args, seeds[0]), max_turns=args.max_turns, concurrency=args.concurrency)
+    x, y = unit_decks(args, seeds[0])
+    rep = play_paired(a, b, seeds, x, y, max_turns=args.max_turns, concurrency=args.concurrency,
+                      fmt=getattr(args, "format", "archon"))
+    from sim.paired import _label
+
     return {"seeds": list(seeds), "games": rep.games, "a_wins": rep.a_wins, "b_wins": rep.b_wins, "draws": rep.draws,
-            "forfeits": rep.forfeits, "turns": rep.turns, "by_seat": {str(k): v for k, v in rep.by_seat.items()}}
+            "forfeits": rep.forfeits, "turns": rep.turns, "by_seat": {str(k): v for k, v in rep.by_seat.items()},
+            "decks": [_label(x), _label(y)], "by_deck": rep.by_deck, "records": rep.records}
+
+
+def parse_gap(text: str):
+    """`"10-20"` -> (10.0, 20.0); an empty text -> None."""
+    if not text:
+        return None
+    lo, hi = text.split("-")
+    return float(lo), float(hi)
 
 
 def unit_decks(args, first_seed: int):
@@ -180,9 +200,13 @@ def unit_decks(args, first_seed: int):
     -- a function of the seed alone, so a resumed evaluation and every
     player pairing meet the same decks."""
     if getattr(args, "deck_list", ""):
-        from sim.decklists import pair_for
+        from sim.decklists import pair_for, pair_in_gap
 
-        return pair_for(args.deck_list, args.deck_split, (first_seed - args.first_seed) // args.unit)
+        k = (first_seed - args.first_seed) // args.unit
+        gap = parse_gap(getattr(args, "sas_gap", ""))
+        if gap:
+            return pair_in_gap(args.deck_list, args.deck_split, k, *gap)
+        return pair_for(args.deck_list, args.deck_split, k)
     if not getattr(args, "deck_set", 0):
         return "fignor", "igor"
     from sim.bc_corpus import fixed_deck_set
@@ -193,13 +217,18 @@ def unit_decks(args, first_seed: int):
 
 
 def out_name(a: str, b: str, sims: int, seeds: int, first_seed: int, a_exact: bool = False, deck_set: int = 0,
-             deck_seed: int = 2, deck_list: str = "", deck_split: str = "test") -> str:
+             deck_seed: int = 2, deck_list: str = "", deck_split: str = "test", sas_gap: str = "",
+             fmt: str = "archon") -> str:
     """The default output file's name (also how `tools.ladder` finds a match)."""
     name = f"{a}{'-exact' if a_exact else ''}__{b}__{sims}sims_{seeds}x{first_seed}"
     if deck_set:
         name += f"_decks{deck_set}s{deck_seed}"
     if deck_list:
         name += f"_{deck_list}-{deck_split}"
+    if sas_gap:
+        name += f"_gap{sas_gap}"
+    if fmt != "archon":
+        name += f"_{fmt}"
     return name.replace(":", "-") + ".json"
 
 
@@ -208,7 +237,8 @@ def _default_out(args) -> str:
 
     return data_root.resolve(os.path.join("evals", out_name(args.a, args.b, args.sims, args.seeds, args.first_seed,
                                                             args.a_exact, args.deck_set, args.deck_seed,
-                                                            args.deck_list, args.deck_split)))
+                                                            args.deck_list, args.deck_split, args.sas_gap,
+                                                            args.format)))
 
 
 def main():
@@ -229,9 +259,16 @@ def main():
     parser.add_argument("--deck-seed", type=int, default=2, help="the deck set's seed (training sets use others)")
     parser.add_argument("--deck-list", default="", help="play on a real deck list's pairs (sim/decklists.py)")
     parser.add_argument("--deck-split", default="test", choices=("train", "test"))
+    parser.add_argument("--sas-gap", default="", help="LO-HI: deck pairs whose SAS differs by >= LO and < HI "
+                                                      "(needs --deck-list)")
+    parser.add_argument("--format", default="archon", choices=("archon", "adaptive"),
+                        help="adaptive: a best-of-three Adaptive match per arrangement, with chain bidding")
     parser.add_argument("--out", default=None)
     parser.add_argument("--unit", type=int, default=4, help="seeds per unit of work (the pause granularity)")
     args = parser.parse_args()
+    if args.sas_gap and not args.deck_list:
+        parser.error("--sas-gap needs --deck-list")
+    parse_gap(args.sas_gap)
     out = args.out or _default_out(args)
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     partial = out + ".partial.jsonl"
@@ -270,7 +307,8 @@ def main():
                deck_set=args.deck_set, deck_seed=args.deck_seed if args.deck_set else None, deck_list=args.deck_list,
                deck_split=args.deck_split if args.deck_list else None, a_score=round(score, 4),
                interval95=[round(lo, 4), round(hi, 4)], mean_turns=round(sum(turns) / len(turns), 2) if turns else None,
-               seconds=round(time.time() - t0, 1))
+               seconds=round(time.time() - t0, 1), sas_gap=args.sas_gap or None, format=args.format,
+               units=[{k: p.get(k) for k in ("seeds", "decks", "by_deck", "records")} for p in parts])
     print(json.dumps(res, indent=1))
     with open(out, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=1)
