@@ -345,6 +345,18 @@ METHODS["eval-anatomy"] = dict(
     cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
     steps=[[PY, "-m", "tools.ladder", "--name", "anatomy", "--players", *ANATOMY_LADDER, "--sims", "100", "--seeds", "100",
             "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"]])
+# Does the search curve keep rising? real-v1 at 1,000 simulations joins the anatomy ladder: the 21 matches already
+# played are reused by filename, so only its 7 matches are new (each about 10x a 100-sim game on the 1,000 side).
+METHODS["eval-anatomy-1000"] = dict(
+    desc="real-v1 at 1,000 simulations added to the anatomy ladder (7 new matches on the held-out real decks) -> ladder-anatomy.json",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "anatomy", "--players", *ANATOMY_LADDER, f"{_R1}#sims=1000", "--sims", "100",
+            "--seeds", "100", "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"]])
+METHODS["export-anatomy"] = dict(
+    desc="login node: copy the anatomy ladder and the 1,000-simulation matches into results/anatomy (then commit and push)",
+    local=True,
+    steps=[[PY, "-m", "tools.export_results", "--match", "ladder-anatomy", "--match", "sims=1000", "--out",
+            os.path.join("results", "anatomy")]])
 PLATEAU_ARMS = {"ctrl": {}, "sims300": {"playout_cap_full": 300, "playout_cap_small": 75}, "nogate": {"gate_mode": "always"}}
 for _arm, _over in PLATEAU_ARMS.items():
     METHODS[f"plateau-{_arm}"] = dict(
