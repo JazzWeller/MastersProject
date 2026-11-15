@@ -1,0 +1,70 @@
+{
+ "run": "plateau-sasw-nogate",
+ "config_hash": "6d7511d813d7",
+ "tier": 2,
+ "games_done": 20019,
+ "budget": 20000,
+ "games_per_hour": 3368.4,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": 0.0,
+ "actor_learner_ratio": 1.023,
+ "gradient_steps": 5368,
+ "steps_per_second": 0.114,
+ "hours_to_next_gate": null,
+ "gates": 0,
+ "promotions": 5,
+ "last_gate_score": null,
+ "gate_score_slope_per_10k_games": null,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5252,
+  "loss_multi": 1.0985,
+  "loss_oracle": 0.7411,
+  "loss_policy": 1.2111,
+  "loss_value": 0.7373
+ },
+ "validation_losses": {
+  "loss_multi": 1.8073,
+  "loss_policy": 1.1658,
+  "loss_value": 0.6585
+ },
+ "policy_entropy": 1.2104,
+ "interventions": [
+  {
+   "config_hash": "6d7511d813d7086581d2c7e0f81041f4b72aa5628d9f720b836b50ac39317d3a",
+   "deck_list": "phase3",
+   "elo_per_sas": 6.088,
+   "event": "sas_weighting",
+   "game_index": 0,
+   "t": 1794636212.572732
+  },
+  {
+   "config_hash": "6d7511d813d7086581d2c7e0f81041f4b72aa5628d9f720b836b50ac39317d3a",
+   "event": "mirror_augmentation_off",
+   "game_index": 0,
+   "reason": "decks vary by game",
+   "t": 1794636212.5788422
+  },
+  {
+   "config_hash": "6d7511d813d7086581d2c7e0f81041f4b72aa5628d9f720b836b50ac39317d3a",
+   "event": "run_finished",
+   "final": "c7c08082abcf7a006be318aba49afe027a1f54340b32cb4fe770a33bb0f99849",
+   "game_index": 20019,
+   "step": 5368,
+   "t": 1794657617.8699756
+  },
+  {
+   "config_hash": "6d7511d813d7086581d2c7e0f81041f4b72aa5628d9f720b836b50ac39317d3a",
+   "event": "final_validation",
+   "game_index": 20019,
+   "games": 384,
+   "positions": 99968,
+   "step": 5368,
+   "t": 1794657620.275897,
+   "val_loss_multi": 1.4016,
+   "val_loss_policy": 1.28259,
+   "val_loss_value": 0.64343
+  }
+ ],
+ "flags": []
+}

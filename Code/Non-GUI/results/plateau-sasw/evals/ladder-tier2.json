@@ -1,0 +1,273 @@
+{
+ "name": "tier2",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:tier2-v1-s3",
+   "elo": 619.3,
+   "se": 13.0
+  },
+  {
+   "player": "v2:tier2-v2-s3",
+   "elo": 598.1,
+   "se": 12.9
+  },
+  {
+   "player": "v2:tier2-v2-s2",
+   "elo": 536.6,
+   "se": 12.5
+  },
+  {
+   "player": "v1:tier2-v1-s2",
+   "elo": 530.5,
+   "se": 12.4
+  },
+  {
+   "player": "v1:tier2-v1-s1",
+   "elo": 263.6,
+   "se": 11.2
+  },
+  {
+   "player": "v1:tier0b-a0",
+   "elo": 163.0,
+   "se": 11.0
+  },
+  {
+   "player": "v2:tier0b2-a7",
+   "elo": 137.2,
+   "se": 11.0
+  },
+  {
+   "player": "v2:tier2-v2-s1",
+   "elo": 131.3,
+   "se": 11.0
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0",
+   "a_score": 0.2775,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier0b2-a7",
+   "a_score": 0.305,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s1",
+   "a_score": 0.17,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier2-v2-s1",
+   "a_score": 0.3725,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s2",
+   "a_score": 0.0325,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier2-v2-s2",
+   "a_score": 0.04,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0125,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.03,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier0b2-a7",
+   "a_score": 0.545,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier2-v1-s1",
+   "a_score": 0.3525,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier2-v2-s1",
+   "a_score": 0.565,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier2-v1-s2",
+   "a_score": 0.1,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier2-v2-s2",
+   "a_score": 0.1,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0475,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.0825,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:tier2-v1-s1",
+   "a_score": 0.345,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:tier2-v2-s1",
+   "a_score": 0.4925,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:tier2-v1-s2",
+   "a_score": 0.0825,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:tier2-v2-s2",
+   "a_score": 0.1075,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0625,
+   "games": 400
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.055,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s1",
+   "b": "v2:tier2-v2-s1",
+   "a_score": 0.6525,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s1",
+   "b": "v1:tier2-v1-s2",
+   "a_score": 0.1775,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s1",
+   "b": "v2:tier2-v2-s2",
+   "a_score": 0.19,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s1",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.135,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s1",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.12,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s1",
+   "b": "v1:tier2-v1-s2",
+   "a_score": 0.085,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s1",
+   "b": "v2:tier2-v2-s2",
+   "a_score": 0.095,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s1",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.065,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s1",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.0825,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s2",
+   "b": "v2:tier2-v2-s2",
+   "a_score": 0.4875,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s2",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.355,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s2",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.39,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s2",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.385,
+   "games": 400
+  },
+  {
+   "a": "v2:tier2-v2-s2",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.44,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.51,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

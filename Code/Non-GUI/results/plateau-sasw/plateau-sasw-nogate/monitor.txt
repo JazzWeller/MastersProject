@@ -1,0 +1,10 @@
+== plateau-sasw-nogate  (tier 2, config 6d7511d813d7)
+   games 20,019/20,000   3368.4 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.023   steps 5,368 (0.114/s)   next gate in None h
+   gates 0, promotions 5, last score None, slope/10k games None
+   losses {'loss_belief': 0.5252, 'loss_multi': 1.0985, 'loss_oracle': 0.7411, 'loss_policy': 1.2111, 'loss_value': 0.7373}   entropy 1.2104
+   held-out {'loss_multi': 1.8073, 'loss_policy': 1.1658, 'loss_value': 0.6585}
+   journal @0: sas_weighting {"deck_list": "phase3", "elo_per_sas": 6.088}
+   journal @0: mirror_augmentation_off {"reason": "decks vary by game"}
+   journal @20019: run_finished {"final": "c7c08082abcf7a006be318aba49afe027a1f54340b32cb4fe770a33bb0f99849", "step": 5368}
+   journal @20019: final_validation {"games": 384, "positions": 99968, "step": 5368, "val_loss_multi": 1.4016, "val_loss_policy": 1.28259, "val_loss_value": 0.64343}

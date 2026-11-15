@@ -1,0 +1,11 @@
+== plateau-sasw-ctrl  (tier 2, config 8aa317fb2912)
+   games 20,020/20,000   3470.5 games/h (projected 1500)   ETA 0.0 h
+   actor:learner 1.004   steps 5,438 (0.127/s)   next gate in None h
+   gates 5, promotions 1, last score 0.4825, slope/10k games -0.0021
+   losses {'loss_belief': 0.5411, 'loss_multi': 1.5189, 'loss_oracle': 1.0711, 'loss_policy': 1.2633, 'loss_value': 1.0842}   entropy 1.2563
+   held-out {'loss_multi': 1.1792, 'loss_policy': 1.1976, 'loss_value': 0.707}
+   journal @0: sas_weighting {"deck_list": "phase3", "elo_per_sas": 6.088}
+   journal @0: mirror_augmentation_off {"reason": "decks vary by game"}
+   journal @16283: gate_G4 {"step": 4000, "verdict": "PASS"}
+   journal @20020: run_finished {"final": "8c083377acbe866ab631937175d26bed667b81d88397cdb722686cdbf91bc34c", "step": 5438}
+   journal @20020: final_validation {"games": 384, "positions": 99745, "step": 5438, "val_loss_multi": 1.40272, "val_loss_policy": 1.28507, "val_loss_value": 0.71237}

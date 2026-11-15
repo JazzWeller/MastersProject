@@ -1,0 +1,70 @@
+{
+ "run": "plateau-sasw-sims300",
+ "config_hash": "eb1d475b3ffb",
+ "tier": 2,
+ "games_done": 20019,
+ "budget": 20000,
+ "games_per_hour": 1046.6,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": 0.0,
+ "actor_learner_ratio": 1.002,
+ "gradient_steps": 5288,
+ "steps_per_second": 0.026,
+ "hours_to_next_gate": null,
+ "gates": 5,
+ "promotions": 0,
+ "last_gate_score": 0.5,
+ "gate_score_slope_per_10k_games": 0.0192,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5367,
+  "loss_multi": 1.3822,
+  "loss_oracle": 0.4869,
+  "loss_policy": 1.2423,
+  "loss_value": 0.4987
+ },
+ "validation_losses": {
+  "loss_multi": 0.8086,
+  "loss_policy": 1.2452,
+  "loss_value": 0.7439
+ },
+ "policy_entropy": 1.2152,
+ "interventions": [
+  {
+   "config_hash": "eb1d475b3ffb48aeae0fdfe93be6238ccb2699eabbfc33a6b245b66ba8d041f1",
+   "deck_list": "phase3",
+   "elo_per_sas": 6.088,
+   "event": "sas_weighting",
+   "game_index": 0,
+   "t": 1794641679.5590274
+  },
+  {
+   "config_hash": "eb1d475b3ffb48aeae0fdfe93be6238ccb2699eabbfc33a6b245b66ba8d041f1",
+   "event": "mirror_augmentation_off",
+   "game_index": 0,
+   "reason": "decks vary by game",
+   "t": 1794641679.5639293
+  },
+  {
+   "config_hash": "eb1d475b3ffb48aeae0fdfe93be6238ccb2699eabbfc33a6b245b66ba8d041f1",
+   "event": "run_finished",
+   "final": "88a3d12fbc3daaec7707d192b23bcc822c3bbc234e050ac2e3a1d72cb3dbb150",
+   "game_index": 20019,
+   "step": 5288,
+   "t": 1794710550.3090076
+  },
+  {
+   "config_hash": "eb1d475b3ffb48aeae0fdfe93be6238ccb2699eabbfc33a6b245b66ba8d041f1",
+   "event": "final_validation",
+   "game_index": 20019,
+   "games": 384,
+   "positions": 99738,
+   "step": 5288,
+   "t": 1794710552.737248,
+   "val_loss_multi": 1.37716,
+   "val_loss_policy": 1.24699,
+   "val_loss_value": 0.69069
+  }
+ ],
+ "flags": []
+}

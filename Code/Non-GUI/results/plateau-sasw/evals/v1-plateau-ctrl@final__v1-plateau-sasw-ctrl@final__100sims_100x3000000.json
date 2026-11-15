@@ -1,0 +1,3428 @@
+{
+ "games": 400,
+ "a_wins": 201,
+ "b_wins": 199,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v1:plateau-ctrl@final",
+ "a_exact": false,
+ "b": "v1:plateau-sasw-ctrl@final",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_seed": null,
+ "deck_list": "",
+ "deck_split": null,
+ "a_score": 0.5025,
+ "interval95": [
+  0.4537,
+  0.5512
+ ],
+ "mean_turns": 17.43,
+ "seconds": 1164.3,
+ "sas_gap": null,
+ "format": "archon",
+ "units": [
+  {
+   "seeds": [
+    3000024,
+    3000025,
+    3000026,
+    3000027
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     2,
+     8
+    ],
+    "igor": [
+     3,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000027,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000026,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000027,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000024,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000025,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000027,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000024,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000024,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000025,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000025,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000026,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000024,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000026,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000026,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000027,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000025,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000060,
+    3000061,
+    3000062,
+    3000063
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     3,
+     8
+    ],
+    "igor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000060,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000060,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000063,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000061,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000063,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000063,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000062,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000060,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000062,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000062,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000060,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000063,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000061,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000061,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000062,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000061,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000048,
+    3000049,
+    3000050,
+    3000051
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     4,
+     8
+    ],
+    "igor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000049,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000051,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000051,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000051,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000048,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000051,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000050,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000049,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000048,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000048,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000049,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000049,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000048,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000050,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000050,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000050,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000000,
+    3000001,
+    3000002,
+    3000003
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     5,
+     8
+    ],
+    "fignor": [
+     4,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000002,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000001,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000001,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000003,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000002,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000001,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000003,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000000,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000002,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000000,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000002,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000000,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000003,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000003,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000000,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000001,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000040,
+    3000041,
+    3000042,
+    3000043
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     3,
+     8
+    ],
+    "igor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000041,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000043,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000043,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000042,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000041,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000042,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000040,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000043,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000042,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000043,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000040,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000042,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000040,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000041,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000041,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000040,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000052,
+    3000053,
+    3000054,
+    3000055
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     5,
+     8
+    ],
+    "fignor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000053,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000054,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000054,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000055,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000054,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000052,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000054,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000055,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000052,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000053,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000052,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000055,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000055,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000053,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000052,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000053,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000036,
+    3000037,
+    3000038,
+    3000039
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     5,
+     8
+    ],
+    "igor": [
+     4,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000039,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000038,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000036,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000038,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000036,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000039,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000037,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000037,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000036,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000039,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000036,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000038,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000039,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000038,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000037,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000037,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000016,
+    3000017,
+    3000018,
+    3000019
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     6,
+     8
+    ],
+    "fignor": [
+     3,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000019,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000019,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000018,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000018,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000017,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000017,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000017,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000016,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000016,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000019,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000017,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000018,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000016,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000019,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000016,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000018,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000044,
+    3000045,
+    3000046,
+    3000047
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     3,
+     8
+    ],
+    "igor": [
+     4,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000046,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000044,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000046,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000046,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000047,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000047,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000044,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000044,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000045,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000044,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000047,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000047,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000046,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000045,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000045,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000045,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000004,
+    3000005,
+    3000006,
+    3000007
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     4,
+     8
+    ],
+    "fignor": [
+     3,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000007,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000005,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000004,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000005,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000004,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000007,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000004,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000004,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000005,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000007,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000005,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000006,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000007,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000006,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000006,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000006,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000008,
+    3000009,
+    3000010,
+    3000011
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     6,
+     8
+    ],
+    "fignor": [
+     3,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000010,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000011,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000009,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000010,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000009,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000011,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000008,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000008,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000011,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000008,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000010,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000009,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000010,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000008,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000011,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000009,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000028,
+    3000029,
+    3000030,
+    3000031
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     3,
+     8
+    ],
+    "igor": [
+     2,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000031,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000029,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000029,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000028,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000028,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000028,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000030,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000031,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000029,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000030,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000030,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000030,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000029,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000031,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000028,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000031,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000012,
+    3000013,
+    3000014,
+    3000015
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     2,
+     8
+    ],
+    "fignor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000015,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000015,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000014,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000014,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000013,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000015,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000013,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000014,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000015,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000013,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000012,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000014,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000012,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000013,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000012,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000012,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000056,
+    3000057,
+    3000058,
+    3000059
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     4,
+     8
+    ],
+    "igor": [
+     3,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000057,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000059,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000058,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000059,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000056,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000057,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000057,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000057,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000056,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000058,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000059,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000058,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000058,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000056,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000056,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000059,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000032,
+    3000033,
+    3000034,
+    3000035
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     4,
+     8
+    ],
+    "igor": [
+     6,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000033,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000032,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000032,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000033,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000035,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000035,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000035,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000034,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000032,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000034,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000035,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000034,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000033,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000032,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000034,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000033,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000020,
+    3000021,
+    3000022,
+    3000023
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     3,
+     8
+    ],
+    "fignor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000023,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000021,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000023,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000020,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000023,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000022,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000022,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000022,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000023,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000021,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000022,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000020,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000021,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000020,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000021,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000020,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000068,
+    3000069,
+    3000070,
+    3000071
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     2,
+     8
+    ],
+    "igor": [
+     3,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000069,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000068,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000069,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000068,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000071,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000071,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000068,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000071,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000070,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000068,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000069,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000069,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000071,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000070,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000070,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000070,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000064,
+    3000065,
+    3000066,
+    3000067
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     4,
+     8
+    ],
+    "fignor": [
+     4,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000065,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000067,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000067,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000067,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000064,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000064,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000064,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000067,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000066,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000066,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000066,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000064,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000066,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000065,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000065,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000065,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000076,
+    3000077,
+    3000078,
+    3000079
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     3,
+     8
+    ],
+    "fignor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000079,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000078,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000076,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000076,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000079,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000077,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000077,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000078,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000078,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000078,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000076,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000079,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000076,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000077,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000077,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000079,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000072,
+    3000073,
+    3000074,
+    3000075
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     2,
+     8
+    ],
+    "igor": [
+     7,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000075,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000073,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000074,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000075,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000073,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000072,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000073,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000072,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000073,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000072,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000072,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000075,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000074,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000074,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000074,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000075,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000080,
+    3000081,
+    3000082,
+    3000083
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     6,
+     8
+    ],
+    "igor": [
+     4,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000082,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000080,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000082,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000082,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000083,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000081,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000080,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000081,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000081,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000080,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000081,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000083,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000080,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000083,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000083,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000082,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000088,
+    3000089,
+    3000090,
+    3000091
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     4,
+     8
+    ],
+    "igor": [
+     6,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000090,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000090,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000091,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000091,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000089,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000091,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000088,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000089,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000088,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000089,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000091,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000088,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000088,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000090,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000090,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000089,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000084,
+    3000085,
+    3000086,
+    3000087
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     3,
+     8
+    ],
+    "igor": [
+     5,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000085,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000087,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000085,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000084,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000084,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000087,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000085,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000084,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000086,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000086,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000086,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000087,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000087,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000084,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000085,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000086,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000092,
+    3000093,
+    3000094,
+    3000095
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "igor": [
+     5,
+     8
+    ],
+    "fignor": [
+     6,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000092,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000095,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000093,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000093,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000092,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000092,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000094,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000095,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000094,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000095,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000094,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000095,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000092,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000093,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000093,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000094,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000096,
+    3000097,
+    3000098,
+    3000099
+   ],
+   "decks": [
+    "fignor",
+    "igor"
+   ],
+   "by_deck": {
+    "fignor": [
+     3,
+     8
+    ],
+    "igor": [
+     2,
+     8
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000098,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000096,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000099,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000096,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000098,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000097,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000099,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000096,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000097,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000098,
+     "a_seat": 1,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000099,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000098,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000097,
+     "a_seat": 1,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000097,
+     "a_seat": 2,
+     "a_deck": "igor",
+     "b_deck": "fignor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000096,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000099,
+     "a_seat": 2,
+     "a_deck": "fignor",
+     "b_deck": "igor",
+     "winner": "a"
+    }
+   ]
+  }
+ ]
+}

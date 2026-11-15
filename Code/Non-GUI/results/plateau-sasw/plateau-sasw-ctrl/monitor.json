@@ -1,0 +1,78 @@
+{
+ "run": "plateau-sasw-ctrl",
+ "config_hash": "8aa317fb2912",
+ "tier": 2,
+ "games_done": 20020,
+ "budget": 20000,
+ "games_per_hour": 3470.5,
+ "projected_games_per_hour": 1500.0,
+ "eta_hours": 0.0,
+ "actor_learner_ratio": 1.004,
+ "gradient_steps": 5438,
+ "steps_per_second": 0.127,
+ "hours_to_next_gate": null,
+ "gates": 5,
+ "promotions": 1,
+ "last_gate_score": 0.4825,
+ "gate_score_slope_per_10k_games": -0.0021,
+ "gate_running": false,
+ "losses": {
+  "loss_belief": 0.5411,
+  "loss_multi": 1.5189,
+  "loss_oracle": 1.0711,
+  "loss_policy": 1.2633,
+  "loss_value": 1.0842
+ },
+ "validation_losses": {
+  "loss_multi": 1.1792,
+  "loss_policy": 1.1976,
+  "loss_value": 0.707
+ },
+ "policy_entropy": 1.2563,
+ "interventions": [
+  {
+   "config_hash": "8aa317fb29124094c863f747d3e44b31b28c834e56a0a937054f31ec9f6edb29",
+   "deck_list": "phase3",
+   "elo_per_sas": 6.088,
+   "event": "sas_weighting",
+   "game_index": 0,
+   "t": 1794636151.1112635
+  },
+  {
+   "config_hash": "8aa317fb29124094c863f747d3e44b31b28c834e56a0a937054f31ec9f6edb29",
+   "event": "mirror_augmentation_off",
+   "game_index": 0,
+   "reason": "decks vary by game",
+   "t": 1794636151.1194701
+  },
+  {
+   "config_hash": "8aa317fb29124094c863f747d3e44b31b28c834e56a0a937054f31ec9f6edb29",
+   "event": "gate_G4",
+   "game_index": 16283,
+   "step": 4000,
+   "t": 1794652931.6607237,
+   "verdict": "PASS"
+  },
+  {
+   "config_hash": "8aa317fb29124094c863f747d3e44b31b28c834e56a0a937054f31ec9f6edb29",
+   "event": "run_finished",
+   "final": "8c083377acbe866ab631937175d26bed667b81d88397cdb722686cdbf91bc34c",
+   "game_index": 20020,
+   "step": 5438,
+   "t": 1794656927.9277244
+  },
+  {
+   "config_hash": "8aa317fb29124094c863f747d3e44b31b28c834e56a0a937054f31ec9f6edb29",
+   "event": "final_validation",
+   "game_index": 20020,
+   "games": 384,
+   "positions": 99745,
+   "step": 5438,
+   "t": 1794656930.1766367,
+   "val_loss_multi": 1.40272,
+   "val_loss_policy": 1.28507,
+   "val_loss_value": 0.71237
+  }
+ ],
+ "flags": []
+}
