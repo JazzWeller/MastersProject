@@ -1,0 +1,4928 @@
+{
+ "games": 400,
+ "a_wins": 369,
+ "b_wins": 31,
+ "draws": 0,
+ "forfeits": 0,
+ "a": "v1:real-v1",
+ "a_exact": false,
+ "b": "heuristic",
+ "sims": 100,
+ "regime": "within_turn",
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_seed": null,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "a_score": 0.9225,
+ "interval95": [
+  0.8921,
+  0.9449
+ ],
+ "mean_turns": 20.23,
+ "seconds": 491.9,
+ "sas_gap": "10-20",
+ "format": "archon",
+ "units": [
+  {
+   "seeds": [
+    3000004
+   ],
+   "decks": [
+    "Abigail la Blindada, Comisaria de la Calle",
+    "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c"
+   ],
+   "by_deck": {
+    "Abigail la Blindada, Comisaria de la Calle": [
+     2,
+     2
+    ],
+    "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000004,
+     "a_seat": 1,
+     "a_deck": "Abigail la Blindada, Comisaria de la Calle",
+     "b_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "winner": "a"
+    },
+    {
+     "seed": 3000004,
+     "a_seat": 2,
+     "a_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "b_deck": "Abigail la Blindada, Comisaria de la Calle",
+     "winner": "a"
+    },
+    {
+     "seed": 3000004,
+     "a_seat": 1,
+     "a_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "b_deck": "Abigail la Blindada, Comisaria de la Calle",
+     "winner": "a"
+    },
+    {
+     "seed": 3000004,
+     "a_seat": 2,
+     "a_deck": "Abigail la Blindada, Comisaria de la Calle",
+     "b_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000007
+   ],
+   "decks": [
+    "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+    "Cloe Kinsil, Demolitrice di Pendiosilente"
+   ],
+   "by_deck": {
+    "Cloe Kinsil, Demolitrice di Pendiosilente": [
+     2,
+     2
+    ],
+    "Aesar \u201cCentauro\u201d, Hacker della Capitale": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000007,
+     "a_seat": 1,
+     "a_deck": "Cloe Kinsil, Demolitrice di Pendiosilente",
+     "b_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000007,
+     "a_seat": 2,
+     "a_deck": "Cloe Kinsil, Demolitrice di Pendiosilente",
+     "b_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000007,
+     "a_seat": 2,
+     "a_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "b_deck": "Cloe Kinsil, Demolitrice di Pendiosilente",
+     "winner": "a"
+    },
+    {
+     "seed": 3000007,
+     "a_seat": 1,
+     "a_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "b_deck": "Cloe Kinsil, Demolitrice di Pendiosilente",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000011
+   ],
+   "decks": [
+    "\u201cAlce\u201d, Poliziotto di Elefantevincente",
+    "A. Adams, the Station Ward"
+   ],
+   "by_deck": {
+    "\u201cAlce\u201d, Poliziotto di Elefantevincente": [
+     1,
+     2
+    ],
+    "A. Adams, the Station Ward": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000011,
+     "a_seat": 1,
+     "a_deck": "\u201cAlce\u201d, Poliziotto di Elefantevincente",
+     "b_deck": "A. Adams, the Station Ward",
+     "winner": "a"
+    },
+    {
+     "seed": 3000011,
+     "a_seat": 1,
+     "a_deck": "A. Adams, the Station Ward",
+     "b_deck": "\u201cAlce\u201d, Poliziotto di Elefantevincente",
+     "winner": "a"
+    },
+    {
+     "seed": 3000011,
+     "a_seat": 2,
+     "a_deck": "\u201cAlce\u201d, Poliziotto di Elefantevincente",
+     "b_deck": "A. Adams, the Station Ward",
+     "winner": "b"
+    },
+    {
+     "seed": 3000011,
+     "a_seat": 2,
+     "a_deck": "A. Adams, the Station Ward",
+     "b_deck": "\u201cAlce\u201d, Poliziotto di Elefantevincente",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000014
+   ],
+   "decks": [
+    "Aesa la Dorata, Segretaria della Luna",
+    "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi"
+   ],
+   "by_deck": {
+    "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi": [
+     2,
+     2
+    ],
+    "Aesa la Dorata, Segretaria della Luna": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000014,
+     "a_seat": 2,
+     "a_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "b_deck": "Aesa la Dorata, Segretaria della Luna",
+     "winner": "a"
+    },
+    {
+     "seed": 3000014,
+     "a_seat": 1,
+     "a_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "b_deck": "Aesa la Dorata, Segretaria della Luna",
+     "winner": "a"
+    },
+    {
+     "seed": 3000014,
+     "a_seat": 2,
+     "a_deck": "Aesa la Dorata, Segretaria della Luna",
+     "b_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "winner": "a"
+    },
+    {
+     "seed": 3000014,
+     "a_seat": 1,
+     "a_deck": "Aesa la Dorata, Segretaria della Luna",
+     "b_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000001
+   ],
+   "decks": [
+    "A. Ankar, Regina di Elefantevitale",
+    "Aag of Hyperburg"
+   ],
+   "by_deck": {
+    "Aag of Hyperburg": [
+     2,
+     2
+    ],
+    "A. Ankar, Regina di Elefantevitale": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000001,
+     "a_seat": 1,
+     "a_deck": "Aag of Hyperburg",
+     "b_deck": "A. Ankar, Regina di Elefantevitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000001,
+     "a_seat": 1,
+     "a_deck": "A. Ankar, Regina di Elefantevitale",
+     "b_deck": "Aag of Hyperburg",
+     "winner": "a"
+    },
+    {
+     "seed": 3000001,
+     "a_seat": 2,
+     "a_deck": "Aag of Hyperburg",
+     "b_deck": "A. Ankar, Regina di Elefantevitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000001,
+     "a_seat": 2,
+     "a_deck": "A. Ankar, Regina di Elefantevitale",
+     "b_deck": "Aag of Hyperburg",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000013
+   ],
+   "decks": [
+    "Adrian le Chaste, Bienfaiteur de la Jungle",
+    "Aag of Megacon Sewers"
+   ],
+   "by_deck": {
+    "Adrian le Chaste, Bienfaiteur de la Jungle": [
+     1,
+     2
+    ],
+    "Aag of Megacon Sewers": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000013,
+     "a_seat": 1,
+     "a_deck": "Adrian le Chaste, Bienfaiteur de la Jungle",
+     "b_deck": "Aag of Megacon Sewers",
+     "winner": "a"
+    },
+    {
+     "seed": 3000013,
+     "a_seat": 1,
+     "a_deck": "Aag of Megacon Sewers",
+     "b_deck": "Adrian le Chaste, Bienfaiteur de la Jungle",
+     "winner": "a"
+    },
+    {
+     "seed": 3000013,
+     "a_seat": 2,
+     "a_deck": "Adrian le Chaste, Bienfaiteur de la Jungle",
+     "b_deck": "Aag of Megacon Sewers",
+     "winner": "b"
+    },
+    {
+     "seed": 3000013,
+     "a_seat": 2,
+     "a_deck": "Aag of Megacon Sewers",
+     "b_deck": "Adrian le Chaste, Bienfaiteur de la Jungle",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000012
+   ],
+   "decks": [
+    "Aardvark of Openspur City",
+    "Aagerson of Lobosquare Villa"
+   ],
+   "by_deck": {
+    "Aardvark of Openspur City": [
+     1,
+     2
+    ],
+    "Aagerson of Lobosquare Villa": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000012,
+     "a_seat": 1,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Aagerson of Lobosquare Villa",
+     "winner": "b"
+    },
+    {
+     "seed": 3000012,
+     "a_seat": 2,
+     "a_deck": "Aagerson of Lobosquare Villa",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    },
+    {
+     "seed": 3000012,
+     "a_seat": 2,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Aagerson of Lobosquare Villa",
+     "winner": "a"
+    },
+    {
+     "seed": 3000012,
+     "a_seat": 1,
+     "a_deck": "Aagerson of Lobosquare Villa",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000009
+   ],
+   "decks": [
+    "Ace \u201cDonnola\u201d, Carnefice della Base",
+    "A. Abel, Titaness of the Toothed Depot"
+   ],
+   "by_deck": {
+    "Ace \u201cDonnola\u201d, Carnefice della Base": [
+     2,
+     2
+    ],
+    "A. Abel, Titaness of the Toothed Depot": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000009,
+     "a_seat": 1,
+     "a_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "b_deck": "A. Abel, Titaness of the Toothed Depot",
+     "winner": "a"
+    },
+    {
+     "seed": 3000009,
+     "a_seat": 2,
+     "a_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "b_deck": "A. Abel, Titaness of the Toothed Depot",
+     "winner": "a"
+    },
+    {
+     "seed": 3000009,
+     "a_seat": 2,
+     "a_deck": "A. Abel, Titaness of the Toothed Depot",
+     "b_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "winner": "a"
+    },
+    {
+     "seed": 3000009,
+     "a_seat": 1,
+     "a_deck": "A. Abel, Titaness of the Toothed Depot",
+     "b_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000008
+   ],
+   "decks": [
+    "Aldin, W\u00e4chter des Hafens",
+    "Aag, the Composer of Minihampton"
+   ],
+   "by_deck": {
+    "Aag, the Composer of Minihampton": [
+     2,
+     2
+    ],
+    "Aldin, W\u00e4chter des Hafens": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000008,
+     "a_seat": 1,
+     "a_deck": "Aag, the Composer of Minihampton",
+     "b_deck": "Aldin, W\u00e4chter des Hafens",
+     "winner": "a"
+    },
+    {
+     "seed": 3000008,
+     "a_seat": 2,
+     "a_deck": "Aag, the Composer of Minihampton",
+     "b_deck": "Aldin, W\u00e4chter des Hafens",
+     "winner": "a"
+    },
+    {
+     "seed": 3000008,
+     "a_seat": 1,
+     "a_deck": "Aldin, W\u00e4chter des Hafens",
+     "b_deck": "Aag, the Composer of Minihampton",
+     "winner": "a"
+    },
+    {
+     "seed": 3000008,
+     "a_seat": 2,
+     "a_deck": "Aldin, W\u00e4chter des Hafens",
+     "b_deck": "Aag, the Composer of Minihampton",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000005
+   ],
+   "decks": [
+    "Aagerson the Ruthlessly Prosperous",
+    "Aardvark, Sleetsea's Ghostwriter"
+   ],
+   "by_deck": {
+    "Aagerson the Ruthlessly Prosperous": [
+     2,
+     2
+    ],
+    "Aardvark, Sleetsea's Ghostwriter": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000005,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Ruthlessly Prosperous",
+     "b_deck": "Aardvark, Sleetsea's Ghostwriter",
+     "winner": "a"
+    },
+    {
+     "seed": 3000005,
+     "a_seat": 1,
+     "a_deck": "Aardvark, Sleetsea's Ghostwriter",
+     "b_deck": "Aagerson the Ruthlessly Prosperous",
+     "winner": "a"
+    },
+    {
+     "seed": 3000005,
+     "a_seat": 2,
+     "a_deck": "Aardvark, Sleetsea's Ghostwriter",
+     "b_deck": "Aagerson the Ruthlessly Prosperous",
+     "winner": "a"
+    },
+    {
+     "seed": 3000005,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Ruthlessly Prosperous",
+     "b_deck": "Aardvark, Sleetsea's Ghostwriter",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000003
+   ],
+   "decks": [
+    "Admirable Amos of the Fen",
+    "Aagerson the Ailing"
+   ],
+   "by_deck": {
+    "Aagerson the Ailing": [
+     1,
+     2
+    ],
+    "Admirable Amos of the Fen": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000003,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Ailing",
+     "b_deck": "Admirable Amos of the Fen",
+     "winner": "b"
+    },
+    {
+     "seed": 3000003,
+     "a_seat": 2,
+     "a_deck": "Admirable Amos of the Fen",
+     "b_deck": "Aagerson the Ailing",
+     "winner": "a"
+    },
+    {
+     "seed": 3000003,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Ailing",
+     "b_deck": "Admirable Amos of the Fen",
+     "winner": "a"
+    },
+    {
+     "seed": 3000003,
+     "a_seat": 1,
+     "a_deck": "Admirable Amos of the Fen",
+     "b_deck": "Aagerson the Ailing",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000002
+   ],
+   "decks": [
+    "Aamumalm, the \u201cMedic\u201d of Urchins",
+    "Acutely Subatomic Henrietta"
+   ],
+   "by_deck": {
+    "Aamumalm, the \u201cMedic\u201d of Urchins": [
+     2,
+     2
+    ],
+    "Acutely Subatomic Henrietta": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000002,
+     "a_seat": 2,
+     "a_deck": "Aamumalm, the \u201cMedic\u201d of Urchins",
+     "b_deck": "Acutely Subatomic Henrietta",
+     "winner": "a"
+    },
+    {
+     "seed": 3000002,
+     "a_seat": 1,
+     "a_deck": "Aamumalm, the \u201cMedic\u201d of Urchins",
+     "b_deck": "Acutely Subatomic Henrietta",
+     "winner": "a"
+    },
+    {
+     "seed": 3000002,
+     "a_seat": 1,
+     "a_deck": "Acutely Subatomic Henrietta",
+     "b_deck": "Aamumalm, the \u201cMedic\u201d of Urchins",
+     "winner": "a"
+    },
+    {
+     "seed": 3000002,
+     "a_seat": 2,
+     "a_deck": "Acutely Subatomic Henrietta",
+     "b_deck": "Aamumalm, the \u201cMedic\u201d of Urchins",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000015
+   ],
+   "decks": [
+    "Aesar \u201cTentacoli\u201d il Glorioso",
+    "Aagerson the Civil"
+   ],
+   "by_deck": {
+    "Aagerson the Civil": [
+     2,
+     2
+    ],
+    "Aesar \u201cTentacoli\u201d il Glorioso": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000015,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Civil",
+     "b_deck": "Aesar \u201cTentacoli\u201d il Glorioso",
+     "winner": "a"
+    },
+    {
+     "seed": 3000015,
+     "a_seat": 2,
+     "a_deck": "Aesar \u201cTentacoli\u201d il Glorioso",
+     "b_deck": "Aagerson the Civil",
+     "winner": "a"
+    },
+    {
+     "seed": 3000015,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Civil",
+     "b_deck": "Aesar \u201cTentacoli\u201d il Glorioso",
+     "winner": "a"
+    },
+    {
+     "seed": 3000015,
+     "a_seat": 1,
+     "a_deck": "Aesar \u201cTentacoli\u201d il Glorioso",
+     "b_deck": "Aagerson the Civil",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000000
+   ],
+   "decks": [
+    "A. A. Julius, Comandante dell\u2019Immortalit\u00e0",
+    "Admin Zebroplus, the Random Guru"
+   ],
+   "by_deck": {
+    "A. A. Julius, Comandante dell\u2019Immortalit\u00e0": [
+     2,
+     2
+    ],
+    "Admin Zebroplus, the Random Guru": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000000,
+     "a_seat": 1,
+     "a_deck": "A. A. Julius, Comandante dell\u2019Immortalit\u00e0",
+     "b_deck": "Admin Zebroplus, the Random Guru",
+     "winner": "a"
+    },
+    {
+     "seed": 3000000,
+     "a_seat": 1,
+     "a_deck": "Admin Zebroplus, the Random Guru",
+     "b_deck": "A. A. Julius, Comandante dell\u2019Immortalit\u00e0",
+     "winner": "a"
+    },
+    {
+     "seed": 3000000,
+     "a_seat": 2,
+     "a_deck": "Admin Zebroplus, the Random Guru",
+     "b_deck": "A. A. Julius, Comandante dell\u2019Immortalit\u00e0",
+     "winner": "a"
+    },
+    {
+     "seed": 3000000,
+     "a_seat": 2,
+     "a_deck": "A. A. Julius, Comandante dell\u2019Immortalit\u00e0",
+     "b_deck": "Admin Zebroplus, the Random Guru",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000010
+   ],
+   "decks": [
+    "Aardvark, Strathmuchty's Ears",
+    "Airikatt, Spawn of Gyronet"
+   ],
+   "by_deck": {
+    "Aardvark, Strathmuchty's Ears": [
+     2,
+     2
+    ],
+    "Airikatt, Spawn of Gyronet": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000010,
+     "a_seat": 2,
+     "a_deck": "Aardvark, Strathmuchty's Ears",
+     "b_deck": "Airikatt, Spawn of Gyronet",
+     "winner": "a"
+    },
+    {
+     "seed": 3000010,
+     "a_seat": 1,
+     "a_deck": "Aardvark, Strathmuchty's Ears",
+     "b_deck": "Airikatt, Spawn of Gyronet",
+     "winner": "a"
+    },
+    {
+     "seed": 3000010,
+     "a_seat": 1,
+     "a_deck": "Airikatt, Spawn of Gyronet",
+     "b_deck": "Aardvark, Strathmuchty's Ears",
+     "winner": "a"
+    },
+    {
+     "seed": 3000010,
+     "a_seat": 2,
+     "a_deck": "Airikatt, Spawn of Gyronet",
+     "b_deck": "Aardvark, Strathmuchty's Ears",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000006
+   ],
+   "decks": [
+    "Aardvark, Strathmuchty's Ears",
+    "Aemh, Omnivorous Arena Ape"
+   ],
+   "by_deck": {
+    "Aardvark, Strathmuchty's Ears": [
+     2,
+     2
+    ],
+    "Aemh, Omnivorous Arena Ape": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000006,
+     "a_seat": 2,
+     "a_deck": "Aardvark, Strathmuchty's Ears",
+     "b_deck": "Aemh, Omnivorous Arena Ape",
+     "winner": "a"
+    },
+    {
+     "seed": 3000006,
+     "a_seat": 1,
+     "a_deck": "Aardvark, Strathmuchty's Ears",
+     "b_deck": "Aemh, Omnivorous Arena Ape",
+     "winner": "a"
+    },
+    {
+     "seed": 3000006,
+     "a_seat": 1,
+     "a_deck": "Aemh, Omnivorous Arena Ape",
+     "b_deck": "Aardvark, Strathmuchty's Ears",
+     "winner": "a"
+    },
+    {
+     "seed": 3000006,
+     "a_seat": 2,
+     "a_deck": "Aemh, Omnivorous Arena Ape",
+     "b_deck": "Aardvark, Strathmuchty's Ears",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000016
+   ],
+   "decks": [
+    "A. Aagerson, Pilot of the Frantic Collective",
+    "Agnar, Leibw\u00e4chter der Kirche"
+   ],
+   "by_deck": {
+    "Agnar, Leibw\u00e4chter der Kirche": [
+     2,
+     2
+    ],
+    "A. Aagerson, Pilot of the Frantic Collective": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000016,
+     "a_seat": 2,
+     "a_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "b_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "winner": "a"
+    },
+    {
+     "seed": 3000016,
+     "a_seat": 1,
+     "a_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "b_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "winner": "a"
+    },
+    {
+     "seed": 3000016,
+     "a_seat": 2,
+     "a_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "b_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "winner": "a"
+    },
+    {
+     "seed": 3000016,
+     "a_seat": 1,
+     "a_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "b_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000017
+   ],
+   "decks": [
+    "Abel, Atleta Grigia",
+    "Aagerson the Abandoned"
+   ],
+   "by_deck": {
+    "Aagerson the Abandoned": [
+     2,
+     2
+    ],
+    "Abel, Atleta Grigia": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000017,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Abandoned",
+     "b_deck": "Abel, Atleta Grigia",
+     "winner": "a"
+    },
+    {
+     "seed": 3000017,
+     "a_seat": 1,
+     "a_deck": "Abel, Atleta Grigia",
+     "b_deck": "Aagerson the Abandoned",
+     "winner": "a"
+    },
+    {
+     "seed": 3000017,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Abandoned",
+     "b_deck": "Abel, Atleta Grigia",
+     "winner": "a"
+    },
+    {
+     "seed": 3000017,
+     "a_seat": 2,
+     "a_deck": "Abel, Atleta Grigia",
+     "b_deck": "Aagerson the Abandoned",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000018
+   ],
+   "decks": [
+    "A. Babuni, Scudiera di Crinegentile",
+    "Aagerson, the Cadet of Jewelry"
+   ],
+   "by_deck": {
+    "A. Babuni, Scudiera di Crinegentile": [
+     2,
+     2
+    ],
+    "Aagerson, the Cadet of Jewelry": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000018,
+     "a_seat": 2,
+     "a_deck": "A. Babuni, Scudiera di Crinegentile",
+     "b_deck": "Aagerson, the Cadet of Jewelry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000018,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Cadet of Jewelry",
+     "b_deck": "A. Babuni, Scudiera di Crinegentile",
+     "winner": "a"
+    },
+    {
+     "seed": 3000018,
+     "a_seat": 1,
+     "a_deck": "A. Babuni, Scudiera di Crinegentile",
+     "b_deck": "Aagerson, the Cadet of Jewelry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000018,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Cadet of Jewelry",
+     "b_deck": "A. Babuni, Scudiera di Crinegentile",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000019
+   ],
+   "decks": [
+    "Aagerson the Gracelessly Aged",
+    "Aajh \"Glitter\" Equipbird"
+   ],
+   "by_deck": {
+    "Aajh \"Glitter\" Equipbird": [
+     1,
+     2
+    ],
+    "Aagerson the Gracelessly Aged": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000019,
+     "a_seat": 2,
+     "a_deck": "Aajh \"Glitter\" Equipbird",
+     "b_deck": "Aagerson the Gracelessly Aged",
+     "winner": "b"
+    },
+    {
+     "seed": 3000019,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Gracelessly Aged",
+     "b_deck": "Aajh \"Glitter\" Equipbird",
+     "winner": "a"
+    },
+    {
+     "seed": 3000019,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Gracelessly Aged",
+     "b_deck": "Aajh \"Glitter\" Equipbird",
+     "winner": "a"
+    },
+    {
+     "seed": 3000019,
+     "a_seat": 1,
+     "a_deck": "Aajh \"Glitter\" Equipbird",
+     "b_deck": "Aagerson the Gracelessly Aged",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000022
+   ],
+   "decks": [
+    "Acilia, Overlord of the Titleless Market",
+    "Aagerson the Civil"
+   ],
+   "by_deck": {
+    "Aagerson the Civil": [
+     2,
+     2
+    ],
+    "Acilia, Overlord of the Titleless Market": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000022,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Civil",
+     "b_deck": "Acilia, Overlord of the Titleless Market",
+     "winner": "a"
+    },
+    {
+     "seed": 3000022,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Civil",
+     "b_deck": "Acilia, Overlord of the Titleless Market",
+     "winner": "a"
+    },
+    {
+     "seed": 3000022,
+     "a_seat": 1,
+     "a_deck": "Acilia, Overlord of the Titleless Market",
+     "b_deck": "Aagerson the Civil",
+     "winner": "a"
+    },
+    {
+     "seed": 3000022,
+     "a_seat": 2,
+     "a_deck": "Acilia, Overlord of the Titleless Market",
+     "b_deck": "Aagerson the Civil",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000020
+   ],
+   "decks": [
+    "Aldin, W\u00e4chter des Hafens",
+    "Aajh, Nexus Incubator"
+   ],
+   "by_deck": {
+    "Aajh, Nexus Incubator": [
+     2,
+     2
+    ],
+    "Aldin, W\u00e4chter des Hafens": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000020,
+     "a_seat": 2,
+     "a_deck": "Aajh, Nexus Incubator",
+     "b_deck": "Aldin, W\u00e4chter des Hafens",
+     "winner": "a"
+    },
+    {
+     "seed": 3000020,
+     "a_seat": 2,
+     "a_deck": "Aldin, W\u00e4chter des Hafens",
+     "b_deck": "Aajh, Nexus Incubator",
+     "winner": "a"
+    },
+    {
+     "seed": 3000020,
+     "a_seat": 1,
+     "a_deck": "Aajh, Nexus Incubator",
+     "b_deck": "Aldin, W\u00e4chter des Hafens",
+     "winner": "a"
+    },
+    {
+     "seed": 3000020,
+     "a_seat": 1,
+     "a_deck": "Aldin, W\u00e4chter des Hafens",
+     "b_deck": "Aajh, Nexus Incubator",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000029
+   ],
+   "decks": [
+    "A. Force, Culprit of the Speedy Bay",
+    "Abel, Dissennato Folle"
+   ],
+   "by_deck": {
+    "A. Force, Culprit of the Speedy Bay": [
+     2,
+     2
+    ],
+    "Abel, Dissennato Folle": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000029,
+     "a_seat": 2,
+     "a_deck": "A. Force, Culprit of the Speedy Bay",
+     "b_deck": "Abel, Dissennato Folle",
+     "winner": "a"
+    },
+    {
+     "seed": 3000029,
+     "a_seat": 1,
+     "a_deck": "A. Force, Culprit of the Speedy Bay",
+     "b_deck": "Abel, Dissennato Folle",
+     "winner": "a"
+    },
+    {
+     "seed": 3000029,
+     "a_seat": 1,
+     "a_deck": "Abel, Dissennato Folle",
+     "b_deck": "A. Force, Culprit of the Speedy Bay",
+     "winner": "a"
+    },
+    {
+     "seed": 3000029,
+     "a_seat": 2,
+     "a_deck": "Abel, Dissennato Folle",
+     "b_deck": "A. Force, Culprit of the Speedy Bay",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000026
+   ],
+   "decks": [
+    "Aaronson of Lutterarder Boulevard",
+    "Aajh, Bioengineer of the Ardent Subdome"
+   ],
+   "by_deck": {
+    "Aaronson of Lutterarder Boulevard": [
+     0,
+     2
+    ],
+    "Aajh, Bioengineer of the Ardent Subdome": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000026,
+     "a_seat": 1,
+     "a_deck": "Aaronson of Lutterarder Boulevard",
+     "b_deck": "Aajh, Bioengineer of the Ardent Subdome",
+     "winner": "b"
+    },
+    {
+     "seed": 3000026,
+     "a_seat": 2,
+     "a_deck": "Aaronson of Lutterarder Boulevard",
+     "b_deck": "Aajh, Bioengineer of the Ardent Subdome",
+     "winner": "b"
+    },
+    {
+     "seed": 3000026,
+     "a_seat": 1,
+     "a_deck": "Aajh, Bioengineer of the Ardent Subdome",
+     "b_deck": "Aaronson of Lutterarder Boulevard",
+     "winner": "a"
+    },
+    {
+     "seed": 3000026,
+     "a_seat": 2,
+     "a_deck": "Aajh, Bioengineer of the Ardent Subdome",
+     "b_deck": "Aaronson of Lutterarder Boulevard",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000025
+   ],
+   "decks": [
+    "Aajh, Well-Prepared Hut King",
+    "Aggrobother, Zoo Trader"
+   ],
+   "by_deck": {
+    "Aggrobother, Zoo Trader": [
+     2,
+     2
+    ],
+    "Aajh, Well-Prepared Hut King": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000025,
+     "a_seat": 2,
+     "a_deck": "Aggrobother, Zoo Trader",
+     "b_deck": "Aajh, Well-Prepared Hut King",
+     "winner": "a"
+    },
+    {
+     "seed": 3000025,
+     "a_seat": 1,
+     "a_deck": "Aggrobother, Zoo Trader",
+     "b_deck": "Aajh, Well-Prepared Hut King",
+     "winner": "a"
+    },
+    {
+     "seed": 3000025,
+     "a_seat": 2,
+     "a_deck": "Aajh, Well-Prepared Hut King",
+     "b_deck": "Aggrobother, Zoo Trader",
+     "winner": "a"
+    },
+    {
+     "seed": 3000025,
+     "a_seat": 1,
+     "a_deck": "Aajh, Well-Prepared Hut King",
+     "b_deck": "Aggrobother, Zoo Trader",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000021
+   ],
+   "decks": [
+    "Aardvark of Openspur City",
+    "Baagh, the Operator of Honesty"
+   ],
+   "by_deck": {
+    "Baagh, the Operator of Honesty": [
+     2,
+     2
+    ],
+    "Aardvark of Openspur City": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000021,
+     "a_seat": 2,
+     "a_deck": "Baagh, the Operator of Honesty",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    },
+    {
+     "seed": 3000021,
+     "a_seat": 1,
+     "a_deck": "Baagh, the Operator of Honesty",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    },
+    {
+     "seed": 3000021,
+     "a_seat": 1,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Baagh, the Operator of Honesty",
+     "winner": "a"
+    },
+    {
+     "seed": 3000021,
+     "a_seat": 2,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Baagh, the Operator of Honesty",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000027
+   ],
+   "decks": [
+    "A. Alston, Margrave of the Astute Badland",
+    "Ainley the Dramatically One-Armed"
+   ],
+   "by_deck": {
+    "A. Alston, Margrave of the Astute Badland": [
+     2,
+     2
+    ],
+    "Ainley the Dramatically One-Armed": [
+     0,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000027,
+     "a_seat": 1,
+     "a_deck": "A. Alston, Margrave of the Astute Badland",
+     "b_deck": "Ainley the Dramatically One-Armed",
+     "winner": "a"
+    },
+    {
+     "seed": 3000027,
+     "a_seat": 2,
+     "a_deck": "A. Alston, Margrave of the Astute Badland",
+     "b_deck": "Ainley the Dramatically One-Armed",
+     "winner": "a"
+    },
+    {
+     "seed": 3000027,
+     "a_seat": 1,
+     "a_deck": "Ainley the Dramatically One-Armed",
+     "b_deck": "A. Alston, Margrave of the Astute Badland",
+     "winner": "b"
+    },
+    {
+     "seed": 3000027,
+     "a_seat": 2,
+     "a_deck": "Ainley the Dramatically One-Armed",
+     "b_deck": "A. Alston, Margrave of the Astute Badland",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000031
+   ],
+   "decks": [
+    "A. Aagerson, Pilot of the Frantic Collective",
+    "A. Ankar, Campionessa di Ruscellocorto"
+   ],
+   "by_deck": {
+    "A. Aagerson, Pilot of the Frantic Collective": [
+     2,
+     2
+    ],
+    "A. Ankar, Campionessa di Ruscellocorto": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000031,
+     "a_seat": 2,
+     "a_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "b_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "winner": "a"
+    },
+    {
+     "seed": 3000031,
+     "a_seat": 1,
+     "a_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "b_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "winner": "a"
+    },
+    {
+     "seed": 3000031,
+     "a_seat": 2,
+     "a_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "b_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "winner": "a"
+    },
+    {
+     "seed": 3000031,
+     "a_seat": 1,
+     "a_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "b_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000023
+   ],
+   "decks": [
+    "A. A. Julius, Traduttrice del Silenzio",
+    "Aaronson of Lutterarder Boulevard"
+   ],
+   "by_deck": {
+    "A. A. Julius, Traduttrice del Silenzio": [
+     2,
+     2
+    ],
+    "Aaronson of Lutterarder Boulevard": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000023,
+     "a_seat": 1,
+     "a_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "b_deck": "Aaronson of Lutterarder Boulevard",
+     "winner": "a"
+    },
+    {
+     "seed": 3000023,
+     "a_seat": 2,
+     "a_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "b_deck": "Aaronson of Lutterarder Boulevard",
+     "winner": "a"
+    },
+    {
+     "seed": 3000023,
+     "a_seat": 1,
+     "a_deck": "Aaronson of Lutterarder Boulevard",
+     "b_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "winner": "a"
+    },
+    {
+     "seed": 3000023,
+     "a_seat": 2,
+     "a_deck": "Aaronson of Lutterarder Boulevard",
+     "b_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000024
+   ],
+   "decks": [
+    "Aagerson the Abandoned",
+    "Abdiasz, Farmer z Szafirowej Sekty"
+   ],
+   "by_deck": {
+    "Aagerson the Abandoned": [
+     2,
+     2
+    ],
+    "Abdiasz, Farmer z Szafirowej Sekty": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000024,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Abandoned",
+     "b_deck": "Abdiasz, Farmer z Szafirowej Sekty",
+     "winner": "a"
+    },
+    {
+     "seed": 3000024,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Abandoned",
+     "b_deck": "Abdiasz, Farmer z Szafirowej Sekty",
+     "winner": "a"
+    },
+    {
+     "seed": 3000024,
+     "a_seat": 2,
+     "a_deck": "Abdiasz, Farmer z Szafirowej Sekty",
+     "b_deck": "Aagerson the Abandoned",
+     "winner": "a"
+    },
+    {
+     "seed": 3000024,
+     "a_seat": 1,
+     "a_deck": "Abdiasz, Farmer z Szafirowej Sekty",
+     "b_deck": "Aagerson the Abandoned",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000028
+   ],
+   "decks": [
+    "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+    "Mordecai \u201eDer gefr\u00e4\u00dfige Wendehals\u201c"
+   ],
+   "by_deck": {
+    "Mordecai \u201eDer gefr\u00e4\u00dfige Wendehals\u201c": [
+     2,
+     2
+    ],
+    "Aesar \u201cCentauro\u201d, Hacker della Capitale": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000028,
+     "a_seat": 2,
+     "a_deck": "Mordecai \u201eDer gefr\u00e4\u00dfige Wendehals\u201c",
+     "b_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000028,
+     "a_seat": 2,
+     "a_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "b_deck": "Mordecai \u201eDer gefr\u00e4\u00dfige Wendehals\u201c",
+     "winner": "a"
+    },
+    {
+     "seed": 3000028,
+     "a_seat": 1,
+     "a_deck": "Mordecai \u201eDer gefr\u00e4\u00dfige Wendehals\u201c",
+     "b_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000028,
+     "a_seat": 1,
+     "a_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "b_deck": "Mordecai \u201eDer gefr\u00e4\u00dfige Wendehals\u201c",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000032
+   ],
+   "decks": [
+    "Abel, Atleta Grigia",
+    "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c"
+   ],
+   "by_deck": {
+    "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c": [
+     2,
+     2
+    ],
+    "Abel, Atleta Grigia": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000032,
+     "a_seat": 1,
+     "a_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "b_deck": "Abel, Atleta Grigia",
+     "winner": "a"
+    },
+    {
+     "seed": 3000032,
+     "a_seat": 2,
+     "a_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "b_deck": "Abel, Atleta Grigia",
+     "winner": "a"
+    },
+    {
+     "seed": 3000032,
+     "a_seat": 2,
+     "a_deck": "Abel, Atleta Grigia",
+     "b_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "winner": "b"
+    },
+    {
+     "seed": 3000032,
+     "a_seat": 1,
+     "a_deck": "Abel, Atleta Grigia",
+     "b_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000041
+   ],
+   "decks": [
+    "Aagerson, the Emperor of Dinasallan",
+    "Abject \"Mynx\" Isla"
+   ],
+   "by_deck": {
+    "Aagerson, the Emperor of Dinasallan": [
+     2,
+     2
+    ],
+    "Abject \"Mynx\" Isla": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000041,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Emperor of Dinasallan",
+     "b_deck": "Abject \"Mynx\" Isla",
+     "winner": "a"
+    },
+    {
+     "seed": 3000041,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Emperor of Dinasallan",
+     "b_deck": "Abject \"Mynx\" Isla",
+     "winner": "a"
+    },
+    {
+     "seed": 3000041,
+     "a_seat": 2,
+     "a_deck": "Abject \"Mynx\" Isla",
+     "b_deck": "Aagerson, the Emperor of Dinasallan",
+     "winner": "a"
+    },
+    {
+     "seed": 3000041,
+     "a_seat": 1,
+     "a_deck": "Abject \"Mynx\" Isla",
+     "b_deck": "Aagerson, the Emperor of Dinasallan",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000030
+   ],
+   "decks": [
+    "Abrielle K. Rickshoe, the Enigmatic",
+    "Aagerson, the Cadet of Jewelry"
+   ],
+   "by_deck": {
+    "Abrielle K. Rickshoe, the Enigmatic": [
+     2,
+     2
+    ],
+    "Aagerson, the Cadet of Jewelry": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000030,
+     "a_seat": 2,
+     "a_deck": "Abrielle K. Rickshoe, the Enigmatic",
+     "b_deck": "Aagerson, the Cadet of Jewelry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000030,
+     "a_seat": 1,
+     "a_deck": "Abrielle K. Rickshoe, the Enigmatic",
+     "b_deck": "Aagerson, the Cadet of Jewelry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000030,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Cadet of Jewelry",
+     "b_deck": "Abrielle K. Rickshoe, the Enigmatic",
+     "winner": "a"
+    },
+    {
+     "seed": 3000030,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Cadet of Jewelry",
+     "b_deck": "Abrielle K. Rickshoe, the Enigmatic",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000034
+   ],
+   "decks": [
+    "Abel l'Abominable",
+    "Aajh U. Jhajqu, The Thirty-Seventh"
+   ],
+   "by_deck": {
+    "Abel l'Abominable": [
+     2,
+     2
+    ],
+    "Aajh U. Jhajqu, The Thirty-Seventh": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000034,
+     "a_seat": 2,
+     "a_deck": "Abel l'Abominable",
+     "b_deck": "Aajh U. Jhajqu, The Thirty-Seventh",
+     "winner": "a"
+    },
+    {
+     "seed": 3000034,
+     "a_seat": 2,
+     "a_deck": "Aajh U. Jhajqu, The Thirty-Seventh",
+     "b_deck": "Abel l'Abominable",
+     "winner": "a"
+    },
+    {
+     "seed": 3000034,
+     "a_seat": 1,
+     "a_deck": "Abel l'Abominable",
+     "b_deck": "Aajh U. Jhajqu, The Thirty-Seventh",
+     "winner": "a"
+    },
+    {
+     "seed": 3000034,
+     "a_seat": 1,
+     "a_deck": "Aajh U. Jhajqu, The Thirty-Seventh",
+     "b_deck": "Abel l'Abominable",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000037
+   ],
+   "decks": [
+    "Leechdjinni Danneville-Espec, Duchess",
+    "Aerith, Oracolo della Cittadella Eterna"
+   ],
+   "by_deck": {
+    "Aerith, Oracolo della Cittadella Eterna": [
+     2,
+     2
+    ],
+    "Leechdjinni Danneville-Espec, Duchess": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000037,
+     "a_seat": 2,
+     "a_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "b_deck": "Leechdjinni Danneville-Espec, Duchess",
+     "winner": "a"
+    },
+    {
+     "seed": 3000037,
+     "a_seat": 1,
+     "a_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "b_deck": "Leechdjinni Danneville-Espec, Duchess",
+     "winner": "a"
+    },
+    {
+     "seed": 3000037,
+     "a_seat": 1,
+     "a_deck": "Leechdjinni Danneville-Espec, Duchess",
+     "b_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "winner": "a"
+    },
+    {
+     "seed": 3000037,
+     "a_seat": 2,
+     "a_deck": "Leechdjinni Danneville-Espec, Duchess",
+     "b_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000035
+   ],
+   "decks": [
+    "Aagerson, the Undertaker of Money",
+    "Ada, Sanctuary Fanatic"
+   ],
+   "by_deck": {
+    "Aagerson, the Undertaker of Money": [
+     2,
+     2
+    ],
+    "Ada, Sanctuary Fanatic": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000035,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Undertaker of Money",
+     "b_deck": "Ada, Sanctuary Fanatic",
+     "winner": "a"
+    },
+    {
+     "seed": 3000035,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Undertaker of Money",
+     "b_deck": "Ada, Sanctuary Fanatic",
+     "winner": "a"
+    },
+    {
+     "seed": 3000035,
+     "a_seat": 2,
+     "a_deck": "Ada, Sanctuary Fanatic",
+     "b_deck": "Aagerson, the Undertaker of Money",
+     "winner": "a"
+    },
+    {
+     "seed": 3000035,
+     "a_seat": 1,
+     "a_deck": "Ada, Sanctuary Fanatic",
+     "b_deck": "Aagerson, the Undertaker of Money",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000040
+   ],
+   "decks": [
+    "Emir P. Blastotick",
+    "Agnar, Sacerdote do Arquivo Flutuante"
+   ],
+   "by_deck": {
+    "Agnar, Sacerdote do Arquivo Flutuante": [
+     2,
+     2
+    ],
+    "Emir P. Blastotick": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000040,
+     "a_seat": 1,
+     "a_deck": "Agnar, Sacerdote do Arquivo Flutuante",
+     "b_deck": "Emir P. Blastotick",
+     "winner": "a"
+    },
+    {
+     "seed": 3000040,
+     "a_seat": 2,
+     "a_deck": "Emir P. Blastotick",
+     "b_deck": "Agnar, Sacerdote do Arquivo Flutuante",
+     "winner": "a"
+    },
+    {
+     "seed": 3000040,
+     "a_seat": 2,
+     "a_deck": "Agnar, Sacerdote do Arquivo Flutuante",
+     "b_deck": "Emir P. Blastotick",
+     "winner": "a"
+    },
+    {
+     "seed": 3000040,
+     "a_seat": 1,
+     "a_deck": "Emir P. Blastotick",
+     "b_deck": "Agnar, Sacerdote do Arquivo Flutuante",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000039
+   ],
+   "decks": [
+    "Aagerson the Pressingly Renowned",
+    "Aardvark, the Keeper of Bonelagoon"
+   ],
+   "by_deck": {
+    "Aardvark, the Keeper of Bonelagoon": [
+     2,
+     2
+    ],
+    "Aagerson the Pressingly Renowned": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000039,
+     "a_seat": 2,
+     "a_deck": "Aardvark, the Keeper of Bonelagoon",
+     "b_deck": "Aagerson the Pressingly Renowned",
+     "winner": "a"
+    },
+    {
+     "seed": 3000039,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Pressingly Renowned",
+     "b_deck": "Aardvark, the Keeper of Bonelagoon",
+     "winner": "a"
+    },
+    {
+     "seed": 3000039,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Pressingly Renowned",
+     "b_deck": "Aardvark, the Keeper of Bonelagoon",
+     "winner": "a"
+    },
+    {
+     "seed": 3000039,
+     "a_seat": 1,
+     "a_deck": "Aardvark, the Keeper of Bonelagoon",
+     "b_deck": "Aagerson the Pressingly Renowned",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000038
+   ],
+   "decks": [
+    "Grigorov, the Captain of Negotiation",
+    "Agnar, M\u00e9nestrel du Tunnel Fastidieux"
+   ],
+   "by_deck": {
+    "Grigorov, the Captain of Negotiation": [
+     2,
+     2
+    ],
+    "Agnar, M\u00e9nestrel du Tunnel Fastidieux": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000038,
+     "a_seat": 2,
+     "a_deck": "Grigorov, the Captain of Negotiation",
+     "b_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "winner": "a"
+    },
+    {
+     "seed": 3000038,
+     "a_seat": 1,
+     "a_deck": "Grigorov, the Captain of Negotiation",
+     "b_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "winner": "a"
+    },
+    {
+     "seed": 3000038,
+     "a_seat": 2,
+     "a_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "b_deck": "Grigorov, the Captain of Negotiation",
+     "winner": "a"
+    },
+    {
+     "seed": 3000038,
+     "a_seat": 1,
+     "a_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "b_deck": "Grigorov, the Captain of Negotiation",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000036
+   ],
+   "decks": [
+    "Aeroinater of the Skeptic's Mountain",
+    "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi"
+   ],
+   "by_deck": {
+    "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi": [
+     2,
+     2
+    ],
+    "Aeroinater of the Skeptic's Mountain": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000036,
+     "a_seat": 1,
+     "a_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "b_deck": "Aeroinater of the Skeptic's Mountain",
+     "winner": "a"
+    },
+    {
+     "seed": 3000036,
+     "a_seat": 2,
+     "a_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "b_deck": "Aeroinater of the Skeptic's Mountain",
+     "winner": "a"
+    },
+    {
+     "seed": 3000036,
+     "a_seat": 2,
+     "a_deck": "Aeroinater of the Skeptic's Mountain",
+     "b_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "winner": "a"
+    },
+    {
+     "seed": 3000036,
+     "a_seat": 1,
+     "a_deck": "Aeroinater of the Skeptic's Mountain",
+     "b_deck": "A. Adams, Sc\u00e9l\u00e9rat du Domaine de l'Effroi",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000033
+   ],
+   "decks": [
+    "Aaronson the Slowly Paranormal",
+    "Aardvark, Bradlisle's Artisan"
+   ],
+   "by_deck": {
+    "Aaronson the Slowly Paranormal": [
+     2,
+     2
+    ],
+    "Aardvark, Bradlisle's Artisan": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000033,
+     "a_seat": 2,
+     "a_deck": "Aaronson the Slowly Paranormal",
+     "b_deck": "Aardvark, Bradlisle's Artisan",
+     "winner": "a"
+    },
+    {
+     "seed": 3000033,
+     "a_seat": 1,
+     "a_deck": "Aaronson the Slowly Paranormal",
+     "b_deck": "Aardvark, Bradlisle's Artisan",
+     "winner": "a"
+    },
+    {
+     "seed": 3000033,
+     "a_seat": 2,
+     "a_deck": "Aardvark, Bradlisle's Artisan",
+     "b_deck": "Aaronson the Slowly Paranormal",
+     "winner": "a"
+    },
+    {
+     "seed": 3000033,
+     "a_seat": 1,
+     "a_deck": "Aardvark, Bradlisle's Artisan",
+     "b_deck": "Aaronson the Slowly Paranormal",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000047
+   ],
+   "decks": [
+    "A. A. Julius, Traduttrice del Silenzio",
+    "Agidemic, the Incisive Gridiron Intimidator"
+   ],
+   "by_deck": {
+    "Agidemic, the Incisive Gridiron Intimidator": [
+     2,
+     2
+    ],
+    "A. A. Julius, Traduttrice del Silenzio": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000047,
+     "a_seat": 2,
+     "a_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "b_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "winner": "a"
+    },
+    {
+     "seed": 3000047,
+     "a_seat": 1,
+     "a_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "b_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "winner": "a"
+    },
+    {
+     "seed": 3000047,
+     "a_seat": 1,
+     "a_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "b_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "winner": "a"
+    },
+    {
+     "seed": 3000047,
+     "a_seat": 2,
+     "a_deck": "A. A. Julius, Traduttrice del Silenzio",
+     "b_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000044
+   ],
+   "decks": [
+    "Aagerson, the Trader of Conversation",
+    "Ace \u201cDonnola\u201d, Carnefice della Base"
+   ],
+   "by_deck": {
+    "Ace \u201cDonnola\u201d, Carnefice della Base": [
+     2,
+     2
+    ],
+    "Aagerson, the Trader of Conversation": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000044,
+     "a_seat": 1,
+     "a_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "b_deck": "Aagerson, the Trader of Conversation",
+     "winner": "a"
+    },
+    {
+     "seed": 3000044,
+     "a_seat": 2,
+     "a_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "b_deck": "Aagerson, the Trader of Conversation",
+     "winner": "a"
+    },
+    {
+     "seed": 3000044,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Trader of Conversation",
+     "b_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "winner": "a"
+    },
+    {
+     "seed": 3000044,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Trader of Conversation",
+     "b_deck": "Ace \u201cDonnola\u201d, Carnefice della Base",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000042
+   ],
+   "decks": [
+    "Adalius, Exploitant de l'Utopie Souple",
+    "Aamulof, the Progenitor of the Resort"
+   ],
+   "by_deck": {
+    "Adalius, Exploitant de l'Utopie Souple": [
+     2,
+     2
+    ],
+    "Aamulof, the Progenitor of the Resort": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000042,
+     "a_seat": 1,
+     "a_deck": "Adalius, Exploitant de l'Utopie Souple",
+     "b_deck": "Aamulof, the Progenitor of the Resort",
+     "winner": "a"
+    },
+    {
+     "seed": 3000042,
+     "a_seat": 2,
+     "a_deck": "Adalius, Exploitant de l'Utopie Souple",
+     "b_deck": "Aamulof, the Progenitor of the Resort",
+     "winner": "a"
+    },
+    {
+     "seed": 3000042,
+     "a_seat": 1,
+     "a_deck": "Aamulof, the Progenitor of the Resort",
+     "b_deck": "Adalius, Exploitant de l'Utopie Souple",
+     "winner": "a"
+    },
+    {
+     "seed": 3000042,
+     "a_seat": 2,
+     "a_deck": "Aamulof, the Progenitor of the Resort",
+     "b_deck": "Adalius, Exploitant de l'Utopie Souple",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000045
+   ],
+   "decks": [
+    "Aeroinater of the Skeptic's Mountain",
+    "A. Achea, Mutantmanor's Thirsty Titaness"
+   ],
+   "by_deck": {
+    "Aeroinater of the Skeptic's Mountain": [
+     2,
+     2
+    ],
+    "A. Achea, Mutantmanor's Thirsty Titaness": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000045,
+     "a_seat": 1,
+     "a_deck": "Aeroinater of the Skeptic's Mountain",
+     "b_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "winner": "a"
+    },
+    {
+     "seed": 3000045,
+     "a_seat": 2,
+     "a_deck": "Aeroinater of the Skeptic's Mountain",
+     "b_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "winner": "a"
+    },
+    {
+     "seed": 3000045,
+     "a_seat": 2,
+     "a_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "b_deck": "Aeroinater of the Skeptic's Mountain",
+     "winner": "a"
+    },
+    {
+     "seed": 3000045,
+     "a_seat": 1,
+     "a_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "b_deck": "Aeroinater of the Skeptic's Mountain",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000046
+   ],
+   "decks": [
+    "Agatha, Diplomate du Dojo Glacial",
+    "Aajh, Magnatable Baker"
+   ],
+   "by_deck": {
+    "Agatha, Diplomate du Dojo Glacial": [
+     2,
+     2
+    ],
+    "Aajh, Magnatable Baker": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000046,
+     "a_seat": 1,
+     "a_deck": "Agatha, Diplomate du Dojo Glacial",
+     "b_deck": "Aajh, Magnatable Baker",
+     "winner": "a"
+    },
+    {
+     "seed": 3000046,
+     "a_seat": 2,
+     "a_deck": "Aajh, Magnatable Baker",
+     "b_deck": "Agatha, Diplomate du Dojo Glacial",
+     "winner": "a"
+    },
+    {
+     "seed": 3000046,
+     "a_seat": 1,
+     "a_deck": "Aajh, Magnatable Baker",
+     "b_deck": "Agatha, Diplomate du Dojo Glacial",
+     "winner": "a"
+    },
+    {
+     "seed": 3000046,
+     "a_seat": 2,
+     "a_deck": "Agatha, Diplomate du Dojo Glacial",
+     "b_deck": "Aajh, Magnatable Baker",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000043
+   ],
+   "decks": [
+    "Aardvark of Openspur City",
+    "Aagerson of Bookhome Tomb"
+   ],
+   "by_deck": {
+    "Aagerson of Bookhome Tomb": [
+     2,
+     2
+    ],
+    "Aardvark of Openspur City": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000043,
+     "a_seat": 1,
+     "a_deck": "Aagerson of Bookhome Tomb",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    },
+    {
+     "seed": 3000043,
+     "a_seat": 1,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Aagerson of Bookhome Tomb",
+     "winner": "a"
+    },
+    {
+     "seed": 3000043,
+     "a_seat": 2,
+     "a_deck": "Aagerson of Bookhome Tomb",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    },
+    {
+     "seed": 3000043,
+     "a_seat": 2,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Aagerson of Bookhome Tomb",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000049
+   ],
+   "decks": [
+    "N. Lyn, Devostin's Selfish Borrower",
+    "Aaronson, the Warmaster of Breezecounty"
+   ],
+   "by_deck": {
+    "N. Lyn, Devostin's Selfish Borrower": [
+     2,
+     2
+    ],
+    "Aaronson, the Warmaster of Breezecounty": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000049,
+     "a_seat": 2,
+     "a_deck": "N. Lyn, Devostin's Selfish Borrower",
+     "b_deck": "Aaronson, the Warmaster of Breezecounty",
+     "winner": "a"
+    },
+    {
+     "seed": 3000049,
+     "a_seat": 1,
+     "a_deck": "N. Lyn, Devostin's Selfish Borrower",
+     "b_deck": "Aaronson, the Warmaster of Breezecounty",
+     "winner": "a"
+    },
+    {
+     "seed": 3000049,
+     "a_seat": 2,
+     "a_deck": "Aaronson, the Warmaster of Breezecounty",
+     "b_deck": "N. Lyn, Devostin's Selfish Borrower",
+     "winner": "a"
+    },
+    {
+     "seed": 3000049,
+     "a_seat": 1,
+     "a_deck": "Aaronson, the Warmaster of Breezecounty",
+     "b_deck": "N. Lyn, Devostin's Selfish Borrower",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000057
+   ],
+   "decks": [
+    "Abernathy of Bitterbarr",
+    "Besch\u00fctzerin D. Steinmeyer"
+   ],
+   "by_deck": {
+    "Besch\u00fctzerin D. Steinmeyer": [
+     2,
+     2
+    ],
+    "Abernathy of Bitterbarr": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000057,
+     "a_seat": 1,
+     "a_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "b_deck": "Abernathy of Bitterbarr",
+     "winner": "a"
+    },
+    {
+     "seed": 3000057,
+     "a_seat": 2,
+     "a_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "b_deck": "Abernathy of Bitterbarr",
+     "winner": "a"
+    },
+    {
+     "seed": 3000057,
+     "a_seat": 2,
+     "a_deck": "Abernathy of Bitterbarr",
+     "b_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "winner": "a"
+    },
+    {
+     "seed": 3000057,
+     "a_seat": 1,
+     "a_deck": "Abernathy of Bitterbarr",
+     "b_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000056
+   ],
+   "decks": [
+    "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+    "Abbadelli the Excessively Shrewd"
+   ],
+   "by_deck": {
+    "Abbadelli the Excessively Shrewd": [
+     1,
+     2
+    ],
+    "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000056,
+     "a_seat": 2,
+     "a_deck": "Abbadelli the Excessively Shrewd",
+     "b_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "winner": "a"
+    },
+    {
+     "seed": 3000056,
+     "a_seat": 1,
+     "a_deck": "Abbadelli the Excessively Shrewd",
+     "b_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "winner": "b"
+    },
+    {
+     "seed": 3000056,
+     "a_seat": 1,
+     "a_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "b_deck": "Abbadelli the Excessively Shrewd",
+     "winner": "a"
+    },
+    {
+     "seed": 3000056,
+     "a_seat": 2,
+     "a_deck": "Augustus \u201eDer karbonverst\u00e4rkte Klops\u201c",
+     "b_deck": "Abbadelli the Excessively Shrewd",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000050
+   ],
+   "decks": [
+    "Agidemic, the Incisive Gridiron Intimidator",
+    "A. Achea, Mutantmanor's Thirsty Titaness"
+   ],
+   "by_deck": {
+    "Agidemic, the Incisive Gridiron Intimidator": [
+     2,
+     2
+    ],
+    "A. Achea, Mutantmanor's Thirsty Titaness": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000050,
+     "a_seat": 1,
+     "a_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "b_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "winner": "a"
+    },
+    {
+     "seed": 3000050,
+     "a_seat": 2,
+     "a_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "b_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "winner": "a"
+    },
+    {
+     "seed": 3000050,
+     "a_seat": 1,
+     "a_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "b_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "winner": "a"
+    },
+    {
+     "seed": 3000050,
+     "a_seat": 2,
+     "a_deck": "A. Achea, Mutantmanor's Thirsty Titaness",
+     "b_deck": "Agidemic, the Incisive Gridiron Intimidator",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000053
+   ],
+   "decks": [
+    "Aamupan, the \u201cAssistant\u201d of Trumpets",
+    "Abel, Schermitrice Avventurosa"
+   ],
+   "by_deck": {
+    "Abel, Schermitrice Avventurosa": [
+     2,
+     2
+    ],
+    "Aamupan, the \u201cAssistant\u201d of Trumpets": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000053,
+     "a_seat": 1,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "Aamupan, the \u201cAssistant\u201d of Trumpets",
+     "winner": "a"
+    },
+    {
+     "seed": 3000053,
+     "a_seat": 2,
+     "a_deck": "Aamupan, the \u201cAssistant\u201d of Trumpets",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "a"
+    },
+    {
+     "seed": 3000053,
+     "a_seat": 2,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "Aamupan, the \u201cAssistant\u201d of Trumpets",
+     "winner": "a"
+    },
+    {
+     "seed": 3000053,
+     "a_seat": 1,
+     "a_deck": "Aamupan, the \u201cAssistant\u201d of Trumpets",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000054
+   ],
+   "decks": [
+    "Abbraniyon, Spawn of Shieengou",
+    "Aaron, Edelmann der seltsamen Zeltstadt"
+   ],
+   "by_deck": {
+    "Aaron, Edelmann der seltsamen Zeltstadt": [
+     2,
+     2
+    ],
+    "Abbraniyon, Spawn of Shieengou": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000054,
+     "a_seat": 1,
+     "a_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "b_deck": "Abbraniyon, Spawn of Shieengou",
+     "winner": "a"
+    },
+    {
+     "seed": 3000054,
+     "a_seat": 2,
+     "a_deck": "Abbraniyon, Spawn of Shieengou",
+     "b_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "winner": "a"
+    },
+    {
+     "seed": 3000054,
+     "a_seat": 1,
+     "a_deck": "Abbraniyon, Spawn of Shieengou",
+     "b_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "winner": "a"
+    },
+    {
+     "seed": 3000054,
+     "a_seat": 2,
+     "a_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "b_deck": "Abbraniyon, Spawn of Shieengou",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000051
+   ],
+   "decks": [
+    "Asia Salkhi, Cuoca di Cestorotto",
+    "Aardvark of Openspur City"
+   ],
+   "by_deck": {
+    "Aardvark of Openspur City": [
+     2,
+     2
+    ],
+    "Asia Salkhi, Cuoca di Cestorotto": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000051,
+     "a_seat": 1,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Asia Salkhi, Cuoca di Cestorotto",
+     "winner": "a"
+    },
+    {
+     "seed": 3000051,
+     "a_seat": 1,
+     "a_deck": "Asia Salkhi, Cuoca di Cestorotto",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    },
+    {
+     "seed": 3000051,
+     "a_seat": 2,
+     "a_deck": "Aardvark of Openspur City",
+     "b_deck": "Asia Salkhi, Cuoca di Cestorotto",
+     "winner": "a"
+    },
+    {
+     "seed": 3000051,
+     "a_seat": 2,
+     "a_deck": "Asia Salkhi, Cuoca di Cestorotto",
+     "b_deck": "Aardvark of Openspur City",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000055
+   ],
+   "decks": [
+    "Abbranipali, the Guardian Strategist",
+    "Aag, the Legate of Oceans"
+   ],
+   "by_deck": {
+    "Abbranipali, the Guardian Strategist": [
+     2,
+     2
+    ],
+    "Aag, the Legate of Oceans": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000055,
+     "a_seat": 1,
+     "a_deck": "Abbranipali, the Guardian Strategist",
+     "b_deck": "Aag, the Legate of Oceans",
+     "winner": "a"
+    },
+    {
+     "seed": 3000055,
+     "a_seat": 2,
+     "a_deck": "Abbranipali, the Guardian Strategist",
+     "b_deck": "Aag, the Legate of Oceans",
+     "winner": "a"
+    },
+    {
+     "seed": 3000055,
+     "a_seat": 1,
+     "a_deck": "Aag, the Legate of Oceans",
+     "b_deck": "Abbranipali, the Guardian Strategist",
+     "winner": "a"
+    },
+    {
+     "seed": 3000055,
+     "a_seat": 2,
+     "a_deck": "Aag, the Legate of Oceans",
+     "b_deck": "Abbranipali, the Guardian Strategist",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000052
+   ],
+   "decks": [
+    "Aagerson, the Club of Hammerford",
+    "Aagerson, the Lieutenant of Kissinggopolis"
+   ],
+   "by_deck": {
+    "Aagerson, the Club of Hammerford": [
+     2,
+     2
+    ],
+    "Aagerson, the Lieutenant of Kissinggopolis": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000052,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Club of Hammerford",
+     "b_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "winner": "a"
+    },
+    {
+     "seed": 3000052,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "b_deck": "Aagerson, the Club of Hammerford",
+     "winner": "a"
+    },
+    {
+     "seed": 3000052,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "b_deck": "Aagerson, the Club of Hammerford",
+     "winner": "a"
+    },
+    {
+     "seed": 3000052,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Club of Hammerford",
+     "b_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000059
+   ],
+   "decks": [
+    "Aagerson, the Guardian of Justiburg",
+    "Aerith, Oracolo della Cittadella Eterna"
+   ],
+   "by_deck": {
+    "Aagerson, the Guardian of Justiburg": [
+     2,
+     2
+    ],
+    "Aerith, Oracolo della Cittadella Eterna": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000059,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Guardian of Justiburg",
+     "b_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "winner": "a"
+    },
+    {
+     "seed": 3000059,
+     "a_seat": 1,
+     "a_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "b_deck": "Aagerson, the Guardian of Justiburg",
+     "winner": "a"
+    },
+    {
+     "seed": 3000059,
+     "a_seat": 2,
+     "a_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "b_deck": "Aagerson, the Guardian of Justiburg",
+     "winner": "a"
+    },
+    {
+     "seed": 3000059,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Guardian of Justiburg",
+     "b_deck": "Aerith, Oracolo della Cittadella Eterna",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000058
+   ],
+   "decks": [
+    "Abbadelli, the Guildmaster of Jewelry",
+    "A. Ankar, Campionessa di Ruscellocorto"
+   ],
+   "by_deck": {
+    "A. Ankar, Campionessa di Ruscellocorto": [
+     2,
+     2
+    ],
+    "Abbadelli, the Guildmaster of Jewelry": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000058,
+     "a_seat": 2,
+     "a_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "b_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000058,
+     "a_seat": 1,
+     "a_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "b_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000058,
+     "a_seat": 1,
+     "a_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "b_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "winner": "a"
+    },
+    {
+     "seed": 3000058,
+     "a_seat": 2,
+     "a_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "b_deck": "A. Ankar, Campionessa di Ruscellocorto",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000061
+   ],
+   "decks": [
+    "Ableson, the Advisor of Seeking",
+    "Baxxus der \u00c4tzende"
+   ],
+   "by_deck": {
+    "Ableson, the Advisor of Seeking": [
+     2,
+     2
+    ],
+    "Baxxus der \u00c4tzende": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000061,
+     "a_seat": 1,
+     "a_deck": "Ableson, the Advisor of Seeking",
+     "b_deck": "Baxxus der \u00c4tzende",
+     "winner": "a"
+    },
+    {
+     "seed": 3000061,
+     "a_seat": 2,
+     "a_deck": "Ableson, the Advisor of Seeking",
+     "b_deck": "Baxxus der \u00c4tzende",
+     "winner": "a"
+    },
+    {
+     "seed": 3000061,
+     "a_seat": 1,
+     "a_deck": "Baxxus der \u00c4tzende",
+     "b_deck": "Ableson, the Advisor of Seeking",
+     "winner": "a"
+    },
+    {
+     "seed": 3000061,
+     "a_seat": 2,
+     "a_deck": "Baxxus der \u00c4tzende",
+     "b_deck": "Ableson, the Advisor of Seeking",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000062
+   ],
+   "decks": [
+    "Abbadelli, the Warden of Starcave",
+    "Aag of Hyperburg"
+   ],
+   "by_deck": {
+    "Aag of Hyperburg": [
+     2,
+     2
+    ],
+    "Abbadelli, the Warden of Starcave": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000062,
+     "a_seat": 1,
+     "a_deck": "Aag of Hyperburg",
+     "b_deck": "Abbadelli, the Warden of Starcave",
+     "winner": "a"
+    },
+    {
+     "seed": 3000062,
+     "a_seat": 2,
+     "a_deck": "Aag of Hyperburg",
+     "b_deck": "Abbadelli, the Warden of Starcave",
+     "winner": "a"
+    },
+    {
+     "seed": 3000062,
+     "a_seat": 1,
+     "a_deck": "Abbadelli, the Warden of Starcave",
+     "b_deck": "Aag of Hyperburg",
+     "winner": "a"
+    },
+    {
+     "seed": 3000062,
+     "a_seat": 2,
+     "a_deck": "Abbadelli, the Warden of Starcave",
+     "b_deck": "Aag of Hyperburg",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000068
+   ],
+   "decks": [
+    "Abbadelli, the Warden of Starcave",
+    "Benzatire, the Tormentor of the Hideout"
+   ],
+   "by_deck": {
+    "Benzatire, the Tormentor of the Hideout": [
+     2,
+     2
+    ],
+    "Abbadelli, the Warden of Starcave": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000068,
+     "a_seat": 1,
+     "a_deck": "Benzatire, the Tormentor of the Hideout",
+     "b_deck": "Abbadelli, the Warden of Starcave",
+     "winner": "a"
+    },
+    {
+     "seed": 3000068,
+     "a_seat": 1,
+     "a_deck": "Abbadelli, the Warden of Starcave",
+     "b_deck": "Benzatire, the Tormentor of the Hideout",
+     "winner": "a"
+    },
+    {
+     "seed": 3000068,
+     "a_seat": 2,
+     "a_deck": "Abbadelli, the Warden of Starcave",
+     "b_deck": "Benzatire, the Tormentor of the Hideout",
+     "winner": "a"
+    },
+    {
+     "seed": 3000068,
+     "a_seat": 2,
+     "a_deck": "Benzatire, the Tormentor of the Hideout",
+     "b_deck": "Abbadelli, the Warden of Starcave",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000048
+   ],
+   "decks": [
+    "A. Aendres, Sheriff of the Geeky Zone",
+    "Aajh W. Mer-finder, the Cosine"
+   ],
+   "by_deck": {
+    "Aajh W. Mer-finder, the Cosine": [
+     2,
+     2
+    ],
+    "A. Aendres, Sheriff of the Geeky Zone": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000048,
+     "a_seat": 1,
+     "a_deck": "Aajh W. Mer-finder, the Cosine",
+     "b_deck": "A. Aendres, Sheriff of the Geeky Zone",
+     "winner": "a"
+    },
+    {
+     "seed": 3000048,
+     "a_seat": 1,
+     "a_deck": "A. Aendres, Sheriff of the Geeky Zone",
+     "b_deck": "Aajh W. Mer-finder, the Cosine",
+     "winner": "a"
+    },
+    {
+     "seed": 3000048,
+     "a_seat": 2,
+     "a_deck": "A. Aendres, Sheriff of the Geeky Zone",
+     "b_deck": "Aajh W. Mer-finder, the Cosine",
+     "winner": "a"
+    },
+    {
+     "seed": 3000048,
+     "a_seat": 2,
+     "a_deck": "Aajh W. Mer-finder, the Cosine",
+     "b_deck": "A. Aendres, Sheriff of the Geeky Zone",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000060
+   ],
+   "decks": [
+    "A. Aegis, the Castle Spy",
+    "Admin Zebroplus, the Random Guru"
+   ],
+   "by_deck": {
+    "A. Aegis, the Castle Spy": [
+     2,
+     2
+    ],
+    "Admin Zebroplus, the Random Guru": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000060,
+     "a_seat": 1,
+     "a_deck": "A. Aegis, the Castle Spy",
+     "b_deck": "Admin Zebroplus, the Random Guru",
+     "winner": "a"
+    },
+    {
+     "seed": 3000060,
+     "a_seat": 1,
+     "a_deck": "Admin Zebroplus, the Random Guru",
+     "b_deck": "A. Aegis, the Castle Spy",
+     "winner": "a"
+    },
+    {
+     "seed": 3000060,
+     "a_seat": 2,
+     "a_deck": "A. Aegis, the Castle Spy",
+     "b_deck": "Admin Zebroplus, the Random Guru",
+     "winner": "a"
+    },
+    {
+     "seed": 3000060,
+     "a_seat": 2,
+     "a_deck": "Admin Zebroplus, the Random Guru",
+     "b_deck": "A. Aegis, the Castle Spy",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000067
+   ],
+   "decks": [
+    "Aajh Opicreed from the Infiltrator's Manor",
+    "Aggrobother, Zoo Trader"
+   ],
+   "by_deck": {
+    "Aggrobother, Zoo Trader": [
+     2,
+     2
+    ],
+    "Aajh Opicreed from the Infiltrator's Manor": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000067,
+     "a_seat": 1,
+     "a_deck": "Aggrobother, Zoo Trader",
+     "b_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000067,
+     "a_seat": 2,
+     "a_deck": "Aggrobother, Zoo Trader",
+     "b_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000067,
+     "a_seat": 1,
+     "a_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "b_deck": "Aggrobother, Zoo Trader",
+     "winner": "a"
+    },
+    {
+     "seed": 3000067,
+     "a_seat": 2,
+     "a_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "b_deck": "Aggrobother, Zoo Trader",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000070
+   ],
+   "decks": [
+    "Boundless \u201cMusclehead\u201d Whex",
+    "Admin \u201cComet\u201d Grygor"
+   ],
+   "by_deck": {
+    "Admin \u201cComet\u201d Grygor": [
+     2,
+     2
+    ],
+    "Boundless \u201cMusclehead\u201d Whex": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000070,
+     "a_seat": 2,
+     "a_deck": "Admin \u201cComet\u201d Grygor",
+     "b_deck": "Boundless \u201cMusclehead\u201d Whex",
+     "winner": "a"
+    },
+    {
+     "seed": 3000070,
+     "a_seat": 2,
+     "a_deck": "Boundless \u201cMusclehead\u201d Whex",
+     "b_deck": "Admin \u201cComet\u201d Grygor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000070,
+     "a_seat": 1,
+     "a_deck": "Admin \u201cComet\u201d Grygor",
+     "b_deck": "Boundless \u201cMusclehead\u201d Whex",
+     "winner": "a"
+    },
+    {
+     "seed": 3000070,
+     "a_seat": 1,
+     "a_deck": "Boundless \u201cMusclehead\u201d Whex",
+     "b_deck": "Admin \u201cComet\u201d Grygor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000064
+   ],
+   "decks": [
+    "A. A. MacIsaac, Voyante du Mensonge",
+    "Abel, Schermitrice Avventurosa"
+   ],
+   "by_deck": {
+    "Abel, Schermitrice Avventurosa": [
+     2,
+     2
+    ],
+    "A. A. MacIsaac, Voyante du Mensonge": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000064,
+     "a_seat": 1,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "A. A. MacIsaac, Voyante du Mensonge",
+     "winner": "a"
+    },
+    {
+     "seed": 3000064,
+     "a_seat": 2,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "A. A. MacIsaac, Voyante du Mensonge",
+     "winner": "a"
+    },
+    {
+     "seed": 3000064,
+     "a_seat": 2,
+     "a_deck": "A. A. MacIsaac, Voyante du Mensonge",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "a"
+    },
+    {
+     "seed": 3000064,
+     "a_seat": 1,
+     "a_deck": "A. A. MacIsaac, Voyante du Mensonge",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000063
+   ],
+   "decks": [
+    "Aagerson, the Soldier of Culture",
+    "Abbadelli, the Guildmaster of Jewelry"
+   ],
+   "by_deck": {
+    "Abbadelli, the Guildmaster of Jewelry": [
+     2,
+     2
+    ],
+    "Aagerson, the Soldier of Culture": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000063,
+     "a_seat": 1,
+     "a_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "b_deck": "Aagerson, the Soldier of Culture",
+     "winner": "a"
+    },
+    {
+     "seed": 3000063,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Soldier of Culture",
+     "b_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000063,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Soldier of Culture",
+     "b_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "winner": "b"
+    },
+    {
+     "seed": 3000063,
+     "a_seat": 2,
+     "a_deck": "Abbadelli, the Guildmaster of Jewelry",
+     "b_deck": "Aagerson, the Soldier of Culture",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000069
+   ],
+   "decks": [
+    "Admin \u201cComet\u201d Grygor",
+    "A. Abel, Titaness of the Toothed Depot"
+   ],
+   "by_deck": {
+    "A. Abel, Titaness of the Toothed Depot": [
+     2,
+     2
+    ],
+    "Admin \u201cComet\u201d Grygor": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000069,
+     "a_seat": 2,
+     "a_deck": "A. Abel, Titaness of the Toothed Depot",
+     "b_deck": "Admin \u201cComet\u201d Grygor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000069,
+     "a_seat": 1,
+     "a_deck": "Admin \u201cComet\u201d Grygor",
+     "b_deck": "A. Abel, Titaness of the Toothed Depot",
+     "winner": "b"
+    },
+    {
+     "seed": 3000069,
+     "a_seat": 1,
+     "a_deck": "A. Abel, Titaness of the Toothed Depot",
+     "b_deck": "Admin \u201cComet\u201d Grygor",
+     "winner": "a"
+    },
+    {
+     "seed": 3000069,
+     "a_seat": 2,
+     "a_deck": "Admin \u201cComet\u201d Grygor",
+     "b_deck": "A. Abel, Titaness of the Toothed Depot",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000066
+   ],
+   "decks": [
+    "Aesir, Mulish Lighthouse Doomsayer",
+    "A. Adams, the Station Ward"
+   ],
+   "by_deck": {
+    "Aesir, Mulish Lighthouse Doomsayer": [
+     1,
+     2
+    ],
+    "A. Adams, the Station Ward": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000066,
+     "a_seat": 2,
+     "a_deck": "Aesir, Mulish Lighthouse Doomsayer",
+     "b_deck": "A. Adams, the Station Ward",
+     "winner": "b"
+    },
+    {
+     "seed": 3000066,
+     "a_seat": 1,
+     "a_deck": "A. Adams, the Station Ward",
+     "b_deck": "Aesir, Mulish Lighthouse Doomsayer",
+     "winner": "a"
+    },
+    {
+     "seed": 3000066,
+     "a_seat": 2,
+     "a_deck": "A. Adams, the Station Ward",
+     "b_deck": "Aesir, Mulish Lighthouse Doomsayer",
+     "winner": "a"
+    },
+    {
+     "seed": 3000066,
+     "a_seat": 1,
+     "a_deck": "Aesir, Mulish Lighthouse Doomsayer",
+     "b_deck": "A. Adams, the Station Ward",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000074
+   ],
+   "decks": [
+    "Adamantmountain, Forest Reaver",
+    "Baagh, the Operator of Honesty"
+   ],
+   "by_deck": {
+    "Baagh, the Operator of Honesty": [
+     2,
+     2
+    ],
+    "Adamantmountain, Forest Reaver": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000074,
+     "a_seat": 1,
+     "a_deck": "Baagh, the Operator of Honesty",
+     "b_deck": "Adamantmountain, Forest Reaver",
+     "winner": "a"
+    },
+    {
+     "seed": 3000074,
+     "a_seat": 2,
+     "a_deck": "Baagh, the Operator of Honesty",
+     "b_deck": "Adamantmountain, Forest Reaver",
+     "winner": "a"
+    },
+    {
+     "seed": 3000074,
+     "a_seat": 2,
+     "a_deck": "Adamantmountain, Forest Reaver",
+     "b_deck": "Baagh, the Operator of Honesty",
+     "winner": "a"
+    },
+    {
+     "seed": 3000074,
+     "a_seat": 1,
+     "a_deck": "Adamantmountain, Forest Reaver",
+     "b_deck": "Baagh, the Operator of Honesty",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000072
+   ],
+   "decks": [
+    "Abbranixis, the \"Baker\" of Lightning",
+    "Aag the Courageously Red"
+   ],
+   "by_deck": {
+    "Abbranixis, the \"Baker\" of Lightning": [
+     2,
+     2
+    ],
+    "Aag the Courageously Red": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000072,
+     "a_seat": 1,
+     "a_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "b_deck": "Aag the Courageously Red",
+     "winner": "a"
+    },
+    {
+     "seed": 3000072,
+     "a_seat": 2,
+     "a_deck": "Aag the Courageously Red",
+     "b_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "winner": "a"
+    },
+    {
+     "seed": 3000072,
+     "a_seat": 2,
+     "a_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "b_deck": "Aag the Courageously Red",
+     "winner": "a"
+    },
+    {
+     "seed": 3000072,
+     "a_seat": 1,
+     "a_deck": "Aag the Courageously Red",
+     "b_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000071
+   ],
+   "decks": [
+    "Keylocke the Silently Excellent",
+    "Admirable Amos of the Fen"
+   ],
+   "by_deck": {
+    "Admirable Amos of the Fen": [
+     2,
+     2
+    ],
+    "Keylocke the Silently Excellent": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000071,
+     "a_seat": 2,
+     "a_deck": "Admirable Amos of the Fen",
+     "b_deck": "Keylocke the Silently Excellent",
+     "winner": "a"
+    },
+    {
+     "seed": 3000071,
+     "a_seat": 1,
+     "a_deck": "Admirable Amos of the Fen",
+     "b_deck": "Keylocke the Silently Excellent",
+     "winner": "a"
+    },
+    {
+     "seed": 3000071,
+     "a_seat": 2,
+     "a_deck": "Keylocke the Silently Excellent",
+     "b_deck": "Admirable Amos of the Fen",
+     "winner": "a"
+    },
+    {
+     "seed": 3000071,
+     "a_seat": 1,
+     "a_deck": "Keylocke the Silently Excellent",
+     "b_deck": "Admirable Amos of the Fen",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000065
+   ],
+   "decks": [
+    "Aldin, W\u00e4chter des Hafens",
+    "Aagerson, Bellagrove's Crackpot"
+   ],
+   "by_deck": {
+    "Aldin, W\u00e4chter des Hafens": [
+     2,
+     2
+    ],
+    "Aagerson, Bellagrove's Crackpot": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000065,
+     "a_seat": 1,
+     "a_deck": "Aldin, W\u00e4chter des Hafens",
+     "b_deck": "Aagerson, Bellagrove's Crackpot",
+     "winner": "a"
+    },
+    {
+     "seed": 3000065,
+     "a_seat": 2,
+     "a_deck": "Aldin, W\u00e4chter des Hafens",
+     "b_deck": "Aagerson, Bellagrove's Crackpot",
+     "winner": "a"
+    },
+    {
+     "seed": 3000065,
+     "a_seat": 1,
+     "a_deck": "Aagerson, Bellagrove's Crackpot",
+     "b_deck": "Aldin, W\u00e4chter des Hafens",
+     "winner": "a"
+    },
+    {
+     "seed": 3000065,
+     "a_seat": 2,
+     "a_deck": "Aagerson, Bellagrove's Crackpot",
+     "b_deck": "Aldin, W\u00e4chter des Hafens",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000077
+   ],
+   "decks": [
+    "Aagerson, the Undertaker of Money",
+    "Aardvark, Bradlisle's Artisan"
+   ],
+   "by_deck": {
+    "Aagerson, the Undertaker of Money": [
+     2,
+     2
+    ],
+    "Aardvark, Bradlisle's Artisan": [
+     0,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000077,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Undertaker of Money",
+     "b_deck": "Aardvark, Bradlisle's Artisan",
+     "winner": "a"
+    },
+    {
+     "seed": 3000077,
+     "a_seat": 1,
+     "a_deck": "Aardvark, Bradlisle's Artisan",
+     "b_deck": "Aagerson, the Undertaker of Money",
+     "winner": "b"
+    },
+    {
+     "seed": 3000077,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Undertaker of Money",
+     "b_deck": "Aardvark, Bradlisle's Artisan",
+     "winner": "a"
+    },
+    {
+     "seed": 3000077,
+     "a_seat": 2,
+     "a_deck": "Aardvark, Bradlisle's Artisan",
+     "b_deck": "Aagerson, the Undertaker of Money",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000075
+   ],
+   "decks": [
+    "Abbranixis, the \"Baker\" of Lightning",
+    "Aaron, Edelmann der seltsamen Zeltstadt"
+   ],
+   "by_deck": {
+    "Abbranixis, the \"Baker\" of Lightning": [
+     2,
+     2
+    ],
+    "Aaron, Edelmann der seltsamen Zeltstadt": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000075,
+     "a_seat": 2,
+     "a_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "b_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "winner": "a"
+    },
+    {
+     "seed": 3000075,
+     "a_seat": 1,
+     "a_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "b_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "winner": "a"
+    },
+    {
+     "seed": 3000075,
+     "a_seat": 2,
+     "a_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "b_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "winner": "a"
+    },
+    {
+     "seed": 3000075,
+     "a_seat": 1,
+     "a_deck": "Aaron, Edelmann der seltsamen Zeltstadt",
+     "b_deck": "Abbranixis, the \"Baker\" of Lightning",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000073
+   ],
+   "decks": [
+    "Aemh, Omnivorous Arena Ape",
+    "Aagerson the Civil"
+   ],
+   "by_deck": {
+    "Aagerson the Civil": [
+     2,
+     2
+    ],
+    "Aemh, Omnivorous Arena Ape": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000073,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Civil",
+     "b_deck": "Aemh, Omnivorous Arena Ape",
+     "winner": "a"
+    },
+    {
+     "seed": 3000073,
+     "a_seat": 2,
+     "a_deck": "Aemh, Omnivorous Arena Ape",
+     "b_deck": "Aagerson the Civil",
+     "winner": "a"
+    },
+    {
+     "seed": 3000073,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Civil",
+     "b_deck": "Aemh, Omnivorous Arena Ape",
+     "winner": "a"
+    },
+    {
+     "seed": 3000073,
+     "a_seat": 1,
+     "a_deck": "Aemh, Omnivorous Arena Ape",
+     "b_deck": "Aagerson the Civil",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000083
+   ],
+   "decks": [
+    "Abbranipali, the Guardian Strategist",
+    "Dagasi, Throtrampart Hijacker"
+   ],
+   "by_deck": {
+    "Dagasi, Throtrampart Hijacker": [
+     2,
+     2
+    ],
+    "Abbranipali, the Guardian Strategist": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000083,
+     "a_seat": 1,
+     "a_deck": "Dagasi, Throtrampart Hijacker",
+     "b_deck": "Abbranipali, the Guardian Strategist",
+     "winner": "a"
+    },
+    {
+     "seed": 3000083,
+     "a_seat": 1,
+     "a_deck": "Abbranipali, the Guardian Strategist",
+     "b_deck": "Dagasi, Throtrampart Hijacker",
+     "winner": "a"
+    },
+    {
+     "seed": 3000083,
+     "a_seat": 2,
+     "a_deck": "Abbranipali, the Guardian Strategist",
+     "b_deck": "Dagasi, Throtrampart Hijacker",
+     "winner": "a"
+    },
+    {
+     "seed": 3000083,
+     "a_seat": 2,
+     "a_deck": "Dagasi, Throtrampart Hijacker",
+     "b_deck": "Abbranipali, the Guardian Strategist",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000076
+   ],
+   "decks": [
+    "Aeroinater of the Skeptic's Mountain",
+    "Aaronson of Lutterarder Boulevard"
+   ],
+   "by_deck": {
+    "Aaronson of Lutterarder Boulevard": [
+     2,
+     2
+    ],
+    "Aeroinater of the Skeptic's Mountain": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000076,
+     "a_seat": 2,
+     "a_deck": "Aaronson of Lutterarder Boulevard",
+     "b_deck": "Aeroinater of the Skeptic's Mountain",
+     "winner": "a"
+    },
+    {
+     "seed": 3000076,
+     "a_seat": 2,
+     "a_deck": "Aeroinater of the Skeptic's Mountain",
+     "b_deck": "Aaronson of Lutterarder Boulevard",
+     "winner": "a"
+    },
+    {
+     "seed": 3000076,
+     "a_seat": 1,
+     "a_deck": "Aaronson of Lutterarder Boulevard",
+     "b_deck": "Aeroinater of the Skeptic's Mountain",
+     "winner": "a"
+    },
+    {
+     "seed": 3000076,
+     "a_seat": 1,
+     "a_deck": "Aeroinater of the Skeptic's Mountain",
+     "b_deck": "Aaronson of Lutterarder Boulevard",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000080
+   ],
+   "decks": [
+    "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+    "Besch\u00fctzerin D. Steinmeyer"
+   ],
+   "by_deck": {
+    "Besch\u00fctzerin D. Steinmeyer": [
+     2,
+     2
+    ],
+    "Aesar \u201cCentauro\u201d, Hacker della Capitale": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000080,
+     "a_seat": 1,
+     "a_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "b_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000080,
+     "a_seat": 2,
+     "a_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "b_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "winner": "a"
+    },
+    {
+     "seed": 3000080,
+     "a_seat": 2,
+     "a_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "b_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000080,
+     "a_seat": 1,
+     "a_deck": "Aesar \u201cCentauro\u201d, Hacker della Capitale",
+     "b_deck": "Besch\u00fctzerin D. Steinmeyer",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000078
+   ],
+   "decks": [
+    "Aagerson the Pressingly Renowned",
+    "Aaronson, the Survivalist of Negaglade"
+   ],
+   "by_deck": {
+    "Aagerson the Pressingly Renowned": [
+     2,
+     2
+    ],
+    "Aaronson, the Survivalist of Negaglade": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000078,
+     "a_seat": 2,
+     "a_deck": "Aagerson the Pressingly Renowned",
+     "b_deck": "Aaronson, the Survivalist of Negaglade",
+     "winner": "a"
+    },
+    {
+     "seed": 3000078,
+     "a_seat": 2,
+     "a_deck": "Aaronson, the Survivalist of Negaglade",
+     "b_deck": "Aagerson the Pressingly Renowned",
+     "winner": "a"
+    },
+    {
+     "seed": 3000078,
+     "a_seat": 1,
+     "a_deck": "Aagerson the Pressingly Renowned",
+     "b_deck": "Aaronson, the Survivalist of Negaglade",
+     "winner": "a"
+    },
+    {
+     "seed": 3000078,
+     "a_seat": 1,
+     "a_deck": "Aaronson, the Survivalist of Negaglade",
+     "b_deck": "Aagerson the Pressingly Renowned",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000081
+   ],
+   "decks": [
+    "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+    "Aag of Panorastep Hideaway"
+   ],
+   "by_deck": {
+    "Agnar, M\u00e9nestrel du Tunnel Fastidieux": [
+     2,
+     2
+    ],
+    "Aag of Panorastep Hideaway": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000081,
+     "a_seat": 1,
+     "a_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "b_deck": "Aag of Panorastep Hideaway",
+     "winner": "a"
+    },
+    {
+     "seed": 3000081,
+     "a_seat": 2,
+     "a_deck": "Aag of Panorastep Hideaway",
+     "b_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "winner": "a"
+    },
+    {
+     "seed": 3000081,
+     "a_seat": 1,
+     "a_deck": "Aag of Panorastep Hideaway",
+     "b_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "winner": "a"
+    },
+    {
+     "seed": 3000081,
+     "a_seat": 2,
+     "a_deck": "Agnar, M\u00e9nestrel du Tunnel Fastidieux",
+     "b_deck": "Aag of Panorastep Hideaway",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000084
+   ],
+   "decks": [
+    "Aardvark, the Keeper of Bonelagoon",
+    "Abel, Schermitrice Avventurosa"
+   ],
+   "by_deck": {
+    "Abel, Schermitrice Avventurosa": [
+     2,
+     2
+    ],
+    "Aardvark, the Keeper of Bonelagoon": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000084,
+     "a_seat": 2,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "Aardvark, the Keeper of Bonelagoon",
+     "winner": "a"
+    },
+    {
+     "seed": 3000084,
+     "a_seat": 1,
+     "a_deck": "Aardvark, the Keeper of Bonelagoon",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "a"
+    },
+    {
+     "seed": 3000084,
+     "a_seat": 2,
+     "a_deck": "Aardvark, the Keeper of Bonelagoon",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "a"
+    },
+    {
+     "seed": 3000084,
+     "a_seat": 1,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "Aardvark, the Keeper of Bonelagoon",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000088
+   ],
+   "decks": [
+    "Adamantmountain, Forest Reaver",
+    "Baxxus der \u00c4tzende"
+   ],
+   "by_deck": {
+    "Baxxus der \u00c4tzende": [
+     2,
+     2
+    ],
+    "Adamantmountain, Forest Reaver": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000088,
+     "a_seat": 1,
+     "a_deck": "Baxxus der \u00c4tzende",
+     "b_deck": "Adamantmountain, Forest Reaver",
+     "winner": "a"
+    },
+    {
+     "seed": 3000088,
+     "a_seat": 1,
+     "a_deck": "Adamantmountain, Forest Reaver",
+     "b_deck": "Baxxus der \u00c4tzende",
+     "winner": "a"
+    },
+    {
+     "seed": 3000088,
+     "a_seat": 2,
+     "a_deck": "Adamantmountain, Forest Reaver",
+     "b_deck": "Baxxus der \u00c4tzende",
+     "winner": "a"
+    },
+    {
+     "seed": 3000088,
+     "a_seat": 2,
+     "a_deck": "Baxxus der \u00c4tzende",
+     "b_deck": "Adamantmountain, Forest Reaver",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000085
+   ],
+   "decks": [
+    "Aag the Turbulently Automatic",
+    "Dagasi, Throtrampart Hijacker"
+   ],
+   "by_deck": {
+    "Aag the Turbulently Automatic": [
+     2,
+     2
+    ],
+    "Dagasi, Throtrampart Hijacker": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000085,
+     "a_seat": 1,
+     "a_deck": "Aag the Turbulently Automatic",
+     "b_deck": "Dagasi, Throtrampart Hijacker",
+     "winner": "a"
+    },
+    {
+     "seed": 3000085,
+     "a_seat": 2,
+     "a_deck": "Dagasi, Throtrampart Hijacker",
+     "b_deck": "Aag the Turbulently Automatic",
+     "winner": "a"
+    },
+    {
+     "seed": 3000085,
+     "a_seat": 1,
+     "a_deck": "Dagasi, Throtrampart Hijacker",
+     "b_deck": "Aag the Turbulently Automatic",
+     "winner": "a"
+    },
+    {
+     "seed": 3000085,
+     "a_seat": 2,
+     "a_deck": "Aag the Turbulently Automatic",
+     "b_deck": "Dagasi, Throtrampart Hijacker",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000086
+   ],
+   "decks": [
+    "A. Aagerson, Pilot of the Frantic Collective",
+    "Aajh \"Glitter\" Equipbird"
+   ],
+   "by_deck": {
+    "Aajh \"Glitter\" Equipbird": [
+     2,
+     2
+    ],
+    "A. Aagerson, Pilot of the Frantic Collective": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000086,
+     "a_seat": 1,
+     "a_deck": "Aajh \"Glitter\" Equipbird",
+     "b_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "winner": "a"
+    },
+    {
+     "seed": 3000086,
+     "a_seat": 2,
+     "a_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "b_deck": "Aajh \"Glitter\" Equipbird",
+     "winner": "a"
+    },
+    {
+     "seed": 3000086,
+     "a_seat": 2,
+     "a_deck": "Aajh \"Glitter\" Equipbird",
+     "b_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "winner": "a"
+    },
+    {
+     "seed": 3000086,
+     "a_seat": 1,
+     "a_deck": "A. Aagerson, Pilot of the Frantic Collective",
+     "b_deck": "Aajh \"Glitter\" Equipbird",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000087
+   ],
+   "decks": [
+    "Nobles the Deciduous",
+    "Abel, Schermitrice Avventurosa"
+   ],
+   "by_deck": {
+    "Nobles the Deciduous": [
+     2,
+     2
+    ],
+    "Abel, Schermitrice Avventurosa": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000087,
+     "a_seat": 2,
+     "a_deck": "Nobles the Deciduous",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "a"
+    },
+    {
+     "seed": 3000087,
+     "a_seat": 1,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "Nobles the Deciduous",
+     "winner": "a"
+    },
+    {
+     "seed": 3000087,
+     "a_seat": 1,
+     "a_deck": "Nobles the Deciduous",
+     "b_deck": "Abel, Schermitrice Avventurosa",
+     "winner": "a"
+    },
+    {
+     "seed": 3000087,
+     "a_seat": 2,
+     "a_deck": "Abel, Schermitrice Avventurosa",
+     "b_deck": "Nobles the Deciduous",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000082
+   ],
+   "decks": [
+    "Aagerson, the Architect of Gooddale",
+    "A. \u00c1lvarez, Neverville's Damning Baroness"
+   ],
+   "by_deck": {
+    "Aagerson, the Architect of Gooddale": [
+     1,
+     2
+    ],
+    "A. \u00c1lvarez, Neverville's Damning Baroness": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000082,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Architect of Gooddale",
+     "b_deck": "A. \u00c1lvarez, Neverville's Damning Baroness",
+     "winner": "b"
+    },
+    {
+     "seed": 3000082,
+     "a_seat": 2,
+     "a_deck": "A. \u00c1lvarez, Neverville's Damning Baroness",
+     "b_deck": "Aagerson, the Architect of Gooddale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000082,
+     "a_seat": 1,
+     "a_deck": "A. \u00c1lvarez, Neverville's Damning Baroness",
+     "b_deck": "Aagerson, the Architect of Gooddale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000082,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Architect of Gooddale",
+     "b_deck": "A. \u00c1lvarez, Neverville's Damning Baroness",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000079
+   ],
+   "decks": [
+    "Agatha, Diplomate du Dojo Glacial",
+    "A. Aegis, the Castle Spy"
+   ],
+   "by_deck": {
+    "A. Aegis, the Castle Spy": [
+     2,
+     2
+    ],
+    "Agatha, Diplomate du Dojo Glacial": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000079,
+     "a_seat": 1,
+     "a_deck": "A. Aegis, the Castle Spy",
+     "b_deck": "Agatha, Diplomate du Dojo Glacial",
+     "winner": "a"
+    },
+    {
+     "seed": 3000079,
+     "a_seat": 2,
+     "a_deck": "A. Aegis, the Castle Spy",
+     "b_deck": "Agatha, Diplomate du Dojo Glacial",
+     "winner": "a"
+    },
+    {
+     "seed": 3000079,
+     "a_seat": 2,
+     "a_deck": "Agatha, Diplomate du Dojo Glacial",
+     "b_deck": "A. Aegis, the Castle Spy",
+     "winner": "a"
+    },
+    {
+     "seed": 3000079,
+     "a_seat": 1,
+     "a_deck": "Agatha, Diplomate du Dojo Glacial",
+     "b_deck": "A. Aegis, the Castle Spy",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000090
+   ],
+   "decks": [
+    "Khardart du Theil-Zimmer, Warmonger",
+    "Abatysa Hermiona \u201eDzieciak\u201d Gackowska"
+   ],
+   "by_deck": {
+    "Khardart du Theil-Zimmer, Warmonger": [
+     2,
+     2
+    ],
+    "Abatysa Hermiona \u201eDzieciak\u201d Gackowska": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000090,
+     "a_seat": 1,
+     "a_deck": "Khardart du Theil-Zimmer, Warmonger",
+     "b_deck": "Abatysa Hermiona \u201eDzieciak\u201d Gackowska",
+     "winner": "a"
+    },
+    {
+     "seed": 3000090,
+     "a_seat": 2,
+     "a_deck": "Abatysa Hermiona \u201eDzieciak\u201d Gackowska",
+     "b_deck": "Khardart du Theil-Zimmer, Warmonger",
+     "winner": "a"
+    },
+    {
+     "seed": 3000090,
+     "a_seat": 2,
+     "a_deck": "Khardart du Theil-Zimmer, Warmonger",
+     "b_deck": "Abatysa Hermiona \u201eDzieciak\u201d Gackowska",
+     "winner": "a"
+    },
+    {
+     "seed": 3000090,
+     "a_seat": 1,
+     "a_deck": "Abatysa Hermiona \u201eDzieciak\u201d Gackowska",
+     "b_deck": "Khardart du Theil-Zimmer, Warmonger",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000089
+   ],
+   "decks": [
+    "Aajh Opicreed from the Infiltrator's Manor",
+    "Aamulof, the Progenitor of the Resort"
+   ],
+   "by_deck": {
+    "Aajh Opicreed from the Infiltrator's Manor": [
+     2,
+     2
+    ],
+    "Aamulof, the Progenitor of the Resort": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000089,
+     "a_seat": 1,
+     "a_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "b_deck": "Aamulof, the Progenitor of the Resort",
+     "winner": "a"
+    },
+    {
+     "seed": 3000089,
+     "a_seat": 2,
+     "a_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "b_deck": "Aamulof, the Progenitor of the Resort",
+     "winner": "a"
+    },
+    {
+     "seed": 3000089,
+     "a_seat": 2,
+     "a_deck": "Aamulof, the Progenitor of the Resort",
+     "b_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "winner": "b"
+    },
+    {
+     "seed": 3000089,
+     "a_seat": 1,
+     "a_deck": "Aamulof, the Progenitor of the Resort",
+     "b_deck": "Aajh Opicreed from the Infiltrator's Manor",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000095
+   ],
+   "decks": [
+    "Emir P. Blastotick",
+    "Abel l'Abominable"
+   ],
+   "by_deck": {
+    "Emir P. Blastotick": [
+     1,
+     2
+    ],
+    "Abel l'Abominable": [
+     1,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000095,
+     "a_seat": 1,
+     "a_deck": "Emir P. Blastotick",
+     "b_deck": "Abel l'Abominable",
+     "winner": "a"
+    },
+    {
+     "seed": 3000095,
+     "a_seat": 1,
+     "a_deck": "Abel l'Abominable",
+     "b_deck": "Emir P. Blastotick",
+     "winner": "a"
+    },
+    {
+     "seed": 3000095,
+     "a_seat": 2,
+     "a_deck": "Emir P. Blastotick",
+     "b_deck": "Abel l'Abominable",
+     "winner": "b"
+    },
+    {
+     "seed": 3000095,
+     "a_seat": 2,
+     "a_deck": "Abel l'Abominable",
+     "b_deck": "Emir P. Blastotick",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000092
+   ],
+   "decks": [
+    "A. Battilion, H\u00f6fling der lichten Kolonien",
+    "Acilia, Overlord of the Titleless Market"
+   ],
+   "by_deck": {
+    "Acilia, Overlord of the Titleless Market": [
+     2,
+     2
+    ],
+    "A. Battilion, H\u00f6fling der lichten Kolonien": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000092,
+     "a_seat": 2,
+     "a_deck": "Acilia, Overlord of the Titleless Market",
+     "b_deck": "A. Battilion, H\u00f6fling der lichten Kolonien",
+     "winner": "a"
+    },
+    {
+     "seed": 3000092,
+     "a_seat": 1,
+     "a_deck": "Acilia, Overlord of the Titleless Market",
+     "b_deck": "A. Battilion, H\u00f6fling der lichten Kolonien",
+     "winner": "a"
+    },
+    {
+     "seed": 3000092,
+     "a_seat": 2,
+     "a_deck": "A. Battilion, H\u00f6fling der lichten Kolonien",
+     "b_deck": "Acilia, Overlord of the Titleless Market",
+     "winner": "a"
+    },
+    {
+     "seed": 3000092,
+     "a_seat": 1,
+     "a_deck": "A. Battilion, H\u00f6fling der lichten Kolonien",
+     "b_deck": "Acilia, Overlord of the Titleless Market",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000094
+   ],
+   "decks": [
+    "Adm. Coachas Rutter",
+    "Aagerson, the Lieutenant of Kissinggopolis"
+   ],
+   "by_deck": {
+    "Adm. Coachas Rutter": [
+     2,
+     2
+    ],
+    "Aagerson, the Lieutenant of Kissinggopolis": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000094,
+     "a_seat": 1,
+     "a_deck": "Adm. Coachas Rutter",
+     "b_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "winner": "a"
+    },
+    {
+     "seed": 3000094,
+     "a_seat": 2,
+     "a_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "b_deck": "Adm. Coachas Rutter",
+     "winner": "a"
+    },
+    {
+     "seed": 3000094,
+     "a_seat": 1,
+     "a_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "b_deck": "Adm. Coachas Rutter",
+     "winner": "a"
+    },
+    {
+     "seed": 3000094,
+     "a_seat": 2,
+     "a_deck": "Adm. Coachas Rutter",
+     "b_deck": "Aagerson, the Lieutenant of Kissinggopolis",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000091
+   ],
+   "decks": [
+    "Aaronson, the Survivalist of Negaglade",
+    "Aja, Architetto della Cava Primordiale"
+   ],
+   "by_deck": {
+    "Aja, Architetto della Cava Primordiale": [
+     2,
+     2
+    ],
+    "Aaronson, the Survivalist of Negaglade": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000091,
+     "a_seat": 1,
+     "a_deck": "Aja, Architetto della Cava Primordiale",
+     "b_deck": "Aaronson, the Survivalist of Negaglade",
+     "winner": "a"
+    },
+    {
+     "seed": 3000091,
+     "a_seat": 2,
+     "a_deck": "Aja, Architetto della Cava Primordiale",
+     "b_deck": "Aaronson, the Survivalist of Negaglade",
+     "winner": "a"
+    },
+    {
+     "seed": 3000091,
+     "a_seat": 1,
+     "a_deck": "Aaronson, the Survivalist of Negaglade",
+     "b_deck": "Aja, Architetto della Cava Primordiale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000091,
+     "a_seat": 2,
+     "a_deck": "Aaronson, the Survivalist of Negaglade",
+     "b_deck": "Aja, Architetto della Cava Primordiale",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000093
+   ],
+   "decks": [
+    "Agnar, Leibw\u00e4chter der Kirche",
+    "A. Abel, Titaness of the Toothed Depot"
+   ],
+   "by_deck": {
+    "Agnar, Leibw\u00e4chter der Kirche": [
+     2,
+     2
+    ],
+    "A. Abel, Titaness of the Toothed Depot": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000093,
+     "a_seat": 2,
+     "a_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "b_deck": "A. Abel, Titaness of the Toothed Depot",
+     "winner": "a"
+    },
+    {
+     "seed": 3000093,
+     "a_seat": 1,
+     "a_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "b_deck": "A. Abel, Titaness of the Toothed Depot",
+     "winner": "a"
+    },
+    {
+     "seed": 3000093,
+     "a_seat": 1,
+     "a_deck": "A. Abel, Titaness of the Toothed Depot",
+     "b_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "winner": "a"
+    },
+    {
+     "seed": 3000093,
+     "a_seat": 2,
+     "a_deck": "A. Abel, Titaness of the Toothed Depot",
+     "b_deck": "Agnar, Leibw\u00e4chter der Kirche",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000099
+   ],
+   "decks": [
+    "One \u201cMiss Sticks & Stones\u201d Trippicus",
+    "A. Ankar, Regina di Elefantevitale"
+   ],
+   "by_deck": {
+    "One \u201cMiss Sticks & Stones\u201d Trippicus": [
+     2,
+     2
+    ],
+    "A. Ankar, Regina di Elefantevitale": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000099,
+     "a_seat": 2,
+     "a_deck": "One \u201cMiss Sticks & Stones\u201d Trippicus",
+     "b_deck": "A. Ankar, Regina di Elefantevitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000099,
+     "a_seat": 2,
+     "a_deck": "A. Ankar, Regina di Elefantevitale",
+     "b_deck": "One \u201cMiss Sticks & Stones\u201d Trippicus",
+     "winner": "a"
+    },
+    {
+     "seed": 3000099,
+     "a_seat": 1,
+     "a_deck": "One \u201cMiss Sticks & Stones\u201d Trippicus",
+     "b_deck": "A. Ankar, Regina di Elefantevitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000099,
+     "a_seat": 1,
+     "a_deck": "A. Ankar, Regina di Elefantevitale",
+     "b_deck": "One \u201cMiss Sticks & Stones\u201d Trippicus",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000097
+   ],
+   "decks": [
+    "Aja, Architetto della Cava Primordiale",
+    "Aagerson, Bellagrove's Crackpot"
+   ],
+   "by_deck": {
+    "Aja, Architetto della Cava Primordiale": [
+     1,
+     2
+    ],
+    "Aagerson, Bellagrove's Crackpot": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000097,
+     "a_seat": 2,
+     "a_deck": "Aja, Architetto della Cava Primordiale",
+     "b_deck": "Aagerson, Bellagrove's Crackpot",
+     "winner": "a"
+    },
+    {
+     "seed": 3000097,
+     "a_seat": 2,
+     "a_deck": "Aagerson, Bellagrove's Crackpot",
+     "b_deck": "Aja, Architetto della Cava Primordiale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000097,
+     "a_seat": 1,
+     "a_deck": "Aagerson, Bellagrove's Crackpot",
+     "b_deck": "Aja, Architetto della Cava Primordiale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000097,
+     "a_seat": 1,
+     "a_deck": "Aja, Architetto della Cava Primordiale",
+     "b_deck": "Aagerson, Bellagrove's Crackpot",
+     "winner": "b"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000096
+   ],
+   "decks": [
+    "Mendrilturn, the Vault Keeper of Cavalry",
+    "A. Ankar, Regina di Elefantevitale"
+   ],
+   "by_deck": {
+    "Mendrilturn, the Vault Keeper of Cavalry": [
+     2,
+     2
+    ],
+    "A. Ankar, Regina di Elefantevitale": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000096,
+     "a_seat": 1,
+     "a_deck": "Mendrilturn, the Vault Keeper of Cavalry",
+     "b_deck": "A. Ankar, Regina di Elefantevitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000096,
+     "a_seat": 2,
+     "a_deck": "Mendrilturn, the Vault Keeper of Cavalry",
+     "b_deck": "A. Ankar, Regina di Elefantevitale",
+     "winner": "a"
+    },
+    {
+     "seed": 3000096,
+     "a_seat": 2,
+     "a_deck": "A. Ankar, Regina di Elefantevitale",
+     "b_deck": "Mendrilturn, the Vault Keeper of Cavalry",
+     "winner": "a"
+    },
+    {
+     "seed": 3000096,
+     "a_seat": 1,
+     "a_deck": "A. Ankar, Regina di Elefantevitale",
+     "b_deck": "Mendrilturn, the Vault Keeper of Cavalry",
+     "winner": "a"
+    }
+   ]
+  },
+  {
+   "seeds": [
+    3000098
+   ],
+   "decks": [
+    "Aag, the Legate of Oceans",
+    "Acidmetric, the \u201cPoet\u201d of Dreams"
+   ],
+   "by_deck": {
+    "Aag, the Legate of Oceans": [
+     2,
+     2
+    ],
+    "Acidmetric, the \u201cPoet\u201d of Dreams": [
+     2,
+     2
+    ]
+   },
+   "records": [
+    {
+     "seed": 3000098,
+     "a_seat": 2,
+     "a_deck": "Aag, the Legate of Oceans",
+     "b_deck": "Acidmetric, the \u201cPoet\u201d of Dreams",
+     "winner": "a"
+    },
+    {
+     "seed": 3000098,
+     "a_seat": 2,
+     "a_deck": "Acidmetric, the \u201cPoet\u201d of Dreams",
+     "b_deck": "Aag, the Legate of Oceans",
+     "winner": "a"
+    },
+    {
+     "seed": 3000098,
+     "a_seat": 1,
+     "a_deck": "Aag, the Legate of Oceans",
+     "b_deck": "Acidmetric, the \u201cPoet\u201d of Dreams",
+     "winner": "a"
+    },
+    {
+     "seed": 3000098,
+     "a_seat": 1,
+     "a_deck": "Acidmetric, the \u201cPoet\u201d of Dreams",
+     "b_deck": "Aag, the Legate of Oceans",
+     "winner": "a"
+    }
+   ]
+  }
+ ]
+}
