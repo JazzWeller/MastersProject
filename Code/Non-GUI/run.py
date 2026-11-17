@@ -231,7 +231,8 @@ METHODS["eval-m9"] = dict(
 # M9's two diagnostics on the strongest network so far: the search curve (one network at 10-300 simulations) and the
 # hidden-information gap (the same network searching the true hidden state).
 _BEST = "v1:tier2-v1-s3"
-DIAG_LADDER = ["heuristic", f"{_BEST}#sims=10", f"{_BEST}#sims=30", _BEST, f"{_BEST}#sims=300", f"{_BEST}#resample=exact"]
+DIAG_LADDER = ["heuristic", f"{_BEST}#search=none", f"{_BEST}#sims=10", f"{_BEST}#sims=30", _BEST, f"{_BEST}#sims=300",
+               f"{_BEST}#sims=1000", f"{_BEST}#resample=exact"]  # no search and 1,000 sims added 2026-11-17 (table 2)
 METHODS["diag-m9"] = dict(
     desc="M9 diagnostics on tier2-v1-s3: the search curve (10/30/100/300 sims) and the hidden-information gap (ladder-diag.json)",
     cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
@@ -250,7 +251,8 @@ for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
                                                        "games": 50_000, **_LEARNER}}),
                 "--port", "{port}"],
                [PY, "-m", "tools.monitor", f"m11-{_arm}"]])
-M11_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3", "v1:m11-v1", "v2:m11-v2"]
+M11_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3", "v1:m11-v1", "v2:m11-v2",
+              "v1:real-v1", "v2:real-v2"]  # the real-deck agents added 2026-11-17 (table 1)
 METHODS["eval-m11"] = dict(
     desc="M11: BC, round 4 and random-deck networks on 32 held-out random deck pairs -> Elo (ladder-m11.json)",
     cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
@@ -281,7 +283,7 @@ for _arm, (_cfg, _bc_run, _sp) in _TIER2.items():
                [PY, "-m", "tools.monitor", f"real-{_arm}"]])
 REAL_TEST_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3", "v1:m11-v1", "v2:m11-v2",
                     "v1:real-v1", "v2:real-v2"]
-REAL_TRAIN_LADDER = ["heuristic", "v1:m11-v1", "v2:m11-v2", "v1:real-v1", "v2:real-v2"]
+REAL_TRAIN_LADDER = list(REAL_TEST_LADDER)  # every network, as on the test split (2026-11-17, table 1)
 METHODS["eval-real"] = dict(
     desc="real decks: every network on the held-out split, the gap to the train split, then Fignor and Igor (ladder-real-test, -train, -baseline)",
     cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
@@ -408,6 +410,51 @@ METHODS["export-plateau-sasw"] = dict(
     local=True,
     steps=[[PY, "-m", "tools.export_results", *[f"plateau-sasw-{a}" for a in PLATEAU_ARMS], "--out",
             os.path.join("results", "plateau-sasw")]])
+# ---- the report's four tables (2026-11-17): the runs that fill their empty cells ----------------------------------
+# Table 1 (strength by deck set): the real-deck agents on the random held-out decks, every network on the real train
+# split. Both ladders keep their names and gain the missing players, so every match already played is reused.
+_M11_STEP = [PY, "-m", "tools.ladder", "--name", "m11", "--players", *M11_LADDER, "--sims", "100", "--seeds", "64",
+             "--deck-set", "32", "--workers", "{w}", "--skip-missing"]
+_REAL_TRAIN_STEP = [PY, "-m", "tools.ladder", "--name", "real-train", "--players", *REAL_TRAIN_LADDER, "--sims", "100",
+                    "--seeds", "100", "--deck-list", "phase3", "--deck-split", "train", "--workers", "{w}", "--skip-missing"]
+METHODS["eval-table1"] = dict(
+    desc="table 1: real-v1/v2 join the random-deck ladder (m11), every network joins the real train-split ladder (real-train)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16, steps=[_M11_STEP, _REAL_TRAIN_STEP])
+# Table 2 (search at play time): the specialist's curve gains no search and 1,000 sims (diag); the imitation network
+# gets the whole curve on Fignor and Igor (anatomy-bc). Two jobs: each holds seven 1,000-sim matches (~1.6 h apiece).
+METHODS["eval-diag"] = dict(
+    desc="table 2: tier2-v1-s3 on Fignor and Igor, no search to 1,000 sims and the true hidden state (ladder-diag.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "diag", "--players", *DIAG_LADDER, "--sims", "100", "--seeds", "100",
+            "--workers", "{w}", "--skip-missing"]])
+_BC = "v1:tier0b-a0"
+ANATOMY_BC_LADDER = ["heuristic", f"{_BC}#search=none", f"{_BC}#sims=10", f"{_BC}#sims=30", _BC, f"{_BC}#sims=300",
+                     f"{_BC}#sims=1000", f"{_BC}#resample=exact"]
+METHODS["eval-anatomy-bc"] = dict(
+    desc="table 2: the imitation network (tier0b-a0) on Fignor and Igor, no search to 1,000 sims and the true hidden state (ladder-anatomy-bc.json)",
+    cpus=32, mem_gb=64, gpu=True, hours=48, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "anatomy-bc", "--players", *ANATOMY_BC_LADDER, "--sims", "100",
+            "--seeds", "100", "--workers", "{w}", "--skip-missing"]])
+# Table 3 (design and training choices), the real-deck column and the size row's fixed-deck cell: real-v1 searching
+# full-game and with the belief-oracle leaf on the held-out real decks (design-real); the size test's two networks on
+# Fignor and Igor (size-fi); M9's four networks (within-turn vs full-game self-play search) on the real decks (m9-real).
+DESIGN_REAL_LADDER = ["heuristic", _R1, f"{_R1}#regime=full_game", f"{_R1}#leaf=belief_oracle"]
+SIZE_FI_LADDER = ["heuristic", _R1, "v1:size-128@final", "v1:size-256@final"]
+M9_REAL_LADDER = ["heuristic", *[f"v1:m9-{a}-{k}" for a in M9_ARMS for k in M9_SEEDS]]
+METHODS["eval-table3"] = dict(
+    desc="table 3: real-v1 with full-game search and the oracle leaf on real decks (design-real), the size networks on Fignor and Igor (size-fi), M9's networks on real decks (m9-real)",
+    cpus=32, mem_gb=64, gpu=True, hours=24, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "design-real", "--players", *DESIGN_REAL_LADDER, "--sims", "100",
+            "--seeds", "100", "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"],
+           [PY, "-m", "tools.ladder", "--name", "size-fi", "--players", *SIZE_FI_LADDER, "--sims", "100", "--seeds", "100",
+            "--workers", "{w}", "--skip-missing"],
+           [PY, "-m", "tools.ladder", "--name", "m9-real", "--players", *M9_REAL_LADDER, "--sims", "100", "--seeds", "100",
+            "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"]])
+METHODS["export-tables"] = dict(
+    desc="login node: every ladder into results/tables, then the four report tables (then commit and push)",
+    local=True,
+    steps=[[PY, "-m", "tools.export_results", "--match", "ladder-", "--out", os.path.join("results", "tables")],
+           [PY, "-m", "tools.report_tables", "--results", "results", "--out", os.path.join("results", "tables")]])
 
 
 # What a SAS advantage is worth (2026-11-13): real-v1 on pairs of held-out real decks grouped by SAS gap, against
