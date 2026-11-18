@@ -1,0 +1,276 @@
+{
+ "name": "m11",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 64,
+ "deck_set": 32,
+ "deck_list": "",
+ "deck_split": null,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:m11-v1",
+   "elo": 374.2,
+   "se": 13.2
+  },
+  {
+   "player": "v1:real-v1",
+   "elo": 362.3,
+   "se": 13.1
+  },
+  {
+   "player": "v2:m11-v2",
+   "elo": 339.8,
+   "se": 13.0
+  },
+  {
+   "player": "v2:real-v2",
+   "elo": 328.8,
+   "se": 12.9
+  },
+  {
+   "player": "v1:tier2-v1-s3",
+   "elo": 284.7,
+   "se": 12.7
+  },
+  {
+   "player": "v2:tier2-v2-s3",
+   "elo": 253.7,
+   "se": 12.6
+  },
+  {
+   "player": "v1:tier0b-a0",
+   "elo": 0.9,
+   "se": 12.7
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  },
+  {
+   "player": "v2:tier0b2-a7",
+   "elo": -33.6,
+   "se": 13.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0",
+   "a_score": 0.4844,
+   "games": 256
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier0b2-a7",
+   "a_score": 0.543,
+   "games": 256
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.1523,
+   "games": 256
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.1875,
+   "games": 256
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m11-v1",
+   "a_score": 0.1016,
+   "games": 256
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:m11-v2",
+   "a_score": 0.1445,
+   "games": 256
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.1016,
+   "games": 256
+  },
+  {
+   "a": "heuristic",
+   "b": "v2:real-v2",
+   "a_score": 0.1523,
+   "games": 256
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier0b2-a7",
+   "a_score": 0.5078,
+   "games": 256
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.1484,
+   "games": 256
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.1797,
+   "games": 256
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:m11-v1",
+   "a_score": 0.1211,
+   "games": 256
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:m11-v2",
+   "a_score": 0.1211,
+   "games": 256
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:real-v1",
+   "a_score": 0.1016,
+   "games": 256
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v2:real-v2",
+   "a_score": 0.1797,
+   "games": 256
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.1445,
+   "games": 256
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.1484,
+   "games": 256
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:m11-v1",
+   "a_score": 0.0703,
+   "games": 256
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:m11-v2",
+   "a_score": 0.082,
+   "games": 256
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v1:real-v1",
+   "a_score": 0.0918,
+   "games": 256
+  },
+  {
+   "a": "v2:tier0b2-a7",
+   "b": "v2:real-v2",
+   "a_score": 0.1094,
+   "games": 256
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v2:tier2-v2-s3",
+   "a_score": 0.5586,
+   "games": 256
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:m11-v1",
+   "a_score": 0.3633,
+   "games": 256
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v2:m11-v2",
+   "a_score": 0.3984,
+   "games": 256
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:real-v1",
+   "a_score": 0.3945,
+   "games": 256
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v2:real-v2",
+   "a_score": 0.4336,
+   "games": 256
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:m11-v1",
+   "a_score": 0.3164,
+   "games": 256
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v2:m11-v2",
+   "a_score": 0.3711,
+   "games": 256
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v1:real-v1",
+   "a_score": 0.3555,
+   "games": 256
+  },
+  {
+   "a": "v2:tier2-v2-s3",
+   "b": "v2:real-v2",
+   "a_score": 0.4023,
+   "games": 256
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v2:m11-v2",
+   "a_score": 0.5312,
+   "games": 256
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:real-v1",
+   "a_score": 0.5234,
+   "games": 256
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v2:real-v2",
+   "a_score": 0.5469,
+   "games": 256
+  },
+  {
+   "a": "v2:m11-v2",
+   "b": "v1:real-v1",
+   "a_score": 0.4453,
+   "games": 256
+  },
+  {
+   "a": "v2:m11-v2",
+   "b": "v2:real-v2",
+   "a_score": 0.4844,
+   "games": 256
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v2:real-v2",
+   "a_score": 0.5234,
+   "games": 256
+  }
+ ],
+ "skipped": []
+}

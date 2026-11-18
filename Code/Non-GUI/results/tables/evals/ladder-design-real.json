@@ -1,0 +1,71 @@
+{
+ "name": "design-real",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:real-v1",
+   "elo": 431.0,
+   "se": 19.6
+  },
+  {
+   "player": "v1:real-v1#leaf=belief_oracle",
+   "elo": 416.7,
+   "se": 19.5
+  },
+  {
+   "player": "v1:real-v1#regime=full_game",
+   "elo": 382.6,
+   "se": 19.3
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0775,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1#regime=full_game",
+   "a_score": 0.1,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1#leaf=belief_oracle",
+   "a_score": 0.0825,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:real-v1#regime=full_game",
+   "a_score": 0.5575,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:real-v1#leaf=belief_oracle",
+   "a_score": 0.5325,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1#regime=full_game",
+   "b": "v1:real-v1#leaf=belief_oracle",
+   "a_score": 0.44,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

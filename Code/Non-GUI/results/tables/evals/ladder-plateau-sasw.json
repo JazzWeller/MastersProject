@@ -1,0 +1,276 @@
+{
+ "name": "plateau-sasw",
+ "anchor": "v1:m11-v1",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:real-v1",
+   "elo": 9.4,
+   "se": 8.5
+  },
+  {
+   "player": "v1:plateau-sims300@final",
+   "elo": 9.0,
+   "se": 8.5
+  },
+  {
+   "player": "v1:plateau-sasw-nogate@final",
+   "elo": 8.1,
+   "se": 8.5
+  },
+  {
+   "player": "v1:plateau-nogate@final",
+   "elo": 4.8,
+   "se": 8.5
+  },
+  {
+   "player": "v1:plateau-sasw-sims300@final",
+   "elo": 2.0,
+   "se": 8.5
+  },
+  {
+   "player": "v1:m11-v1",
+   "elo": 0.0,
+   "se": 0.0
+  },
+  {
+   "player": "v1:plateau-sasw-ctrl@final",
+   "elo": -4.9,
+   "se": 8.5
+  },
+  {
+   "player": "v1:plateau-ctrl@final",
+   "elo": -5.8,
+   "se": 8.5
+  },
+  {
+   "player": "heuristic",
+   "elo": -427.5,
+   "se": 12.8
+  }
+ ],
+ "matches": [
+  {
+   "a": "v1:m11-v1",
+   "b": "heuristic",
+   "a_score": 0.92,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:real-v1",
+   "a_score": 0.4662,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:plateau-ctrl@final",
+   "a_score": 0.5375,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.4825,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.49,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:plateau-sasw-ctrl@final",
+   "a_score": 0.5025,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:plateau-sasw-sims300@final",
+   "a_score": 0.51,
+   "games": 400
+  },
+  {
+   "a": "v1:m11-v1",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.48,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0775,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-ctrl@final",
+   "a_score": 0.095,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.075,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.0675,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-sasw-ctrl@final",
+   "a_score": 0.085,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-sasw-sims300@final",
+   "a_score": 0.06,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.08,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-ctrl@final",
+   "a_score": 0.505,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.505,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.5175,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-sasw-ctrl@final",
+   "a_score": 0.52,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-sasw-sims300@final",
+   "a_score": 0.51,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.4875,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-ctrl@final",
+   "b": "v1:plateau-sims300@final",
+   "a_score": 0.4475,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-ctrl@final",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.5125,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-ctrl@final",
+   "b": "v1:plateau-sasw-ctrl@final",
+   "a_score": 0.4925,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-ctrl@final",
+   "b": "v1:plateau-sasw-sims300@final",
+   "a_score": 0.5125,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-ctrl@final",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.4925,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sims300@final",
+   "b": "v1:plateau-nogate@final",
+   "a_score": 0.4875,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sims300@final",
+   "b": "v1:plateau-sasw-ctrl@final",
+   "a_score": 0.5225,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sims300@final",
+   "b": "v1:plateau-sasw-sims300@final",
+   "a_score": 0.5038,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sims300@final",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.4925,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-nogate@final",
+   "b": "v1:plateau-sasw-ctrl@final",
+   "a_score": 0.52,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-nogate@final",
+   "b": "v1:plateau-sasw-sims300@final",
+   "a_score": 0.4988,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-nogate@final",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.5025,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sasw-ctrl@final",
+   "b": "v1:plateau-sasw-sims300@final",
+   "a_score": 0.5,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sasw-ctrl@final",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.4725,
+   "games": 400
+  },
+  {
+   "a": "v1:plateau-sasw-sims300@final",
+   "b": "v1:plateau-sasw-nogate@final",
+   "a_score": 0.5075,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

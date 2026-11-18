@@ -1,0 +1,71 @@
+{
+ "name": "size-fi",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "",
+ "deck_split": null,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:real-v1",
+   "elo": 652.3,
+   "se": 29.6
+  },
+  {
+   "player": "v1:size-128@final",
+   "elo": 565.0,
+   "se": 29.0
+  },
+  {
+   "player": "v1:size-256@final",
+   "elo": 552.6,
+   "se": 28.9
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:real-v1",
+   "a_score": 0.0225,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:size-128@final",
+   "a_score": 0.04,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:size-256@final",
+   "a_score": 0.0375,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:size-128@final",
+   "a_score": 0.625,
+   "games": 400
+  },
+  {
+   "a": "v1:real-v1",
+   "b": "v1:size-256@final",
+   "a_score": 0.6375,
+   "games": 400
+  },
+  {
+   "a": "v1:size-128@final",
+   "b": "v1:size-256@final",
+   "a_score": 0.5225,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

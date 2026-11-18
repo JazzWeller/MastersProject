@@ -1,0 +1,100 @@
+{
+ "name": "m9-real",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "phase3",
+ "deck_split": "test",
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:m9-wt-2",
+   "elo": 293.8,
+   "se": 13.8
+  },
+  {
+   "player": "v1:m9-wt-1",
+   "elo": 293.4,
+   "se": 13.8
+  },
+  {
+   "player": "v1:m9-fg-1",
+   "elo": 292.2,
+   "se": 13.8
+  },
+  {
+   "player": "v1:m9-fg-2",
+   "elo": 279.6,
+   "se": 13.8
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:m9-wt-1",
+   "a_score": 0.1525,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.15,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.1625,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.17,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v1:m9-wt-2",
+   "a_score": 0.495,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.515,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-1",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.5075,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-2",
+   "b": "v1:m9-fg-1",
+   "a_score": 0.4925,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-wt-2",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.52,
+   "games": 400
+  },
+  {
+   "a": "v1:m9-fg-1",
+   "b": "v1:m9-fg-2",
+   "a_score": 0.5275,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

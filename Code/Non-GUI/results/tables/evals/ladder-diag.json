@@ -1,0 +1,223 @@
+{
+ "name": "diag",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "",
+ "deck_split": null,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:tier2-v1-s3#resample=exact",
+   "elo": 750.3,
+   "se": 23.4
+  },
+  {
+   "player": "v1:tier2-v1-s3#sims=1000",
+   "elo": 721.5,
+   "se": 23.3
+  },
+  {
+   "player": "v1:tier2-v1-s3#sims=300",
+   "elo": 700.8,
+   "se": 23.2
+  },
+  {
+   "player": "v1:tier2-v1-s3",
+   "elo": 663.9,
+   "se": 23.2
+  },
+  {
+   "player": "v1:tier2-v1-s3#sims=30",
+   "elo": 643.0,
+   "se": 23.2
+  },
+  {
+   "player": "v1:tier2-v1-s3#sims=10",
+   "elo": 613.7,
+   "se": 23.1
+  },
+  {
+   "player": "v1:tier2-v1-s3#search=none",
+   "elo": 575.7,
+   "se": 23.1
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#search=none",
+   "a_score": 0.0525,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#sims=10",
+   "a_score": 0.03,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#sims=30",
+   "a_score": 0.0175,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.0125,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.025,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#sims=1000",
+   "a_score": 0.0125,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.005,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#search=none",
+   "b": "v1:tier2-v1-s3#sims=10",
+   "a_score": 0.44,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#search=none",
+   "b": "v1:tier2-v1-s3#sims=30",
+   "a_score": 0.4225,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#search=none",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.385,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#search=none",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.3225,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#search=none",
+   "b": "v1:tier2-v1-s3#sims=1000",
+   "a_score": 0.28,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#search=none",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.29,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3#sims=30",
+   "a_score": 0.475,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.4025,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.36,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3#sims=1000",
+   "a_score": 0.355,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=10",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.33,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=30",
+   "b": "v1:tier2-v1-s3",
+   "a_score": 0.495,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=30",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.4375,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=30",
+   "b": "v1:tier2-v1-s3#sims=1000",
+   "a_score": 0.3925,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=30",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.33,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:tier2-v1-s3#sims=300",
+   "a_score": 0.4325,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:tier2-v1-s3#sims=1000",
+   "a_score": 0.4125,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.3975,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=300",
+   "b": "v1:tier2-v1-s3#sims=1000",
+   "a_score": 0.4675,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=300",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.4225,
+   "games": 400
+  },
+  {
+   "a": "v1:tier2-v1-s3#sims=1000",
+   "b": "v1:tier2-v1-s3#resample=exact",
+   "a_score": 0.435,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}

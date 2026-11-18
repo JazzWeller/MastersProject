@@ -1,0 +1,223 @@
+{
+ "name": "anatomy-bc",
+ "anchor": "heuristic",
+ "sims": 100,
+ "seeds": 100,
+ "deck_set": 0,
+ "deck_list": "",
+ "deck_split": null,
+ "first_seed": 3000000,
+ "ratings": [
+  {
+   "player": "v1:tier0b-a0#sims=1000",
+   "elo": 405.1,
+   "se": 11.5
+  },
+  {
+   "player": "v1:tier0b-a0#sims=300",
+   "elo": 323.0,
+   "se": 10.7
+  },
+  {
+   "player": "v1:tier0b-a0#resample=exact",
+   "elo": 219.0,
+   "se": 10.0
+  },
+  {
+   "player": "v1:tier0b-a0",
+   "elo": 183.9,
+   "se": 9.9
+  },
+  {
+   "player": "v1:tier0b-a0#sims=30",
+   "elo": 63.4,
+   "se": 9.7
+  },
+  {
+   "player": "v1:tier0b-a0#sims=10",
+   "elo": 20.7,
+   "se": 9.8
+  },
+  {
+   "player": "heuristic",
+   "elo": 0.0,
+   "se": 0.0
+  },
+  {
+   "player": "v1:tier0b-a0#search=none",
+   "elo": -19.6,
+   "se": 9.9
+  }
+ ],
+ "matches": [
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0#search=none",
+   "a_score": 0.5275,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0#sims=10",
+   "a_score": 0.465,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0#sims=30",
+   "a_score": 0.4125,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0",
+   "a_score": 0.2775,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0#sims=300",
+   "a_score": 0.1225,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0#sims=1000",
+   "a_score": 0.06,
+   "games": 400
+  },
+  {
+   "a": "heuristic",
+   "b": "v1:tier0b-a0#resample=exact",
+   "a_score": 0.245,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#search=none",
+   "b": "v1:tier0b-a0#sims=10",
+   "a_score": 0.44,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#search=none",
+   "b": "v1:tier0b-a0#sims=30",
+   "a_score": 0.3775,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#search=none",
+   "b": "v1:tier0b-a0",
+   "a_score": 0.23,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#search=none",
+   "b": "v1:tier0b-a0#sims=300",
+   "a_score": 0.1125,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#search=none",
+   "b": "v1:tier0b-a0#sims=1000",
+   "a_score": 0.0675,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#search=none",
+   "b": "v1:tier0b-a0#resample=exact",
+   "a_score": 0.2375,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=10",
+   "b": "v1:tier0b-a0#sims=30",
+   "a_score": 0.4175,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=10",
+   "b": "v1:tier0b-a0",
+   "a_score": 0.2775,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=10",
+   "b": "v1:tier0b-a0#sims=300",
+   "a_score": 0.14,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=10",
+   "b": "v1:tier0b-a0#sims=1000",
+   "a_score": 0.09,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=10",
+   "b": "v1:tier0b-a0#resample=exact",
+   "a_score": 0.2775,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=30",
+   "b": "v1:tier0b-a0",
+   "a_score": 0.3225,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=30",
+   "b": "v1:tier0b-a0#sims=300",
+   "a_score": 0.175,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=30",
+   "b": "v1:tier0b-a0#sims=1000",
+   "a_score": 0.115,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=30",
+   "b": "v1:tier0b-a0#resample=exact",
+   "a_score": 0.2925,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier0b-a0#sims=300",
+   "a_score": 0.3275,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier0b-a0#sims=1000",
+   "a_score": 0.215,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0",
+   "b": "v1:tier0b-a0#resample=exact",
+   "a_score": 0.435,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=300",
+   "b": "v1:tier0b-a0#sims=1000",
+   "a_score": 0.3825,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=300",
+   "b": "v1:tier0b-a0#resample=exact",
+   "a_score": 0.625,
+   "games": 400
+  },
+  {
+   "a": "v1:tier0b-a0#sims=1000",
+   "b": "v1:tier0b-a0#resample=exact",
+   "a_score": 0.6825,
+   "games": 400
+  }
+ ],
+ "skipped": []
+}
