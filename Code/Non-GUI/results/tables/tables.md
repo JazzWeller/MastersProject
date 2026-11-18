@@ -7,7 +7,7 @@ Elo, HeuristicBot = 0, 100 simulations. Compare within a column: each column is 
 | Imitation (compact) | Imitating HeuristicBot | Compact | 195 ± 12 | 1 ± 13 | 30 ± 10 | 29 ± 11 |
 | Imitation (full) | Imitating HeuristicBot | Full | 156 ± 12 | -34 ± 13 | -16 ± 11 | -28 ± 11 |
 | Specialist (compact) | Self-play, fixed decks | Compact | 665 ± 12 | 285 ± 13 | 317 ± 11 | 345 ± 11 |
-| Specialist (full) | Self-play, fixed decks | Full | 641 ± 12 | 254 ± 13 | 310 ± 10 | 347 ± 11 |
+| Specialist (full) | Self-play, fixed decks | Full | 641 ± 12 | 254 ± 13 | 310 ± 11 | 347 ± 11 |
 | Generalist (compact) | Self-play, random decks | Compact | 580 ± 12 | 374 ± 13 | 386 ± 11 | 422 ± 11 |
 | Generalist (full) | Self-play, random decks | Full | 545 ± 12 | 340 ± 13 | 372 ± 11 | 411 ± 11 |
 | Real-deck agent | Self-play, real decks (train) | Compact | 596 ± 12 | 362 ± 13 | 404 ± 11 | 440 ± 11 |
@@ -24,7 +24,7 @@ Elo, HeuristicBot = 0, 400 games a match. Each column is one network in its own 
 | 30 simulations | 377 ± 12 | 643 ± 23 | 63 ± 10 |
 | 100 simulations | 412 ± 13 | 664 ± 23 | 184 ± 10 |
 | 300 simulations | 431 ± 13 | 701 ± 23 | 323 ± 11 |
-| 1,000 simulations | 459 ± 13 | 722 ± 23 | 405 ± 12 |
+| 1,000 simulations | 459 ± 13 | 722 ± 23 | 405 ± 11 |
 | 100 simulations, sees hidden cards | 420 ± 13 | 750 ± 23 | 219 ± 10 |
 
 ## Table 3. Design and training choices
@@ -33,15 +33,15 @@ Elo difference the change makes, measured within one ladder (several pairs: thei
 
 | Change | Compared with | Real decks (test) | Fixed decks |
 |---|---|---|---|
-| Within-turn search at play time | Full-game search | +48 ± 28 | +47 ± 17 |
-| Belief-oracle leaf | Student-network leaf | -14 ± 28 | +7 ± 12 |
-| Within-turn search during training | Full-game search during training | +8 ± 14 | -2 ± 12 |
-| Full inputs (v2) | Compact inputs (v1), the three lineages | -13 ± 9 | -32 ± 10 |
-| 4× bigger network (256×8) | 128×4, same data | -17 ± 17 | -12 ± 41 |
-| + 20k self-play games | Real-deck agent | -15 ± 12 | -12 ± 12 |
-| + 20k games, no gating | Real-deck agent | -5 ± 12 | -11 ± 12 |
-| + 20k games, 3× training search | Real-deck agent | 0 ± 12 | +14 ± 12 |
-| SAS-weighted outcome targets | The same three runs unweighted | -1 ± 7 | -1 ± 7 |
+| Within-turn search at play time | Full-game search | +48 ± 14 | +47 ± 8 |
+| Belief-oracle leaf | Student-network leaf | -14 ± 14 | +7 ± 5 |
+| Within-turn search during training | Full-game search during training | +8 ± 8 | -2 ± 5 |
+| Full inputs (v2) | Compact inputs (v1), the three lineages | -13 ± 5 | -32 ± 4 |
+| 4× bigger network (256×8) | 128×4, same data | -17 ± 11 | -12 ± 14 |
+| + 20k self-play games | Real-deck agent | -15 ± 9 | -12 ± 9 |
+| + 20k games, no gating | Real-deck agent | -5 ± 9 | -11 ± 9 |
+| + 20k games, 3× training search | Real-deck agent | 0 ± 9 | +14 ± 9 |
+| SAS-weighted outcome targets | The same three runs unweighted | -1 ± 5 | -1 ± 5 |
 
 ## Table 4. Deck strength (SAS) and the Adaptive format
 

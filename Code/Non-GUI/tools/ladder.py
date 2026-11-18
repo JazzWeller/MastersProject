@@ -84,10 +84,13 @@ def result_for(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set:
     return None
 
 
-def fit(players: Sequence[str], results: Dict[Tuple[int, int], Tuple[float, int]], iterations: int = 2000):
+def fit(players: Sequence[str], results: Dict[Tuple[int, int], Tuple[float, int]], iterations: int = 2000,
+        with_cov: bool = False):
     """Bradley-Terry by minorization-maximization (Hunter 2004), then Elo
     with player 0 at 0 and standard errors from the observed information.
-    `results[(i, j)]` = (i's points against j, games)."""
+    `results[(i, j)]` = (i's points against j, games). With `with_cov`, also
+    the Elo covariance matrix (player 0's row and column zero), for the
+    standard error of a difference between two players."""
     n = len(players)
     wins = [0.0] * n
     games = [[0.0] * n for _ in range(n)]
@@ -126,6 +129,12 @@ def fit(players: Sequence[str], results: Dict[Tuple[int, int], Tuple[float, int]
     k = 400.0 / math.log(10.0)
     elo = [k * t for t in theta]
     se = [0.0] + [k * math.sqrt(max(cov[i][i], 0.0)) for i in range(n - 1)]
+    if with_cov:
+        full = [[0.0] * n for _ in range(n)]
+        for i in range(n - 1):
+            for j in range(n - 1):
+                full[i + 1][j + 1] = k * k * cov[i][j]
+        return elo, se, full
     return elo, se
 
 

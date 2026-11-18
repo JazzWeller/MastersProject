@@ -11,9 +11,9 @@ ladder or player is missing stays empty. Names come from `tools.report_names`.
 3. Design and training choices: the Elo difference each makes, within one ladder, on real and fixed decks.
 4. Deck strength (SAS) and the Adaptive format.
 
-Elo has HeuristicBot at 0 throughout (a ladder anchored elsewhere is shifted, and HeuristicBot's own standard error
-added). A difference's standard error is the two ratings' combined in quadrature, and an average's is that of the
-mean of independent terms -- both approximations, as ratings in one ladder are correlated.
+Elo has HeuristicBot at 0 throughout (a ladder anchored elsewhere is shifted). Every standard error -- of a rating
+against HeuristicBot, of a difference, of a mean of differences -- comes from the ladder fit's full covariance
+(refitted from its matches), so ratings that share opponents are not treated as independent.
 """
 
 from __future__ import annotations
@@ -47,6 +47,30 @@ def load_ladders(results: str) -> Dict[str, dict]:
 class Ladders:
     def __init__(self, ladders: Dict[str, dict]):
         self.l = ladders
+        self._cov: Dict[str, Tuple[Dict[str, int], list]] = {}
+
+    def cov(self, ladder: str):
+        """(player -> index, Elo covariance) from the ladder's matches, refitted with `tools.ladder.fit`."""
+        if ladder not in self._cov:
+            from tools.ladder import fit
+
+            d = self.l[ladder]
+            players = [d["anchor"]] + [r["player"] for r in d["ratings"] if r["player"] != d["anchor"]]
+            idx = {p: i for i, p in enumerate(players)}
+            results = {}
+            for m in d["matches"]:
+                i, j = idx[m["a"]], idx[m["b"]]
+                p, g = results.get((i, j), (0.0, 0))
+                results[(i, j)] = (p + m["a_score"] * m["games"], g + m["games"])
+            _elo, _se, c = fit(players, results, with_cov=True)
+            self._cov[ladder] = (idx, c)
+        return self._cov[ladder]
+
+    def var(self, ladder: str, weights: Dict[str, float]) -> float:
+        """The variance of sum(w * elo(player)) in one ladder."""
+        idx, c = self.cov(ladder)
+        ws = [(idx[p], w) for p, w in weights.items() if w]
+        return max(sum(wi * wj * c[i][j] for i, wi in ws for j, wj in ws), 0.0)
 
     def _r(self, ladder: str, player: str) -> Optional[dict]:
         d = self.l.get(ladder)
@@ -62,21 +86,25 @@ class Ladders:
         r, h = self._r(ladder, player), self._r(ladder, H)
         if r is None or h is None:
             return None
-        se = r["se"] if self.l[ladder]["anchor"] == H else math.hypot(r["se"], h["se"])
-        return (r["elo"] - h["elo"], 0.0 if player == H else se)
+        if player == H:
+            return (0.0, 0.0)
+        return (r["elo"] - h["elo"], math.sqrt(self.var(ladder, {player: 1.0, H: -1.0})))
 
     def diff(self, pairs: List[Tuple[str, str, str]]) -> Optional[Tuple[float, float]]:
         """The mean of elo(a) - elo(b) over (ladder, a, b) pairs; None unless every pair is rated."""
-        ds = []
+        if not pairs:
+            return None
+        n = len(pairs)
+        total, weights = 0.0, {}  # ladder -> player -> weight in the mean
         for ladder, a, b in pairs:
             ra, rb = self._r(ladder, a), self._r(ladder, b)
             if ra is None or rb is None:
                 return None
-            ds.append((ra["elo"] - rb["elo"], math.hypot(ra["se"], rb["se"])))
-        if not ds:
-            return None
-        n = len(ds)
-        return (sum(d for d, _ in ds) / n, math.sqrt(sum(s * s for _, s in ds)) / n)
+            total += ra["elo"] - rb["elo"]
+            w = weights.setdefault(ladder, {})
+            w[a] = w.get(a, 0.0) + 1.0 / n
+            w[b] = w.get(b, 0.0) - 1.0 / n
+        return (total / n, math.sqrt(sum(self.var(lad, w) for lad, w in weights.items())))
 
 
 # ---------------------------------------------------------------------- tables

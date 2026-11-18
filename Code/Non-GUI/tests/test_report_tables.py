@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import tempfile
 import unittest
@@ -39,36 +40,57 @@ class Names(unittest.TestCase):
             self.assertIn(run_id, RUNS, spec)
 
 
-def _ladder(name, anchor, ratings):
-    return {"name": name, "anchor": anchor, "matches": [{}] * len(ratings),
-            "ratings": [{"player": p, "elo": e, "se": s} for p, e, s in ratings]}
+def _ladder(name, players, scores, games=400):
+    """A ladder as tools.ladder writes it, from {(a, b): a's score}; players[0] is the anchor."""
+    from tools.ladder import fit
+
+    idx = {p: i for i, p in enumerate(players)}
+    results = {(idx[a], idx[b]): (s * games, games) for (a, b), s in scores.items()}
+    elo, se = fit(players, results)
+    return {"name": name, "anchor": players[0],
+            "matches": [{"a": a, "b": b, "a_score": s, "games": games} for (a, b), s in scores.items()],
+            "ratings": [{"player": p, "elo": e, "se": s} for p, e, s in zip(players, elo, se)]}
 
 
 class Tables(unittest.TestCase):
     def test_reanchoring_differences_and_the_copy_with_most_matches(self):
+        H, R1, R2, C = "heuristic", "v1:real-v1", "v2:real-v2", "v1:plateau-ctrl@final"
         with tempfile.TemporaryDirectory() as root:
             def put(sub, d):
                 os.makedirs(os.path.join(root, sub, "evals"), exist_ok=True)
                 with open(os.path.join(root, sub, "evals", f"ladder-{d['name']}.json"), "w", encoding="utf-8") as f:
                     json.dump(d, f)
-            put("old", _ladder("real-test", "heuristic", [("heuristic", 0, 0), ("v1:real-v1", 400, 10)]))
-            put("new", _ladder("real-test", "heuristic", [("heuristic", 0, 0), ("v1:real-v1", 404, 11),
-                                                          ("v2:real-v2", 386, 11)]))
-            put("new", _ladder("plateau-sasw", "v1:m11-v1", [("v1:m11-v1", 0, 0), ("heuristic", -427.5, 12.8),
-                                                             ("v1:real-v1", 9.4, 8.5), ("v1:plateau-ctrl@final", -5.8, 8.5)]))
+            put("old", _ladder("real-test", [H, R1], {(H, R1): 0.1}))
+            put("new", _ladder("real-test", [H, R1, R2], {(H, R1): 0.08, (H, R2): 0.09, (R1, R2): 0.53}))
+            put("new", _ladder("plateau-sasw", ["v1:m11-v1", H, R1, C],
+                               {("v1:m11-v1", H): 0.92, ("v1:m11-v1", R1): 0.49, ("v1:m11-v1", C): 0.51,
+                                (H, R1): 0.075, (H, C): 0.08, (R1, C): 0.52}))
             L = rt.Ladders(rt.load_ladders(root))
-            self.assertEqual(L.elo("real-test", "v1:real-v1"), (404, 11))  # the copy with more matches
-            v, se = L.elo("plateau-sasw", "v1:real-v1")
-            self.assertAlmostEqual(v, 436.9)
-            self.assertAlmostEqual(se, (8.5 ** 2 + 12.8 ** 2) ** 0.5)  # HeuristicBot's own error added
-            d, dse = L.diff([("plateau-sasw", "v1:plateau-ctrl@final", "v1:real-v1")])
-            self.assertAlmostEqual(d, -15.2)
-            self.assertIsNone(L.diff([("plateau-sasw", "v1:plateau-nogate@final", "v1:real-v1")]))  # not rated: empty
+            t = L.l["real-test"]["ratings"]
+            self.assertEqual(len(t), 3)  # the copy with more matches
+            r1 = [r for r in t if r["player"] == R1][0]
+            v, se = L.elo("real-test", R1)
+            self.assertAlmostEqual(v, r1["elo"])
+            self.assertAlmostEqual(se, r1["se"], places=6)  # anchored on HeuristicBot: the ladder's own error
+            # anchored elsewhere: shifted to HeuristicBot = 0, its error from the fit's covariance
+            p = {r["player"]: r for r in L.l["plateau-sasw"]["ratings"]}
+            v, se = L.elo("plateau-sasw", R1)
+            self.assertAlmostEqual(v, p[R1]["elo"] - p[H]["elo"])
+            self.assertLess(se, (p[R1]["se"] ** 2 + p[H]["se"] ** 2) ** 0.5)  # they share opponents
+            # a difference: smaller error than its ratings' combined, and no larger than the direct match's alone
+            d, dse = L.diff([("plateau-sasw", C, R1)])
+            self.assertAlmostEqual(d, p[C]["elo"] - p[R1]["elo"])
+            direct = 400 / math.log(10) / math.sqrt(400 * 0.52 * 0.48)
+            self.assertLess(dse, direct + 1e-9)
+            self.assertLess(dse, (p[C]["se"] ** 2 + p[R1]["se"] ** 2) ** 0.5)
+            # a mean of the same difference twice has the same error
+            self.assertAlmostEqual(L.diff([("plateau-sasw", C, R1)] * 2)[1], dse)
+            self.assertIsNone(L.diff([("plateau-sasw", "v1:plateau-nogate@final", R1)]))  # not rated: empty
             t1 = rt.table1(L)
             row = [r for r in t1[3] if r[0] == "Real-deck agent"][0]
-            self.assertEqual(row[5], (404, 11))
+            self.assertAlmostEqual(row[5][0], r1["elo"])
             self.assertIsNone(row[4])  # no random-deck ladder here
-            self.assertIn("404 ± 11", rt.markdown([t1, rt.table2(L), rt.table3(L), rt.table4(None)]))
+            self.assertIn(f"{r1['elo']:.0f} ± {r1['se']:.0f}", rt.markdown([t1, rt.table2(L), rt.table3(L), rt.table4(None)]))
 
 
 class Jobs(unittest.TestCase):
