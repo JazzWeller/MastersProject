@@ -53,3 +53,34 @@ Real test decks, 100 deck pairs per band; the agent is the Real-deck agent at 10
 | 5-10 | 7.1 | +49 ± 26 | 96.0% | 92.0% | 99.5% | 58.0% | 4.58 | 56.9% |
 | 10-20 | 13.6 | +49 ± 26 | 98.0% | 86.5% | 99.8% | 63.5% | 5.9 | 49.6% |
 | 20-60 | 28.9 | +295 ± 35 | 98.5% | 76.0% | 100.0% | 72.5% | 10.5 | 47.6% |
+
+## Table 5. Baselines
+
+Elo, HeuristicBot = 0, 100 simulations where there is search, 400 games a match. RandomBot, the search with no network, and Deep Monte Carlo (search-free, trained on Fignor and Igor from the same imitation network as the self-play agents) put the learned agents in context.
+
+| Agent | Plays by | Fixed decks | Real decks (test) |
+|---|---|---|---|
+| RandomBot | — |  |  |
+| Search, no network | Within-turn search, heuristic evaluator |  |  |
+| Search, no network | Full-game search, heuristic evaluator |  |  |
+| Imitation, no search | Policy head alone |  |  |
+| Imitation | Within-turn search |  |  |
+| Deep Monte Carlo, 50k games | Q head alone (no search) |  |  |
+| Deep Monte Carlo, 500k games | Q head alone (no search) |  |  |
+| Self-play, 50k games | Within-turn search |  |  |
+| Specialist (compact) | Within-turn search |  |  |
+| Real-deck agent | Within-turn search |  |  |
+
+## Table 6. Seed replicates
+
+Elo, HeuristicBot = 0, 100 simulations. The same recipe run again with another seed: the spread is the run-to-run noise behind every training comparison.
+
+| Agent | Seed | Real decks (test) | Fixed decks |
+|---|---|---|---|
+| Real-deck agent | 0 |  | 596 ± 12 |
+| Real-deck agent | 1 |  |  |
+| Real-deck agent | 2 |  |  |
+| Specialist, within-turn training | 1 | 293 ± 14 | 628 ± 12 |
+| Specialist, within-turn training | 2 | 294 ± 14 | 628 ± 12 |
+| Specialist, full-game training | 1 | 292 ± 14 | 621 ± 12 |
+| Specialist, full-game training | 2 | 280 ± 14 | 639 ± 12 |

@@ -21,8 +21,15 @@ A network player may end in `#key=value,...` to play differently from the
 command line's settings (the M9 matrix and its diagnostics):
 `regime=within_turn|full_game`, `leaf=student|belief_oracle` (v1),
 `sims=<n>`, `resample=exact` (the true hidden state), or `search=none`
-(v1: the network's policy alone, no search) -- e.g.
-`v1:m9-fg-1#regime=within_turn,leaf=belief_oracle`.
+(v1: the network's policy alone, no search), or `mode=q` (v1: no search,
+the Q head's best option -- the search-free DMC arm, M8) -- e.g.
+`v1:m9-fg-1#regime=within_turn,leaf=belief_oracle`. `<run>@g<N>` is the
+network its N-th gate tested (a training curve).
+
+`search:heuristic` is the search with no network: HeuristicBot's rollouts,
+the heuristic leaf evaluator and uniform priors, with `regime`, `sims` and
+`resample` options like a network player's (what learning adds over search
+alone). Bot names: `heuristic`, `random`.
 
 `--deck-set N` plays each unit of seeds on one of N random deck pairs from
 a fixed deck set (`sim.bc_corpus.fixed_deck_set`, seed `--deck-seed`, 2 by
@@ -53,8 +60,9 @@ import time
 def _checkpoint(run_id: str) -> str:
     """A run's network: a BC run's (`bc_report.json`), or a self-play run's
     best promoted one (`best.json`); `<run>@final` is a self-play run's last
-    learner checkpoint, promoted or not, and `<run>@p<N>` its N-th promoted
-    one (`@p0`: the warm start)."""
+    learner checkpoint, promoted or not, `<run>@p<N>` its N-th promoted
+    one (`@p0`: the warm start), and `<run>@g<N>` the candidate its N-th gate
+    tested, promoted or not (the learner at that gate's step: a training curve)."""
     from sim import data_root
 
     run_id, _, which = run_id.partition("@")
@@ -62,6 +70,14 @@ def _checkpoint(run_id: str) -> str:
     if which == "final":
         with open(os.path.join(root, "journal.jsonl"), "r", encoding="utf-8") as f:
             ckpt = [e for e in map(json.loads, f) if e["event"] == "run_finished"][-1]["final"]
+    elif which.startswith("g") and which[1:].isdigit():
+        with open(os.path.join(root, "journal.jsonl"), "r", encoding="utf-8") as f:
+            entries = [e for e in map(json.loads, f) if e["event"] == "gate"]
+        # (older journals have no gate "number": their gates count in order)
+        gates = {e.get("number", k): e["candidate"] for k, e in enumerate(entries, 1)}
+        if int(which[1:]) not in gates:
+            raise FileNotFoundError(f"{run_id} has no finished gate {which[1:]} (has {sorted(gates)})")
+        ckpt = gates[int(which[1:])]
     elif which.startswith("p") and which[1:].isdigit():
         with open(os.path.join(root, "journal.jsonl"), "r", encoding="utf-8") as f:
             promoted = [e["checkpoint"] for e in map(json.loads, f) if e["event"] == "promoted"]
@@ -82,7 +98,7 @@ def _resample(args, name: str) -> str:
     return "exact" if name == "a" and getattr(args, "a_exact", False) else "all"
 
 
-PLAYER_OPTIONS = ("regime", "leaf", "sims", "resample", "search")
+PLAYER_OPTIONS = ("regime", "leaf", "sims", "resample", "search", "mode")
 
 
 def player_options(spec: str):
@@ -105,6 +121,15 @@ def _player(spec: str, args, name: str):
     regime = opts.get("regime", args.regime)
     sims = int(opts.get("sims", args.sims))
     resample = opts.get("resample", _resample(args, name))
+    if kind == "search":
+        # The same search with no network at all: HeuristicBot's rollout policy and the heuristic leaf evaluator,
+        # uniform priors (ml/arena._make_search with model None) -- what learning adds over search alone.
+        if run_id != "heuristic" or opts.get("search") == "none" or "leaf" in opts or "mode" in opts:
+            raise ValueError(f"{spec!r}: a search-only player is search:heuristic[#regime=,sims=,resample=]")
+        return Player(name=name, kind="search", model=None, regime=regime, simulations=sims,
+                      determinization="chance_exact", resample=resample)
+    if "mode" in opts and (kind != "v1" or opts["mode"] not in ("policy", "q")):
+        raise ValueError(f"{spec!r}: mode=policy|q is for v1 networks (q: the DMC network's action values, no search)")
     if kind == "v2":
         from agent.search.leaf_v2 import history_form
         from ml.checkpoints import load_model_v2
@@ -120,6 +145,8 @@ def _player(spec: str, args, name: str):
         from ml.infer_server import load_torch_model
 
         model = load_torch_model(_checkpoint(run_id), "cuda")
+        if "mode" in opts:  # no search: act greedily on the policy head, or (DMC, M8) on the Q head
+            return Player(name=name, kind="net", model=model, mode=opts["mode"])
         if opts.get("search") == "none":
             return Player(name=name, kind="net", model=model, mode="policy")
         return Player(name=name, kind="search", model=model, regime=regime, leaf=opts.get("leaf", "student"),

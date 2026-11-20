@@ -8,7 +8,9 @@ and that one opponent stopped telling networks apart).
         --sims 100 --seeds 100 --workers 16
 
 Players are `eval_v2`'s (`v1:<run>`, `v2:<run>`, `<run>@final`, `<run>@p<N>`,
-a bot name, any of them with `#regime=...,leaf=...,sims=...` options), and
+`<run>@g<N>`, `search:heuristic`, a bot name, any of them with
+`#regime=...,leaf=...,sims=...` options); `--anchors K` plays only the pairs
+that include one of the first K players (a training curve), and
 `--deck-set N` plays every match on held-out random decks (M11). Each pair is one `eval_v2` run with its default output under
 `$KEYFORGE_DATA/evals/`, so a pair already played -- by an earlier ladder or
 an earlier evaluation, in either order -- is read, not replayed, and an
@@ -49,7 +51,7 @@ def _out_name(a: str, b: str, sims: int, seeds: int, first_seed: int, deck_set: 
 
 
 def _available(player: str) -> bool:
-    if ":" not in player:
+    if ":" not in player or player.startswith("search:"):
         return True
     from tools.eval_v2 import _checkpoint, player_options
 
@@ -155,6 +157,11 @@ def _inverse(m: List[List[float]]) -> List[List[float]]:
     return [row[n:] for row in a]
 
 
+def anchored_pairs(n: int, anchors: int = 0) -> List[Tuple[int, int]]:
+    """Every pair of n players (a round robin), or with `anchors` K only the pairs that include one of the first K."""
+    return [(i, j) for i, j in itertools.combinations(range(n), 2) if not anchors or i < anchors]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--name", required=True)
@@ -168,6 +175,9 @@ def main():
     parser.add_argument("--deck-seed", type=int, default=2)
     parser.add_argument("--deck-list", default="", help="every match on a real deck list's pairs, one pair a seed")
     parser.add_argument("--deck-split", default="test", choices=("train", "test"))
+    parser.add_argument("--anchors", type=int, default=0,
+                        help="play only the pairs that include one of the first K players (a star, not a round robin: "
+                             "a training curve's checkpoints each against the same anchors)")
     args = parser.parse_args()
 
     players = [p for p in args.players if not args.skip_missing or _available(p)]
@@ -183,7 +193,7 @@ def main():
         raise SystemExit(PAUSED)
 
     signal.signal(signal.SIGTERM, on_term)
-    pairs = list(itertools.combinations(range(len(players)), 2))
+    pairs = anchored_pairs(len(players), args.anchors)
     results: Dict[Tuple[int, int], Tuple[float, int]] = {}
     for k, (i, j) in enumerate(pairs, 1):
         a, b = players[i], players[j]
@@ -211,7 +221,7 @@ def main():
     table = [{"player": players[i], "elo": round(elo[i], 1), "se": round(se[i], 1)} for i in order]
     matches = [{"a": players[i], "b": players[j], "a_score": round(p / g, 4), "games": g}
                for (i, j), (p, g) in results.items()]
-    report = {"name": args.name, "anchor": players[0], "sims": args.sims, "seeds": args.seeds, "deck_set": args.deck_set,
+    report = {"name": args.name, "anchor": players[0], "anchors": args.anchors, "sims": args.sims, "seeds": args.seeds, "deck_set": args.deck_set,
               "deck_list": args.deck_list, "deck_split": args.deck_split if args.deck_list else None, "first_seed": args.first_seed, "ratings": table, "matches": matches, "skipped": dropped}
     from sim import data_root
 

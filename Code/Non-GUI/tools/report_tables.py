@@ -10,6 +10,8 @@ ladder or player is missing stays empty. Names come from `tools.report_names`.
 2. Search at play time: three networks from no search to 1,000 simulations, and searching the true hidden state.
 3. Design and training choices: the Elo difference each makes, within one ladder, on real and fixed decks.
 4. Deck strength (SAS) and the Adaptive format.
+5. Baselines: RandomBot, the search with no network, the imitation network, Deep Monte Carlo, the self-play agents.
+6. Seed replicates: the same recipe with other seeds.
 
 Elo has HeuristicBot at 0 throughout (a ladder anchored elsewhere is shifted). Every standard error -- of a rating
 against HeuristicBot, of a difference, of a mean of differences -- comes from the ladder fit's full covariance
@@ -216,7 +218,42 @@ def table4(sas: Optional[dict]):
     return ("Table 4. Deck strength (SAS) and the Adaptive format", note, head, rows)
 
 
+T5_PLAYERS = [("random", "RandomBot", "—"),
+              ("search:heuristic", "Search, no network", "Within-turn search, heuristic evaluator"),
+              ("search:heuristic#regime=full_game", "Search, no network", "Full-game search, heuristic evaluator"),
+              ("v1:tier0b-a0#search=none", "Imitation, no search", "Policy head alone"),
+              ("v1:tier0b-a0", "Imitation", "Within-turn search"),
+              ("v1:dmc-1#mode=q", "Deep Monte Carlo, 50k games", "Q head alone (no search)"),
+              ("v1:dmc-long#mode=q", "Deep Monte Carlo, 500k games", "Q head alone (no search)"),
+              ("v1:m9-wt-1", "Self-play, 50k games", "Within-turn search"),
+              ("v1:tier2-v1-s3", "Specialist (compact)", "Within-turn search"),
+              ("v1:real-v1", "Real-deck agent", "Within-turn search")]
+
+
+def table5(L: Ladders):
+    rows = [[label, how, L.elo("anchors-fi", p), L.elo("anchors-real", p)] for p, label, how in T5_PLAYERS]
+    return ("Table 5. Baselines",
+            "Elo, HeuristicBot = 0, 100 simulations where there is search, 400 games a match. RandomBot, the search "
+            "with no network, and Deep Monte Carlo (search-free, trained on Fignor and Igor from the same imitation "
+            "network as the self-play agents) put the learned agents in context.",
+            ["Agent", "Plays by", DECK_SETS["fixed"], DECK_SETS["real-test"]], rows)
+
+
+T6_GROUPS = [("Real-deck agent", [("v1:real-v1", 0), ("v1:real-v1-s1", 1), ("v1:real-v1-s2", 2)], "anchors-real"),
+             ("Specialist, within-turn training", [("v1:m9-wt-1", 1), ("v1:m9-wt-2", 2)], "m9-real"),
+             ("Specialist, full-game training", [("v1:m9-fg-1", 1), ("v1:m9-fg-2", 2)], "m9-real")]
+
+
+def table6(L: Ladders):
+    rows = [[label, str(seed), L.elo(real, p), L.elo("baseline", p)] for label, runs, real in T6_GROUPS for p, seed in runs]
+    return ("Table 6. Seed replicates",
+            "Elo, HeuristicBot = 0, 100 simulations. The same recipe run again with another seed: the spread is the "
+            "run-to-run noise behind every training comparison.",
+            ["Agent", "Seed", DECK_SETS["real-test"], DECK_SETS["fixed"]], rows)
+
+
 # ---------------------------------------------------------------------- output
+ABSOLUTE = (0, 1, 4, 5)  # tables of ratings (unsigned); the others are differences
 def cell_text(c) -> str:
     if c is None:
         return ""
@@ -237,7 +274,7 @@ def _plain(c) -> str:
 def markdown(tables) -> str:
     out = []
     for i, (title, note, head, rows) in enumerate(tables):
-        fmt = _plain if i < 2 else cell_text
+        fmt = _plain if i in ABSOLUTE else cell_text
         out += [f"## {title}", "", note, "", "| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
         out += ["| " + " | ".join(fmt(c) for c in r) + " |" for r in rows]
         out.append("")
@@ -272,7 +309,7 @@ def xlsx(tables, path: str) -> bool:
                     # the estimate stays a number (sortable); its standard error is shown by the number format
                     v = ws.cell(n, k, round(c[0]))
                     se = f'" ± {c[1]:.0f}"' if c[1] else ""
-                    v.number_format = f"+0{se};-0{se};0{se}" if i >= 2 else f"0{se}"
+                    v.number_format = f"0{se}" if i in ABSOLUTE else f"+0{se};-0{se};0{se}"
                 else:
                     v = ws.cell(n, k, c)
                 v.font = Font(name=F, size=10, bold=(k == 1))
@@ -292,7 +329,7 @@ def build(results: str):
     if os.path.exists(p):
         with open(p, encoding="utf-8") as f:
             sas = json.load(f)
-    return [table1(L), table2(L), table3(L), table4(sas)]
+    return [table1(L), table2(L), table3(L), table4(sas), table5(L), table6(L)]
 
 
 def main():

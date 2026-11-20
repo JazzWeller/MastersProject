@@ -245,6 +245,14 @@ spreads a gate over that many processes. After round 4: `m9-{wt,fg}-{1,2}` are M
 `eval-m9` / `diag-m9` its evaluation matrix and diagnostics; `m11-v1` / `m11-v2` train on random legal decks
 and `eval-m11` rates every network on held-out random decks; `export-m9` / `export-m11` copy them into
 `results/`. An `eval_v2` / ladder player may carry options (`v1:<run>#regime=full_game,leaf=belief_oracle`).
+For the paper: `dmc-1` / `dmc-long` are the search-free Deep Monte-Carlo arm (M8; 50k and 500k games on Fignor and
+Igor from the imitation network), `real-v1-s1` / `real-v1-s2` seed replicates of `real-v1`; `eval-paper` rates
+RandomBot, the search with no network (`search:heuristic`), the DMC agents (`v1:<run>#mode=q`) and the seed
+replicates against the learned agents on fixed and held-out real decks (rerun it as runs finish), and `eval-curves`
+rates every gate's candidate network (`v1:<run>@g<N>`) of `m9-wt-1` and `real-v1` against HeuristicBot and the final
+network (`tools.ladder --anchors 2`). `export-paper` brings it all back and runs `tools.report_tables` (tables 1-6)
+and `tools.paper_stats` (compute used, curves, losses, hyperparameters, seed spread, bidding intervals, figures in
+`results/paper`); `paper-stats` reruns just the last, anywhere.
 
 **Sizing** (one job each; the code is single-GPU, so extra GPUs only run independent jobs in
 parallel): the work is bound by single-threaded Python engine speed, not by the GPU. Ask for
