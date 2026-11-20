@@ -262,7 +262,8 @@ METHODS["eval-m11"] = dict(
 # matters goes on this list. 100 seeds, like eval-ladder, whose finished matches among these players it reuses.
 BASELINE_LADDER = ["heuristic", "v1:tier0b-a0", "v2:tier0b2-a7", "v1:tier2-v1-s3", "v2:tier2-v2-s3",
                    "v1:m9-wt-1", "v1:m9-wt-2", "v1:m9-fg-1", "v1:m9-fg-2", "v1:m11-v1", "v2:m11-v2",
-                   "v1:real-v1", "v2:real-v2"]
+                   "v1:real-v1", "v2:real-v2",
+                   "v1:real-v1-s1", "v1:real-v1-s2", "v1:dmc-1#mode=q", "v1:dmc-long#mode=q"]  # the paper's runs, 2026-11-20
 _BASELINE_STEP = [PY, "-m", "tools.ladder", "--name", "baseline", "--players", *BASELINE_LADDER, "--sims", "100", "--seeds", "100",
                   "--workers", "{w}", "--skip-missing"]
 METHODS["eval-baseline"] = dict(
@@ -489,6 +490,77 @@ METHODS["export-m9"] = dict(
 METHODS["export-m11"] = dict(
     desc="login node: copy the M11 runs, ladders and evals into results/m11 (then commit and push)", local=True,
     steps=[[PY, "-m", "tools.export_results", "m11-v1", "m11-v2", "--out", os.path.join("results", "m11")]])
+# ---- for the paper (2026-11-20): baselines from outside the lineage, seed replicates, training curves -------------
+# Search-free Deep Monte-Carlo (the training plan's M8, DouZero's method): the same v1 network and BC start as M9
+# (tier0b-a0, Fignor and Igor), its Q head trained on Monte-Carlo returns, epsilon-greedy actors, no search anywhere.
+# dmc-1 plays M9's 50k games; dmc-long 500k, since a search-free game costs a small fraction of a searched one.
+DMC_RUNS = {"dmc-1": 50_000, "dmc-long": 500_000}
+for _run, _games in DMC_RUNS.items():
+    METHODS[_run] = dict(
+        desc=f"M8 search-free Deep Monte-Carlo on Fignor and Igor, {_games:,} games from BC run tier0b-a0 (run {_run}); resumable",
+        cpus=32, mem_gb=128, gpu=True, hours=72,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", _run, "--config", "tier4_dmc.json", "--mode", "dmc",
+                "--init-run", "tier0b-a0",
+                "--override", json.dumps({"seed": 1, "selfplay": {"workers": 28, "games": _games, **_LEARNER}}),
+                "--port", "{port}"],
+               [PY, "-m", "tools.monitor", _run]])
+# Seed replicates of the headline agent: real-v1's recipe exactly (from m11-v1's best, the real decks' train split,
+# 50k games), seeds 1 and 2 (real-v1 is seed 0). Their spread is the run-to-run noise behind every training comparison.
+REAL_SEEDS = (1, 2)
+for _seed in REAL_SEEDS:
+    METHODS[f"real-v1-s{_seed}"] = dict(
+        desc=f"seed replicate of real-v1: seed {_seed}, 50k games on the real train split from m11-v1's best (run real-v1-s{_seed}); resumable",
+        cpus=32, mem_gb=128, gpu=True, hours=72,
+        steps=[[PY, "-m", "ml.selfplay_train", "--run", f"real-v1-s{_seed}", "--config", "tier2_selfplay_within_turn.json",
+                "--init-run", "m11-v1",
+                "--override", json.dumps({"seed": _seed, "pool": {"deck_source": "list", "deck_list": "phase3", "split": "train"},
+                                          "selfplay": {"workers": 28, "games": 50_000, **_LEARNER}}),
+                "--port", "{port}"],
+               [PY, "-m", "tools.monitor", f"real-v1-s{_seed}"]])
+# The baselines ladders: RandomBot, the search with no network (both regimes), the imitation network alone and with
+# search, the DMC agents, and the self-play agents, on Fignor and Igor and on the held-out real decks. Players whose runs
+# aren't finished are skipped: run it now for the search-only and RandomBot rows, again after dmc-* and real-v1-s*.
+_DMC_PLAYERS = [f"v1:{r}#mode=q" for r in DMC_RUNS]
+_SEARCH_ONLY = ["search:heuristic", "search:heuristic#regime=full_game"]
+ANCHORS_FI = ["heuristic", "random", *_SEARCH_ONLY, "v1:tier0b-a0#search=none", "v1:tier0b-a0", *_DMC_PLAYERS,
+              "v1:m9-wt-1", "v1:tier2-v1-s3"]
+ANCHORS_REAL = ["heuristic", "random", *_SEARCH_ONLY, "v1:tier0b-a0", *_DMC_PLAYERS, "v1:tier2-v1-s3", "v1:m11-v1",
+                _R1, *[f"v1:real-v1-s{k}" for k in REAL_SEEDS]]
+METHODS["eval-paper"] = dict(
+    desc="baselines: RandomBot, search with no network, DMC, seed replicates vs the agents, fixed then real test decks "
+         "(ladder-anchors-fi, -anchors-real); rerun after dmc-* and real-v1-s* finish",
+    cpus=32, mem_gb=64, gpu=True, hours=72, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", "anchors-fi", "--players", *ANCHORS_FI, "--sims", "100", "--seeds", "100",
+            "--workers", "{w}", "--skip-missing"],
+           [PY, "-m", "tools.ladder", "--name", "anchors-real", "--players", *ANCHORS_REAL, "--sims", "100", "--seeds", "100",
+            "--deck-list", "phase3", "--deck-split", "test", "--workers", "{w}", "--skip-missing"]])
+# Training curves in Elo: every checkpoint a gate tested (`@g<N>`, the learner at that gate's step) and the warm start
+# (`@p0`), each against two anchors only -- HeuristicBot and the run's final network (`--anchors 2`) -- so a curve costs
+# two matches a point, not a round robin. m9-wt-1 starts from imitation (the whole climb, fixed decks); real-v1 is the
+# headline agent (held-out real decks). Gate numbers past a run's last are skipped.
+CURVES = {"m9-wt-1": [], "real-v1": ["--deck-list", "phase3", "--deck-split", "test"]}
+CURVE_GATES = 16
+METHODS["eval-curves"] = dict(
+    desc="training curves: each gate's candidate network of m9-wt-1 (fixed decks) and real-v1 (real test decks) vs "
+         "HeuristicBot and the final network (ladder-curve-m9-wt-1, ladder-curve-real-v1)",
+    cpus=32, mem_gb=64, gpu=True, hours=72, max_w=16,
+    steps=[[PY, "-m", "tools.ladder", "--name", f"curve-{r}", "--anchors", "2",
+            "--players", "heuristic", f"v1:{r}@final", f"v1:{r}@p0", *[f"v1:{r}@g{n}" for n in range(1, CURVE_GATES + 1)],
+            "--sims", "100", "--seeds", "100", *extra, "--workers", "{w}", "--skip-missing"]
+           for r, extra in CURVES.items()])
+METHODS["export-paper"] = dict(
+    desc="login node: the DMC and seed runs into results/paper, every ladder into results/tables, then the report tables "
+         "and tools.paper_stats (then commit and push)",
+    local=True,
+    steps=[[PY, "-m", "tools.export_results", *DMC_RUNS, *[f"real-v1-s{k}" for k in REAL_SEEDS],
+            "--out", os.path.join("results", "paper")],
+           [PY, "-m", "tools.export_results", "--match", "ladder-", "--out", os.path.join("results", "tables")],
+           [PY, "-m", "tools.report_tables", "--results", "results", "--out", os.path.join("results", "tables")],
+           [PY, "-m", "tools.paper_stats", "--results", "results", "--out", os.path.join("results", "paper")]])
+METHODS["paper-stats"] = dict(
+    desc="anywhere, no games: compute used, training curves, losses, hyperparameters, seed spread, bidding intervals and "
+         "figures from results/ (results/paper)",
+    local=True, steps=[[PY, "-m", "tools.paper_stats", "--results", "results", "--out", os.path.join("results", "paper")]])
 METHODS["smoke-selfplay-v2"] = dict(
     desc="the smoke run with network v2 (O10's A7 inputs): v2 actors, server, learner, gate; minutes (run smoke-sp-v2)",
     cpus=8, mem_gb=32, gpu=True, hours=2,

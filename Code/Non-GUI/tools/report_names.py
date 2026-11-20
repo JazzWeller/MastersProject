@@ -35,6 +35,12 @@ RUNS = {
     "m9-wt-2": "Specialist, within-turn training, seed 2",
     "m9-fg-1": "Specialist, full-game training, seed 1",
     "m9-fg-2": "Specialist, full-game training, seed 2",
+    "random": "RandomBot",
+    "heuristic-search": "Search, no network",
+    "real-v1-s1": "Real-deck agent, seed 1",
+    "real-v1-s2": "Real-deck agent, seed 2",
+    "dmc-1": "Deep Monte Carlo (no search), 50k games",
+    "dmc-long": "Deep Monte Carlo (no search), 500k games",
 }
 
 # Play-time options (`#key=value` in a player spec), appended after a dot. Defaults (within-turn search, the student
@@ -44,6 +50,7 @@ OPTIONS = {
     ("resample", "exact"): "sees hidden cards",
     ("regime", "full_game"): "full-game search",
     ("leaf", "belief_oracle"): "oracle leaf",
+    ("mode", "policy"): "no search",
 }
 DEFAULTS = {("regime", "within_turn"), ("leaf", "student"), ("sims", "100")}
 
@@ -58,15 +65,19 @@ DECK_SETS = {
 def name(spec: str) -> str:
     """A player spec as `tools.ladder` writes it (`v1:<run>[@final|@p<N>][#k=v,...]`, or a bot) -> its report name."""
     base, _, opts = spec.partition("#")
+    if base == "search:heuristic":
+        base = "heuristic-search"
     run = base.split(":", 1)[-1]
     run, _, at = run.partition("@")
     out = RUNS.get(run, run)
-    if at and at != "final":
+    if at.startswith("g") and at[1:].isdigit():
+        out += f", gate {at[1:]}"
+    elif at and at != "final":
         out += f" @{at}"
     parts = []
     for kv in filter(None, opts.split(",")):
         k, _, v = kv.partition("=")
-        if (k, v) in DEFAULTS:
+        if (k, v) in DEFAULTS or (k, v) == ("mode", "q"):  # mode=q: the DMC agents' only way to play
             continue
         if k == "sims":
             parts.append(f"{int(v):,} sims")

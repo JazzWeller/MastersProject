@@ -93,6 +93,9 @@ def main():
     parser.add_argument("--out", default=os.path.join(HERE, "results", "tier2"))
     args = parser.parse_args()
     for rid in args.runs:
+        if not os.path.isdir(data_root.resolve(os.path.join("runs", rid))):
+            print(rid, ": no such run yet, skipped")
+            continue
         print(rid, ":", ", ".join(export_run(rid, args.out)))
     evals = data_root.resolve("evals")
     n = 0
